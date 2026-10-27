@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Moderation by rules, not AI: fixed word lists and patterns, checked on the
  * device before anything is posted. Text is folded first (accents, l33t

@@ -3527,3 +3527,9 @@ html.gated body > :not(.gate) {
 .report-item small {
   color: var(--m3-on-surface-variant);
 }
+
+/* inside another site's frame Nook shows nothing (see js/early.js) */
+html.framed body {
+  display: none !important;
+}
+

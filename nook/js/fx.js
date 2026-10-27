@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's motion: what makes a tap feel answered. View transitions between
  * pages, staggered arrivals, shapes that fly to where things went, confetti,

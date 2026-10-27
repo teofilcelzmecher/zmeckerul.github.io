@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's app: the router, the shell (drawer, top bar, bottom bar), every
  * data-act action, the sheets for making nooks, collections and profiles,

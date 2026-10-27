@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's database: one SQLite file, through Node's built-in node:sqlite.
  *

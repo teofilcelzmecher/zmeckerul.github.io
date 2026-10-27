@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's server: accounts, posts, comments, votes, nooks, friends and messages,
  * kept in one SQLite file. Plain Node (22.5 or newer), no packages to install.
@@ -40,18 +41,6 @@ const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const SESSION_IDLE = 90 * DAY;
-const INVITE_SALT = 'nook-early-access:';
-// the eight first invite codes, as salted hashes (the codes themselves were handed out)
-const FIRST_INVITES = [
-  '7580ebc9df02d92cb9a8ccd74fb5d1bd4e500cca6ad389d43767c55fe9d9e99d',
-  'bb88f0fcb381bf4dace717308cdf3203a197a8c493323c25e3b4f415fb19d08f',
-  '7617ea9e0054673d99eee8a9ac4df99482cdb99d361c300d0df8221aa1c16276',
-  '7e652a8edd658fae10343a650f33c7ed655e6307558151fffcd7bd9bb48fb994',
-  'eb34ada67a08ab54b073a30d4bd682addf0bc15ba0a2097c694d3b6da659ec0a',
-  'f1108836d453aaf470c488891272c4cc34223da6f79320671747be802208924c',
-  '6705cabfd0cff4795cdd95fff56f825ef7c891eab1719ceee75cd610a821fbd4',
-  '4744902e99db7fdc884ca8d2065746035b315e86a18e1873e417f9adbe9ac906',
-];
 const DEFAULT_JOINS = ['nookhq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'asknook'];
 const SPARK_KINDS = ['love', 'insight', 'funny', 'fire', 'wow'];
 const COLORS = ['#6750a4', '#e8467c', '#ff8a3d', '#1db954', '#3d7bff', '#00a6a6'];
@@ -66,10 +55,10 @@ const STARTERS = (() => {
 })();
 
 const db = open(CONFIG.data);
-if (!db.meta('first-invites')) {
-  for (const code of FIRST_INVITES) db.run('INSERT OR IGNORE INTO invites (code, note, created_at) VALUES (?, ?, ?)', code, 'first eight', Date.now());
-  db.meta('first-invites', '1');
-}
+
+// invite codes are only 6 digits, so they're stored keyed with a secret that never leaves this
+// computer: a copy of the database alone isn't enough to work them out
+const INVITE_KEY = db.meta('invite-key') || db.meta('invite-key', crypto.randomBytes(32).toString('hex'));
 
 // what the Privacy Policy promises: unused sign-ins expire, old moderation records go
 function tidy() {
@@ -119,7 +108,7 @@ function recoveryCode() {
   return chars.match(/.{4}/g).join('-');
 }
 const recoveryHash = (code) => sha256('nook-recovery:' + String(code).toUpperCase().replace(/[^A-Z0-9]/g, ''));
-const inviteHash = (code) => sha256(INVITE_SALT + String(code).replace(/\D/g, ''));
+const inviteHash = (code) => crypto.createHmac('sha256', INVITE_KEY).update(String(code).replace(/\D/g, '')).digest('hex');
 
 const text = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 const NAME_RE = /^[A-Za-z0-9_]{3,20}$/;
@@ -1065,6 +1054,7 @@ async function handle(req, res) {
       if (!who) fail(401, 'Please sign in again.', { signedOut: true });
       ctx.user = who.user;
       ctx.session = who.session;
+      if (req.method === 'GET') limit('read:' + who.user.id, 240, MINUTE, 'Too many requests. Slow down a little.');
       if (r.admin && who.user.role !== 'admin') fail(403, 'Only admins can do that.');
     }
     return send(res, 200, await r.handler(ctx));

@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * The way in: sign in, create an account with an invite code, or get back in
  * with a recovery code. Once signed in, it fetches everything the app needs

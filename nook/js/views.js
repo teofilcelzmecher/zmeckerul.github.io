@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's views. Each page is a function of its route params that returns
  * { title, html, mount(root), nook, brand }: markup first, then whatever

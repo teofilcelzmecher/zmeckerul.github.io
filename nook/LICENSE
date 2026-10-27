@@ -1,0 +1,22 @@
+Nook
+Copyright (C) 2026 teofilcelzmecher. All rights reserved.
+
+This code is published so people can see how Nook works (and, for the design system, because
+its license requires the source to be available). It is not open source. Unless a file or
+folder is listed below, you may not copy, modify, redistribute, host or otherwise use any part
+of Nook (its code, text, styles or design) without written permission from the copyright holder.
+
+These parts are under their own licenses instead:
+
+- m3/m3.js, m3/m3.css, m3/m3-shapes.js and m3/index.html: Nook's design system, ported from
+  Swiftify. GNU General Public License, version 3 or (at your option) any later version; see
+  m3/LICENSE.
+  Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors
+  Copyright (C) 2026 teofilcelzmecher
+- The shape code inside m3/m3-shapes.js comes from rounded-polygon-qmljs (end-4), a port of
+  Android's graphics-shapes: Apache License 2.0; see m3/LICENSE-shapes.txt.
+- m3/fonts/: Google Sans Flex (SIL Open Font License 1.1) and Material Symbols (Apache License
+  2.0); their licenses are in that folder.
+- m3/vendor/material-color-utilities.js: Google LLC, Apache License 2.0; license beside it.
+
+Found a security problem? Please read SECURITY.md and report it privately.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's admin commands, run on the server: `nook <command>` once installed,
  * or `node cli.js <command>` from this folder. Uses the same NOOK_DATA as the server.

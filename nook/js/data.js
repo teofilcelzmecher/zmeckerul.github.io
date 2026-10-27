@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's starting point: the nooks (communities) people can post in, each with
  * its colour, shape and rules. There are no made-up people, posts or numbers

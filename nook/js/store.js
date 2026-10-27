@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's store: what the server sent at sign-in, kept up to date by asking it
  * what changed every few seconds. Shared things (posts, comments, votes, nooks,
@@ -76,7 +77,9 @@
   const fresh = freshPrefs();
   const state = Object.assign(fresh, {});
   for (const key of PREF_KEYS) if (saved[key] != null) state[key] = saved[key];
-  state.settings = Object.assign(fresh.settings, saved.settings || {});
+  // only plain keys are copied, so a crafted "__proto__" in saved settings can't reach any object's prototype
+  for (const [key, value] of Object.entries(saved.settings || {})) if (!['__proto__', 'constructor', 'prototype'].includes(key)) fresh.settings[key] = value;
+  state.settings = fresh.settings;
   Object.assign(state, {
     me: meFrom(BOOT.me),
     joined: BOOT.joined.slice(),

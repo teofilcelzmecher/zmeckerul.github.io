@@ -158,10 +158,11 @@ Next, put it on the internet with Tailscale Funnel (free, no router changes):
        It ends by printing your server's address, like https://your-laptop.tail1234.ts.net
   3. Send that address to whoever updates the app, so the app knows where its server is.
 
-Then make yourself an account and an admin:
+Then make invite codes (each works once; the old test-version codes don't work here):
 
-  ${S}nook invite 1 "for me"     (prints a code: use it to sign up in the app)
-  ${S}nook admin YOUR_USERNAME   (after signing up)
+  ${S}nook invite 1 "for me"     (sign up with it in the app, then:)
+  ${S}nook admin YOUR_USERNAME   (you get the Moderation page and every report)
+  ${S}nook invite 8 "friends"    (new codes to send your friends)
 
 Closing the lid now keeps the laptop running (fully after the next reboot). Keep it plugged in.
 EOF

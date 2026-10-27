@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Nook's ui helpers: escaping and markdown-lite, little formatters, avatars and
  * nook icons, the theme engine (one scheme for the app, one per nook for the

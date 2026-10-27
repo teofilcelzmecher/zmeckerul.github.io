@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Nook</title>
   <meta name="description" content="Nook: communities with their own colours and shapes. Join nooks, post, vote, spark and chat.">
@@ -10,7 +12,7 @@
   <link rel="stylesheet" href="../m3/fonts/fonts.css">
   <link rel="stylesheet" href="../m3/m3.css">
   <link rel="stylesheet" href="app.css">
-  <script>document.documentElement.classList.add('gated');</script>
+  <script src="js/early.js"></script>
 </head>
 <body class="m3-base">
   <a class="skip" href="#main" id="skip">Skip to content</a>

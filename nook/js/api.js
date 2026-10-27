@@ -1,3 +1,4 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * Talking to Nook's server: one JSON request helper and the sign-in token,
  * which lives in this browser's storage (no cookies). A server error comes

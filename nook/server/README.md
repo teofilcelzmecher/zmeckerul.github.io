@@ -60,7 +60,9 @@ Plug the laptop in and connect it to the internet, then open a terminal.
 
    Reload the app and you'll have a **Moderation** page for reports.
 
-The eight first invite codes already work. Each code creates one account.
+Invite codes only come from `nook invite`, and each one creates one account. The eight codes from
+the first test version don’t work here (they were published, scrambled, in the old app), so make your
+friends new ones: `sudo nook invite 8 "friends"`.
 
 ## Everyday commands
 
