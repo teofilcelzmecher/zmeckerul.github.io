@@ -9,7 +9,7 @@ Read this first when picking Nook up again (a new chat, or after a long break).
 | Source of truth | `teofilcelzmecher/zmeckerul.github.io`, branch `claude/community-social-media-app-m1k3uc`, folders `nook/` (the app, server, tools) and `m3/` (design system). PR #1 is open; don't merge it. |
 | The owner's personal site | The root `index.html` of that same repository's `main` branch. **Never touch it.** |
 | The live early-access site | `teofilcelzmecher/nook-early-access-website` (`main`, GitHub Pages from the root) → https://teofilcelzmecher.github.io/nook-early-access-website/ |
-| The server | The owner's laptop (Arch Linux, 4 GB, terminal only, logged in as root): code cloned to `/opt/nook`, data in `/var/lib/nook`, service `nook.service` on 127.0.0.1:8787, made public with Tailscale Funnel at an `https://….ts.net` address. |
+| The server | The owner's laptop (Arch Linux, 4 GB, terminal only, a normal user with sudo): code cloned to `/opt/nook`, data in `/var/lib/nook`, service `nook.service` on 127.0.0.1:8787, made public with Tailscale Funnel at an `https://….ts.net` address. |
 
 ## Versions
 
