@@ -308,7 +308,7 @@
   const footCard = () =>
     '<div class="foot-links">' +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
-    '<button type="button" data-act="about-nook">What’s Nook?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="../m3/">Design system</a>' +
+    '<button type="button" data-act="about-nook">What’s Nook?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
     '<span>Built with Material 3 Expressive. Everything you do is saved in this browser only.</span></div>';
 
   // ---- comments -------------------------------------------------------------------------------
@@ -851,7 +851,7 @@
         '</div></section>' +
         `<section>${header('clover4', 'policy', 'Privacy and legal')}<div class="card setting-card">` +
         '<p class="muted">Nook uses no cookies and no trackers. It keeps what you do in this browser’s storage so it’s here next time, and loads nothing from other companies.</p>' +
-        `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
+        `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><a class="m3-btn tonal" href="licenses.html">${icon('license')}Open-source licenses</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
         '</div></section>' +
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
         `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Nook</b><span class="muted">Version ${esc(store.VERSION)} · Early access</span></div></div>` +

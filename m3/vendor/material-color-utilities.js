@@ -1,7 +1,7 @@
 /*
  * @material/material-color-utilities 0.4.0, bundled as one ES module.
- * Copyright 2021 Google LLC. Licensed under the Apache License, Version 2.0:
- * https://www.apache.org/licenses/LICENSE-2.0
+ * Copyright 2021 Google LLC. Licensed under the Apache License, Version 2.0;
+ * see LICENSE-material-color-utilities.txt beside this file.
  */
 /**
  * Bundled by jsDelivr using Rollup v4.62.2 and esbuild v0.28.1.
