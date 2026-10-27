@@ -1,17 +1,22 @@
 /*
- * Nook's store: the seed content merged with everything you have done, kept in
- * this browser's localStorage. Nothing here touches the page; views read from
- * it and app.js calls its mutations.
+ * Nook's store: what the server sent at sign-in, kept up to date by asking it
+ * what changed every few seconds. Shared things (posts, comments, votes, nooks,
+ * people, friends, messages) live on the server; your own things (settings,
+ * saved posts, collections, streak, badges) are saved with your account too, so
+ * they follow you between devices. Nothing here touches the page: views read
+ * from it, and app.js calls its mutations, which show their effect at once and
+ * undo it if the server says no.
  */
 (function () {
   'use strict';
 
   const Nook = (window.Nook = window.Nook || {});
+  const api = Nook.api;
   const DATA = window.NOOK_DATA;
-  const KEY = 'nook-state-v1';
+  const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.1.2';
-  const BOOT = Date.now();
+  const VERSION = '0.2.0';
+  const SYNC_EVERY = 15000;
 
   const SPARKS = [
     { id: 'love', label: 'Love', symbol: 'favorite', shape: 'heart', burst: 'hearts' },
@@ -33,172 +38,164 @@
     { id: 'sparky', name: 'Sparky', desc: 'Gave 10 Sparks', shape: 'boom', symbol: 'auto_awesome' },
     { id: 'curator', name: 'Curator', desc: 'Made a collection', shape: 'gem', symbol: 'collections_bookmark' },
     { id: 'founder', name: 'Founder', desc: 'Created a nook', shape: 'softBurst', symbol: 'castle' },
+    { id: 'friendly', name: 'Friendly', desc: 'Made your first friend', shape: 'heart', symbol: 'diversity_1' },
   ];
 
-  const ADJECTIVES = ['curious', 'sleepy', 'brave', 'gentle', 'sunny', 'quiet', 'clever', 'cosy', 'lucky', 'mellow'];
-  const ANIMALS = ['otter', 'fox', 'heron', 'panda', 'lynx', 'robin', 'koala', 'badger', 'moth', 'newt'];
-  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  // ---- your own things --------------------------------------------------------------------------------
 
-  function freshState() {
+  const PREF_KEYS = ['settings', 'saved', 'collections', 'hidden', 'streak', 'badges', 'visited', 'recent', 'draft', 'tourDone', 'sparksGiven', 'noticeSeen', 'localNotes', 'read'];
+
+  function freshPrefs() {
     return {
-      v: 2,
-      me: {
-        name: `${pick(ADJECTIVES)}_${pick(ANIMALS)}${Math.floor(10 + Math.random() * 89)}`,
-        color: pick(['#6750a4', '#e8467c', '#ff8a3d', '#1db954', '#3d7bff', '#00a6a6']),
-        shape: pick(['cookie9', 'flower', 'heart', 'clover4', 'puffy', 'sunny']),
-        bio: '',
-        joinedAt: BOOT,
-      },
       settings: {
         mode: 'system', seed: '#6750a4', variant: 'tonalSpot', themeNooks: true, tintPosts: true,
         calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false, haptics: true,
       },
-      joined: ['nookhq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'asknook'],
-      votes: {},
-      cvotes: {},
-      reacts: {},
-      polls: {},
-      saved: [],
-      collections: [],
-      hidden: [],
-      posts: [],
-      comments: [],
-      removed: [],
-      communities: [],
-      notes: [],
-      read: [],
-      streak: { count: 0, last: '', best: 0 },
-      badges: {},
-      visited: [],
-      recent: [],
-      draft: null,
-      tourDone: false,
-      sparksGiven: 0,
+      saved: [], collections: [], hidden: [], streak: { count: 0, last: '', best: 0 }, badges: {}, visited: [], recent: [],
+      draft: null, tourDone: false, sparksGiven: 0, noticeSeen: false, localNotes: [], read: [],
     };
   }
 
-  function load() {
-    const fresh = freshState();
+  // the first time an account signs in here, the settings this browser had before accounts come along
+  function earlierPrefs() {
     try {
-      const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (saved && (saved.v === 1 || saved.v === 2)) {
-        if (saved.v === 1) forgetMadeUp(saved);
-        // anything added since this browser last saved takes its default
-        return Object.assign(fresh, saved, {
-          me: Object.assign(fresh.me, saved.me),
-          settings: Object.assign(fresh.settings, saved.settings),
-        });
-      }
+      const old = JSON.parse(localStorage.getItem('nook-state-v1') || 'null');
+      if (!old) return {};
+      return { settings: old.settings, streak: old.streak, badges: old.badges, tourDone: old.tourDone, noticeSeen: old.noticeSeen, sparksGiven: old.sparksGiven };
     } catch (_) {
-      /* a broken save starts over */
+      return {};
     }
-    return fresh;
   }
 
-  /** an early save held replies the app made up; only what you wrote stays */
-  function forgetMadeUp(saved) {
-    const mine = new Set((saved.posts || []).map((p) => p.id));
-    saved.comments = (saved.comments || []).filter((c) => c.author === ME && mine.has(c.postId));
-    const kept = new Set(saved.comments.map((c) => c.id));
-    for (const c of saved.comments) if (c.parentId && !kept.has(c.parentId)) c.parentId = null;
-    // your comments count your own vote, as your posts do
-    saved.cvotes = saved.cvotes || {};
-    for (const c of saved.comments) if (!saved.cvotes[c.id]) saved.cvotes[c.id] = 1;
-    for (const c of saved.comments) delete c.score;
-    saved.notes = (saved.notes || []).filter((n) => n.kind !== 'reply' && n.kind !== 'event');
-    delete saved.bells;
-    delete saved.rsvps;
-    for (const c of saved.communities || []) for (const key of ['members', 'online', 'activity', 'founded']) delete c[key];
-    saved.v = 2;
-  }
+  const meFrom = (me) => ({
+    name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', photo: api.url(me.photo), bio: me.bio || '',
+    joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member',
+  });
 
-  const state = load();
+  const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});
+  const fresh = freshPrefs();
+  const state = Object.assign(fresh, {});
+  for (const key of PREF_KEYS) if (saved[key] != null) state[key] = saved[key];
+  state.settings = Object.assign(fresh.settings, saved.settings || {});
+  Object.assign(state, {
+    me: meFrom(BOOT.me),
+    joined: BOOT.joined.slice(),
+    votes: {},
+    cvotes: {},
+    reacts: BOOT.mine.sparks || {},
+    polls: BOOT.mine.polls || {},
+    notes: BOOT.notes || [],
+    friends: BOOT.friends || [],
+    conversations: BOOT.conversations || [],
+    following: [],
+  });
+  for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
+
   let saveTimer = 0;
-  let quotaWarned = false;
-  let wiped = false;
-
-  function saveNow() {
+  const prefsNow = () => Object.fromEntries(PREF_KEYS.map((key) => [key, state[key]]));
+  function saveNow(keepalive = false) {
     clearTimeout(saveTimer);
     saveTimer = 0;
-    if (wiped) return true;
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-      return true;
-    } catch (_) {
-      if (!quotaWarned && window.M3) {
-        quotaWarned = true;
-        M3.snackbar('This browser’s storage is full, so your latest changes may not be kept. Try removing an image post.');
-      }
-      return false;
-    }
+    api.put('/api/prefs', { prefs: prefsNow() }, { keepalive }).catch((error) => emit('error', error));
+    return true;
   }
   const save = () => {
-    if (!saveTimer && !wiped) saveTimer = setTimeout(saveNow, 120);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 1200);
   };
-  window.addEventListener('pagehide', () => saveTimer && saveNow());
+  window.addEventListener('pagehide', () => saveTimer && saveNow(true));
 
-  // ---- the model: the starter nooks + everything people write ----------------
+  // ---- the shared model --------------------------------------------------------------------------------
 
   const communities = new Map();
+  const members = Object.assign({}, BOOT.members);
+  const users = new Map();
   const posts = new Map();
   const commentsByPost = new Map();
   const commentsById = new Map();
+  const removed = new Set();
+  const threads = new Map();
 
   for (const c of DATA.communities) communities.set(c.id, Object.assign({ starter: true }, c));
-  for (const c of state.communities) communities.set(c.id, c);
 
-  function addComment(comment) {
-    commentsById.set(comment.id, comment);
-    if (!commentsByPost.has(comment.postId)) commentsByPost.set(comment.postId, []);
-    commentsByPost.get(comment.postId).push(comment);
+  function ingestUser(u) {
+    users.set(u.name.toLowerCase(), Object.assign({}, u, { photo: api.url(u.photo) }));
+  }
+  function ingestNook(c) {
+    communities.set(c.id, c);
+  }
+  function ingestPost(p) {
+    if (p.removed) {
+      removed.add(p.id);
+      posts.delete(p.id);
+      return;
+    }
+    if (p.image) p.image = api.url(p.image);
+    const had = posts.get(p.id);
+    if (had) Object.assign(had, p);
+    else posts.set(p.id, p);
+  }
+  function ingestComment(c) {
+    if (c.removed) removed.add(c.id);
+    const had = commentsById.get(c.id);
+    if (had) return Object.assign(had, c);
+    commentsById.set(c.id, c);
+    if (!commentsByPost.has(c.postId)) commentsByPost.set(c.postId, []);
+    commentsByPost.get(c.postId).push(c);
+    return c;
   }
 
-  for (const p of state.posts) posts.set(p.id, p);
-  for (const c of state.comments) addComment(c);
+  for (const u of BOOT.users) ingestUser(u);
+  for (const c of BOOT.nooks) ingestNook(c);
+  for (const p of BOOT.posts) ingestPost(p);
+  for (const c of BOOT.comments) ingestComment(c);
 
-  // ---- reading ---------------------------------------------------------------
+  // ---- reading ---------------------------------------------------------------------------------------
 
   const uid = (prefix) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const isMe = (name) => name === ME || name === state.me.name;
+  const isMe = (name) => name === ME || (!!name && name.toLowerCase() === state.me.name.toLowerCase());
   const userName = (name) => (name === ME ? state.me.name : name);
+  const isAdmin = () => state.me.role === 'admin';
 
   function user(name) {
-    if (isMe(name)) return { name: state.me.name, color: state.me.color, shape: state.me.shape, icon: state.me.icon || '', photo: state.me.photo || '', bio: state.me.bio, me: true };
-    return { name, color: '#79747e', shape: 'circle', bio: '' };
+    if (isMe(name)) return Object.assign({}, state.me, { me: true });
+    const known = name && users.get(String(name).toLowerCase());
+    if (known) return Object.assign({}, known);
+    return { name: name || '[deleted]', color: '#79747e', shape: 'circle', icon: '', photo: '', bio: '', unknown: true };
   }
+  const people = () => [...users.values()].filter((u) => !u.banned);
 
   const community = (id) => communities.get(id) || null;
   const allCommunities = () => [...communities.values()];
   const post = (id) => posts.get(id) || null;
-  const isRemoved = (id) => state.removed.includes(id);
+  const isRemoved = (id) => removed.has(id);
 
   function visiblePosts() {
-    return [...posts.values()].filter((p) => !isRemoved(p.id) && communities.has(p.n));
+    return [...posts.values()].filter((p) => !removed.has(p.id) && communities.has(p.n));
   }
 
   function comments(postId) {
-    return (commentsByPost.get(postId) || []).filter((c) => !isRemoved(c.id) || hasLiveReplies(c));
+    return (commentsByPost.get(postId) || []).filter((c) => !removed.has(c.id) || hasLiveReplies(c));
   }
-
   function hasLiveReplies(c) {
-    return (commentsByPost.get(c.postId) || []).some((r) => r.parentId === c.id && !isRemoved(r.id));
+    return (commentsByPost.get(c.postId) || []).some((r) => r.parentId === c.id && !removed.has(r.id));
   }
+  const commentCount = (postId) => (commentsByPost.get(postId) || []).filter((c) => !removed.has(c.id)).length;
 
-  const commentCount = (postId) => (commentsByPost.get(postId) || []).filter((c) => !isRemoved(c.id)).length;
-
-  // scores are the votes people actually gave, nothing more
-  const score = (p) => state.votes[p.id] || 0;
-  const commentScore = (c) => state.cvotes[c.id] || 0;
+  // scores are the votes people actually gave, as the server counts them
+  const score = (p) => p.score || 0;
+  const commentScore = (c) => c.score || 0;
 
   function sparks(p) {
     const mine = state.reacts[p.id] || {};
-    return SPARKS.map((s) => ({ ...s, count: mine[s.id] ? 1 : 0, mine: !!mine[s.id] }));
+    const counts = p.sparks || {};
+    return SPARKS.map((s) => ({ ...s, count: counts[s.id] || 0, mine: !!mine[s.id] }));
   }
   const sparkTotal = (p) => sparks(p).reduce((sum, s) => sum + s.count, 0);
 
   function pollResults(p) {
     const chosen = state.polls[p.id];
-    const options = p.poll.options.map(([text, votes], index) => ({ text, votes: votes + (chosen === index ? 1 : 0), index }));
+    const options = p.poll.options.map(([text, votes], index) => ({ text, votes, index }));
     const total = options.reduce((sum, o) => sum + o.votes, 0);
     return { options, total, chosen };
   }
@@ -223,10 +220,9 @@
     let list = visiblePosts().filter((p) => !state.hidden.includes(p.id));
     if (nook) list = list.filter((p) => p.n === nook);
     if (joinedOnly) list = list.filter((p) => state.joined.includes(p.n));
-    if (author) list = list.filter((p) => userName(p.author) === author);
+    if (author) list = list.filter((p) => p.author.toLowerCase() === author.toLowerCase());
     if (flair) list = list.filter((p) => p.flair === flair);
     list.sort(SORTS[sort] || SORTS.hot);
-    // a nook's pinned posts lead its own page
     if (nook) list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     return list;
   }
@@ -243,19 +239,29 @@
 
   /** a thread's best moments: what everyone upvoted, what the poster said back */
   function highlights(p) {
-    const all = comments(p.id).filter((c) => !isRemoved(c.id));
+    const all = comments(p.id).filter((c) => !removed.has(c.id));
     if (all.length < 5) return null;
     const top = [...all].sort((a, b) => commentScore(b) - commentScore(a)).slice(0, 3);
-    const op = all.filter((c) => userName(c.author) === userName(p.author) && !top.includes(c)).sort((a, b) => commentScore(b) - commentScore(a))[0];
-    const people = new Set(all.map((c) => userName(c.author))).size;
+    const op = all.filter((c) => c.author === p.author && !top.includes(c)).sort((a, b) => commentScore(b) - commentScore(a))[0];
+    const people = new Set(all.map((c) => c.author)).size;
     return { top, op, people, total: all.length };
   }
 
   function userStats(name) {
-    const own = visiblePosts().filter((p) => userName(p.author) === name);
-    const said = [...commentsById.values()].filter((c) => userName(c.author) === name && !isRemoved(c.id));
+    const lower = String(userName(name)).toLowerCase();
+    const own = visiblePosts().filter((p) => p.author.toLowerCase() === lower);
+    const said = [...commentsById.values()].filter((c) => !removed.has(c.id) && c.author.toLowerCase() === lower && posts.has(c.postId));
     const karma = own.reduce((sum, p) => sum + score(p), 0) + said.reduce((sum, c) => sum + commentScore(c), 0);
     return { posts: own, comments: said, karma };
+  }
+
+  /** what you've posted lately, for the spam rules */
+  function history() {
+    const t = Date.now();
+    return {
+      posts: visiblePosts().filter((p) => isMe(p.author) && t - p.createdAt < 86400000).map((p) => ({ title: p.title, createdAt: p.createdAt })),
+      comments: [...commentsById.values()].filter((c) => !removed.has(c.id) && isMe(c.author) && t - c.createdAt < 3600000).map((c) => ({ postId: c.postId, body: c.body, createdAt: c.createdAt })),
+    };
   }
 
   function search(query) {
@@ -265,38 +271,52 @@
     const found = visiblePosts().filter((p) => !state.hidden.includes(p.id) && (has(p.title) || has(p.body) || has(p.flair)));
     found.sort((a, b) => (has(b.title) ? 1 : 0) - (has(a.title) ? 1 : 0) || SORTS.hot(a, b));
     const nooks = allCommunities().filter((c) => has(c.id) || has(c.title) || has(c.tagline) || has(c.category));
-    const people = [state.me.name].filter((name) => has(name) || has(user(name).bio)).map(user);
-    return { posts: found, nooks, people };
+    const found2 = people().filter((u) => has(u.name) || has(u.bio)).map((u) => user(u.name));
+    return { posts: found, nooks, people: found2 };
   }
 
-  // the people who joined: in this browser, that's you or nobody
-  const membersOf = (c) => (state.joined.includes(c.id) ? 1 : 0);
+  const membersOf = (c) => members[c.id] || 0;
 
   /** how busy a nook really is: its posts and comments over the last week */
   function activity(c) {
     const since = Date.now() - 7 * 86400000;
     const list = visiblePosts().filter((p) => p.n === c.id);
-    const said = list.flatMap((p) => (commentsByPost.get(p.id) || []).filter((x) => !isRemoved(x.id)));
+    const said = list.flatMap((p) => (commentsByPost.get(p.id) || []).filter((x) => !removed.has(x.id)));
     const week = list.filter((p) => p.createdAt > since).length + said.filter((x) => x.createdAt > since).length;
     const mood = week >= 20 ? 'Buzzing' : week >= 8 ? 'Lively' : week >= 1 ? 'Chill' : 'Quiet';
     return { week, posts: list.length, comments: said.length, level: Math.min(1, week / 20), mood };
   }
 
-  // ---- notifications ----------------------------------------------------------
+  // ---- notifications: the server's, plus badges earned here ------------------------------------------------
 
-  const notifications = () => [...state.notes].sort((a, b) => b.createdAt - a.createdAt);
-  const unread = () => notifications().filter((n) => !state.read.includes(n.id)).length;
+  const notifications = () => [...state.notes, ...state.localNotes].sort((a, b) => b.createdAt - a.createdAt);
+  const isRead = (n) => n.read || state.read.includes(n.id);
+  const unread = () => notifications().filter((n) => !isRead(n)).length;
 
   function notify(note) {
     const full = Object.assign({ id: uid('note'), createdAt: Date.now(), kind: 'system', symbol: 'notifications', shape: 'cookie9' }, note);
-    state.notes.unshift(full);
-    state.notes = state.notes.slice(0, 60);
+    state.localNotes = [full, ...state.localNotes].slice(0, 30);
     save();
     emit('notify', full);
     return full;
   }
 
-  // ---- events (the app listens) -------------------------------------------------
+  function markRead(id) {
+    const server = [];
+    for (const n of notifications()) {
+      if (id && n.id !== id) continue;
+      if (isRead(n)) continue;
+      if (/^n\d+$/.test(n.id)) {
+        n.read = true;
+        server.push(n.id);
+      } else state.read.push(n.id);
+    }
+    state.read = state.read.slice(-200);
+    if (server.length) api.post('/api/notes/read', id ? { ids: server } : { all: true }).catch((error) => emit('error', error));
+    save();
+  }
+
+  // ---- events (the app listens) -------------------------------------------------------------------------
 
   const listeners = new Map();
   function on(type, fn) {
@@ -313,7 +333,7 @@
     }
   }
 
-  // ---- badges and streaks --------------------------------------------------------
+  // ---- badges and streaks --------------------------------------------------------------------------------
 
   const dayKey = (time) => {
     const d = new Date(time);
@@ -347,52 +367,94 @@
     award('hello');
     if (state.streak.count >= 3) award('streak3');
     if (state.streak.count >= 7) award('streak7');
-    if (state.posts.some((p) => p.author === ME)) award('firstpost');
-    if (state.comments.filter((c) => c.author === ME && !isRemoved(c.id)).length >= 5) award('chatty');
+    const mine = userStats(state.me.name);
+    if (mine.posts.length) award('firstpost');
+    if (mine.comments.length >= 5) award('chatty');
     if (state.joined.length >= 8) award('joiner');
     if (state.visited.length >= 6) award('explorer');
     if (Object.keys(state.polls).length) award('pollster');
     if (state.sparksGiven >= 10) award('sparky');
     if (state.collections.length) award('curator');
-    if (state.communities.length) award('founder');
+    if (allCommunities().some((c) => (c.mods || []).some(isMe))) award('founder');
+    if (state.friends.some((f) => f.status === 'friends')) award('friendly');
   }
 
-  // ---- mutations ---------------------------------------------------------------
+  // ---- changing things: shown at once, undone if the server says no -------------------------------------------
+
+  /** the server said no: undo, and tell the app why */
+  const refused = (undo) => (error) => {
+    undo();
+    emit('error', error);
+    emit('changed');
+  };
+
+  function setVote(map, id, value) {
+    if (value) map[id] = value;
+    else delete map[id];
+  }
 
   function vote(postId, dir) {
+    const p = posts.get(postId);
     const was = state.votes[postId] || 0;
     const next = was === dir ? 0 : dir;
-    if (next) state.votes[postId] = next;
-    else delete state.votes[postId];
-    save();
+    setVote(state.votes, postId, next);
+    if (p) p.score = (p.score || 0) + next - was;
+    api
+      .post('/api/votes', { id: postId, dir: next })
+      .then((r) => p && (p.score = r.score))
+      .catch(refused(() => {
+        setVote(state.votes, postId, was);
+        if (p) p.score -= next - was;
+      }));
     return next;
   }
 
   function voteComment(commentId, dir) {
+    const c = commentsById.get(commentId);
     const was = state.cvotes[commentId] || 0;
     const next = was === dir ? 0 : dir;
-    if (next) state.cvotes[commentId] = next;
-    else delete state.cvotes[commentId];
-    save();
+    setVote(state.cvotes, commentId, next);
+    if (c) c.score = (c.score || 0) + next - was;
+    api
+      .post('/api/votes', { id: commentId, dir: next })
+      .then((r) => c && (c.score = r.score))
+      .catch(refused(() => {
+        setVote(state.cvotes, commentId, was);
+        if (c) c.score -= next - was;
+      }));
     return next;
   }
 
   function react(postId, kind) {
+    const p = posts.get(postId);
     const mine = (state.reacts[postId] = state.reacts[postId] || {});
-    mine[kind] = !mine[kind];
-    if (!mine[kind]) delete mine[kind];
-    else state.sparksGiven++;
-    if (!Object.keys(mine).length) delete state.reacts[postId];
+    const on = !mine[kind];
+    const flip = (value) => {
+      if (value) mine[kind] = true;
+      else delete mine[kind];
+      if (p) p.sparks = Object.assign({}, p.sparks, { [kind]: Math.max(0, ((p.sparks || {})[kind] || 0) + (value ? 1 : -1)) });
+    };
+    flip(on);
+    if (on) state.sparksGiven++;
     save();
     checkBadges();
-    return !!(state.reacts[postId] && state.reacts[postId][kind]);
+    api.post('/api/sparks', { post: postId, kind, on }).then((r) => p && (p.sparks = r.sparks)).catch(refused(() => flip(!on)));
+    return on;
   }
 
   function votePoll(postId, index) {
     if (state.polls[postId] != null) return false;
+    const p = posts.get(postId);
     state.polls[postId] = index;
-    save();
+    if (p && p.poll) p.poll.options[index][1]++;
     checkBadges();
+    api
+      .post('/api/polls', { post: postId, option: index })
+      .then((r) => ingestPost(r.post))
+      .catch(refused(() => {
+        delete state.polls[postId];
+        if (p && p.poll) p.poll.options[index][1]--;
+      }));
     return true;
   }
 
@@ -405,12 +467,20 @@
     return want;
   }
 
-  const join = (id, on) => {
-    const joined = toggle('joined', id, on);
+  function join(id, on) {
+    const was = state.joined.includes(id);
+    const joined = on == null ? !was : on;
+    if (joined === was) return joined;
+    state.joined = joined ? [id, ...state.joined] : state.joined.filter((x) => x !== id);
+    members[id] = Math.max(0, (members[id] || 0) + (joined ? 1 : -1));
     checkBadges();
     emit('joined', { id, joined });
+    api.post('/api/joins', { nook: id, on: joined }).then((r) => (members[id] = r.members)).catch(refused(() => {
+      state.joined = was ? [id, ...state.joined.filter((x) => x !== id)] : state.joined.filter((x) => x !== id);
+      members[id] = Math.max(0, (members[id] || 0) + (joined ? -1 : 1));
+    }));
     return joined;
-  };
+  }
   const toggleSave = (id, on) => toggle('saved', id, on);
   const hide = (id, on) => toggle('hidden', id, on);
 
@@ -421,17 +491,10 @@
     checkBadges();
   }
 
-  function createPost({ n, title, body, type, flair, link, image, poll, spoiler }) {
-    const p = {
-      id: uid('p'), n, author: ME, createdAt: Date.now(), title, body: body || '', type: type || 'text',
-      flair: flair || null, spoiler: !!spoiler,
-    };
-    if (type === 'link') p.link = link;
-    if (type === 'image') p.image = image;
-    if (type === 'poll') p.poll = { options: poll.map((text) => [text, 0]) };
-    state.posts.unshift(p);
-    posts.set(p.id, p);
-    state.votes[p.id] = 1; // you upvote your own, as tradition demands
+  async function createPost({ n, title, body, type, flair, link, image, poll, spoiler }) {
+    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, poll, spoiler });
+    ingestPost(p);
+    state.votes[p.id] = 1;
     state.draft = null;
     save();
     checkBadges();
@@ -439,41 +502,38 @@
     return p;
   }
 
-  function addOwnComment(postId, parentId, body) {
-    const c = { id: uid('c'), postId, parentId: parentId || null, author: ME, createdAt: Date.now(), body };
-    state.comments.push(c);
-    addComment(c);
-    state.cvotes[c.id] = 1; // your own comment starts with your vote, as your posts do
-    save();
+  async function addOwnComment(postId, parentId, body) {
+    const { comment } = await api.post('/api/comments', { postId, parentId: parentId || null, body });
+    const c = ingestComment(comment);
+    state.cvotes[c.id] = 1;
     checkBadges();
     emit('commented', c);
     return c;
   }
 
-  function editComment(id, body) {
-    const c = commentsById.get(id);
-    if (!c || !isMe(c.author)) return;
-    c.body = body;
-    c.edited = Date.now();
-    save();
+  async function editComment(id, body) {
+    const { comment } = await api.patch('/api/comments/' + encodeURIComponent(id), { body });
+    return ingestComment(comment);
   }
 
-  function remove(id) {
-    if (!state.removed.includes(id)) state.removed.push(id);
-    save();
+  /** deletes your own post or comment */
+  async function remove(id) {
+    const isPost = posts.has(id);
+    await api.del((isPost ? '/api/posts/' : '/api/comments/') + encodeURIComponent(id));
+    removed.add(id);
+    if (!isPost) {
+      const c = commentsById.get(id);
+      if (c) Object.assign(c, { removed: true, body: '', author: '[deleted]' });
+    }
   }
 
-  function createCommunity(c) {
-    const full = Object.assign(
-      { rules: ['Be kind', 'Stay on topic'], flairs: ['Discussion', 'Question', 'Show off'], mods: [ME], createdAt: Date.now() },
-      c
-    );
-    state.communities.push(full);
-    communities.set(full.id, full);
-    state.joined.unshift(full.id);
-    save();
+  async function createCommunity(fields) {
+    const { nook } = await api.post('/api/nooks', fields);
+    ingestNook(nook);
+    if (!state.joined.includes(nook.id)) state.joined.unshift(nook.id);
+    members[nook.id] = Math.max(1, members[nook.id] || 0);
     checkBadges();
-    return full;
+    return nook;
   }
 
   function createCollection(name) {
@@ -499,38 +559,189 @@
     return want;
   }
 
-  function renameMe(name) {
+  /** your profile: name, bio, colour, shape, icon, photo (a data: URL to change it, '' to remove it) */
+  async function updateProfile(fields) {
     const old = state.me.name;
-    state.me.name = name;
-    // your posts are written by "you", so they follow the new name; only links
-    // to your old profile need pointing at the new one
-    for (const note of state.notes) if (note.href) note.href = note.href.replace('#/u/' + old, '#/u/' + name);
-    save();
-  }
-
-  function markRead(id) {
-    if (id && !state.read.includes(id)) state.read.push(id);
-    if (!id) for (const n of notifications()) if (!state.read.includes(n.id)) state.read.push(n.id);
-    save();
-  }
-
-  function reset() {
-    wiped = true;
-    clearTimeout(saveTimer);
-    try {
-      localStorage.removeItem(KEY);
-    } catch (_) {
-      /* nothing to remove */
+    const { me } = await api.patch('/api/me', fields);
+    state.me = meFrom(me);
+    ingestUser(Object.assign({}, me, { photo: me.photo }));
+    if (old !== me.name) {
+      users.delete(old.toLowerCase());
+      for (const p of posts.values()) if (p.author === old) p.author = me.name;
+      for (const c of commentsById.values()) if (c.author === old) c.author = me.name;
+      for (const n of state.localNotes) if (n.href) n.href = n.href.replace('#/u/' + old, '#/u/' + me.name);
+      save();
     }
+    emit('me', state.me);
+    return state.me;
   }
+
+  // ---- your account -------------------------------------------------------------------------------------------
+
+  async function signOut() {
+    if (saveTimer) saveNow(true);
+    await api.post('/api/logout').catch(() => {});
+    api.setToken(null);
+  }
+  const changePassword = (current, password) => api.post('/api/account/password', { current, password });
+  const newRecoveryCode = (password) => api.post('/api/account/recovery', { password }).then((r) => r.recovery);
+  const exportData = () => api.get('/api/account/export');
+  async function deleteAccount(password) {
+    await api.post('/api/account/delete', { password });
+    api.setToken(null);
+  }
+
+  // ---- friends and messages -----------------------------------------------------------------------------------
+
+  const friendStatus = (name) => {
+    const f = state.friends.find((x) => x.name.toLowerCase() === String(name).toLowerCase());
+    return f ? f.status : 'none';
+  };
+  const friends = (status = 'friends') => state.friends.filter((f) => f.status === status);
+
+  async function befriend(name) {
+    const { status } = await api.post('/api/friends', { name });
+    state.friends = state.friends.filter((f) => f.name.toLowerCase() !== name.toLowerCase()).concat({ name: user(name).name, status, since: Date.now() });
+    checkBadges();
+    emit('friends');
+    return status;
+  }
+  async function unfriend(name) {
+    await api.del('/api/friends/' + encodeURIComponent(name));
+    state.friends = state.friends.filter((f) => f.name.toLowerCase() !== name.toLowerCase());
+    emit('friends');
+  }
+
+  const thread = (name) => threads.get(String(name).toLowerCase()) || { messages: [], loaded: false, more: false };
+  const conversation = (name) => state.conversations.find((c) => c.with.toLowerCase() === String(name).toLowerCase()) || null;
+  const unreadMessages = () => state.conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+
+  function appendMessage(m) {
+    const other = m.mine ? m.to : m.from;
+    const key = other.toLowerCase();
+    const t = threads.get(key);
+    if (t && !t.messages.some((x) => x.id === m.id)) t.messages.push(m);
+    let c = conversation(other);
+    if (!c) {
+      c = { with: other, last: m, unread: 0 };
+      state.conversations.unshift(c);
+    }
+    if (!c.last || c.last.id <= m.id) c.last = m;
+    if (!m.mine && !m.read && m.id > (c.seen || 0)) c.unread = (c.unread || 0) + 1;
+    c.seen = Math.max(c.seen || 0, m.id);
+    state.conversations.sort((a, b) => (b.last ? b.last.id : 0) - (a.last ? a.last.id : 0));
+  }
+
+  async function loadThread(name, { older = false } = {}) {
+    const key = String(name).toLowerCase();
+    const t = threads.get(key) || { messages: [], loaded: false, more: false };
+    const before = older && t.messages.length ? `&before=${t.messages[0].id}` : '';
+    const r = await api.get(`/api/messages?with=${encodeURIComponent(name)}${before}`);
+    t.messages = older ? [...r.messages, ...t.messages] : r.messages;
+    t.loaded = true;
+    t.more = r.more;
+    threads.set(key, t);
+    return t;
+  }
+
+  async function sendMessage(name, body) {
+    const { message } = await api.post('/api/messages', { to: name, body });
+    appendMessage(message);
+    emit('messages');
+    return message;
+  }
+
+  function markThreadRead(name) {
+    const c = conversation(name);
+    if (!c || !c.unread) return;
+    c.unread = 0;
+    emit('messages');
+    api.post('/api/messages/read', { with: name }).catch((error) => emit('error', error));
+  }
+
+  // ---- reports and moderation -------------------------------------------------------------------------------------
+
+  const report = (kind, id, reason) => api.post('/api/reports', { kind, id, reason });
+  const adminReports = () => api.get('/api/admin/reports').then((r) => r.reports);
+  const resolveReport = (id, action, reason) => api.post('/api/admin/resolve', { id, action, reason });
+  async function adminRemove(kind, id, reason) {
+    await api.post('/api/admin/remove', { kind, id, reason });
+    removed.add(id);
+    if (kind === 'post') posts.delete(id);
+  }
+  const ban = (name, reason, on = true) => api.post('/api/admin/ban', { name, reason, on });
+
+  // ---- keeping up: what changed on the server since we last asked ------------------------------------------------
+
+  let cursor = { rev: BOOT.rev, note: BOOT.note, msg: BOOT.msg };
+  let syncing = null;
+
+  function sync() {
+    if (syncing) return syncing;
+    syncing = api
+      .get(`/api/updates?rev=${cursor.rev}&note=${cursor.note}&msg=${cursor.msg}`)
+      .then((d) => {
+        cursor = { rev: d.rev, note: d.note, msg: d.msg };
+        const news = { posts: [], comments: [], removed: [], changed: [], touched: [] };
+        for (const u of d.users) ingestUser(u);
+        for (const c of d.nooks) ingestNook(c);
+        Object.assign(members, d.members);
+        for (const p of d.posts) {
+          const isNew = !posts.has(p.id) && !removed.has(p.id);
+          ingestPost(p);
+          if (p.removed) news.removed.push(p.id);
+          else if (isNew && !isMe(p.author)) news.posts.push(p);
+          else if (!isNew) news.changed.push(p.id);
+        }
+        for (const c of d.comments) {
+          const isNew = !commentsById.has(c.id);
+          ingestComment(c);
+          if (isNew && !c.removed && !isMe(c.author)) news.comments.push(c);
+          else if (!isNew) news.touched.push(c.id);
+          if (c.removed) news.removed.push(c.id);
+        }
+        if (d.me) state.me = meFrom(d.me);
+        const friendsBefore = JSON.stringify(state.friends);
+        state.friends = d.friends;
+        if (JSON.stringify(state.friends) !== friendsBefore) {
+          checkBadges();
+          emit('friends');
+        }
+        for (const n of d.notes) {
+          if (state.notes.some((x) => x.id === n.id)) continue;
+          state.notes.unshift(n);
+          emit('notify', n);
+        }
+        state.notes = state.notes.slice(0, 200);
+        for (const m of d.messages) appendMessage(m);
+        if (d.conversations) {
+          // the server's unread counts win, but a thread open right now stays read
+          for (const c of d.conversations) {
+            const had = conversation(c.with);
+            if (had && had.unread === 0 && had.reading) c.unread = 0;
+          }
+          state.conversations = d.conversations.map((c) => Object.assign(conversation(c.with) || {}, c));
+        }
+        if (d.messages.length) emit('messages', d.messages.filter((m) => !m.mine));
+        emit('synced', news);
+      })
+      .catch((error) => emit('sync-failed', error))
+      .finally(() => (syncing = null));
+    return syncing;
+  }
+
+  setInterval(() => document.visibilityState === 'visible' && sync(), SYNC_EVERY);
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && sync());
 
   Nook.store = {
-    ME, VERSION, BOOT, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
-    isMe, userName, user, community, allCommunities, post, visiblePosts, comments, commentsById,
+    ME, VERSION, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
+    isMe, isAdmin, userName, user, people, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
-    userStats, search, membersOf, activity, notifications, unread, notify, touchStreak, checkBadges, award,
+    userStats, history, search, membersOf, activity, notifications, isRead, unread, notify, touchStreak, checkBadges, award,
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,
-    addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, renameMe,
-    markRead, reset,
+    addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
+    markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
+    friendStatus, friends, befriend, unfriend, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
+    report, adminReports, resolveReport, adminRemove, ban, sync,
   };
 })();

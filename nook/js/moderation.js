@@ -11,7 +11,9 @@
 (function () {
   'use strict';
 
-  const Nook = window.Nook;
+  // the same rules run in the browser and on the server
+  const root = typeof window !== 'undefined' ? window : globalThis;
+  const Nook = (root.Nook = root.Nook || {});
 
   // ---- folding: the disguises people use, undone ---------------------------------------------
 
@@ -147,7 +149,7 @@
    * kind is 'post', 'comment', 'nook' or 'profile'; postId and editing help the spam rules.
    * Returns { block: {rule, why} | null, warn: [{rule, why}], care: bool, strong: bool }.
    */
-  function check(texts, { kind = 'post', postId = null, editing = null } = {}) {
+  function check(texts, { kind = 'post', postId = null, editing = null, history = null } = {}) {
     const first = texts[0] || '';
     texts = texts.filter(Boolean).map(String);
     const all = texts.join('\n');
@@ -167,11 +169,12 @@
     if (/\b(\w+)(?:\W+\1\b){7,}/iu.test(all)) stop('repeat', 'That repeats the same word over and over.');
 
     // the spam rules that need what you've posted before
-    const store = Nook.store;
+    // what you've posted lately: { posts: [{title, createdAt}], comments: [{postId, body, createdAt}] }
+    const past = history || (Nook.store && Nook.store.history ? Nook.store.history() : null);
     const now = Date.now();
-    if (store && !editing) {
-      const mine = store.state.posts.filter((p) => !store.isRemoved(p.id));
-      const myComments = store.state.comments.filter((c) => !store.isRemoved(c.id));
+    if (past && !editing) {
+      const mine = past.posts;
+      const myComments = past.comments;
       if (kind === 'post') {
         const recent = mine.filter((p) => now - p.createdAt < 10 * MINUTE);
         if (recent.length >= 5) {
@@ -206,4 +209,5 @@
   }
 
   Nook.mod = { check, soften, fold, RULES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = Nook.mod;
 })();

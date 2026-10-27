@@ -309,7 +309,7 @@
     '<div class="foot-links">' +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
     '<button type="button" data-act="about-nook">What’s Nook?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
-    '<span>Built with Material 3 Expressive. Everything you do is saved in this browser only.</span></div>';
+    '<span>Built with Material 3 Expressive. No ads, no trackers.</span></div>';
 
   // ---- comments -------------------------------------------------------------------------------
 
@@ -671,19 +671,34 @@
     };
   }
 
+  /** what you can do with someone, by where your friendship stands */
+  function friendButtons(name, small = false) {
+    const who = esc(name);
+    const size = small ? ' small' : '';
+    switch (store.friendStatus(name)) {
+      case 'friends':
+        return `<a class="m3-btn filled${size}" href="#/messages/${encodeURIComponent(name)}">${icon('chat')}Message</a><button class="m3-btn tonal${size}" data-act="unfriend" data-user="${who}">${icon('how_to_reg')}Friends</button>`;
+      case 'outgoing':
+        return `<button class="m3-btn tonal${size}" data-act="unfriend" data-user="${who}">${icon('schedule')}Request sent</button>`;
+      case 'incoming':
+        return `<button class="m3-btn filled${size}" data-act="befriend" data-user="${who}">${icon('how_to_reg')}Accept</button><button class="m3-btn text${size}" data-act="unfriend" data-user="${who}">Decline</button>`;
+      default:
+        return `<button class="m3-btn filled${size}" data-act="befriend" data-user="${who}">${icon('person_add')}Add friend</button>`;
+    }
+  }
+
   function profile(params) {
     const name = params.user;
     const u = store.user(name);
     const me = store.isMe(name);
-    // everyone else arrives once Nook has people beyond this browser
-    if (!me) return notFound(`We couldn’t find u/${name}.`);
+    if (!me && u.unknown) return notFound(`We couldn’t find u/${name}.`);
     const st = store.userStats(u.name);
     const s = store.state;
     const where = [...new Set(st.posts.map((p) => p.n).concat(st.comments.map((c) => (store.post(c.postId) || {}).n)).filter(Boolean))]
       .map((id) => store.community(id))
       .filter(Boolean)
       .slice(0, 6);
-    const joinedDays = Math.max(1, Math.round((Date.now() - s.me.joinedAt) / 86400000));
+    const joinedDays = Math.max(1, Math.round((Date.now() - (me ? s.me.joinedAt : u.createdAt || Date.now())) / 86400000));
     const badges = me
       ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="burst" symbol="military_tech" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Badges</h2><m3-wavy-line></m3-wavy-line><span class="muted">${Object.keys(s.badges).length}/${store.BADGES.length}</span></header>` +
         `<div class="badges">${store.BADGES.map((b) => {
@@ -697,10 +712,10 @@
       html:
         '<div class="page"><div class="col">' +
         `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">` +
-        `<div class="profile-main">${avatar(u, 96)}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${me && joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}</span>` +
+        `<div class="profile-main">${avatar(u, 96)}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         (u.bio ? `<p style="margin-top:6px">${esc(clean(u.bio))}</p>` : me ? '<p class="muted" style="margin-top:6px">No bio yet. Tell people what you’re into!</p>' : '') +
         '</div>' +
-        (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : `<button class="m3-btn filled" data-act="follow" data-user="${esc(u.name)}">${icon('person_add')}Follow</button>`) +
+        (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
         '</div><div class="stats">' +
         `<div class="stat"><b class="count">${num(st.karma)}</b><span>Karma</span></div>` +
         `<div class="stat"><b class="count">${num(st.posts.length)}</b><span>Posts</span></div>` +
@@ -749,7 +764,6 @@
 
   function inbox() {
     const notes = store.notifications();
-    const read = new Set(store.state.read);
     return {
       title: 'Inbox',
       brand: 'clover4',
@@ -761,12 +775,12 @@
           ? `<div class="notes">${notes
               .map(
                 (n) =>
-                  `<button class="note${read.has(n.id) ? '' : ' unread'}" data-m3-ripple data-act="open-note" data-note="${n.id}" data-href="${esc(n.href || '')}">` +
+                  `<button class="note${store.isRead(n) ? '' : ' unread'}" data-m3-ripple data-act="open-note" data-note="${n.id}" data-href="${esc(n.href || '')}">` +
                   `<m3-shape-icon shape="${n.shape}" symbol="${n.symbol}" size="44" icon-size="22"></m3-shape-icon>` +
                   `<span class="note-text"><span>${esc(n.text)}</span><small>${ago(n.createdAt)}</small></span></button>`
               )
               .join('')}</div>`
-          : empty('notifications_off', 'All quiet', 'Replies to your posts and the badges you earn show up here.')) +
+          : empty('notifications_off', 'All quiet', 'Replies, friend requests and the badges you earn show up here.')) +
         '</div></div>',
     };
   }
@@ -845,12 +859,13 @@
         `<section>${header('heart', 'self_improvement', 'Wellbeing')}<div class="card setting-card">` +
         `<div class="setting-row"><span class="label">Remind me to take a break after</span><div class="slider-row"><m3-slider id="set-break" min="0" max="120" step="15" value="${s.breakMinutes}" value-tip show-stop label="Break reminder"></m3-slider><output id="set-break-out">${s.breakMinutes ? s.breakMinutes + ' min' : 'Off'}</output></div></div>` +
         '</div></section>' +
-        `<section>${header('pixelCircle', 'database', 'Your data')}<div class="card setting-card">` +
-        '<p class="muted">Nook keeps everything (your profile, posts, votes, nooks and settings) in this browser’s storage. Nothing is sent anywhere.</p>' +
-        `<div class="toolbar"><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button><button class="m3-btn outlined" data-act="reset">${icon('restart_alt')}Delete everything</button></div>` +
+        `<section>${header('pixelCircle', 'manage_accounts', 'Account')}<div class="card setting-card">` +
+        `<div class="about-app">${avatar(store.user(store.ME), 48)}<div><b class="m3-title">u/${esc(store.state.me.name)}</b><span class="muted">Signed in${store.isAdmin() ? ' · Admin' : ''}</span></div></div>` +
+        `<div class="toolbar"><button class="m3-btn tonal" data-act="change-password">${icon('password')}Change password</button><button class="m3-btn tonal" data-act="new-recovery">${icon('key')}New recovery code</button><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button></div>` +
+        `<div class="toolbar"><button class="m3-btn outlined" data-act="sign-out">${icon('logout')}Sign out</button><button class="m3-btn text danger" data-act="delete-account">${icon('person_remove')}Delete account</button></div>` +
         '</div></section>' +
         `<section>${header('clover4', 'policy', 'Privacy and legal')}<div class="card setting-card">` +
-        '<p class="muted">Nook uses no cookies and no trackers. It keeps what you do in this browser’s storage so it’s here next time, and loads nothing from other companies.</p>' +
+        '<p class="muted">Nook uses no cookies and no trackers, and loads nothing from other companies. Your account, posts and messages are kept on Nook’s own server; this browser keeps only what signs you in.</p>' +
         `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><a class="m3-btn tonal" href="licenses.html">${icon('license')}Open-source licenses</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
         '</div></section>' +
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
@@ -965,6 +980,258 @@
     );
   }
 
+  // ---- friends and messages ------------------------------------------------------------------------------
+
+  const personRowHTML = (u, actions) =>
+    `<div class="row-link person-row" data-href="#/u/${encodeURIComponent(u.name)}" tabindex="0" role="link" aria-label="u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 44)}` +
+    `<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
+
+  function friendsPage() {
+    const incoming = store.friends('incoming');
+    const outgoing = store.friends('outgoing');
+    const mine = store.friends('friends');
+    const others = store.people().filter((u) => !store.isMe(u.name) && store.friendStatus(u.name) === 'none').slice(0, 8);
+    const section = (shape, symbol, title, rows) =>
+      `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="${shape}" symbol="${symbol}" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">${title}</h2><m3-wavy-line></m3-wavy-line></header><div class="card"><div class="list">${rows}</div></div></section>`;
+    return {
+      title: 'Friends',
+      brand: 'heart',
+      html:
+        '<div class="page single"><div class="col">' +
+        `<div class="page-head"><m3-shape-icon shape="heart" symbol="group" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Friends</h1><span class="muted">Friends can message each other.</span></div></div>` +
+        `<form class="card add-friend" id="add-friend"><label for="af-name" class="field-label">Add a friend by username</label><div class="toolbar"><input class="m3-field" id="af-name" placeholder="their_username" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="20"><button class="m3-btn filled" type="submit">${icon('person_add')}Send request</button></div><span class="error" id="af-err"></span></form>` +
+        (incoming.length ? section('softBurst', 'person_add', `Requests <span class="count muted">${incoming.length}</span>`, incoming.map((f) => personRowHTML(store.user(f.name), friendButtons(f.name, true))).join('')) : '') +
+        (mine.length
+          ? section('heart', 'diversity_1', 'Your friends', mine.map((f) => personRowHTML(store.user(f.name), friendButtons(f.name, true))).join(''))
+          : empty('diversity_1', 'No friends yet', 'Send someone a request: when they accept, you can message each other.', '', 'heart')) +
+        (outgoing.length ? section('clover4', 'schedule', 'Sent requests', outgoing.map((f) => personRowHTML(store.user(f.name), friendButtons(f.name, true))).join('')) : '') +
+        (others.length ? section('flower', 'waving_hand', 'People on Nook', others.map((u) => personRowHTML(u, friendButtons(u.name, true))).join('')) : '') +
+        '</div></div>',
+      mount(root) {
+        root.querySelector('#add-friend').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const input = root.querySelector('#af-name');
+          const err = root.querySelector('#af-err');
+          const name = input.value.trim().replace(/^u\//, '');
+          err.textContent = '';
+          if (!name) return input.focus();
+          try {
+            const status = await store.befriend(name);
+            M3.toast(status === 'friends' ? `You and u/${name} are friends now` : `Friend request sent to u/${name}`, { symbol: 'person_add', shape: 'heart' });
+            app().rerender();
+          } catch (error) {
+            err.textContent = error.message;
+          }
+        });
+        root._onFriends = () => app().rerender();
+      },
+    };
+  }
+
+  function messagesPage() {
+    const convos = store.state.conversations;
+    const talking = new Set(convos.map((c) => c.with.toLowerCase()));
+    const quiet = store.friends('friends').filter((f) => !talking.has(f.name.toLowerCase()));
+    const row = (c) => {
+      const u = store.user(c.with);
+      const last = c.last ? (c.last.mine ? 'You: ' : '') + plain(clean(c.last.body), 80) : '';
+      return (
+        `<a class="row-link convo${c.unread ? ' unread' : ''}" href="#/messages/${encodeURIComponent(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 48)}` +
+        `<span class="row-text"><b>${esc(u.name)}</b><small>${esc(last)}</small></span>` +
+        `<span class="convo-meta"><small>${c.last ? ago(c.last.createdAt) : ''}</small>${c.unread ? `<span class="badge-dot">${c.unread > 9 ? '9+' : c.unread}</span>` : ''}</span></a>`
+      );
+    };
+    return {
+      title: 'Messages',
+      brand: 'clover4',
+      html:
+        '<div class="page single"><div class="col">' +
+        `<div class="page-head"><m3-shape-icon shape="clover4" symbol="chat" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Messages</h1><span class="muted">Private chats with your friends.</span></div><span class="spacer"></span><a class="m3-btn tonal small" href="#/friends">${icon('group')}Friends</a></div>` +
+        (convos.length ? `<div class="card"><div class="list">${convos.map(row).join('')}</div></div>` : '') +
+        (quiet.length
+          ? `<section class="section"><header class="m3-section-header"><m3-shape-icon shape="heart" symbol="waving_hand" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Say hi</h2><m3-wavy-line></m3-wavy-line></header><div class="card"><div class="list">${quiet
+              .map((f) => personRowHTML(store.user(f.name), `<a class="m3-btn tonal small" href="#/messages/${encodeURIComponent(f.name)}">${icon('chat')}Message</a>`))
+              .join('')}</div></div></section>`
+          : '') +
+        (!convos.length && !quiet.length ? empty('forum', 'No messages yet', 'Add friends, and once they accept you can chat here.', `<a class="m3-btn filled" href="#/friends">${icon('person_add')}Find friends</a>`, 'clover4') : '') +
+        '</div></div>',
+      mount(root) {
+        root._onMessages = () => app().rerender();
+        root._onFriends = () => app().rerender();
+      },
+    };
+  }
+
+  function bubbleHTML(m) {
+    return `<div class="bubble${m.mine ? ' mine' : ''}" data-message="${m.id}"><div class="md">${md(clean(m.body))}</div><small>${ago(m.createdAt)}</small></div>`;
+  }
+
+  function thread(params) {
+    const u = store.user(params.user);
+    if (u.unknown || store.isMe(params.user)) return notFound(`We couldn’t find u/${params.user}.`);
+    const friends = store.friendStatus(u.name) === 'friends';
+    return {
+      title: `Chat with u/${u.name}`,
+      brand: u.shape,
+      html:
+        '<div class="page single chat-page"><div class="col">' +
+        `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>u/${esc(u.name)}</small></span></a></div>` +
+        '<div class="chat" id="chat" aria-live="polite"><div class="chat-more" id="chat-more"></div><div id="chat-list"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
+        (friends
+          ? `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="Message u/${esc(u.name)}" aria-label="Message"></textarea><button class="m3-icon-btn filled" type="submit" aria-label="Send">${icon('send')}</button></form>`
+          : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`) +
+        '</div></div>',
+      mount(root) {
+        const list = root.querySelector('#chat-list');
+        const more = root.querySelector('#chat-more');
+        const toBottom = () => requestAnimationFrame(() => scrollTo({ top: document.body.scrollHeight }));
+        const paint = (t) => {
+          list.innerHTML = t.messages.length ? t.messages.map(bubbleHTML).join('') : `<p class="muted chat-empty">No messages yet. Say hi to u/${esc(u.name)}!</p>`;
+          more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
+          const btn = more.querySelector('button');
+          if (btn)
+            btn.addEventListener('click', async () => {
+              const h = document.body.scrollHeight;
+              paint(await store.loadThread(u.name, { older: true }));
+              scrollTo({ top: document.body.scrollHeight - h });
+            });
+        };
+        const existing = store.thread(u.name);
+        if (existing.loaded) {
+          paint(existing);
+          toBottom();
+        }
+        store
+          .loadThread(u.name)
+          .then((t) => {
+            paint(t);
+            toBottom();
+            store.markThreadRead(u.name);
+          })
+          .catch((error) => (list.innerHTML = `<p class="muted chat-empty">${esc(error.message)}</p>`));
+        root._onMessages = () => {
+          const t = store.thread(u.name);
+          if (!t.loaded) return;
+          paint(t);
+          toBottom();
+          store.markThreadRead(u.name);
+        };
+        root._onFriends = () => app().rerender();
+        const form = root.querySelector('#chat-box');
+        if (!form) return;
+        const input = form.querySelector('#chat-input');
+        const grow = () => {
+          input.style.height = 'auto';
+          input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+        };
+        input.addEventListener('input', grow);
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(hover: hover)').matches) {
+            e.preventDefault();
+            form.requestSubmit();
+          }
+        });
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const text = input.value.trim();
+          if (!text) return;
+          const verdict = Nook.mod.check([text], { kind: 'message' });
+          if (verdict.block) return app().showError({ rule: verdict.block.rule, message: verdict.block.why });
+          const send = form.querySelector('button');
+          send.disabled = true;
+          try {
+            await store.sendMessage(u.name, text);
+            input.value = '';
+            grow();
+            paint(store.thread(u.name));
+            toBottom();
+            Nook.fx.haptic(8);
+          } catch (error) {
+            app().showError(error);
+          } finally {
+            send.disabled = false;
+            input.focus();
+          }
+        });
+        input.focus({ preventScroll: true });
+      },
+    };
+  }
+
+  // ---- moderation, for admins -------------------------------------------------------------------------------
+
+  function adminPage() {
+    if (!store.isAdmin()) return notFound('Only Nook’s moderators can see this page.');
+    return {
+      title: 'Moderation',
+      brand: 'pixelCircle',
+      html:
+        '<div class="page single"><div class="col">' +
+        `<div class="page-head"><m3-shape-icon shape="pixelCircle" symbol="shield_person" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Moderation</h1><span class="muted">Open reports, newest first. Whoever you act on is told what and why.</span></div></div>` +
+        '<div id="reports"><m3-loading aria-label="Loading reports"></m3-loading></div>' +
+        `<form class="card add-friend" id="ban-form"><span class="field-label">Ban an account</span><div class="toolbar"><input class="m3-field" id="ban-name" placeholder="username" autocapitalize="none" spellcheck="false" maxlength="20"><input class="m3-field" id="ban-reason" placeholder="Reason they’ll see" maxlength="200"><button class="m3-btn tonal" type="submit">${icon('block')}Ban</button></div><span class="error" id="ban-err"></span></form>` +
+        '</div></div>',
+      mount(root) {
+        const box = root.querySelector('#reports');
+        const paint = async () => {
+          let reports;
+          try {
+            reports = await store.adminReports();
+          } catch (error) {
+            box.innerHTML = `<p class="muted">${esc(error.message)}</p>`;
+            return;
+          }
+          box.innerHTML = reports.length
+            ? reports
+                .map((r) => {
+                  const item = r.item;
+                  const what = !item
+                    ? '<p class="muted">Already gone.</p>'
+                    : `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
+                  return (
+                    `<article class="card report" data-report="${r.id}"><div class="report-head">${icon('flag')}<b>${esc(r.reason)}</b><span class="muted">a ${esc(r.kind)} · reported by u/${esc(r.reporter)} · ${ago(r.createdAt)}</span></div>${what}` +
+                    '<div class="toolbar">' +
+                    (item && item.href ? `<a class="m3-btn text small" href="${esc(item.href)}">${icon('open_in_new')}Open</a>` : '') +
+                    (r.kind === 'user' ? `<button class="m3-btn filled small" data-resolve="ban">${icon('block')}Ban</button>` : `<button class="m3-btn filled small" data-resolve="remove">${icon('gavel')}Remove</button>`) +
+                    `<button class="m3-btn tonal small" data-resolve="dismiss">${icon('done')}Dismiss</button></div></article>`
+                  );
+                })
+                .join('')
+            : empty('verified_user', 'Nothing to review', 'No open reports. Nice and calm.', '', 'pixelCircle');
+          box.querySelectorAll('[data-resolve]').forEach((btn) =>
+            btn.addEventListener('click', async () => {
+              const card = btn.closest('[data-report]');
+              const r = reports.find((x) => String(x.id) === card.dataset.report);
+              btn.disabled = true;
+              try {
+                await store.resolveReport(r.id, btn.dataset.resolve, r.reason);
+                M3.toast(btn.dataset.resolve === 'dismiss' ? 'Report dismissed' : btn.dataset.resolve === 'ban' ? 'Account banned' : 'Removed, and its author told why', { symbol: 'gavel', shape: 'pixelCircle' });
+                paint();
+              } catch (error) {
+                btn.disabled = false;
+                app().showError(error);
+              }
+            })
+          );
+        };
+        paint();
+        root.querySelector('#ban-form').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const err = root.querySelector('#ban-err');
+          err.textContent = '';
+          try {
+            await store.ban(root.querySelector('#ban-name').value.trim(), root.querySelector('#ban-reason').value.trim());
+            M3.toast('Banned and signed out', { symbol: 'block', shape: 'pixelCircle' });
+            e.target.reset();
+          } catch (error) {
+            err.textContent = error.message;
+          }
+        });
+      },
+    };
+  }
+
   function notFound(text) {
     return {
       title: 'Not found',
@@ -975,6 +1242,7 @@
 
   Nook.views = {
     home, popular, community, postPage, explore, saved, collection, profile, inbox, searchPage, settingsPage, submit, notFound,
+    friendsPage, messagesPage, thread, adminPage, friendButtons,
     postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
     submitRail, empty, mountFeed,
   };

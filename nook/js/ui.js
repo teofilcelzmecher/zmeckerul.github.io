@@ -132,7 +132,8 @@
 
   /** what sits on an avatar's shape: a photo, an icon or the first letter */
   function avatarFace(u) {
-    if (u.photo && /^data:image\/(jpeg|png|webp);/.test(u.photo)) {
+    // a photo picked here (data:) or one the server keeps (https://…/api/images/…)
+    if (u.photo && (/^data:image\/(jpeg|png|webp);/.test(u.photo) || /^https?:\/\/[^"'<>\s]+\/api\/images\/[\w-]+$/.test(u.photo))) {
       const mask = shapeMask(u.shape);
       return `<img src="${esc(u.photo)}" alt="" style="-webkit-mask-image:${mask};mask-image:${mask}">`;
     }

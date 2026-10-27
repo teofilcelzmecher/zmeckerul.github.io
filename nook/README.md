@@ -3,8 +3,9 @@
 A community app in the spirit of forum sites, built on the Material 3 Expressive design system in `../m3/`.
 That design system is ported from Swiftify with its authors' permission and is GPL-3.0-or-later
 (`../m3/LICENSE`). Nook's own code here is kept separate from it.
-Plain HTML, CSS and JS: no build step, no framework, no server. Open `index.html` through any static
-host (GitHub Pages serves it at `/nook/`).
+Plain HTML, CSS and JS with no build step and no framework, served from any static host, plus a small
+Node server (`server/`, no npm packages) that keeps accounts, posts and messages in SQLite. See
+`server/README.md` to run it. Point the app at it in `js/config.js`.
 
 Nothing in Nook is made up: there are no fake people, posts, comments, replies or numbers. It starts
 with a set of empty nooks, and every post, comment and vote is one a person actually made.
@@ -27,11 +28,17 @@ with a set of empty nooks, and every post, comment and vote is one a person actu
   about personal information, and meet signs of distress with where to find help. Swearing is allowed
   but dotted out (f•••) for anyone with the filter on. Every decision says which rule it applied.
 - **Profile pictures**: a letter, one of 24 icons, or a photo cut to your avatar's shape.
-- **Early access** behind 6-digit invite codes (`js/gate.js` holds only salted hashes of them).
+- **Accounts**: sign up with a single-use 6-digit invite code, a username and a password; a recovery
+  code (shown once) resets a forgotten password. Export your data or delete your account in Settings.
+- **Friends and messages**: friend requests, private chats between friends, all moderated by the same rules.
+- **Live**: the app asks the server what changed every 15 seconds; new comments, votes, messages and
+  notifications arrive without a reload.
+- **Moderators**: reports go to a Moderation page for admins, who can remove content (its author is told
+  why) or ban accounts.
 - **Privacy first**: no cookies, no trackers, and nothing loaded from other companies (fonts and the
   colour library are served from `../m3/`). Terms of Use and a Privacy Policy cover the EU (GDPR,
   ePrivacy, DSA) and the US (COPPA, CCPA).
-- **Inbox** for badges and, once Nook has people beyond one browser, replies.
+- **Inbox** for replies, friend requests, moderation notices and badges.
 - **Keyboard shortcuts** (`?` lists them), light/dark/system mode, any seed colour, compact cards.
 - Responsive: a drawer on desktop, a navigation rail on tablets, a bottom bar and a full-screen menu on phones.
 - **Motion that answers you**: pages slide the way you're going, a tapped post grows into the full
@@ -41,8 +48,8 @@ with a set of empty nooks, and every post, comment and vote is one a person actu
   refresh, swipeable bottom sheets, a bottom bar that steps aside as you read, and haptic taps.
   All of it holds still under reduced motion.
 
-Everything you do is saved in the browser's localStorage, so for now nobody else can see it.
-Settings → Your data exports or resets it.
+Your account and everything you post live on Nook's server; the browser keeps only the sign-in key.
+Settings → Account exports your data or deletes your account.
 
 ## Files
 
@@ -51,7 +58,10 @@ Settings → Your data exports or resets it.
 | `index.html` | The shell: top bar, drawer, bottom bar, and the scripts |
 | `app.css` | Layout and Nook's own components, all on `--m3-*` colour roles |
 | `js/data.js` | The starter nooks: names, colours, shapes, rules and flairs |
-| `js/gate.js` | The invite-code gate; starts the app once a code matches |
+| `js/config.js` | Where the server is |
+| `js/api.js` | Requests to the server and the sign-in key |
+| `js/account.js` | Sign in, create an account, recovery; loads the rest once signed in |
+| `server/` | The server (`server.js`), its database (`db.js`), admin commands (`cli.js`) and installer |
 | `js/moderation.js` | The moderation rules: folding, word lists, patterns, spam and flood checks |
 | `terms.html`, `privacy.html`, `legal.css` | Terms of Use and Privacy Policy, readable without a code |
 | `js/store.js` | State, persistence, ranking, badges and every mutation |

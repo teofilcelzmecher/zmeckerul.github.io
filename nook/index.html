@@ -30,6 +30,7 @@
     <div class="topbar-actions">
       <button class="m3-toolbar-btn only-narrow" id="search-btn" data-shape="clover4" aria-label="Search" data-tooltip="Search"><span class="m3-icon">search</span></button>
       <a class="m3-btn filled create-btn only-wide" href="#/submit" data-tooltip="Create a post (n)"><span class="m3-icon">add</span>Create</a>
+      <a class="m3-toolbar-btn only-wide" href="#/messages" data-shape="clover4" aria-label="Messages" data-tooltip="Messages"><span class="m3-icon">chat</span><span class="badge" data-messages-badge hidden></span></a>
       <a class="m3-toolbar-btn only-wide" id="inbox-btn" href="#/inbox" data-shape="clover4" aria-label="Inbox" data-tooltip="Inbox"><span class="m3-icon">notifications</span><span class="badge" id="inbox-badge" hidden></span></a>
       <button class="m3-toolbar-btn" id="theme-btn" data-effect="spin" data-shape="sunny" aria-label="Switch light or dark" data-tooltip="Light or dark"><span class="m3-icon">dark_mode</span></button>
       <button class="me-btn" id="me-btn" aria-label="Your account" data-tooltip="You"></button>
@@ -47,8 +48,11 @@
       <a class="nav-item" href="#/" data-nav="home" data-m3-ripple><span class="nav-ind"><span class="m3-icon">home</span></span><span class="nav-label">Home</span></a>
       <a class="nav-item" href="#/popular" data-nav="popular" data-m3-ripple><span class="nav-ind"><span class="m3-icon">local_fire_department</span></span><span class="nav-label">Popular</span></a>
       <a class="nav-item" href="#/explore" data-nav="explore" data-m3-ripple><span class="nav-ind"><span class="m3-icon">explore</span></span><span class="nav-label">Explore</span></a>
+      <a class="nav-item" href="#/friends" data-nav="friends" data-m3-ripple><span class="nav-ind"><span class="m3-icon">group</span></span><span class="nav-label">Friends</span><span class="nav-count" id="drawer-friends"></span></a>
+      <a class="nav-item" href="#/messages" data-nav="messages" data-m3-ripple><span class="nav-ind"><span class="m3-icon">chat</span></span><span class="nav-label">Messages</span><span class="nav-count" data-messages-badge hidden></span></a>
       <a class="nav-item" href="#/saved" data-nav="saved" data-m3-ripple><span class="nav-ind"><span class="m3-icon">bookmarks</span></span><span class="nav-label">Saved</span></a>
       <a class="nav-item" href="#/inbox" data-nav="inbox" data-m3-ripple><span class="nav-ind"><span class="m3-icon">notifications</span></span><span class="nav-label">Inbox</span><span class="nav-count" id="drawer-unread"></span></a>
+      <a class="nav-item" href="#/admin" data-nav="admin" data-admin-only hidden data-m3-ripple><span class="nav-ind"><span class="m3-icon">shield_person</span></span><span class="nav-label">Moderation</span></a>
       <a class="nav-item only-phone" href="#/settings" data-nav="settings" data-m3-ripple><span class="nav-ind"><span class="m3-icon">settings</span></span><span class="nav-label">Settings</span></a>
       </div>
       <div class="nav-heading"><span>Your nooks</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
@@ -70,13 +74,15 @@
     <a href="#/" data-nav="home"><span class="nav-ind"><span class="m3-icon">home</span></span>Home</a>
     <a href="#/explore" data-nav="explore"><span class="nav-ind"><span class="m3-icon">explore</span></span>Explore</a>
     <a href="#/submit" data-nav="submit" class="create"><span class="nav-ind"><span class="m3-icon">add</span></span>Create</a>
+    <a href="#/messages" data-nav="messages"><span class="nav-ind"><span class="m3-icon">chat</span><span class="badge" data-messages-badge hidden></span></span>Chats</a>
     <a href="#/inbox" data-nav="inbox"><span class="nav-ind"><span class="m3-icon">notifications</span><span class="badge" id="bottom-badge" hidden></span></span>Inbox</a>
-    <a href="#/saved" data-nav="saved"><span class="nav-ind"><span class="m3-icon">bookmarks</span></span>Saved</a>
   </nav>
 
   <script src="../m3/m3-shapes.js"></script>
   <script src="../m3/m3.js"></script>
-  <!-- invite codes first: the gate starts the app once someone is let in -->
-  <script src="js/gate.js"></script>
+  <!-- signing in comes first: it fetches what the app needs, then starts it -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/account.js"></script>
 </body>
 </html>

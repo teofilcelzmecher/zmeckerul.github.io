@@ -47,6 +47,12 @@
         return parts[1] ? at('collection', { col: parts[1] }) : at('saved');
       case 'inbox':
         return at('inbox');
+      case 'friends':
+        return at('friendsPage');
+      case 'messages':
+        return parts[1] ? at('thread', { user: parts[1] }) : at('messagesPage');
+      case 'admin':
+        return at('adminPage');
       case 'settings':
         return at('settingsPage');
       case 'search':
@@ -58,7 +64,7 @@
     }
   }
 
-  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings' };
+  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings', friendsPage: 'friends', messagesPage: 'messages', thread: 'messages', adminPage: 'admin' };
 
   let leaving = [];
   let current = location.hash || '#/';
@@ -166,6 +172,8 @@
     );
   }
 
+  app.rerender = () => render();
+
   function render() {
     for (const fn of leaving) {
       try {
@@ -189,6 +197,8 @@
       view = views.notFound('Something went wrong drawing this page.');
     }
     viewNook = view.nook || null;
+    // the last page's live hooks go with it
+    main._rerenderComments = main._onMessages = main._onFriends = null;
     main.innerHTML = view.html;
     // a view transition moves the page itself; without one it fades up
     if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
@@ -295,6 +305,15 @@
     }
     lastUnread = n;
     $('#drawer-unread').textContent = n ? String(n) : '';
+    const m = store.unreadMessages();
+    for (const el of $$('[data-messages-badge]')) {
+      el.hidden = !m;
+      el.textContent = m > 9 ? '9+' : String(m);
+    }
+    const asks = store.friends('incoming').length;
+    const friendsCount = $('#drawer-friends');
+    if (friendsCount) friendsCount.textContent = asks ? String(asks) : '';
+    $$('[data-admin-only]').forEach((el) => (el.hidden = !store.isAdmin()));
   }
 
   function openDrawer() {
@@ -370,12 +389,16 @@
     M3.menu(e.currentTarget, [
       { label: 'u/' + store.state.me.name, symbol: 'account_circle', onSelect: () => go('#/u/' + encodeURIComponent(store.state.me.name)) },
       { label: 'Edit profile', symbol: 'edit', onSelect: editProfile },
+      { label: 'Friends', symbol: 'group', onSelect: () => go('#/friends') },
+      { label: 'Messages', symbol: 'chat', onSelect: () => go('#/messages') },
       { label: 'Saved', symbol: 'bookmarks', onSelect: () => go('#/saved') },
+      store.isAdmin() ? { label: 'Moderation', symbol: 'shield_person', onSelect: () => go('#/admin') } : null,
       { label: 'Settings', symbol: 'settings', onSelect: () => go('#/settings') },
-      { label: 'Keyboard shortcuts', symbol: 'keyboard', onSelect: shortcuts },
       { separator: true },
       { label: 'Calm mode', checked: s.calm, onSelect: () => toggleSetting('calm') },
       { label: 'Compact cards', checked: s.compact, onSelect: () => toggleSetting('compact') },
+      { separator: true },
+      { label: 'Sign out', symbol: 'logout', onSelect: () => ACTIONS['sign-out']() },
     ], { placement: 'bottom-end' });
   });
 
@@ -747,8 +770,24 @@
       mine
         ? { label: 'Delete post', symbol: 'delete', destructive: true, onSelect: () => deletePost(p, card) }
         : { label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('post', p) },
+      !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('post', p, card) } : null,
     ]);
   };
+
+  /** a moderator takes something down, with the reason its author will be told */
+  async function modRemove(kind, thing, card) {
+    const reason = await pickReason(`Remove this ${kind}?`, 'gavel', `Its author is told it was removed and why. Choose the rule it breaks.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.adminRemove(kind, thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`Removed: ${reason}`, { symbol: 'gavel', shape: 'pixelCircle' });
+    if (kind === 'post' && route.view === 'postPage') go('#/n/' + thing.n, { replace: true });
+    else if (card) removeCard(card);
+    else rerenderComments();
+  }
 
   async function deletePost(p, card) {
     const ok = await M3.dialog({
@@ -759,7 +798,11 @@
       actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, variant: 'filled' }],
     });
     if (!ok) return;
-    store.remove(p.id);
+    try {
+      await store.remove(p.id);
+    } catch (error) {
+      return showError(error);
+    }
     M3.toast('Post deleted', { symbol: 'delete', shape: 'softBoom' });
     if (route.view === 'postPage') go('#/n/' + p.n, { replace: true });
     else removeCard(card);
@@ -780,6 +823,7 @@
             { label: 'Delete', symbol: 'delete', destructive: true, onSelect: () => deleteComment(c) },
           ]
         : [{ label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('comment', c) }]),
+      !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('comment', c) } : null,
     ]);
   };
 
@@ -792,7 +836,11 @@
       actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, variant: 'filled' }],
     });
     if (!ok) return;
-    store.remove(c.id);
+    try {
+      await store.remove(c.id);
+    } catch (error) {
+      return showError(error);
+    }
     rerenderComments();
     M3.toast('Comment deleted', { symbol: 'delete', shape: 'softBoom' });
   }
@@ -813,7 +861,11 @@
       const text = textarea.value.trim();
       if (!text) return;
       if (!(await vet([text], { kind: 'comment', postId: c.postId, editing: true }))) return;
-      store.editComment(c.id, text);
+      try {
+        await store.editComment(c.id, text);
+      } catch (error) {
+        return showError(error);
+      }
       rerenderComments();
       jumpToComment(c.id);
     });
@@ -845,14 +897,15 @@
     });
   }
 
-  async function report(kind, thing) {
+  /** a sheet of reasons to choose from; resolves with the one picked, or null */
+  function pickReason(headline, symbol, text, verb) {
     let reason = null;
-    const reasons = ['Spam', 'Harassment', 'Misinformation', 'Off topic', 'Breaks nook rules', 'Something else'];
-    const value = await ui.sheet({
-      headline: `Report this ${kind}`,
-      symbol: 'flag',
+    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nook rules', 'Something else'];
+    return ui.sheet({
+      headline,
+      symbol,
       shape: 'softBoom',
-      html: `<p class="muted">Reports go to the moderators of n/${esc((store.post(thing.postId || thing.id) || {}).n || '')}. Thanks for keeping Nook kind.</p><div class="chips" style="flex-wrap:wrap">${reasons.map((r) => `<button type="button" class="chip" data-reason="${r}" aria-pressed="false">${r}</button>`).join('')}</div>`,
+      html: `<p class="muted">${text}</p><div class="chips" style="flex-wrap:wrap">${reasons.map((r) => `<button type="button" class="chip" data-reason="${r}" aria-pressed="false">${r}</button>`).join('')}</div>`,
       setup(body) {
         body.querySelectorAll('[data-reason]').forEach((chip) =>
           chip.addEventListener('click', () => {
@@ -861,10 +914,21 @@
           })
         );
       },
-      actions: [{ label: 'Cancel', value: null }, { label: 'Report', variant: 'filled', run: () => (reason ? reason : false) }],
+      actions: [{ label: 'Cancel', value: null }, { label: verb, variant: 'filled', run: () => (reason ? reason : false) }],
     });
-    if (value) M3.toast('Thanks, the mods will take a look', { symbol: 'shield', shape: 'gem' });
   }
+
+  async function report(kind, thing) {
+    const reason = await pickReason(`Report this ${kind}`, 'flag', 'Reports go to Nook’s moderators, who will take a look. Thanks for keeping Nook kind.', 'Report');
+    if (!reason) return;
+    try {
+      await store.report(kind, kind === 'user' ? thing.name : thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast('Thanks, a moderator will take a look', { symbol: 'shield', shape: 'gem' });
+  }
+  app.report = report;
 
   // ---- joining ------------------------------------------------------------------------
 
@@ -909,20 +973,34 @@
 
   let caredThisVisit = false;
   /** runs the moderation rules over some text; resolves true when posting can go ahead */
+  const ruleHTML = (r) => `<p class="mod-rule">${icon('gavel')}<b>${esc(r.rule)}</b></p><p>${esc(r.why)}</p>`;
+
+  function blockedSheet(block) {
+    fx.haptic([20, 40, 20]);
+    return ui.sheet({
+      headline: 'This can’t be posted',
+      symbol: 'block',
+      shape: 'pixelCircle',
+      html:
+        ruleHTML(block) +
+        '<p class="muted">Nook checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
+      actions: [{ label: 'Edit it', variant: 'filled' }],
+    });
+  }
+
+  /** the server (or the network) said no: say why, in its own words */
+  function showError(error) {
+    if (!error) return;
+    if (error.rule) return blockedSheet({ rule: error.rule, why: error.message });
+    M3.snackbar(error.message || 'Something went wrong. Try again.');
+  }
+  app.showError = showError;
+
   async function vet(texts, options) {
     const verdict = Nook.mod.check(texts, options);
-    const rule = (r) => `<p class="mod-rule">${icon('gavel')}<b>${esc(r.rule)}</b></p><p>${esc(r.why)}</p>`;
+    const rule = ruleHTML;
     if (verdict.block) {
-      fx.haptic([20, 40, 20]);
-      await ui.sheet({
-        headline: 'This can’t be posted',
-        symbol: 'block',
-        shape: 'pixelCircle',
-        html:
-          rule(verdict.block) +
-          '<p class="muted">Nook checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
-        actions: [{ label: 'Edit it', variant: 'filled' }],
-      });
+      await blockedSheet(verdict.block);
       return false;
     }
     if (verdict.warn.length) {
@@ -1031,7 +1109,16 @@
         return;
       }
       if (!(await vet([text], { kind: 'comment', postId: p.id }))) return;
-      const c = store.addOwnComment(p.id, parentId, text);
+      const send = form.querySelector('button[type="submit"]');
+      if (send) send.disabled = true;
+      let c;
+      try {
+        c = await store.addOwnComment(p.id, parentId, text);
+      } catch (error) {
+        return showError(error);
+      } finally {
+        if (send) send.disabled = false;
+      }
       textarea.value = '';
       rerenderComments();
       // the new comment opens into the thread
@@ -1087,21 +1174,164 @@
     else go(viewNook ? '#/n/' + viewNook.id : '#/');
   };
 
-  ACTIONS.follow = (btn) => {
-    const following = (store.state.following = store.state.following || []);
+  // ---- friends and messages ---------------------------------------------------------------------------
+
+  ACTIONS.befriend = async (btn) => {
     const name = btn.dataset.user;
-    const on = !following.includes(name);
-    if (on) following.push(name);
-    else following.splice(following.indexOf(name), 1);
-    store.save();
-    btn.className = `m3-btn ${on ? 'tonal' : 'filled'}`;
-    btn.innerHTML = `${icon(on ? 'how_to_reg' : 'person_add')}${on ? 'Following' : 'Follow'}`;
-    if (on) {
-      M3.burst(btn, 'hearts', { count: 8 });
-      fx.pop(btn, 0.85);
+    btn.disabled = true;
+    let status;
+    try {
+      status = await store.befriend(name);
+    } catch (error) {
+      btn.disabled = false;
+      return showError(error);
     }
-    fx.haptic(on ? 10 : 5);
-    M3.toast(on ? `Following u/${name}` : `Unfollowed u/${name}`, { symbol: on ? 'how_to_reg' : 'person_remove', shape: 'heart' });
+    fx.haptic(10);
+    if (status === 'friends') {
+      M3.burst(btn, 'hearts', { count: 10 });
+      M3.toast(`You and u/${name} are friends now`, { symbol: 'diversity_1', shape: 'heart' });
+    } else M3.toast(`Friend request sent to u/${name}`, { symbol: 'person_add', shape: 'heart' });
+    renderBadges();
+    render();
+  };
+
+  ACTIONS.unfriend = async (btn) => {
+    const name = btn.dataset.user;
+    const status = store.friendStatus(name);
+    if (status === 'friends') {
+      const ok = await M3.dialog({
+        headline: `Remove u/${name} from your friends?`,
+        symbol: 'person_remove',
+        iconShape: 'softBoom',
+        body: 'You won’t be able to message each other until one of you sends a new request.',
+        actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, variant: 'filled' }],
+      });
+      if (!ok) return;
+    }
+    try {
+      await store.unfriend(name);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(status === 'incoming' ? 'Request declined' : status === 'outgoing' ? 'Request cancelled' : `Removed u/${name}`, { symbol: 'person_remove', shape: 'heart' });
+    renderBadges();
+    render();
+  };
+
+  ACTIONS['report-user'] = (btn) => report('user', { name: btn.dataset.user });
+
+  // ---- your account ------------------------------------------------------------------------------------
+
+  ACTIONS['sign-out'] = async () => {
+    const ok = await M3.dialog({
+      headline: 'Sign out of Nook?',
+      symbol: 'logout',
+      iconShape: 'cookie9',
+      body: 'You can sign back in any time with your username and password.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Sign out', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    await store.signOut();
+    location.replace(location.pathname);
+  };
+
+  ACTIONS['change-password'] = () => {
+    ui.sheet({
+      headline: 'Change your password',
+      symbol: 'password',
+      shape: 'clover4',
+      html:
+        '<div class="field"><label for="cp-current">Current password</label><input class="m3-field" id="cp-current" type="password" autocomplete="current-password"></div>' +
+        '<div class="field"><label for="cp-new">New password (at least 8 characters)</label><input class="m3-field" id="cp-new" type="password" autocomplete="new-password" minlength="8"><span class="error" id="cp-err"></span></div>' +
+        '<p class="muted">Other devices will be signed out. This one stays signed in.</p>',
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Change password',
+          variant: 'filled',
+          run(close, body) {
+            const err = body.querySelector('#cp-err');
+            const next = body.querySelector('#cp-new').value;
+            if (next.length < 8) {
+              err.textContent = 'Use at least 8 characters.';
+              return false;
+            }
+            store
+              .changePassword(body.querySelector('#cp-current').value, next)
+              .then(() => {
+                close(true);
+                M3.toast('Password changed', { symbol: 'password', shape: 'clover4' });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+
+  ACTIONS['new-recovery'] = () => {
+    ui.sheet({
+      headline: 'New recovery code',
+      symbol: 'key',
+      shape: 'gem',
+      html:
+        '<p>Your old recovery code stops working, and you get a new one to save.</p>' +
+        '<div class="field"><label for="nr-pass">Your password</label><input class="m3-field" id="nr-pass" type="password" autocomplete="current-password"><span class="error" id="nr-err"></span></div>' +
+        '<output class="gate-recovery" id="nr-code" hidden></output>',
+      actions: [
+        { label: 'Close', value: null },
+        {
+          label: 'Make a new code',
+          variant: 'filled',
+          id: 'nr-go',
+          run(close, body) {
+            const err = body.querySelector('#nr-err');
+            store
+              .newRecoveryCode(body.querySelector('#nr-pass').value)
+              .then((code) => {
+                const out = body.querySelector('#nr-code');
+                out.textContent = code;
+                out.hidden = false;
+                err.textContent = 'Save this now: it won’t be shown again.';
+                body.closest('dialog').querySelector('#nr-go').hidden = true;
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+
+  ACTIONS['delete-account'] = () => {
+    ui.sheet({
+      headline: 'Delete your account?',
+      symbol: 'person_remove',
+      shape: 'softBoom',
+      html:
+        '<p>This can’t be undone. Your profile, votes, friends, messages and photos are deleted, and your posts and comments are wiped. Your username becomes free for someone else.</p>' +
+        '<p class="muted">Want a copy first? Use “Export my data” before you delete.</p>' +
+        '<div class="field"><label for="da-pass">Type your password to confirm</label><input class="m3-field" id="da-pass" type="password" autocomplete="current-password"><span class="error" id="da-err"></span></div>',
+      actions: [
+        { label: 'Keep my account', value: null },
+        {
+          label: 'Delete forever',
+          variant: 'filled',
+          run(close, body) {
+            const err = body.querySelector('#da-err');
+            store
+              .deleteAccount(body.querySelector('#da-pass').value)
+              .then(() => {
+                close(true);
+                location.replace(location.pathname);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
   };
 
   // ---- inbox -----------------------------------------------------------------------------------------
@@ -1245,21 +1475,30 @@
               err.textContent = problem.why;
               return false;
             }
-            const c = store.createCommunity({ id, title, tagline, description: tagline, category: model.category, color: model.color, shape: model.shape, symbol: model.symbol, activity: 0.1 });
-            setTimeout(() => {
-              go('#/n/' + c.id);
-              M3.toast(`Welcome to n/${c.id}, founder!`, { symbol: c.symbol, shape: c.shape });
-              // a nook is born: confetti in its own shape and colours
-              setTimeout(() => {
-                fx.confetti($('.nook-hero .nook-avatar', main) || { x: innerWidth / 2, y: innerHeight / 3 }, { shapes: [c.shape, c.shape, 'sunny', 'heart'], count: 40, power: 1.2 });
-                fx.haptic([12, 60, 12, 60, 20]);
-              }, 450);
-            }, 140);
-            return c.id;
+            store
+              .createCommunity({ id, title, tagline, description: tagline, category: model.category, color: model.color, shape: model.shape, symbol: model.symbol })
+              .then((c) => {
+                close(c.id);
+                welcomeNook(c);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
           },
         },
       ],
     });
+  }
+
+  function welcomeNook(c) {
+    setTimeout(() => {
+      go('#/n/' + c.id);
+      M3.toast(`Welcome to n/${c.id}, founder!`, { symbol: c.symbol, shape: c.shape });
+      // a nook is born: confetti in its own shape and colours
+      setTimeout(() => {
+        fx.confetti($('.nook-hero .nook-avatar', main) || { x: innerWidth / 2, y: innerHeight / 3 }, { shapes: [c.shape, c.shape, 'sunny', 'heart'], count: 40, power: 1.2 });
+        fx.haptic([12, 60, 12, 60, 20]);
+      }, 450);
+    }, 140);
   }
   ACTIONS['new-nook'] = () => {
     closeDrawer();
@@ -1376,7 +1615,7 @@
         '</div>' +
         `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
         `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
-        '<span class="error" id="ep-photo-err"></span><small class="muted">Your photo stays on this device.</small></div>' +
+        '<span class="error" id="ep-photo-err"></span><small class="muted">Everyone on Nook can see your photo.</small></div>' +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>`,
       setup(body) {
@@ -1459,19 +1698,20 @@
               err.textContent = problem.why;
               return false;
             }
-            const renamed = name !== me.name;
-            if (renamed) store.renameMe(name);
-            me.bio = bio;
-            me.color = model.color;
-            me.shape = model.shape;
-            me.icon = model.icon;
-            me.photo = model.photo;
-            store.save();
-            renderMe();
-            if (route.view === 'profile') go('#/u/' + encodeURIComponent(name), { replace: true });
-            else render();
-            M3.toast('Profile updated', { symbol: 'face', shape: model.shape });
-            return true;
+            const fields = { name, bio, color: model.color, shape: model.shape, icon: model.icon };
+            // the photo only travels when it changed: a new one as data, a removed one as ''
+            if (model.photo !== (me.photo || '')) fields.photo = model.photo;
+            store
+              .updateProfile(fields)
+              .then((updated) => {
+                close(true);
+                renderMe();
+                if (route.view === 'profile') go('#/u/' + encodeURIComponent(updated.name), { replace: true });
+                else render();
+                M3.toast('Profile updated', { symbol: 'face', shape: model.shape });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
           },
         },
       ],
@@ -1516,7 +1756,7 @@
       ['favorite', 'heart', 'Vote, add Sparks to what you love, and save the good stuff into collections.'],
       ['palette', 'flower', 'Every nook has its own colour and shape, and Nook wears them as you move around.'],
       ['add_circle', 'clover4', 'Can’t find your people? Start a nook of your own.'],
-      ['lock', 'pixelCircle', 'For now Nook keeps what you do in this browser only, so nobody else sees it yet.'],
+      ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Nook’s own small server, not a big company’s.'],
     ];
     ui.sheet({
       headline: 'What’s Nook?',
@@ -1566,13 +1806,13 @@
   // ---- storage and cookies: said once, plainly ----------------------------------------------------
 
   function storageNotice({ banner = false } = {}) {
-    const text = 'Nook keeps your profile, posts and settings in this browser so they’re here next time. No cookies, no ads, no tracking, and nothing is sent anywhere.';
+    const text = 'Nook keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Nook’s server. No cookies, no ads, no tracking.';
     if (!banner) {
       ui.sheet({
         headline: 'Storage and cookies',
         symbol: 'cookie',
         shape: 'cookie9',
-        html: `<p>${text}</p><p class="muted">This storage is needed for Nook to work, so there’s nothing to switch off. You can delete it any time in Settings → Your data, or by clearing this site’s data in your browser.</p><p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>`,
+        html: `<p>${text}</p><p class="muted">That key is needed to keep you signed in, so there’s nothing to switch off. Signing out removes it.</p><p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>`,
         actions: [{ label: 'Got it', variant: 'filled' }],
       });
       return;
@@ -1594,28 +1834,20 @@
   }
   ACTIONS['storage-notice'] = () => storageNotice();
 
-  ACTIONS.export = () => {
-    const blob = new Blob([JSON.stringify(store.state, null, 2)], { type: 'application/json' });
+  ACTIONS.export = async () => {
+    let data;
+    try {
+      data = await store.exportData();
+    } catch (error) {
+      return showError(error);
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `nook-${store.state.me.name}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     M3.toast('Exported', { symbol: 'download', shape: 'pixelCircle' });
-  };
-
-  ACTIONS.reset = async () => {
-    const ok = await M3.dialog({
-      headline: 'Reset the demo?',
-      symbol: 'restart_alt',
-      iconShape: 'softBoom',
-      body: 'Your posts, comments, nooks, votes, badges and settings will be wiped from this browser.',
-      actions: [{ label: 'Cancel', value: false }, { label: 'Reset', value: true, variant: 'filled' }],
-    });
-    if (!ok) return;
-    store.reset();
-    location.hash = '#/';
-    location.reload();
   };
 
   // ---- sort controls, used by the feed pages ---------------------------------------------------------
@@ -1768,7 +2000,7 @@
         model.image = await shrinkImage(file);
         if (model.image.length > 2_400_000) {
           model.image = null;
-          err.textContent = 'That image is too big to keep in this browser. Try a smaller one.';
+          err.textContent = 'That image is too big. Try a smaller one.';
         }
       } catch (_) {
         model.image = null;
@@ -1865,8 +2097,19 @@
       }
       if (!(await vet([t, body.value, ...options, link && link.url], { kind: 'post' }))) return;
       clearTimeout(draftTimer);
-      const p = store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: model.type, flair: model.flair, link, image: model.image, poll: options, spoiler: spoiler.checked });
-      if (!store.saveNow() && p.image) M3.snackbar('Posted, but this browser couldn’t store the image. It may vanish after a reload.');
+      const submitBtn = $('#f-submit', root);
+      submitBtn.disabled = true;
+      M3.rollText(status, 'Posting…');
+      let p;
+      try {
+        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: model.type, flair: model.flair, link, image: model.image, poll: options, spoiler: spoiler.checked });
+      } catch (error) {
+        submitBtn.disabled = false;
+        M3.rollText(status, 'Not posted yet');
+        if (error.field && $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root)) $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root).textContent = error.message;
+        else showError(error);
+        return;
+      }
       go(`#/n/${p.n}/p/${p.id}`, { replace: true });
       M3.toast(`Posted to n/${p.n}`, { symbol: 'send', shape: model.nook.shape });
       // the new post lands with a little confetti in its nook's shape
@@ -1973,7 +2216,95 @@
 
   // ---- notifications ------------------------------------------------------------------------------------
 
-  store.on('notify', () => renderBadges());
+  store.on('notify', (note) => {
+    renderBadges();
+    // what someone else did gets a toast; badges have their own celebration
+    if (['reply', 'friend', 'moderation', 'report'].includes(note.kind)) M3.toast(note.text, { symbol: note.symbol, shape: note.shape, timeout: 3600 });
+  });
+
+  // ---- live: what the server says changed ------------------------------------------------------------
+
+  store.on('messages', (incoming = []) => {
+    renderBadges();
+    if (main._onMessages) return main._onMessages(incoming);
+    const last = incoming[incoming.length - 1];
+    if (last) M3.toast(`u/${last.from}: ${ui.plain(last.body, 70)}`, { symbol: 'chat', shape: 'clover4', timeout: 3600 });
+  });
+
+  store.on('friends', () => {
+    renderBadges();
+    if (main._onFriends) main._onFriends();
+  });
+
+  store.on('synced', (news) => {
+    renderBadges();
+    offline = 0;
+    if (!route) return;
+    // other people's votes and Sparks show up on the cards already on screen
+    for (const id of news.changed) {
+      const p = store.post(id);
+      if (!p) continue;
+      for (const card of $$(`.post[data-post="${id}"]`, main)) {
+        const score = card.querySelector('.post-actions .score');
+        if (score && score.textContent !== num(store.score(p))) {
+          score.textContent = num(store.score(p));
+          fx.pop(score, 0.7);
+        }
+        const row = card.querySelector('.sparks');
+        if (row) row.outerHTML = views.sparksRow(p);
+      }
+    }
+    if (route.view === 'postPage') {
+      const id = route.params.post;
+      if (news.removed.includes(id)) {
+        M3.snackbar('This post was just removed.');
+        return go('#/n/' + route.params.nook, { replace: true });
+      }
+      // new comments slide in, unless you're in the middle of writing one
+      const typing = $$('.reply-box textarea', main).some((t) => t.value.trim());
+      const touched = news.touched.some((cid) => {
+        const c = store.commentsById.get(cid);
+        return c && c.postId === id;
+      });
+      if (!typing && (news.comments.some((c) => c.postId === id) || news.removed.length || touched)) rerenderComments();
+      return;
+    }
+    const fits = (p) => (route.view === 'home' ? store.state.joined.includes(p.n) : route.view === 'community' ? p.n === route.params.nook : route.view === 'popular');
+    const fresh = news.posts.filter(fits);
+    if (fresh.length) newPostsPill(fresh.length);
+  });
+
+  /** "3 new posts": a pill at the top of a feed that brings them in */
+  function newPostsPill(count) {
+    let pill = $('.new-posts', main);
+    const total = (pill ? Number(pill.dataset.count) : 0) + count;
+    if (!pill) {
+      pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'm3-btn filled new-posts';
+      pill.addEventListener('click', () => {
+        pill.remove();
+        render();
+        scrollTo({ top: 0, behavior: fx.reduced() ? 'auto' : 'smooth' });
+      });
+      main.prepend(pill);
+      fx.play(pill, [{ opacity: 0, translate: '-50% -12px' }, { opacity: 1, translate: '-50% 0' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
+    }
+    pill.dataset.count = String(total);
+    pill.innerHTML = `${icon('arrow_upward')}${plural(total, 'new post')}`;
+  }
+
+  let offline = 0;
+  store.on('sync-failed', (error) => {
+    offline++;
+    if (offline === 2) M3.snackbar(error.offline ? 'Can’t reach Nook’s server right now. Your changes may not save until it’s back.' : error.message);
+  });
+  store.on('error', (error) => showError(error));
+  store.on('changed', () => render());
+  Nook.api.onSignedOut(() => {
+    M3.snackbar('You’ve been signed out. Sign in again to carry on.');
+    setTimeout(() => location.replace(location.pathname), 1800);
+  });
 
   store.on('badge', (badge) => {
     setTimeout(() => {
