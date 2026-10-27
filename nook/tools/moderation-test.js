@@ -28,12 +28,16 @@ const cases = {
     'Mama ta e foarte drăguță', 'Vreau o pizza cu ciuperci', 'Coaja de portocală e amară', 'Avem cacao fierbinte?',
     'Pentru mine e un lucru futil', 'Muzica futuristă e ciudată', 'Ne vedem la cursuri', 'Jocul ăsta e retro tare',
     'Ți-am zis că vin mâine', 'Am răcit și mă doare capul', 'Mă omor de râs cu tine', 'Să mori tu că ai câștigat!',
+    // words that contain or sound like the crude list, and must stay untouched
+    'Thorny bushes everywhere', 'Happiness is a warm budgie', 'The pen is mightier than the sword', 'Peninsula Balcanică',
+    'Trebuie să pornesc mașina', 'A porni calculatorul e ușor', 'Cum ești azi?', 'Cum a fost la școală?', 'A blue tit visited my feeder',
   ],
   STRONG: [
     'what the fuck', 'this is bullshit', 'f.u.c.k this', 'fuuuuck yes', 'sh1t happens', 'f u c k',
     'du-te în pula mea', 'ești o pizdă', 'muie steaua', 'futu-ți mama', 'ce căcat de joc', 'taci curvo',
     'p.u.l.a', 'p u l a', 'pvla', 'mvie', 'puuuuula', 'p' + ZW + 'ula', CYR_P + 'ul' + CYR_A, 'plm frate', 'fmm de viață',
     'morții mă-tii', 'ești un labagiu', 'muistule', 'pizdos mic', 'te doare-n cur', 'zdreanță ce ești', 'târfă',
+    'Its me penis man', 'p3nis', 'send nudes', 'so horny', 'watching porn', 'filme porno', 'vaginul', 'pornhub link',
   ],
   BLOCK: [
     'you are a f4ggot', 'kys loser', 'kill yourself', 'k1ll urself now', 'I will kill you', 'go die', 'stupid n1gger',

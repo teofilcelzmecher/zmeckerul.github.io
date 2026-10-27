@@ -110,6 +110,12 @@
     'futu', 'fututi', 'futuva', 'futui', 'fut', 'fute', 'futem', 'futeti', 'futut', 'futai', 'futacios', '=fmm', '=mtfm',
     'cacat', 'cacatul', 'cacanar', 'curva', 'curvo', 'curvar', 'tarfa', 'tarfe', 'tarfo', 'zdreanta', 'zdreanto', 'pizdo', 'coaie', 'coi', 'coaiele', '=cur', '=curu', '=curul',
     'labagiu', 'bulangiu', 'lindic', 'matii', 'mortii matii', 'mortii mamii', 'gaozar', 'gaoaza', 'sugaci',
+    // crude and sexual words: dotted out in posts, and never allowed in a username or a nest's name.
+    // Exact (=) where a looser match would catch an innocent word, in Romanian above all: "cum" (how)
+    // and "a porni" (to start) are left alone
+    'penis', 'vagin', '=dildo', '=dildos', '=boobs', '=boobies', '=titties', '=titty', 'pussy', '=pussies',
+    '=porn', '=porno', '=pornos', '=pornhub', '~pornograph', '~masturb', '~blowjob', '~handjob', 'jerk off',
+    '=horny', 'boner', '=nudes', '=hentai', '=milf', '=onlyfans', '=cumshot', 'jizz', '=clit', '~clitoris',
   ]);
 
   // ---- personal information -------------------------------------------------------------------

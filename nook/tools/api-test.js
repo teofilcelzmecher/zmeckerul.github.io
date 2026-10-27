@@ -50,6 +50,8 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(noTerms.status === 400, 'terms must be agreed', noTerms.json.error);
   const badName = await api(null, 'POST', '/api/signup', { invite: codeA, name: 'fuck_you', password: 'correct horse', age: true, terms: true });
   ok(badName.status === 422, 'swearing username refused', badName.json.error);
+  const crude = await api(null, 'POST', '/api/signup', { invite: codeA, name: 'Penis', password: 'correct horse', age: true, terms: true });
+  ok(crude.status === 422, 'crude username refused', crude.json.error);
   const a = await api(null, 'POST', '/api/signup', { invite: codeA, name: 'alice', password: 'correct horse', age: true, terms: true });
   ok(a.status === 200 && a.json.token && /^[A-Z0-9]{4}(-[A-Z0-9]{4}){3}$/.test(a.json.recovery), 'alice signs up with a code from the CLI', a.json.recovery);
   const reuse = await api(null, 'POST', '/api/signup', { invite: codeA, name: 'carol', password: 'correct horse', age: true, terms: true });

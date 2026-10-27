@@ -70,6 +70,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
 | `sudo nook admin NAME` / `unadmin NAME` | Gives or takes away the Moderation page |
+| `sudo nook rename NAME NEW_NAME` | Changes a username that breaks the rules |
 | `sudo nook ban NAME reason…` / `unban NAME` | Bans someone (they're signed out everywhere) |
 | `sudo nook reset-password NAME` | Gives someone a temporary password and recovery code |
 | `sudo nook remove post ID reason…` | Takes a post down and tells its author why |

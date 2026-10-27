@@ -31,6 +31,7 @@ const COMMANDS = {
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
+      '  nook rename <name> <new name>    change someone\'s username (for one that breaks the rules)',
       '  nook ban <name> [reason]         ban an account and sign it out everywhere',
       '  nook unban <name>                lift a ban',
       '  nook reset-password <name>       give someone a temporary password and a new recovery code',
@@ -84,6 +85,14 @@ const COMMANDS = {
     const u = userNamed(name);
     db.run("UPDATE users SET role = 'member', rev = ? WHERE id = ?", db.bump(), u.id);
     out(`u/${u.name} is no longer an admin.`);
+  },
+
+  rename(name, to) {
+    const u = userNamed(name);
+    if (!/^[A-Za-z0-9_]{3,20}$/.test(to || '')) quit('Usage: nook rename <name> <new name>  (3–20 letters, numbers or underscores)');
+    if (db.get('SELECT 1 AS x FROM users WHERE name = ? AND id != ?', to, u.id)) quit(`u/${to} is taken. Pick another name.`);
+    db.run('UPDATE users SET name = ?, rev = ? WHERE id = ?', to, db.bump(), u.id);
+    out(`u/${u.name} is now u/${to}. Their posts, friends and messages stay with them.`);
   },
 
   ban(name, ...reason) {
