@@ -5,7 +5,15 @@
  * commit e31ec4cb, as vendored by Swiftify): end-4's QML JavaScript port of
  * Knugel's TypeScript port of androidx graphics-shapes, with Material 3's 35
  * shapes. Licensed under the Apache License 2.0; see LICENSE-shapes.txt.
- * Only the module wrapping and the M3Shapes API at the bottom are new.
+ *
+ * Only the module wrapping, Swiftify's two shapes and the M3Shapes API at the
+ * bottom are new. Those parts are:
+ *   Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors
+ *   Copyright (C) 2026 teofilcelzmecher
+ * and, with the rest of this design system, licensed under the GNU General
+ * Public License, version 3 or (at your option) any later version; see LICENSE.
+ * The file as a whole is distributed under GPL-3.0-or-later, which the Apache
+ * License 2.0 allows.
  */
 
 (function (global) {

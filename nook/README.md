@@ -1,6 +1,8 @@
 # Nook
 
 A community app in the spirit of forum sites, built on the Material 3 Expressive design system in `../m3/`.
+That design system is ported from Swiftify with its authors' permission and is GPL-3.0-or-later
+(`../m3/LICENSE`). Nook's own code here is kept separate from it.
 Plain HTML, CSS and JS: no build step, no framework, no server. Open `index.html` through any static
 host (GitHub Pages serves it at `/nook/`).
 

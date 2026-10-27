@@ -1,8 +1,22 @@
 /*!
- * m3.js: Material 3 Expressive for the web, after Swiftify's design language
- * (https://github.com/shredos67/swiftify), which follows end-4's dots-hyprland.
+ * m3.js: Material 3 Expressive for the web, ported from Swiftify's design language
+ * (https://github.com/swiftify-org/swiftify), which follows end-4's dots-hyprland.
  * Load m3-shapes.js first. Colour schemes come from Google's
- * material-color-utilities, loaded from jsDelivr when first needed.
+ * material-color-utilities (Apache 2.0), served from vendor/ when first needed.
+ *
+ * Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors
+ * Copyright (C) 2026 teofilcelzmecher
+ *
+ * This program is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 3 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+ * PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this
+ * program (LICENSE, beside this file). If not, see <https://www.gnu.org/licenses/>.
  */
 
 // ==== core.js ====

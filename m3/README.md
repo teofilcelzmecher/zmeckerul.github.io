@@ -38,7 +38,7 @@ M3.color.setTheme({ seed: '#e8467c', target: someElement }); // scope a scheme t
 
 Every colour is a CSS variable: the 49 Material roles (`--m3-primary`, `--m3-surface-container-high`, …)
 plus end4's derived state colours (`--m3-layer1-hover`, `--m3-primary-active`, `--m3-tooltip`, …).
-Runtime theming loads Google's `material-color-utilities` from jsDelivr. Offline, the built-in scheme still works.
+Runtime theming loads Google's `material-color-utilities` from `vendor/`, beside `m3.js`. If it fails to load, the built-in scheme still works.
 
 ## Components
 
@@ -78,11 +78,23 @@ Bounce spring is `spring 7 / damping 0.24`. In CSS, use `var(--m3-motion-element
 Anything that loops (drifting shapes, wavy lines, the spin) holds still under `prefers-reduced-motion`
 or `<html data-m3-reduce-motion>`. Responses to clicks and hovers still animate.
 
+## License
+
+The design system (`m3.css`, `m3.js`, `m3-shapes.js` and `index.html`) is free software under the
+GNU General Public License, version 3 or (at your option) any later version; see `LICENSE`. It's
+ported from Swiftify with its authors' permission.
+
+    Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors
+    Copyright (C) 2026 teofilcelzmecher
+
+Bundled with it, under their own licenses: the shape code from rounded-polygon-qmljs (Apache 2.0,
+`LICENSE-shapes.txt`), the fonts in `fonts/` (SIL OFL 1.1 and Apache 2.0, licenses inside) and
+`vendor/material-color-utilities.js` (Apache 2.0, license beside it).
+
 ## Credits
 
-- Design and behaviour from [Swiftify](https://github.com/shredos67/swiftify). Swiftify's repository has
-  no licence file, so check with its author before publishing anything built on this. This port is
-  fine for personal use.
+- Design and behaviour from [Swiftify](https://github.com/swiftify-org/swiftify) by shredos67,
+  thefoxyydev and the Swiftify contributors, used under GPL-3.0-or-later with their permission.
 - Swiftify follows end-4's [dots-hyprland](https://github.com/end-4/dots-hyprland) (curves, state colours, tokens).
 - Shapes: [rounded-polygon-qmljs](https://github.com/end-4/rounded-polygon-qmljs), a port of androidx
   graphics-shapes (Apache 2.0, see `LICENSE-shapes.txt`).
