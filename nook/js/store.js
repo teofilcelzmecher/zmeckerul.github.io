@@ -11,7 +11,6 @@
   const KEY = 'nook-state-v1';
   const ME = '__me__';
   const BOOT = Date.now();
-  const MIN = 60000;
 
   const SPARKS = [
     { id: 'love', label: 'Love', symbol: 'favorite', shape: 'heart', burst: 'hearts' },
@@ -41,7 +40,7 @@
 
   function freshState() {
     return {
-      v: 1,
+      v: 2,
       me: {
         name: `${pick(ADJECTIVES)}_${pick(ANIMALS)}${Math.floor(10 + Math.random() * 89)}`,
         color: pick(['#6750a4', '#e8467c', '#ff8a3d', '#1db954', '#3d7bff', '#00a6a6']),
@@ -54,7 +53,6 @@
         calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false, haptics: true,
       },
       joined: ['nookhq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'asknook'],
-      bells: [],
       votes: {},
       cvotes: {},
       reacts: {},
@@ -62,7 +60,6 @@
       saved: [],
       collections: [],
       hidden: [],
-      rsvps: [],
       posts: [],
       comments: [],
       removed: [],
@@ -83,7 +80,8 @@
     const fresh = freshState();
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (saved && saved.v === 1) {
+      if (saved && (saved.v === 1 || saved.v === 2)) {
+        if (saved.v === 1) forgetMadeUp(saved);
         // anything added since this browser last saved takes its default
         return Object.assign(fresh, saved, {
           me: Object.assign(fresh.me, saved.me),
@@ -94,6 +92,23 @@
       /* a broken save starts over */
     }
     return fresh;
+  }
+
+  /** an early save held replies the app made up; only what you wrote stays */
+  function forgetMadeUp(saved) {
+    const mine = new Set((saved.posts || []).map((p) => p.id));
+    saved.comments = (saved.comments || []).filter((c) => c.author === ME && mine.has(c.postId));
+    const kept = new Set(saved.comments.map((c) => c.id));
+    for (const c of saved.comments) if (c.parentId && !kept.has(c.parentId)) c.parentId = null;
+    // your comments count your own vote, as your posts do
+    saved.cvotes = saved.cvotes || {};
+    for (const c of saved.comments) if (!saved.cvotes[c.id]) saved.cvotes[c.id] = 1;
+    for (const c of saved.comments) delete c.score;
+    saved.notes = (saved.notes || []).filter((n) => n.kind !== 'reply' && n.kind !== 'event');
+    delete saved.bells;
+    delete saved.rsvps;
+    for (const c of saved.communities || []) for (const key of ['members', 'online', 'activity', 'founded']) delete c[key];
+    saved.v = 2;
   }
 
   const state = load();
@@ -121,14 +136,14 @@
   };
   window.addEventListener('pagehide', () => saveTimer && saveNow());
 
-  // ---- the model: seed + yours ---------------------------------------------
+  // ---- the model: the starter nooks + everything people write ----------------
 
   const communities = new Map();
   const posts = new Map();
   const commentsByPost = new Map();
   const commentsById = new Map();
 
-  for (const c of DATA.communities) communities.set(c.id, Object.assign({ seeded: true }, c));
+  for (const c of DATA.communities) communities.set(c.id, Object.assign({ starter: true }, c));
   for (const c of state.communities) communities.set(c.id, c);
 
   function addComment(comment) {
@@ -137,21 +152,6 @@
     commentsByPost.get(comment.postId).push(comment);
   }
 
-  for (const seed of DATA.posts) {
-    const post = Object.assign({ type: 'text', body: '', reactions: {}, seeded: true }, seed);
-    post.createdAt = BOOT - seed.age * MIN;
-    delete post.comments;
-    posts.set(post.id, post);
-    let n = 0;
-    const walk = (list, parentId) => {
-      for (const c of list || []) {
-        const id = `${seed.id}-c${++n}`;
-        addComment({ id, postId: seed.id, parentId, author: c.a, createdAt: BOOT - c.t * MIN, score: c.s, body: c.b, seeded: true });
-        walk(c.r, id);
-      }
-    };
-    walk(seed.comments, null);
-  }
   for (const p of state.posts) posts.set(p.id, p);
   for (const c of state.comments) addComment(c);
 
@@ -163,8 +163,7 @@
 
   function user(name) {
     if (isMe(name)) return { name: state.me.name, color: state.me.color, shape: state.me.shape, bio: state.me.bio, me: true };
-    const seed = DATA.users[name];
-    return seed ? Object.assign({ name }, seed) : { name, color: '#79747e', shape: 'circle', bio: '' };
+    return { name, color: '#79747e', shape: 'circle', bio: '' };
   }
 
   const community = (id) => communities.get(id) || null;
@@ -186,18 +185,13 @@
 
   const commentCount = (postId) => (commentsByPost.get(postId) || []).filter((c) => !isRemoved(c.id)).length;
 
-  // your own posts gather a few votes as they age, as though people found them
-  function baseScore(p) {
-    if (p.seeded || p.score != null) return p.score || 0;
-    const minutes = Math.max(0, (Date.now() - p.createdAt) / MIN);
-    return 1 + Math.floor(Math.sqrt(minutes) * 2.4);
-  }
-  const score = (p) => baseScore(p) + (state.votes[p.id] || 0);
-  const commentScore = (c) => (c.score || 1) + (state.cvotes[c.id] || 0);
+  // scores are the votes people actually gave, nothing more
+  const score = (p) => state.votes[p.id] || 0;
+  const commentScore = (c) => state.cvotes[c.id] || 0;
 
   function sparks(p) {
     const mine = state.reacts[p.id] || {};
-    return SPARKS.map((s) => ({ ...s, count: ((p.reactions || {})[s.id] || 0) + (mine[s.id] ? 1 : 0), mine: !!mine[s.id] }));
+    return SPARKS.map((s) => ({ ...s, count: mine[s.id] ? 1 : 0, mine: !!mine[s.id] }));
   }
   const sparkTotal = (p) => sparks(p).reduce((sum, s) => sum + s.count, 0);
 
@@ -259,8 +253,7 @@
   function userStats(name) {
     const own = visiblePosts().filter((p) => userName(p.author) === name);
     const said = [...commentsById.values()].filter((c) => userName(c.author) === name && !isRemoved(c.id));
-    const seed = isMe(name) ? null : DATA.users[name];
-    const karma = seed ? seed.karma : own.reduce((sum, p) => sum + score(p), 0) + said.reduce((sum, c) => sum + commentScore(c), 0);
+    const karma = own.reduce((sum, p) => sum + score(p), 0) + said.reduce((sum, c) => sum + commentScore(c), 0);
     return { posts: own, comments: said, karma };
   }
 
@@ -271,21 +264,26 @@
     const found = visiblePosts().filter((p) => !state.hidden.includes(p.id) && (has(p.title) || has(p.body) || has(p.flair)));
     found.sort((a, b) => (has(b.title) ? 1 : 0) - (has(a.title) ? 1 : 0) || SORTS.hot(a, b));
     const nooks = allCommunities().filter((c) => has(c.id) || has(c.title) || has(c.tagline) || has(c.category));
-    const names = new Set([...Object.keys(DATA.users), state.me.name]);
-    const people = [...names].filter((name) => has(name) || has(user(name).bio)).map(user);
+    const people = [state.me.name].filter((name) => has(name) || has(user(name).bio)).map(user);
     return { posts: found, nooks, people };
   }
 
-  // a seeded nook's count is everyone but you; one you made already counts you
-  const membersOf = (c) => (c.members || 0) + (c.seeded && state.joined.includes(c.id) ? 1 : 0);
+  // the people who joined: in this browser, that's you or nobody
+  const membersOf = (c) => (state.joined.includes(c.id) ? 1 : 0);
+
+  /** how busy a nook really is: its posts and comments over the last week */
+  function activity(c) {
+    const since = Date.now() - 7 * 86400000;
+    const list = visiblePosts().filter((p) => p.n === c.id);
+    const said = list.flatMap((p) => (commentsByPost.get(p.id) || []).filter((x) => !isRemoved(x.id)));
+    const week = list.filter((p) => p.createdAt > since).length + said.filter((x) => x.createdAt > since).length;
+    const mood = week >= 20 ? 'Buzzing' : week >= 8 ? 'Lively' : week >= 1 ? 'Chill' : 'Quiet';
+    return { week, posts: list.length, comments: said.length, level: Math.min(1, week / 20), mood };
+  }
 
   // ---- notifications ----------------------------------------------------------
 
-  function notifications() {
-    // the seeded ones arrived on your first visit, not on every visit
-    const seeded = DATA.notifications.map((n) => ({ ...n, createdAt: state.me.joinedAt - n.age * MIN }));
-    return [...state.notes, ...seeded].sort((a, b) => b.createdAt - a.createdAt);
-  }
+  const notifications = () => [...state.notes].sort((a, b) => b.createdAt - a.createdAt);
   const unread = () => notifications().filter((n) => !state.read.includes(n.id)).length;
 
   function notify(note) {
@@ -414,8 +412,6 @@
   };
   const toggleSave = (id, on) => toggle('saved', id, on);
   const hide = (id, on) => toggle('hidden', id, on);
-  const rsvp = (id, on) => toggle('rsvps', id, on);
-  const bell = (id, on) => toggle('bells', id, on);
 
   function visit(nookId) {
     if (!state.visited.includes(nookId)) state.visited.push(nookId);
@@ -427,7 +423,7 @@
   function createPost({ n, title, body, type, flair, link, image, poll, spoiler }) {
     const p = {
       id: uid('p'), n, author: ME, createdAt: Date.now(), title, body: body || '', type: type || 'text',
-      flair: flair || null, reactions: {}, spoiler: !!spoiler,
+      flair: flair || null, spoiler: !!spoiler,
     };
     if (type === 'link') p.link = link;
     if (type === 'image') p.image = image;
@@ -442,16 +438,14 @@
     return p;
   }
 
-  function addOwnComment(postId, parentId, body, author) {
-    const c = { id: uid('c'), postId, parentId: parentId || null, author: author || ME, createdAt: Date.now(), score: 1, body };
+  function addOwnComment(postId, parentId, body) {
+    const c = { id: uid('c'), postId, parentId: parentId || null, author: ME, createdAt: Date.now(), body };
     state.comments.push(c);
     addComment(c);
-    if (!author) state.cvotes[c.id] = 0;
+    state.cvotes[c.id] = 1; // your own comment starts with your vote, as your posts do
     save();
-    if (!author) {
-      checkBadges();
-      emit('commented', c);
-    }
+    checkBadges();
+    emit('commented', c);
     return c;
   }
 
@@ -470,10 +464,7 @@
 
   function createCommunity(c) {
     const full = Object.assign(
-      {
-        members: 1, online: 1, activity: 0.08, founded: String(new Date().getFullYear()), rules: ['Be kind', 'Stay on topic'],
-        flairs: ['Discussion', 'Question', 'Show off'], mods: [ME], events: [], createdAt: Date.now(),
-      },
+      { rules: ['Be kind', 'Stay on topic'], flairs: ['Discussion', 'Question', 'Show off'], mods: [ME], createdAt: Date.now() },
       c
     );
     state.communities.push(full);
@@ -510,8 +501,8 @@
   function renameMe(name) {
     const old = state.me.name;
     state.me.name = name;
-    // your posts are written by "you", so they follow the new name; only the
-    // simulated replies addressed you by the old one
+    // your posts are written by "you", so they follow the new name; only links
+    // to your old profile need pointing at the new one
     for (const note of state.notes) if (note.href) note.href = note.href.replace('#/u/' + old, '#/u/' + name);
     save();
   }
@@ -536,9 +527,9 @@
     ME, BOOT, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
     isMe, userName, user, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
-    userStats, search, membersOf, notifications, unread, notify, touchStreak, checkBadges, award,
-    vote, voteComment, react, votePoll, join, toggleSave, hide, rsvp, bell, visit, createPost,
+    userStats, search, membersOf, activity, notifications, unread, notify, touchStreak, checkBadges, award,
+    vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, renameMe,
-    markRead, reset, replies: DATA.replies,
+    markRead, reset,
   };
 })();

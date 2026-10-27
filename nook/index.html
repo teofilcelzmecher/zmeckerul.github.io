@@ -44,18 +44,23 @@
         <a class="brand" href="#/" aria-label="Nook home"><m3-shape id="drawer-brand" shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-title brand-word">nook</span></a>
         <button class="m3-toolbar-btn" id="drawer-close" data-effect="spin" data-shape="cookie7" aria-label="Close navigation"><span class="m3-icon">close</span></button>
       </div>
+      <a class="drawer-me" id="drawer-me" href="#/" data-m3-ripple></a>
+      <div class="nav-main">
       <a class="nav-item" href="#/" data-nav="home" data-m3-ripple><span class="nav-ind"><span class="m3-icon">home</span></span><span class="nav-label">Home</span></a>
       <a class="nav-item" href="#/popular" data-nav="popular" data-m3-ripple><span class="nav-ind"><span class="m3-icon">local_fire_department</span></span><span class="nav-label">Popular</span></a>
       <a class="nav-item" href="#/explore" data-nav="explore" data-m3-ripple><span class="nav-ind"><span class="m3-icon">explore</span></span><span class="nav-label">Explore</span></a>
       <a class="nav-item" href="#/saved" data-nav="saved" data-m3-ripple><span class="nav-ind"><span class="m3-icon">bookmarks</span></span><span class="nav-label">Saved</span></a>
       <a class="nav-item" href="#/inbox" data-nav="inbox" data-m3-ripple><span class="nav-ind"><span class="m3-icon">notifications</span></span><span class="nav-label">Inbox</span><span class="nav-count" id="drawer-unread"></span></a>
+      <a class="nav-item only-phone" href="#/settings" data-nav="settings" data-m3-ripple><span class="nav-ind"><span class="m3-icon">settings</span></span><span class="nav-label">Settings</span></a>
+      </div>
       <div class="nav-heading"><span>Your nooks</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
       <div id="nav-nooks"></div>
       <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nook"><span class="nav-ind"><span class="m3-icon">add_circle</span></span><span class="nav-label">Create a nook</span></button>
       <div class="recent-block" id="nav-recent"></div>
       <div class="nav-foot">
-        <a href="#/settings">Settings</a>
-        <button type="button" data-act="shortcuts">Shortcuts</button>
+        <a href="#/settings" class="not-phone">Settings</a>
+        <button type="button" data-act="shortcuts" class="not-phone">Shortcuts</button>
+        <button type="button" data-act="about-nook">What’s Nook?</button>
         <a href="../m3/">Design system</a>
       </div>
     </nav>

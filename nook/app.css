@@ -277,9 +277,18 @@ p {
   scrollbar-color: var(--m3-outline-variant) transparent;
 }
 
-/* the menu's own header shows only when the menu is the whole screen */
-.drawer-head {
+/* the menu's own header, your profile row and the Settings tile show only when the menu is the whole screen */
+.drawer-head,
+.drawer-me {
   display: none;
+}
+@media (min-width: 720px) {
+  .only-phone {
+    display: none !important;
+  }
+}
+.nav-main {
+  display: contents;
 }
 
 .nav-item {
@@ -1299,21 +1308,12 @@ body.calm :is(.stat, .about-stats > div):has(.count) {
 .pulse b {
   color: var(--m3-primary);
 }
-.online-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  margin-inline-end: 4px;
-  border-radius: 50%;
-  background: #34c759;
-  vertical-align: middle;
-}
-
 /* ---- rail cards ---------------------------------------------------------------- */
 
 .about-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
   gap: 8px;
   margin: 14px 0;
 }
@@ -1402,48 +1402,6 @@ body.calm :is(.stat, .about-stats > div):has(.count) {
   white-space: nowrap;
 }
 
-.event {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 4px 12px;
-  padding: 12px;
-  border-radius: var(--m3-r-normal);
-  background: var(--m3-surface-container);
-}
-.event + .event {
-  margin-top: 8px;
-}
-.event .event-text {
-  display: grid;
-  gap: 2px;
-}
-.event b {
-  font-weight: 650;
-  line-height: 1.3;
-}
-.event small {
-  color: var(--m3-on-surface-variant);
-  font-size: var(--m3-fs-smaller);
-}
-.event .when {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--m3-primary);
-  font-size: var(--m3-fs-smaller);
-  font-weight: 700;
-}
-.event .when m3-squiggle {
-  width: 16px;
-  height: 16px;
-}
-.event .event-actions {
-  grid-column: 2;
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
 .streak {
   display: flex;
   align-items: center;
@@ -1485,8 +1443,17 @@ body.calm :is(.stat, .about-stats > div):has(.count) {
   font-size: var(--m3-fs-smaller);
   line-height: 1.6;
 }
-.foot-links a {
+.foot-links a,
+.foot-links button {
+  padding: 0;
+  border: 0;
+  background: none;
   color: var(--m3-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.foot-links :is(a, button):hover {
+  text-decoration: underline;
 }
 
 /* ---- post page and comments --------------------------------------------------------- */
@@ -2252,6 +2219,22 @@ input[type='color'].color-input::-moz-color-swatch {
   text-align: end;
 }
 
+/* ---- what's nook ------------------------------------------------------------------------- */
+
+.about-nook {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.about-nook li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
 /* ---- keyboard help ------------------------------------------------------------------------- */
 
 .keys {
@@ -2694,6 +2677,101 @@ html[data-vt='morph']::view-transition-new(*.card) {
 .drawer.has-glide .nav-item[aria-current='page']:hover {
   background: transparent;
 }
+/* phones: the main pages are tiles, the current one simply filled */
+@media (max-width: 719px) {
+  .nav-glide {
+    display: none;
+  }
+  .drawer.has-glide .nav-item[aria-current='page'] {
+    background: var(--m3-secondary-container);
+  }
+  .drawer.has-glide .nav-item[aria-current='page']:hover {
+    background: var(--m3-secondary-container);
+  }
+  .not-phone {
+    display: none !important;
+  }
+  .drawer-me {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 14px;
+    margin: 2px 0 10px;
+    padding: 12px 10px 12px 12px;
+    overflow: hidden;
+    border-radius: var(--m3-r-very-large);
+    background: var(--m3-surface-container-high);
+    color: var(--m3-on-surface);
+    --m3-ripple: var(--m3-layer1-active);
+  }
+  .drawer-me .row-text {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+  }
+  .drawer-me b {
+    overflow: hidden;
+    font-size: var(--m3-fs-large);
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .drawer-me small {
+    color: var(--m3-on-surface-variant);
+    font-size: var(--m3-fs-smaller);
+  }
+  .drawer-me > .m3-icon {
+    color: var(--m3-on-surface-variant);
+  }
+  .nav-main {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .nav-main .nav-item {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 88px;
+    padding: 14px 14px 12px;
+    border-radius: var(--m3-r-large);
+    background: var(--m3-surface-container);
+    color: var(--m3-on-surface);
+  }
+  .nav-main .nav-item:hover {
+    background: var(--m3-surface-container-high);
+  }
+  .nav-main .nav-item .m3-icon {
+    font-size: 26px;
+  }
+  .nav-main .nav-count {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    margin: 0;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--m3-error);
+    color: var(--m3-on-error);
+    font-size: 12px;
+  }
+  .nav-main .nav-count:empty {
+    display: none;
+  }
+  /* the footer follows the list instead of floating at the bottom of a tall screen */
+  .nav-foot {
+    margin-top: 12px;
+  }
+}
+
 .drawer .nav-item[aria-current='page'] .nav-ind .m3-icon,
 .bottom-nav a[aria-current='page'] .nav-ind .m3-icon {
   animation: nook-icon-hop 520ms var(--m3-ease-expressive-fast-spatial) both;
@@ -2710,34 +2788,6 @@ html[data-vt='morph']::view-transition-new(*.card) {
   35% {
     translate: 0 -3px;
     scale: 1.12;
-  }
-}
-
-/* ---- a bell that rings when switched on ---- */
-
-.ring .m3-icon {
-  transform-origin: 50% 15%;
-  animation: nook-ring 900ms ease-out both;
-}
-@keyframes nook-ring {
-  10% {
-    rotate: 18deg;
-  }
-  22% {
-    rotate: -15deg;
-  }
-  34% {
-    rotate: 11deg;
-  }
-  46% {
-    rotate: -7deg;
-  }
-  58% {
-    rotate: 4deg;
-  }
-  70%,
-  100% {
-    rotate: 0deg;
   }
 }
 
@@ -2879,7 +2929,6 @@ html[data-vt='morph']::view-transition-new(*.card) {
   .post-veil > * {
     transition-duration: 1ms !important;
   }
-  .ring .m3-icon,
   .drawer .nav-item[aria-current='page'] .nav-ind .m3-icon,
   .bottom-nav a[aria-current='page'] .nav-ind,
   .bottom-nav a[aria-current='page'] .nav-ind .m3-icon,
@@ -2887,6 +2936,6 @@ html[data-vt='morph']::view-transition-new(*.card) {
     animation: none !important;
   }
 }
-html[data-m3-reduce-motion] :is(.ring .m3-icon, .nav-ind, .nav-ind .m3-icon, .enter) {
+html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
   animation: none !important;
 }

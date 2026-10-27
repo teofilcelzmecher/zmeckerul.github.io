@@ -234,20 +234,21 @@
   // ---- rail cards -------------------------------------------------------------------------
 
   function pulse(c) {
-    const mood = c.activity > 0.75 ? 'Buzzing' : c.activity > 0.5 ? 'Lively' : c.activity > 0.25 ? 'Chill' : 'Quiet';
+    const a = store.activity(c);
     return (
-      `<div class="pulse"><m3-wavy-progress value="${c.activity}" playing aria-label="Activity: ${mood}"></m3-wavy-progress>` +
-      `<span><b>${mood}</b> <span class="count">· <span class="online-dot"></span>${num(c.online || 1)} here now</span></span></div>`
+      `<div class="pulse"><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress>` +
+      `<span><b>${a.mood}</b> <span class="count">· ${a.week ? `${num(a.week)} new this week` : 'nothing new this week'}</span></span></div>`
     );
   }
 
   function aboutCard(c) {
+    const a = store.activity(c);
     return (
       '<section class="card">' +
       `<h3 class="card-title">${nookIcon(c, 32, 18)}<span>About n/${esc(c.id)}</span></h3>` +
       `<p class="muted">${esc(c.description || c.tagline)}</p>` +
-      `<div class="about-stats"><div><b class="count">${num(store.membersOf(c))}</b><span>Members</span></div>` +
-      `<div><b class="count">${num(c.online || 1)}</b><span>Here now</span></div><div><b>${esc(c.founded || '')}</b><span>Founded</span></div></div>` +
+      `<div class="about-stats"><div><b class="count">${num(a.posts)}</b><span>Posts</span></div>` +
+      `<div><b class="count">${num(a.comments)}</b><span>Comments</span></div></div>` +
       pulse(c) +
       `<div class="toolbar" style="margin-top:14px">${joinButton(c, false)}<a class="m3-btn outlined" href="#/submit?n=${c.id}">${icon('edit')}Post</a></div>` +
       '</section>'
@@ -261,44 +262,12 @@
 
   function modsCard(c) {
     const mods = (c.mods || []).map((name) => store.user(name));
+    if (!mods.length) return '';
     return (
       `<section class="card"><h3 class="card-title">${icon('shield_person')}<span>Moderators</span></h3><div class="list">` +
       mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(u.bio || '')}</small></span></a>`).join('') +
       '</div></section>'
     );
-  }
-
-  function eventRow(ev, c, showNook) {
-    const st = ui.eventStatus(ev);
-    if (st.over) return '';
-    const going = store.state.rsvps.includes(ev.id);
-    return (
-      `<div class="event" data-event="${ev.id}"${showNook ? ' data-show-nook' : ''}>` +
-      `<m3-shape-icon shape="${c.shape}" symbol="${ev.symbol}" size="40" icon-size="20"${showNook ? ` style="--m3-shape-icon-color:${c.color};--m3-shape-icon-on-color:${ui.ink(c.color)}"` : ''}></m3-shape-icon>` +
-      `<div class="event-text"><span class="when">${st.live ? '<m3-squiggle playing data-live aria-hidden="true"></m3-squiggle>' : icon('schedule')}<span data-when="${ev.id}">${st.text}</span></span>` +
-      `<b>${esc(ev.title)}</b><small>${showNook ? `n/${esc(c.id)} · ` : ''}${esc(ev.desc)}</small></div>` +
-      `<div class="event-actions"><button class="m3-btn ${going ? 'tonal' : 'outlined'} small" data-act="rsvp" data-event="${ev.id}" data-nook="${c.id}" aria-pressed="${going}">` +
-      `${icon(going ? 'event_available' : 'event')}${going ? 'Going' : st.live ? 'Join in' : 'RSVP'}</button></div></div>`
-    );
-  }
-
-  function eventsCard(c) {
-    const rows = (c.events || []).map((ev) => eventRow(ev, c, false)).join('');
-    if (!rows) return '';
-    return `<section class="card"><h3 class="card-title">${icon('event')}<span>Events</span></h3>${rows}</section>`;
-  }
-
-  function upcomingEvents(nookIds, limit = 3) {
-    const all = [];
-    for (const id of nookIds) {
-      const c = store.community(id);
-      if (!c) continue;
-      for (const ev of c.events || []) {
-        const st = ui.eventStatus(ev);
-        if (!st.over) all.push({ ev, c, start: st.start });
-      }
-    }
-    return all.sort((a, b) => a.start - b.start).slice(0, limit);
   }
 
   function streakCard() {
@@ -319,7 +288,7 @@
     const list = store
       .allCommunities()
       .filter((c) => !store.state.joined.includes(c.id))
-      .sort((a, b) => b.activity * Math.log(b.members + 10) - a.activity * Math.log(a.members + 10))
+      .sort((a, b) => store.activity(b).week - store.activity(a).week)
       .slice(0, limit);
     if (!list.length) return '';
     return (
@@ -327,7 +296,7 @@
       list
         .map(
           (c) =>
-            `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 36, 19)}<span class="row-text"><b>n/${esc(c.id)}</b><small><span class="count">${num(store.membersOf(c))} members · </span>${esc(c.category)}</small></span>${joinButton(c)}</div>`
+            `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 36, 19)}<span class="row-text"><b>n/${esc(c.id)}</b><small>${esc(c.category)}</small></span>${joinButton(c)}</div>`
         )
         .join('') +
       `</div><a class="m3-btn text small" href="#/explore" style="margin-top:6px">${icon('explore')}See all nooks</a></section>`
@@ -336,8 +305,8 @@
 
   const footCard = () =>
     '<div class="foot-links">' +
-    '<a href="#/settings">Settings</a><button class="m3-btn text small" data-act="shortcuts" style="height:auto;padding:0;--m3-btn-fg:var(--m3-primary)">Keyboard shortcuts</button>' +
-    '<a href="#/n/nookhq/p/welcome">What’s Nook?</a><a href="../m3/">Design system</a>' +
+    '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
+    '<button type="button" data-act="about-nook">What’s Nook?</button><a href="../m3/">Design system</a>' +
     '<span>Built with Material 3 Expressive. Everything you do is saved in this browser only.</span></div>';
 
   // ---- comments -------------------------------------------------------------------------------
@@ -428,10 +397,9 @@
       ? `<section class="hello" data-m3-stickers="hello-${name}" data-count="5" data-strength="1.3" data-clip-radius="30">` +
         `<button class="m3-icon-btn close" data-act="dismiss-hello" aria-label="Dismiss welcome"><span class="m3-icon">close</span></button>` +
         `<h1 class="m3-title">Welcome to Nook, ${esc(name)}!</h1>` +
-        '<p>Every nook has its own colour and shape, and the app wears them as you move around. Join a few, Spark what you love, and press <kbd>?</kbd> for shortcuts.</p>' +
-        `<div class="row"><a class="m3-btn filled" href="#/n/nookhq/p/welcome">${icon('tour')}Take the tour</a><a class="m3-btn tonal" href="#/explore">${icon('explore')}Find your nooks</a></div></section>`
+        '<p>Every nook has its own colour and shape, and the app wears them as you move around. Join a few and Spark what you love.<span class="not-phone"> Press <kbd>?</kbd> for shortcuts.</span></p>' +
+        `<div class="row"><button class="m3-btn filled" data-act="about-nook">${icon('tour')}What’s Nook?</button><a class="m3-btn tonal" href="#/explore">${icon('explore')}Find your nooks</a></div></section>`
       : '';
-    const soon = upcomingEvents(s.joined);
     return {
       title: 'Home',
       brand: 'cookie9',
@@ -445,7 +413,6 @@
         feedShell() +
         '</div><aside class="rail" aria-label="Sidebar">' +
         streakCard() +
-        (soon.length ? `<section class="card"><h3 class="card-title">${icon('event_upcoming')}<span>Happening soon</span></h3>${soon.map((x) => eventRow(x.ev, x.c, true)).join('')}</section>` : '') +
         trendingCard() +
         footCard() +
         '</aside></div>',
@@ -455,7 +422,9 @@
             root,
             store.feed({ joinedOnly: true, sort: settings().sort }),
             {},
-            empty('diversity_3', 'Your home is empty', 'Join some nooks and their posts will show up here.', `<a class="m3-btn filled" href="#/explore">${icon('explore')}Explore nooks</a>`)
+            s.joined.length
+              ? empty('edit_note', 'It’s quiet in here', 'Nobody has posted in your nooks yet. Start the first conversation.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a><a class="m3-btn tonal" href="#/explore">${icon('explore')}Explore nooks</a>`)
+              : empty('diversity_3', 'Your home is empty', 'Join some nooks and their posts will show up here.', `<a class="m3-btn filled" href="#/explore">${icon('explore')}Explore nooks</a>`)
           );
         render();
         app().onSort(root, (sort) => {
@@ -480,7 +449,13 @@
         `</div><aside class="rail">${trendingCard(6)}${footCard()}</aside></div>`,
       mount(root) {
         let current = sort;
-        const render = () => mountFeed(root, store.feed({ sort: current }), {});
+        const render = () =>
+          mountFeed(
+            root,
+            store.feed({ sort: current }),
+            {},
+            empty('local_fire_department', 'Nothing’s popular yet', 'Nook only shows what people really post. Start something and it could be the first thing here.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>`, 'softBurst')
+          );
         render();
         app().onSort(root, (value) => {
           current = value;
@@ -503,9 +478,8 @@
         `<section class="nook-hero" data-m3-stickers="${c.id}" data-count="6" data-min="50" data-max="170" data-strength="1.3" data-clip-radius="30">` +
         '<div class="nook-hero-main">' +
         `<m3-shape-icon class="nook-avatar" shape="${c.shape}" hover-shape="${c.shape === 'heart' ? 'flower' : 'heart'}" symbol="${c.symbol}" size="104" icon-size="48"></m3-shape-icon>` +
-        `<div class="nook-id"><h1 class="m3-title">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.membersOf(c), 'member')}</span></span></div>` +
+        `<div class="nook-id"><h1 class="m3-title">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
-        `<button class="m3-icon-btn tonal" data-act="bell" data-nook="${c.id}" aria-pressed="${store.state.bells.includes(c.id)}" aria-label="Notify me about this nook" data-tooltip="Notifications"><span class="m3-icon">notifications</span></button>` +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span class="m3-icon">more_horiz</span></button></div></div>` +
         `<p class="nook-tagline">${esc(c.tagline)}</p>` +
         pulse(c) +
@@ -517,7 +491,7 @@
           ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join('')}</div>`
           : '') +
         feedShell() +
-        `</div><aside class="rail">${aboutCard(c)}${eventsCard(c)}${rulesCard(c)}${modsCard(c)}${footCard()}</aside></div>`,
+        `</div><aside class="rail">${aboutCard(c)}${rulesCard(c)}${modsCard(c)}${footCard()}</aside></div>`,
       mount(root) {
         let sort = 'hot';
         let flair = null;
@@ -568,7 +542,7 @@
         `<div class="comments" id="comment-list">${commentTree(p, 'best')}</div>` +
         (count ? '' : `<div id="no-comments" class="muted" style="text-align:center;padding:20px">No comments yet. Say something nice!</div>`) +
         '</section>' +
-        `</div><aside class="rail">${aboutCard(c)}${eventsCard(c)}${rulesCard(c)}</aside></div>`,
+        `</div><aside class="rail">${aboutCard(c)}${rulesCard(c)}</aside></div>`,
       mount(root) {
         store.visit(c.id);
         const list = root.querySelector('#comment-list');
@@ -600,13 +574,14 @@
       store
         .allCommunities()
         .filter((c) => category === 'All' || c.category === category)
-        .sort((a, b) => store.membersOf(b) - store.membersOf(a))
+        .map((c) => [c, store.activity(c)])
+        .sort((x, y) => y[1].posts - x[1].posts)
         .map(
-          (c) =>
+          ([c, a]) =>
             `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
-            `<h3 class="m3-title">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${num(store.membersOf(c))} members · <span class="online-dot"></span>${num(c.online || 1)}</span></div>` +
-            `<p>${esc(c.tagline)}</p><m3-wavy-progress value="${c.activity}" playing aria-label="Activity"></m3-wavy-progress></article>`
+            `<h3 class="m3-title">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
+            `<p>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
         )
         .join('');
     return {
@@ -616,13 +591,15 @@
         '<div class="page wide"><div class="col">' +
         `<div class="page-head"><m3-shape-icon shape="flower" symbol="explore" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Explore</h1><span class="muted">Find your nook. Each one has its own colour, shape and pace.</span></div><span class="spacer"></span>` +
         `<button class="m3-btn filled" data-act="new-nook">${icon('add')}Create a nook</button></div>` +
-        `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="sunny" symbol="photo_library" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Fresh from the nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
-        `<div class="shelf">${fresh
-          .map((p) => {
-            const art = p.image ? `url(${p.image})` : `linear-gradient(${p.art.angle || 150}deg, ${p.art.from}, ${p.art.to})`;
-            return `<button class="m3-media-card" data-href="#/n/${p.n}/p/${p.id}" data-title="${esc(p.title)}" data-subtitle="n/${esc(p.n)}" data-art="${esc(art)}"></button>`;
-          })
-          .join('')}</div></section>` +
+        (fresh.length
+          ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="sunny" symbol="photo_library" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Fresh from the nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
+            `<div class="shelf">${fresh
+              .map((p) => {
+                const art = p.image ? `url(${p.image})` : `linear-gradient(${p.art.angle || 150}deg, ${p.art.from}, ${p.art.to})`;
+                return `<button class="m3-media-card" data-href="#/n/${p.n}/p/${p.id}" data-title="${esc(p.title)}" data-subtitle="n/${esc(p.n)}" data-art="${esc(art)}"></button>`;
+              })
+              .join('')}</div></section>`
+          : '') +
         `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="clover4" symbol="category" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">All nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
         `<div class="chips" role="group" aria-label="Category">${cats.map((x) => `<button class="chip" data-m3-ripple data-cat="${esc(x)}" aria-pressed="${x === cat}">${esc(x)}</button>`).join('')}</div>` +
         `<div class="nook-grid" id="nook-grid">${grid(cat)}</div></section>` +
@@ -696,15 +673,15 @@
     const name = params.user;
     const u = store.user(name);
     const me = store.isMe(name);
-    const known = me || window.NOOK_DATA.users[name];
-    if (!known) return notFound(`We couldn’t find u/${name}.`);
+    // everyone else arrives once Nook has people beyond this browser
+    if (!me) return notFound(`We couldn’t find u/${name}.`);
     const st = store.userStats(u.name);
     const s = store.state;
     const where = [...new Set(st.posts.map((p) => p.n).concat(st.comments.map((c) => (store.post(c.postId) || {}).n)).filter(Boolean))]
       .map((id) => store.community(id))
       .filter(Boolean)
       .slice(0, 6);
-    const joinedDays = me ? Math.max(1, Math.round((Date.now() - s.me.joinedAt) / 86400000)) : u.joined;
+    const joinedDays = Math.max(1, Math.round((Date.now() - s.me.joinedAt) / 86400000));
     const badges = me
       ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="burst" symbol="military_tech" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Badges</h2><m3-wavy-line></m3-wavy-line><span class="muted">${Object.keys(s.badges).length}/${store.BADGES.length}</span></header>` +
         `<div class="badges">${store.BADGES.map((b) => {
@@ -787,7 +764,7 @@
                   `<span class="note-text"><span>${esc(n.text)}</span><small>${ago(n.createdAt)}</small></span></button>`
               )
               .join('')}</div>`
-          : empty('notifications_off', 'All quiet', 'Replies, badges and events will show up here.')) +
+          : empty('notifications_off', 'All quiet', 'Replies to your posts and the badges you earn show up here.')) +
         '</div></div>',
     };
   }
@@ -813,7 +790,7 @@
         const box = root.querySelector('#search-results');
         const show = (t) => {
           if (!q) {
-            box.innerHTML = empty('search', 'Search Nook', 'Find posts, nooks and people. Try “sourdough”, “css” or “stars”.');
+            box.innerHTML = empty('search', 'Search Nook', 'Find posts, nooks and people.');
           } else if (t === 'posts') {
             box.innerHTML = feedShell();
             mountFeed(box, r.posts, { query: q }, empty('search_off', 'No posts match', 'Try fewer or different words.'));
@@ -987,7 +964,7 @@
 
   Nook.views = {
     home, popular, community, postPage, explore, saved, collection, profile, inbox, searchPage, settingsPage, submit, notFound,
-    postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard,
-    eventsCard, eventRow, submitRail, empty, mountFeed,
+    postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
+    submitRail, empty, mountFeed,
   };
 })();

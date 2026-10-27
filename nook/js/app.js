@@ -1,9 +1,7 @@
 /*
  * Nook's app: the router, the shell (drawer, top bar, bottom bar), every
  * data-act action, the sheets for making nooks, collections and profiles,
- * the post composer, keyboard shortcuts, and the small simulations that make
- * the demo feel lived in (replies to what you post, live event clocks, the
- * break reminder).
+ * the post composer, keyboard shortcuts and the break reminder.
  */
 (function () {
   'use strict';
@@ -60,7 +58,7 @@
     }
   }
 
-  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit' };
+  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings' };
 
   let leaving = [];
   let current = location.hash || '#/';
@@ -215,7 +213,6 @@
     }
     renderDrawerNooks();
     ui.theme.tintAll(main);
-    M3.spin.hold('live', !!main.querySelector('[data-live]'));
 
     // scrolled now, in the same frame, so a view transition captures the page where it will be
     const target = restoring;
@@ -278,7 +275,12 @@
   });
 
   function renderMe() {
-    $('#me-btn').innerHTML = avatar(store.user(store.ME), 36);
+    const me = store.user(store.ME);
+    $('#me-btn').innerHTML = avatar(me, 36);
+    const row = $('#drawer-me');
+    row.href = '#/u/' + encodeURIComponent(me.name);
+    row.setAttribute('aria-label', `Your profile, u/${me.name}`);
+    row.innerHTML = `${avatar(me, 44)}<span class="row-text"><b>${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
   }
 
   let lastUnread = -1;
@@ -305,7 +307,7 @@
     $('#menu-btn').setAttribute('aria-expanded', 'true');
     glide.style.opacity = '0';
     requestAnimationFrame(placeGlide);
-    fx.stagger($$('.nav-item, .nav-heading, .nav-foot', drawer), { y: 12, step: 22, max: 14 });
+    fx.stagger($$('.drawer-me, .nav-item, .nav-heading, .nav-foot', drawer), { y: 12, step: 22, max: 14 });
     fx.haptic(6);
     $('#drawer-close').focus({ preventScroll: true });
   }
@@ -837,7 +839,7 @@
       symbol: c.symbol,
       shape: c.shape,
       className: 'about-sheet',
-      html: views.aboutCard(c) + views.eventsCard(c) + views.rulesCard(c),
+      html: views.aboutCard(c) + views.rulesCard(c) + views.modsCard(c),
       actions: [{ label: 'Close', variant: 'text' }],
     });
   }
@@ -863,7 +865,7 @@
     if (value) M3.toast('Thanks, the mods will take a look', { symbol: 'shield', shape: 'gem' });
   }
 
-  // ---- joining, bells, events ------------------------------------------------------------------
+  // ---- joining ------------------------------------------------------------------------
 
   function setJoined(c, on, from) {
     const joined = store.join(c.id, on);
@@ -900,41 +902,6 @@
   ACTIONS.join = (btn) => {
     const c = store.community(btn.dataset.nook);
     if (c) setJoined(c, !store.state.joined.includes(c.id), btn);
-  };
-
-  ACTIONS.bell = (btn) => {
-    const c = store.community(btn.dataset.nook);
-    const on = store.bell(c.id);
-    btn.setAttribute('aria-pressed', String(on));
-    btn.querySelector('.m3-icon').textContent = on ? 'notifications_active' : 'notifications';
-    // switched on, the bell rings
-    btn.classList.remove('ring');
-    void btn.offsetWidth;
-    if (on) btn.classList.add('ring');
-    fx.haptic(on ? [6, 60, 6] : 5);
-    M3.toast(on ? `You’ll hear about events in n/${c.id}` : `Event alerts off for n/${c.id}`, { symbol: on ? 'notifications_active' : 'notifications_off', shape: c.shape });
-  };
-
-  ACTIONS.rsvp = (btn) => {
-    const c = store.community(btn.dataset.nook);
-    const ev = (c.events || []).find((x) => x.id === btn.dataset.event);
-    if (!ev) return;
-    const on = store.rsvp(ev.id);
-    $$(`.event[data-event="${ev.id}"]`).forEach((row) => {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = views.eventRow(ev, c, row.hasAttribute('data-show-nook'));
-      row.replaceWith(tmp.firstElementChild);
-    });
-    fx.haptic(on ? 10 : 5);
-    if (on) {
-      const fresh = $(`.event[data-event="${ev.id}"] [data-act="rsvp"]`);
-      if (fresh) {
-        M3.burst(fresh, 'pin', { count: 8 });
-        fx.pop(fresh, 0.8);
-      }
-      store.notify({ kind: 'event', symbol: ev.symbol, shape: c.shape, text: `You’re going to “${ev.title}” in n/${c.id}. We’ll remind you.`, href: '#/n/' + c.id });
-    }
-    M3.toast(on ? 'See you there!' : 'RSVP cancelled', { symbol: on ? 'event_available' : 'event_busy', shape: c.shape });
   };
 
   // ---- comments -----------------------------------------------------------------------------------
@@ -1370,10 +1337,6 @@
               err.textContent = 'Use 3–20 letters, numbers or underscores.';
               return false;
             }
-            if (name !== me.name && window.NOOK_DATA.users[name]) {
-              err.textContent = 'Someone already has that name.';
-              return false;
-            }
             const renamed = name !== me.name;
             if (renamed) store.renameMe(name);
             me.bio = body.querySelector('#ep-bio').value.trim();
@@ -1420,6 +1383,30 @@
   ACTIONS.shortcuts = () => {
     closeDrawer();
     shortcuts();
+  };
+
+  ACTIONS['about-nook'] = () => {
+    closeDrawer();
+    const points = [
+      ['forum', 'cookie6', 'Everything here is written by people. No bots, no made-up posts, no padded numbers.'],
+      ['favorite', 'heart', 'Vote, add Sparks to what you love, and save the good stuff into collections.'],
+      ['palette', 'flower', 'Every nook has its own colour and shape, and Nook wears them as you move around.'],
+      ['add_circle', 'clover4', 'Can’t find your people? Start a nook of your own.'],
+      ['lock', 'pixelCircle', 'For now Nook keeps what you do in this browser only, so nobody else sees it yet.'],
+    ];
+    ui.sheet({
+      headline: 'What’s Nook?',
+      symbol: 'diversity_3',
+      shape: 'cookie9',
+      html:
+        '<p class="muted" style="margin-top:0">A home for communities, called nooks.</p><ul class="about-nook">' +
+        points.map(([symbol, shape, text]) => `<li><m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon><span>${text}</span></li>`).join('') +
+        '</ul>',
+      actions: [
+        { label: 'Close', variant: 'text' },
+        { label: 'Find your nooks', variant: 'filled', run: () => { go('#/explore'); } },
+      ],
+    });
   };
 
   ACTIONS.export = () => {
@@ -1798,43 +1785,9 @@
     e.preventDefault();
   });
 
-  // ---- the lived-in bits -------------------------------------------------------------------------------------
+  // ---- notifications ------------------------------------------------------------------------------------
 
-  const randomOf = (list) => list[Math.floor(Math.random() * list.length)];
-  const later = (min, max, fn) => setTimeout(fn, (min + Math.random() * (max - min)) * 1000);
-
-  function regularsOf(nookId) {
-    const names = store.visiblePosts().filter((p) => p.n === nookId && !store.isMe(p.author)).map((p) => p.author);
-    return names.length ? names : Object.keys(window.NOOK_DATA.users);
-  }
-
-  store.on('posted', (p) => {
-    later(8, 15, () => {
-      if (store.isRemoved(p.id)) return;
-      const who = randomOf(regularsOf(p.n));
-      store.addOwnComment(p.id, null, randomOf(store.replies), who);
-      store.notify({ kind: 'reply', symbol: 'chat', shape: 'clover4', text: `u/${who} commented on your post “${ui.plain(p.title, 60)}”`, href: `#/n/${p.n}/p/${p.id}` });
-      if (route.view === 'postPage' && route.params.post === p.id) rerenderComments();
-    });
-  });
-
-  store.on('commented', (c) => {
-    if (Math.random() > 0.5) return;
-    const p = store.post(c.postId);
-    const parent = c.parentId && store.commentsById.get(c.parentId);
-    const who = parent && !store.isMe(parent.author) ? parent.author : !store.isMe(p.author) ? p.author : randomOf(regularsOf(p.n));
-    later(10, 20, () => {
-      if (store.isRemoved(c.id)) return;
-      const reply = store.addOwnComment(p.id, c.id, randomOf(['Ha, exactly!', 'Good point, I hadn’t thought of it that way.', 'Thank you for this 🙏', 'Agreed 100%.', 'Love this take.', 'Okay you convinced me.']), who);
-      store.notify({ kind: 'reply', symbol: 'reply', shape: 'cookie6', text: `u/${who} replied to your comment`, href: `#/n/${p.n}/p/${p.id}?c=${reply.id}` });
-      if (route.view === 'postPage' && route.params.post === p.id) rerenderComments();
-    });
-  });
-
-  store.on('notify', (note) => {
-    renderBadges();
-    if (note.kind === 'reply') M3.toast(note.text, { symbol: note.symbol, shape: note.shape, timeout: 3200 });
-  });
+  store.on('notify', () => renderBadges());
 
   store.on('badge', (badge) => {
     setTimeout(() => {
@@ -1843,16 +1796,6 @@
       fx.haptic([8, 50, 8]);
     }, 600);
   });
-
-  // event clocks tick, and live ones start the shared spin
-  setInterval(() => {
-    for (const el of $$('[data-when]')) {
-      for (const c of store.allCommunities()) {
-        const ev = (c.events || []).find((x) => x.id === el.dataset.when);
-        if (ev) el.textContent = ui.eventStatus(ev).text;
-      }
-    }
-  }, 30000);
 
   // the break reminder counts time you actually spend looking
   let looked = 0;

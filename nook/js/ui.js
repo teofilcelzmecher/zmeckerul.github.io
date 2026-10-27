@@ -8,7 +8,6 @@
 
   const Nook = window.Nook;
   const store = Nook.store;
-  const MIN = 60000;
 
   // ---- text -------------------------------------------------------------------
 
@@ -103,25 +102,6 @@
   }
 
   const plural = (n, word, many) => `${num(n)} ${n === 1 ? word : many || word + 's'}`;
-
-  function duration(minutes) {
-    const m = Math.round(Math.abs(minutes));
-    if (m < 60) return m + 'm';
-    if (m < 1440) return Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : '');
-    const d = Math.floor(m / 1440);
-    const h = Math.floor((m % 1440) / 60);
-    return d + 'd' + (h ? ' ' + h + 'h' : '');
-  }
-
-  /** where an event is: upcoming, live or over, and what to say about it */
-  function eventStatus(ev) {
-    const start = store.BOOT + ev.inMinutes * MIN;
-    const end = start + ev.minutes * MIN;
-    const now = Date.now();
-    if (now < start) return { live: false, over: false, start, text: 'in ' + duration((start - now) / MIN) };
-    if (now < end) return { live: true, over: false, start, text: 'Live now · ' + duration((end - now) / MIN) + ' left' };
-    return { live: false, over: true, start, text: 'Ended' };
-  }
 
   // ---- colour helpers -------------------------------------------------------------
 
@@ -437,7 +417,7 @@
   ];
 
   Nook.ui = {
-    esc, md, plain, highlight, ago, num, plural, duration, eventStatus, ink, avatar, nookIcon, icon, theme, sheet,
+    esc, md, plain, highlight, ago, num, plural, ink, avatar, nookIcon, icon, theme, sheet,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();
