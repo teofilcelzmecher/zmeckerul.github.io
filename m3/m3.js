@@ -249,7 +249,8 @@
     rainbow: 'SchemeRainbow',
     fruitSalad: 'SchemeFruitSalad',
   };
-  const COLOR_UTILITIES_URL = 'https://cdn.jsdelivr.net/npm/@material/material-color-utilities@0.4.0/+esm';
+  // served beside this file, so no request leaves the site
+  const COLOR_UTILITIES_URL = new URL('vendor/material-color-utilities.js', (doc.currentScript && doc.currentScript.src) || location.href).href;
   let colorUtilities = null;
 
   function loadColorUtilities() {
@@ -685,6 +686,22 @@
   }
 
   /** the web animations api with the curves above by name */
+  // Safari before 17.2 has no linear() easing and throws when an animation asks
+  // for one: there a curve that overshoots becomes a back-out, the rest a decel
+  if (global.Element && Element.prototype.animate && global.CSS && CSS.supports && !CSS.supports('transition-timing-function', 'linear(0, 1)')) {
+    const native = Element.prototype.animate;
+    const plain = (easing) => {
+      if (typeof easing !== 'string' || easing.indexOf('linear(') < 0) return easing;
+      const peak = Math.max(...(easing.match(/-?\d*\.?\d+/g) || ['1']).map(Number));
+      return peak > 1.001 ? 'cubic-bezier(0.34, 1.4, 0.64, 1)' : 'cubic-bezier(0.2, 0, 0, 1)';
+    };
+    Element.prototype.animate = function (keyframes, options) {
+      if (options && typeof options === 'object' && options.easing) options = Object.assign({}, options, { easing: plain(options.easing) });
+      if (Array.isArray(keyframes)) keyframes = keyframes.map((k) => (k && k.easing ? Object.assign({}, k, { easing: plain(k.easing) }) : k));
+      return native.call(this, keyframes, options);
+    };
+  }
+
   function animate(el, keyframes, { duration = 300, ease: easing = 'linear', fill = 'none', delay = 0, composite } = {}) {
     if (!el || !el.animate) return null;
     const options = { duration, easing: cssEasing(easing), fill, delay };

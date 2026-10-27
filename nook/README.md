@@ -20,6 +20,15 @@ with a set of empty nooks, and every post, comment and vote is one a person actu
 - **Pulse**: a wavy line shows how busy each nook really is, from the posts and comments of the last week.
 - **Streaks and badges** for coming back and taking part.
 - **Calm mode** hides every score and count; a **break reminder** nudges you after a set time.
+- **Moderation by rules, not AI**: before anything is posted, fixed word lists and patterns (that see
+  through l33t, s.p.a.c.i.n.g and stretched letters) block slurs, threats, scam links and spam, warn
+  about personal information, and meet signs of distress with where to find help. Swearing is allowed
+  but dotted out (f•••) for anyone with the filter on. Every decision says which rule it applied.
+- **Profile pictures**: a letter, one of 24 icons, or a photo cut to your avatar's shape.
+- **Early access** behind 6-digit invite codes (`js/gate.js` holds only salted hashes of them).
+- **Privacy first**: no cookies, no trackers, and nothing loaded from other companies (fonts and the
+  colour library are served from `../m3/`). Terms of Use and a Privacy Policy cover the EU (GDPR,
+  ePrivacy, DSA) and the US (COPPA, CCPA).
 - **Inbox** for badges and, once Nook has people beyond one browser, replies.
 - **Keyboard shortcuts** (`?` lists them), light/dark/system mode, any seed colour, compact cards.
 - Responsive: a drawer on desktop, a navigation rail on tablets, a bottom bar and a full-screen menu on phones.
@@ -40,6 +49,9 @@ Settings → Your data exports or resets it.
 | `index.html` | The shell: top bar, drawer, bottom bar, and the scripts |
 | `app.css` | Layout and Nook's own components, all on `--m3-*` colour roles |
 | `js/data.js` | The starter nooks: names, colours, shapes, rules and flairs |
+| `js/gate.js` | The invite-code gate; starts the app once a code matches |
+| `js/moderation.js` | The moderation rules: folding, word lists, patterns, spam and flood checks |
+| `terms.html`, `privacy.html`, `legal.css` | Terms of Use and Privacy Policy, readable without a code |
 | `js/store.js` | State, persistence, ranking, badges and every mutation |
 | `js/ui.js` | Markdown-lite, formatters, avatars, the theme engine, sheets |
 | `js/fx.js` | Motion: view transitions, springs, flights, confetti, haptics |

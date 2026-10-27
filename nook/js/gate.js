@@ -20,7 +20,7 @@
     '4744902e99db7fdc884ca8d2065746035b315e86a18e1873e417f9adbe9ac906',
   ];
   const KEY = 'nook-access';
-  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/fx.js', 'js/views.js', 'js/app.js'];
+  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/app.js'];
   const LENGTH = 6;
   const TRIES = 5; // wrong codes in a row before a short wait
   const WAIT = 30;
@@ -76,6 +76,7 @@
     '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(LENGTH) + '</span></label>' +
     '<p class="gate-msg" id="gate-msg" role="status"></p>' +
     '<button class="m3-btn filled gate-go" type="submit" disabled><span class="m3-icon">arrow_forward</span>Enter Nook</button>' +
+    '<p class="gate-legal">By entering, you agree to the <a href="terms.html">Terms of Use</a> and the <a href="privacy.html">Privacy Policy</a>.</p>' +
     '</form>';
   document.body.prepend(gate);
   document.title = 'Nook · Early access';

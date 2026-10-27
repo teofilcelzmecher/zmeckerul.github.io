@@ -114,11 +114,66 @@
 
   // ---- little pieces of markup ----------------------------------------------------
 
+  // a photo is cut to the avatar's shape by a mask drawn from the same outline
+  const masks = new Map();
+  function shapeMask(shape) {
+    if (!masks.has(shape)) {
+      let d = '';
+      try {
+        d = M3Shapes.path(shape, 100);
+      } catch (_) {
+        /* an unknown shape leaves the photo square */
+      }
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="${d}"/></svg>`;
+      masks.set(shape, d ? `url('data:image/svg+xml,${encodeURIComponent(svg)}')` : 'none');
+    }
+    return masks.get(shape);
+  }
+
+  /** what sits on an avatar's shape: a photo, an icon or the first letter */
+  function avatarFace(u) {
+    if (u.photo && /^data:image\/(jpeg|png|webp);/.test(u.photo)) {
+      const mask = shapeMask(u.shape);
+      return `<img src="${esc(u.photo)}" alt="" style="-webkit-mask-image:${mask};mask-image:${mask}">`;
+    }
+    if (u.icon) return `<span class="m3-icon">${esc(u.icon)}</span>`;
+    return `<b>${esc((u.name || '?')[0].toUpperCase())}</b>`;
+  }
+
   function avatar(u, size = 32) {
     return (
       `<span class="avatar" style="--av:${esc(u.color)};--av-ink:${ink(u.color)};--s:${size}px" aria-hidden="true">` +
-      `<m3-shape shape="${esc(u.shape)}"></m3-shape><b>${esc((u.name || '?')[0].toUpperCase())}</b></span>`
+      `<m3-shape shape="${esc(u.shape)}"></m3-shape>${avatarFace(u)}</span>`
     );
+  }
+
+  const PROFILE_ICONS = [
+    'pets', 'cruelty_free', 'flutter_dash', 'emoji_nature', 'local_florist', 'eco', 'star', 'favorite',
+    'bolt', 'rocket_launch', 'music_note', 'headphones', 'sports_esports', 'palette', 'photo_camera', 'menu_book',
+    'coffee', 'icecream', 'sunny', 'nightlight', 'sailing', 'skateboarding', 'sports_soccer', 'code',
+  ];
+
+  /** a picked photo, centre-cropped to a small square JPEG that fits in storage */
+  function photoFrom(file, size = 192) {
+    return new Promise((resolve, reject) => {
+      if (!file || !/^image\//.test(file.type)) return reject(new Error('That file isn’t an image.'));
+      if (file.size > 20 * 1024 * 1024) return reject(new Error('That image is too big. Try one under 20 MB.'));
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        const side = Math.min(img.naturalWidth, img.naturalHeight);
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        canvas.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Couldn’t read that image. Try a JPEG or PNG.'));
+      };
+      img.src = url;
+    });
   }
 
   function nookIcon(c, size = 24, iconSize = 14, attrs = '') {
@@ -263,8 +318,10 @@
           if (el.open) el.close();
           el.remove();
         };
+        // and goes for certain, even if a browser never reports the drop as finished
         if (fade) fade.finished.then(done, done);
         else done();
+        setTimeout(done, 400);
       };
 
       for (const action of actions) {
@@ -417,7 +474,7 @@
   ];
 
   Nook.ui = {
-    esc, md, plain, highlight, ago, num, plural, ink, avatar, nookIcon, icon, theme, sheet,
+    esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, PROFILE_ICONS, photoFrom, nookIcon, icon, theme, sheet,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

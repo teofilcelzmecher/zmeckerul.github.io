@@ -1,0 +1,97 @@
+/* The Terms of Use and Privacy Policy pages: plain, readable, on the design system's colours */
+
+body {
+  margin: 0;
+  background: var(--m3-background);
+  color: var(--m3-on-background);
+  font: 400 16px/1.65 var(--m3-font);
+}
+.legal {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+  box-sizing: border-box;
+}
+.legal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.legal-top .brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.legal-top m3-shape {
+  width: 30px;
+  height: 30px;
+  color: var(--m3-primary);
+}
+.legal h1 {
+  margin: 0 0 6px;
+  font-size: clamp(30px, 7vw, 42px);
+  line-height: 1.1;
+}
+.legal .meta {
+  margin: 0 0 24px;
+  color: var(--m3-on-surface-variant);
+  font-size: 14px;
+}
+.legal .summary {
+  margin: 0 0 32px;
+  padding: 18px 20px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+}
+.legal .summary h2 {
+  margin-top: 0;
+}
+.legal .summary ul {
+  margin-bottom: 0;
+}
+.legal h2 {
+  margin: 36px 0 8px;
+  font-size: 21px;
+  line-height: 1.3;
+}
+.legal h3 {
+  margin: 20px 0 4px;
+  font-size: 17px;
+}
+.legal a {
+  color: var(--m3-primary);
+  font-weight: 600;
+}
+.legal ul {
+  padding-left: 1.3em;
+}
+.legal li + li {
+  margin-top: 4px;
+}
+.legal table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.legal th,
+.legal td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--m3-outline-variant);
+  text-align: left;
+  vertical-align: top;
+}
+.legal .table-wrap {
+  overflow-x: auto;
+}
+.legal footer {
+  margin-top: 48px;
+  color: var(--m3-on-surface-variant);
+  font-size: 14px;
+}

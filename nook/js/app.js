@@ -808,10 +808,11 @@
     const textarea = form.querySelector('textarea');
     textarea.focus();
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = textarea.value.trim();
       if (!text) return;
+      if (!(await vet([text], { kind: 'comment', postId: c.postId, editing: true }))) return;
       store.editComment(c.id, text);
       rerenderComments();
       jumpToComment(c.id);
@@ -904,6 +905,61 @@
     if (c) setJoined(c, !store.state.joined.includes(c.id), btn);
   };
 
+  // ---- moderation: the rules have their say before anything is posted -----------------------------
+
+  let caredThisVisit = false;
+  /** runs the moderation rules over some text; resolves true when posting can go ahead */
+  async function vet(texts, options) {
+    const verdict = Nook.mod.check(texts, options);
+    const rule = (r) => `<p class="mod-rule">${icon('gavel')}<b>${esc(r.rule)}</b></p><p>${esc(r.why)}</p>`;
+    if (verdict.block) {
+      fx.haptic([20, 40, 20]);
+      await ui.sheet({
+        headline: 'This can’t be posted',
+        symbol: 'block',
+        shape: 'pixelCircle',
+        html:
+          rule(verdict.block) +
+          '<p class="muted">Nook checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
+        actions: [{ label: 'Edit it', variant: 'filled' }],
+      });
+      return false;
+    }
+    if (verdict.warn.length) {
+      const choice = await ui.sheet({
+        headline: 'Before you post',
+        symbol: 'flag',
+        shape: 'cookie9',
+        html: verdict.warn.map(rule).join(''),
+        actions: [
+          { label: 'Edit', value: 'edit' },
+          { label: 'Post anyway', variant: 'filled', value: 'post' },
+        ],
+      });
+      if (choice !== 'post') return false;
+    }
+    if (verdict.care && !caredThisVisit) {
+      caredThisVisit = true;
+      setTimeout(careSheet, 900);
+    }
+    return true;
+  }
+
+  function careSheet() {
+    ui.sheet({
+      headline: 'You’re not alone',
+      symbol: 'favorite',
+      shape: 'heart',
+      html:
+        '<p>It sounds like things might be really hard right now. Talking to someone can help, and you don’t have to wait until it’s an emergency.</p>' +
+        '<ul class="care-list"><li>In danger right now? Call <b>112</b> in Europe or <b>911</b> in the US.</li>' +
+        '<li>In the US, call or text <b>988</b> (Suicide & Crisis Lifeline).</li>' +
+        '<li>Anywhere: <a class="md" style="color:var(--m3-primary)" href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a> lists free, confidential helplines for your country.</li></ul>' +
+        '<p class="muted">Or tell someone you trust: a friend, a parent, a teacher.</p>',
+      actions: [{ label: 'Thanks', variant: 'filled' }],
+    });
+  }
+
   // ---- comments -----------------------------------------------------------------------------------
 
   function rerenderComments() {
@@ -967,13 +1023,14 @@
         form.requestSubmit();
       }
     });
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = textarea.value.trim();
       if (!text) {
         textarea.focus();
         return;
       }
+      if (!(await vet([text], { kind: 'comment', postId: p.id }))) return;
       const c = store.addOwnComment(p.id, parentId, text);
       textarea.value = '';
       rerenderComments();
@@ -1179,6 +1236,15 @@
             }
             const title = body.querySelector('#nn-title').value.trim() || id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
             const tagline = body.querySelector('#nn-tag').value.trim() || `A brand new nook about ${title.toLowerCase()}.`;
+            const verdict = Nook.mod.check([id.replace(/_/g, ' '), title, tagline], { kind: 'nook' });
+            const problem =
+              verdict.block ||
+              (verdict.strong && { why: 'Keep swearing out of a nook’s name and description: everyone sees them.' }) ||
+              verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+            if (problem) {
+              err.textContent = problem.why;
+              return false;
+            }
             const c = store.createCommunity({ id, title, tagline, description: tagline, category: model.category, color: model.color, shape: model.shape, symbol: model.symbol, activity: 0.1 });
             setTimeout(() => {
               go('#/n/' + c.id);
@@ -1293,27 +1359,72 @@
 
   function editProfile() {
     const me = store.state.me;
-    const model = { color: me.color, shape: me.shape };
+    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '' };
+    const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo });
     ui.sheet({
       headline: 'Edit profile',
       symbol: 'face',
       shape: me.shape,
       html:
-        `<div class="nook-preview"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><b id="ep-letter">${esc(me.name[0].toUpperCase())}</b></span>` +
+        `<div class="nook-preview"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span>` +
         `<div class="np-text"><b class="m3-title" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div>` +
         `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
         `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="2" maxlength="160" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea></div>` +
+        '<div class="field"><span class="field-label">Picture</span>' +
+        `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
+        ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span class="m3-icon">${s}</span></button>`).join('') +
+        '</div>' +
+        `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
+        `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
+        '<span class="error" id="ep-photo-err"></span><small class="muted">Your photo stays on this device.</small></div>' +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>`,
       setup(body) {
         const av = body.querySelector('#ep-avatar');
         const shape = body.querySelector('#ep-shape');
         const input = body.querySelector('#ep-input');
+        const faceEl = body.querySelector('#ep-face');
+        const paint = () => (faceEl.innerHTML = face(input.value || '?'));
         input.addEventListener('input', () => {
           input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
           body.querySelector('#ep-name').textContent = input.value || '…';
-          body.querySelector('#ep-letter').textContent = (input.value[0] || '?').toUpperCase();
           body.querySelector('#ep-err').textContent = '';
+          paint();
+        });
+        const faces = body.querySelector('.face-grid');
+        const pressFace = (value) => faces.querySelectorAll('[data-face]').forEach((b) => b.setAttribute('aria-pressed', String(!model.photo && b.dataset.face === value)));
+        faces.querySelectorAll('[data-face]').forEach((b) =>
+          b.addEventListener('click', () => {
+            model.icon = b.dataset.face;
+            model.photo = '';
+            body.querySelector('#ep-photo-remove').hidden = true;
+            body.querySelector('#ep-photo-label').textContent = 'Upload a photo';
+            pressFace(model.icon);
+            paint();
+            fx.pop(faceEl, 0.6);
+          })
+        );
+        body.querySelector('#ep-photo').addEventListener('change', async (e) => {
+          const err = body.querySelector('#ep-photo-err');
+          err.textContent = '';
+          try {
+            model.photo = await ui.photoFrom(e.target.files[0]);
+            body.querySelector('#ep-photo-remove').hidden = false;
+            body.querySelector('#ep-photo-label').textContent = 'Change photo';
+            pressFace(null);
+            paint();
+            fx.pop(faceEl, 0.6);
+          } catch (error) {
+            err.textContent = error.message;
+          }
+          e.target.value = '';
+        });
+        body.querySelector('#ep-photo-remove').addEventListener('click', (e) => {
+          model.photo = '';
+          e.currentTarget.hidden = true;
+          body.querySelector('#ep-photo-label').textContent = 'Upload a photo';
+          pressFace(model.icon);
+          paint();
         });
         wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
           model.color = seed;
@@ -1323,6 +1434,7 @@
         wireGrid(body.querySelector('.shape-grid'), 'shape', (name) => {
           model.shape = name;
           shape.transitionTo(name, { spring: true });
+          if (model.photo) paint();
         });
       },
       actions: [
@@ -1337,11 +1449,23 @@
               err.textContent = 'Use 3–20 letters, numbers or underscores.';
               return false;
             }
+            const bio = body.querySelector('#ep-bio').value.trim();
+            const verdict = Nook.mod.check([name.replace(/_/g, ' '), bio], { kind: 'profile' });
+            const problem =
+              verdict.block ||
+              (Nook.mod.check([name.replace(/_/g, ' ')], { kind: 'profile' }).strong && { why: 'Keep swearing out of your username.' }) ||
+              verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+            if (problem) {
+              err.textContent = problem.why;
+              return false;
+            }
             const renamed = name !== me.name;
             if (renamed) store.renameMe(name);
-            me.bio = body.querySelector('#ep-bio').value.trim();
+            me.bio = bio;
             me.color = model.color;
             me.shape = model.shape;
+            me.icon = model.icon;
+            me.photo = model.photo;
             store.save();
             renderMe();
             if (route.view === 'profile') go('#/u/' + encodeURIComponent(name), { replace: true });
@@ -1408,6 +1532,67 @@
       ],
     });
   };
+
+  const CREDITS = {
+    creator: { name: 'Teofil Ionescu-Mihai', role: 'Creator and main developer', color: '#6750a4', shape: 'sunny' },
+    testers: [
+      { name: 'Alex Vochin', color: '#3d7bff', shape: 'cookie9' },
+      { name: 'Petcu David Andrei', color: '#00a6a6', shape: 'clover4' },
+      { name: 'Mercuci Camelia', color: '#e8467c', shape: 'heart' },
+      { name: 'Crisu Radu', color: '#ff8a3d', shape: 'flower' },
+    ],
+  };
+  ACTIONS.credits = () => {
+    closeDrawer();
+    const person = (p, size, role) =>
+      `<li>${avatar(p, size)}<span class="row-text"><b>${esc(p.name)}</b><small>${esc(role)}</small></span></li>`;
+    ui.sheet({
+      headline: 'Credits',
+      symbol: 'stars',
+      shape: 'sunny',
+      className: 'credits-sheet',
+      html:
+        `<ul class="credits credits-lead">${person(CREDITS.creator, 56, CREDITS.creator.role)}</ul>` +
+        '<h3 class="credits-heading">Testers and supporters</h3>' +
+        `<ul class="credits">${CREDITS.testers.map((p) => person(p, 40, 'Tester and supporter')).join('')}</ul>` +
+        `<p class="muted credits-foot">Nook ${esc(store.VERSION)} · Thank you for helping make it.</p>`,
+      setup(body) {
+        fx.stagger([...body.querySelectorAll('li')], { y: 10, step: 60 });
+      },
+      actions: [{ label: 'Close', variant: 'filled' }],
+    });
+  };
+
+  // ---- storage and cookies: said once, plainly ----------------------------------------------------
+
+  function storageNotice({ banner = false } = {}) {
+    const text = 'Nook keeps your profile, posts and settings in this browser so they’re here next time. No cookies, no ads, no tracking, and nothing is sent anywhere.';
+    if (!banner) {
+      ui.sheet({
+        headline: 'Storage and cookies',
+        symbol: 'cookie',
+        shape: 'cookie9',
+        html: `<p>${text}</p><p class="muted">This storage is needed for Nook to work, so there’s nothing to switch off. You can delete it any time in Settings → Your data, or by clearing this site’s data in your browser.</p><p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>`,
+        actions: [{ label: 'Got it', variant: 'filled' }],
+      });
+      return;
+    }
+    if (store.state.noticeSeen) return;
+    const el = document.createElement('aside');
+    el.className = 'storage-notice';
+    el.setAttribute('aria-label', 'Storage and cookies');
+    el.innerHTML =
+      `<m3-shape-icon shape="cookie9" symbol="cookie" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
+      `<p>${text} <a href="privacy.html">Privacy Policy</a></p><button class="m3-btn filled small" type="button">Got it</button>`;
+    el.querySelector('button').addEventListener('click', () => {
+      store.state.noticeSeen = true;
+      store.save();
+      fx.settled(fx.play(el, [{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '0 16px' }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => el.remove());
+    });
+    document.body.appendChild(el);
+    fx.play(el, [{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 320, easing: fx.decel });
+  }
+  ACTIONS['storage-notice'] = () => storageNotice();
 
   ACTIONS.export = () => {
     const blob = new Blob([JSON.stringify(store.state, null, 2)], { type: 'application/json' });
@@ -1650,7 +1835,7 @@
     spoiler.addEventListener('change', saveDraft);
     app.onLeave(() => clearTimeout(draftTimer));
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       let ok = true;
       const fail = (id, text, el) => {
@@ -1678,6 +1863,7 @@
         M3.motion.animate(form, [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 260 });
         return;
       }
+      if (!(await vet([t, body.value, ...options, link && link.url], { kind: 'post' }))) return;
       clearTimeout(draftTimer);
       const p = store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: model.type, flair: model.flair, link, image: model.image, poll: options, spoiler: spoiler.checked });
       if (!store.saveNow() && p.image) M3.snackbar('Posted, but this browser couldn’t store the image. It may vanish after a reload.');
@@ -1956,6 +2142,7 @@
   applySettings();
   render();
   renderBadges();
+  setTimeout(() => storageNotice({ banner: true }), 900);
   // badges for a first visit (and streaks) arrive once the page has settled
   setTimeout(() => store.checkBadges(), 1200);
 })();

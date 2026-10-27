@@ -3064,8 +3064,166 @@ html.gated body > :not(.gate) {
 .gate-go {
   width: 100%;
 }
+.gate-legal {
+  margin: 4px 0 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.gate-legal a {
+  color: var(--m3-primary);
+  font-weight: 650;
+}
 @media (prefers-reduced-motion: reduce) {
   .gate-shape {
     animation: none;
   }
 }
+
+/* ---- credits, the about row, the storage notice ------------------------------------------- */
+
+.about-app {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.about-app > div {
+  display: grid;
+}
+.credits {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.credits li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.credits .row-text {
+  display: grid;
+  min-width: 0;
+}
+.credits small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.credits-lead {
+  padding: 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+}
+.credits-lead b {
+  font-size: var(--m3-fs-large);
+}
+.credits-lead small {
+  color: inherit;
+  opacity: 0.8;
+}
+.credits-heading {
+  margin: 18px 0 10px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.credits-foot {
+  margin: 18px 0 0;
+  font-size: var(--m3-fs-smaller);
+}
+.storage-notice {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(460px, calc(100vw - 32px));
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface);
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.18);
+}
+.storage-notice p {
+  flex: 1;
+  margin: 0;
+  font-size: var(--m3-fs-smaller);
+  line-height: 1.45;
+}
+.storage-notice a {
+  color: var(--m3-primary);
+  font-weight: 650;
+}
+@media (max-width: 719px) {
+  .storage-notice {
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    flex-wrap: wrap;
+  }
+  .storage-notice p {
+    flex-basis: calc(100% - 52px);
+  }
+  .storage-notice button {
+    margin-left: auto;
+  }
+}
+
+/* ---- avatars wear a photo or an icon ------------------------------------------------------- */
+
+.avatar .face {
+  display: contents;
+}
+.avatar .m3-icon {
+  position: relative;
+  color: var(--av-ink);
+  font-size: calc(var(--s) * 0.52);
+  --m3-icon-fill: 1;
+}
+.avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+.face-grid b {
+  font: 750 18px/1 var(--m3-font);
+}
+.photo-pick {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo-pick input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ---- moderation sheets ------------------------------------------------------------------------ */
+
+.mod-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  color: var(--m3-primary);
+}
+.mod-rule + p {
+  margin-top: 4px;
+}
+.care-list {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+

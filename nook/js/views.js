@@ -86,7 +86,7 @@
           const mine = r.chosen === o.index;
           return (
             `<button class="poll-opt${mine ? ' mine' : ''}" data-m3-ripple data-act="poll" data-i="${o.index}" style="--p:${pct}%"${r.chosen != null ? ' aria-disabled="true"' : ''}>` +
-            `<span class="poll-bar"></span>${mine ? icon('check_circle', 'filled') : ''}<span class="poll-text">${esc(o.text)}</span><span class="poll-pct">${pct}%</span></button>`
+            `<span class="poll-bar"></span>${mine ? icon('check_circle', 'filled') : ''}<span class="poll-text">${esc(clean(o.text))}</span><span class="poll-pct">${pct}%</span></button>`
           );
         })
         .join('') +
@@ -138,7 +138,7 @@
 
     const title =
       `<h2 class="post-title" id="t-${p.id}">${p.flair ? `<span class="flair">${esc(p.flair)}</span> ` : ''}` +
-      (open ? esc(p.title) : `<a href="${href}">${esc(p.title)}</a>`) +
+      (open ? esc(clean(p.title)) : `<a href="${href}">${esc(clean(p.title))}</a>`) +
       '</h2>';
 
     const longBody = (p.body || '').length > 260 || (p.body || '').split('\n').length > 4;
@@ -149,7 +149,7 @@
         `<m3-shape-icon shape="cookie12" symbol="link" size="40" icon-size="20"></m3-shape-icon>` +
         `<span class="link-text"><b>${esc(p.link.title || p.link.url)}</b><small>${esc(p.link.domain)}</small></span>${icon('open_in_new')}</a>`;
     }
-    const body = p.body ? `<div class="post-body md${open ? '' : ' preview'}${!open && longBody ? ' long' : ''}">${md(p.body)}</div>` : '';
+    const body = p.body ? `<div class="post-body md${open ? '' : ' preview'}${!open && longBody ? ' long' : ''}">${md(clean(p.body))}</div>` : '';
     const poll = p.type === 'poll' && p.poll ? pollBlock(p) : '';
     let content = art(p, open ? 150 : 116) + body + media + poll;
     if (p.spoiler) {
@@ -229,6 +229,8 @@
     }
   }
 
+  // strong language shows dotted out (f•••) unless the filter is switched off
+  const clean = (text) => (settings().filterLanguage === false || !Nook.mod ? text : Nook.mod.soften(text));
   const feedShell = () => '<div class="feed" data-feed></div><div class="feed-more" data-more></div>';
 
   // ---- rail cards -------------------------------------------------------------------------
@@ -306,7 +308,7 @@
   const footCard = () =>
     '<div class="foot-links">' +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
-    '<button type="button" data-act="about-nook">What’s Nook?</button><a href="../m3/">Design system</a>' +
+    '<button type="button" data-act="about-nook">What’s Nook?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="../m3/">Design system</a>' +
     '<span>Built with Material 3 Expressive. Everything you do is saved in this browser only.</span></div>';
 
   // ---- comments -------------------------------------------------------------------------------
@@ -327,7 +329,7 @@
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
-      `<div class="c-body md${removed ? ' removed' : ''}">${removed ? '<p>This comment was deleted.</p>' : md(c.body)}</div>` +
+      `<div class="c-body md${removed ? ' removed' : ''}">${removed ? '<p>This comment was deleted.</p>' : md(clean(c.body))}</div>` +
       (removed
         ? ''
         : '<div class="c-actions">' +
@@ -696,7 +698,7 @@
         '<div class="page"><div class="col">' +
         `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">` +
         `<div class="profile-main">${avatar(u, 96)}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${me && joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}</span>` +
-        (u.bio ? `<p style="margin-top:6px">${esc(u.bio)}</p>` : me ? '<p class="muted" style="margin-top:6px">No bio yet. Tell people what you’re into!</p>' : '') +
+        (u.bio ? `<p style="margin-top:6px">${esc(clean(u.bio))}</p>` : me ? '<p class="muted" style="margin-top:6px">No bio yet. Tell people what you’re into!</p>' : '') +
         '</div>' +
         (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : `<button class="m3-btn filled" data-act="follow" data-user="${esc(u.name)}">${icon('person_add')}Follow</button>`) +
         '</div><div class="stats">' +
@@ -733,7 +735,7 @@
                   .map((c) => {
                     const p = store.post(c.postId);
                     if (!p) return '';
-                    return `<article class="comment-card" data-href="#/n/${p.n}/p/${p.id}?c=${c.id}" data-m3-ripple data-m3-bounce tabindex="0"><div class="cc-head"><b>u/${esc(store.userName(c.author))}</b> in <b>n/${esc(p.n)}</b> · ${ago(c.createdAt)} · on “${esc(plain(p.title, 70))}”</div><div class="md">${md(c.body)}</div><div class="cc-head"><span class="count">${plural(store.commentScore(c), 'point')}</span></div></article>`;
+                    return `<article class="comment-card" data-href="#/n/${p.n}/p/${p.id}?c=${c.id}" data-m3-ripple data-m3-bounce tabindex="0"><div class="cc-head"><b>u/${esc(store.userName(c.author))}</b> in <b>n/${esc(p.n)}</b> · ${ago(c.createdAt)} · on “${esc(plain(clean(p.title), 70))}”</div><div class="md">${md(clean(c.body))}</div><div class="cc-head"><span class="count">${plural(store.commentScore(c), 'point')}</span></div></article>`;
                   })
                   .join('')}</div>`
               : empty('forum', 'No comments yet', me ? 'Jump into a thread and say hi.' : 'Quiet type.');
@@ -838,15 +840,24 @@
         `<div class="setting-row"><span class="label">Default sort on Home</span>${segmented('set-sort', ['hot', 'new', 'top', 'rising'].map((k) => [k, SORT_LABELS[k][0], SORT_LABELS[k][1]]), s.sort, 'Default sort')}</div>` +
         sw('set-compact', 'Compact cards', 'Smaller posts with thumbnails, so you see more at once.', s.compact) +
         sw('set-calm', 'Calm mode', 'Hide every score, count and tally. Votes still count, you just don’t see them.', s.calm) +
+        sw('set-filterLanguage', 'Hide strong language', 'Swear words show as dots, like f•••. Slurs and threats are never allowed at all.', s.filterLanguage !== false) +
         '</div></section>' +
         `<section>${header('heart', 'self_improvement', 'Wellbeing')}<div class="card setting-card">` +
         `<div class="setting-row"><span class="label">Remind me to take a break after</span><div class="slider-row"><m3-slider id="set-break" min="0" max="120" step="15" value="${s.breakMinutes}" value-tip show-stop label="Break reminder"></m3-slider><output id="set-break-out">${s.breakMinutes ? s.breakMinutes + ' min' : 'Off'}</output></div></div>` +
         '</div></section>' +
         `<section>${header('pixelCircle', 'database', 'Your data')}<div class="card setting-card">` +
-        '<p class="muted">Nook keeps everything (your posts, votes, nooks and settings) in this browser’s storage. Nothing is sent anywhere.</p>' +
-        `<div class="toolbar"><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button><button class="m3-btn outlined" data-act="reset">${icon('restart_alt')}Reset the demo</button></div>` +
+        '<p class="muted">Nook keeps everything (your profile, posts, votes, nooks and settings) in this browser’s storage. Nothing is sent anywhere.</p>' +
+        `<div class="toolbar"><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button><button class="m3-btn outlined" data-act="reset">${icon('restart_alt')}Delete everything</button></div>` +
         '</div></section>' +
-        `<section>${header('sunny', 'info', 'About')}<div class="card setting-card"><p class="muted">Nook is built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0). <a class="md" style="color:var(--m3-primary)" href="../m3/">See the design system</a>.</p></div></section>` +
+        `<section>${header('clover4', 'policy', 'Privacy and legal')}<div class="card setting-card">` +
+        '<p class="muted">Nook uses no cookies and no trackers. It keeps what you do in this browser’s storage so it’s here next time, and loads nothing from other companies.</p>' +
+        `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
+        '</div></section>' +
+        `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
+        `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Nook</b><span class="muted">Version ${esc(store.VERSION)} · Early access</span></div></div>` +
+        `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Nook?</button></div>` +
+        `<p class="muted">Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols. <a class="md" style="color:var(--m3-primary)" href="../m3/">See the design system</a>.</p>` +
+        '</div></section>' +
         '</div></div>',
       mount(root) {
         const $ = (sel) => root.querySelector(sel);
@@ -879,7 +890,7 @@
         };
         root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pickSeed(b.dataset.seed, b)));
         $('#set-color').addEventListener('change', (e) => pickSeed(e.target.value, e.target));
-        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics']) {
+        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics', 'filterLanguage']) {
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();

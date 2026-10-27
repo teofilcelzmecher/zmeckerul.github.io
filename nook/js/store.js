@@ -10,6 +10,7 @@
   const DATA = window.NOOK_DATA;
   const KEY = 'nook-state-v1';
   const ME = '__me__';
+  const VERSION = '0.1.2';
   const BOOT = Date.now();
 
   const SPARKS = [
@@ -162,7 +163,7 @@
   const userName = (name) => (name === ME ? state.me.name : name);
 
   function user(name) {
-    if (isMe(name)) return { name: state.me.name, color: state.me.color, shape: state.me.shape, bio: state.me.bio, me: true };
+    if (isMe(name)) return { name: state.me.name, color: state.me.color, shape: state.me.shape, icon: state.me.icon || '', photo: state.me.photo || '', bio: state.me.bio, me: true };
     return { name, color: '#79747e', shape: 'circle', bio: '' };
   }
 
@@ -524,7 +525,7 @@
   }
 
   Nook.store = {
-    ME, BOOT, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
+    ME, VERSION, BOOT, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
     isMe, userName, user, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
     userStats, search, membersOf, activity, notifications, unread, notify, touchStreak, checkBadges, award,
