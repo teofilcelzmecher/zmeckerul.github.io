@@ -424,7 +424,7 @@ body.bars-hidden .bottom-nav {
     height: 40px;
   }
   .post-head .post-more {
-    margin: -10px -10px -10px auto;
+    right: -10px;
   }
   .comment .c-actions .m3-btn.text,
   .comment .c-actions .vote.small,
@@ -690,11 +690,14 @@ body.bars-hidden .bottom-nav {
 }
 
 .post-head {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 6px;
   min-height: 28px;
+  /* room for the ⋯ button, which stays in the top corner however long the line gets */
+  padding-right: 34px;
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smallie);
 }
@@ -713,7 +716,10 @@ body.bars-hidden .bottom-nav {
   content: '·';
 }
 .post-head .post-more {
-  margin: -6px -6px -6px auto;
+  position: absolute;
+  top: 14px;
+  right: -6px;
+  translate: 0 -50%;
 }
 
 .post-title {
@@ -1145,6 +1151,10 @@ body.compact .feed .post .post-thumb {
   display: grid;
   grid-column: 2;
   grid-row: 1 / span 3;
+}
+/* the buttons get the whole width, under the thumbnail, so Save stays at the end of their row */
+body.compact .feed .post .post-actions {
+  grid-column: 1 / -1;
 }
 body.compact .feed .post :is(.post-art, .post-body, .sparks, .link-card, .poll, .post-veil) {
   display: none;
@@ -3324,6 +3334,10 @@ html.gated body > :not(.gate) {
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smaller);
   font-weight: 650;
+}
+/* every box on these screens is as wide as the card, like the buttons */
+.gate-field > input {
+  width: 100%;
 }
 .gate-pass {
   position: relative;
