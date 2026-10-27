@@ -166,7 +166,7 @@
       if (slot) slot.textContent = text;
       else msg.textContent = text;
       shake(form);
-      const input = $('#' + id);
+      const input = id && $('#' + id);
       if (input) input.focus();
     };
 
