@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Material 3 Expressive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,25..151,1..1000,0..100,0..100&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+  <link rel="stylesheet" href="m3.css">
+  <style>
+    /* page layout only; every component is styled by m3.css */
+    .page { max-width: 1120px; margin: 0 auto; padding: 0 var(--m3-page-margin) 64px; }
+    .top-bar {
+      position: sticky; top: 0; z-index: 50; height: var(--m3-top-bar-height);
+      display: flex; align-items: center; gap: 12px; padding: 0 var(--m3-page-margin);
+      background: color-mix(in srgb, var(--m3-background) 82%, transparent);
+      backdrop-filter: blur(14px);
+    }
+    .top-bar .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+    .top-bar .brand m3-shape { width: 34px; height: 34px; }
+    .top-bar .brand .m3-title { font-size: var(--m3-fs-larger); }
+    section { margin-top: var(--m3-section-gap); display: grid; gap: var(--m3-shelf-gap); }
+    .panel { display: grid; gap: 18px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    .label { font-size: var(--m3-fs-smaller); color: var(--m3-on-surface-variant); letter-spacing: .02em; }
+    .muted { color: var(--m3-on-surface-variant); }
+
+    .hero { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: center; padding: 36px; border-radius: var(--m3-r-very-large); }
+    .hero p { font-size: var(--m3-fs-large); line-height: 1.5; max-width: 46ch; margin: 12px 0 22px; color: var(--m3-on-surface-variant); }
+    .player { display: grid; gap: 14px; padding: 20px; border-radius: var(--m3-r-large); background: var(--m3-surface-container); }
+    .now-playing { display: flex; align-items: center; gap: 16px; }
+    .disc { position: relative; width: 84px; height: 84px; flex: none; display: grid; place-items: center; }
+    .disc m3-squiggle { position: absolute; inset: 0; width: 84px; height: 84px; }
+    .disc .art { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--m3-primary), var(--m3-tertiary)); background-size: cover; background-position: center; }
+    .track { min-width: 0; display: grid; gap: 2px; }
+    .track .name { font-weight: 650; font-size: var(--m3-fs-large); }
+    .times { display: flex; justify-content: space-between; font-size: var(--m3-fs-smaller); color: var(--m3-on-surface-variant); font-variant-numeric: tabular-nums; margin-top: -6px; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .volume { display: flex; align-items: center; gap: 6px; }
+    .volume m3-slider { flex: 1; }
+
+    .seed-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .seed { width: 40px; height: 40px; border: 0; padding: 0; background: none; cursor: pointer; border-radius: 50%; }
+    .seed m3-shape { width: 40px; height: 40px; transition: scale var(--m3-motion-bounce); }
+    .seed:hover m3-shape { scale: 1.12; }
+    .seed[aria-pressed='true'] m3-shape { scale: 1.12; }
+    .seed:focus-visible { outline: 2px solid var(--m3-secondary); outline-offset: 2px; }
+    input[type='color'].seed-input {
+      width: 40px; height: 40px; border: 2px dashed var(--m3-outline); border-radius: 50%; padding: 3px;
+      background: none; cursor: pointer; box-sizing: border-box; appearance: none;
+    }
+    input[type='color'].seed-input::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type='color'].seed-input::-webkit-color-swatch { border: 0; border-radius: 50%; }
+    input[type='color'].seed-input::-moz-color-swatch { border: 0; border-radius: 50%; }
+    input[type='color'].seed-input:focus-visible { outline: 2px solid var(--m3-secondary); outline-offset: 2px; }
+    .roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .role { border-radius: var(--m3-r-small); padding: 12px; min-height: 64px; display: grid; align-content: space-between; font-size: var(--m3-fs-smaller); }
+    .role b { font-weight: 600; font-size: var(--m3-fs-smallie); }
+    .role code { font-family: var(--m3-font-mono); opacity: .85; }
+
+    .shape-stage { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; }
+    .preview { display: grid; justify-items: center; gap: 10px; padding: 18px; border-radius: var(--m3-r-large); background: var(--m3-surface-container); }
+    .preview m3-shape { width: 160px; height: 160px; }
+    .preview .m3-title { font-size: var(--m3-fs-larger); }
+    .shape-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+    .shape-pick { display: grid; justify-items: center; gap: 4px; padding: 8px 4px; border: 0; border-radius: var(--m3-r-small); background: transparent; color: var(--m3-on-surface-variant); font: inherit; font-size: var(--m3-fs-smallest); cursor: pointer; }
+    .shape-pick:hover { background: var(--m3-layer1-hover); }
+    .shape-pick[aria-pressed='true'] { background: var(--m3-secondary-container); color: var(--m3-on-secondary-container); }
+    .shape-pick m3-shape { width: 40px; height: 40px; color: var(--m3-primary); }
+    .shape-pick:focus-visible { outline: 2px solid var(--m3-secondary); }
+
+    .eq { display: flex; gap: 18px; align-items: end; height: 200px; }
+    .eq label { display: grid; justify-items: center; gap: 6px; }
+    .eq m3-slider { height: 160px; }
+    .switch-row { display: flex; align-items: center; gap: 14px; }
+    .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; align-items: start; }
+    .fields > .m3-search, .fields > .m3-field { width: 100%; box-sizing: border-box; }
+    .shelf { display: flex; gap: 18px; overflow-x: auto; padding: 8px 4px 16px; margin: -8px -4px 0; }
+    .shelf .m3-media-card { flex: none; }
+
+    .motion { display: grid; gap: 10px; }
+    .curve { display: grid; grid-template-columns: 210px 1fr; align-items: center; gap: 14px; }
+    .curve .track-line { position: relative; height: 28px; border-radius: var(--m3-r-full); background: var(--m3-surface-container-high); }
+    .curve .dot { position: absolute; left: 4px; top: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--m3-primary); }
+    .curve .name { font-size: var(--m3-fs-smallie); }
+    .curve .name small { display: block; color: var(--m3-on-surface-variant); font-size: var(--m3-fs-smallest); }
+    .scale-row { display: grid; grid-template-columns: 140px 1fr; align-items: baseline; gap: 12px; }
+    .radii { display: flex; flex-wrap: wrap; gap: 12px; }
+    .radius { width: 72px; height: 72px; background: var(--m3-tertiary-container); color: var(--m3-on-tertiary-container); display: grid; place-items: end start; padding: 6px; font-size: var(--m3-fs-smallest); }
+
+    footer { margin-top: 56px; color: var(--m3-on-surface-variant); font-size: var(--m3-fs-smaller); line-height: 1.6; }
+    footer a { color: var(--m3-primary); }
+
+    @media (max-width: 860px) {
+      .page, .top-bar { padding-inline: 16px; }
+      .hero { grid-template-columns: 1fr; padding: 22px; }
+      .shape-stage { grid-template-columns: 1fr; }
+      .curve { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body class="m3-base">
+  <header class="top-bar">
+    <div class="brand">
+      <m3-shape id="brand-shape" shape="cookie9"></m3-shape>
+      <span class="m3-title">Material 3 Expressive</span>
+    </div>
+    <button class="m3-toolbar-btn" id="random-seed" data-effect="pop" data-shape="cookie9" aria-label="Random colour" data-tooltip="Random colour"><span class="m3-icon">casino</span></button>
+    <button class="m3-toolbar-btn" id="image-seed" data-effect="nudge-right" data-shape="clover4" aria-label="Colour from an image" data-tooltip="Colour from an image"><span class="m3-icon">image</span></button>
+    <button class="m3-toolbar-btn" id="dark-toggle" data-effect="spin" data-shape="sunny" aria-label="Light or dark" data-tooltip="Light or dark"><span class="m3-icon">dark_mode</span></button>
+    <input type="file" id="image-input" accept="image/*" hidden>
+  </header>
+
+  <main class="page">
+    <!-- hero + the player -->
+    <section>
+      <div class="hero m3-card" data-m3-stickers="material 3 expressive" data-count="5" data-strength="1.2">
+        <div>
+          <h1 class="m3-title display">Shapes that morph, springs that overshoot.</h1>
+          <p>Swiftify's Material 3 Expressive design language for the web: one colour seeds the whole scheme, 37 shapes morph into each other, and everything moves on end4's curves and Qt-accurate springs.</p>
+          <div class="row">
+            <button class="m3-btn filled wavy" data-burst="play" id="hero-play"><span class="m3-icon">play_arrow</span>Play something</button>
+            <button class="m3-btn tonal" id="hero-shapes"><span class="m3-icon">interests</span>Browse shapes</button>
+          </div>
+        </div>
+        <div class="player" aria-label="Player">
+          <div class="now-playing">
+            <div class="disc">
+              <m3-squiggle id="disc-ring" playing></m3-squiggle>
+              <div class="art" id="art"></div>
+            </div>
+            <div class="track">
+              <span class="name" id="track-name">i mean i guess bro</span>
+              <span class="muted" id="track-artist">Swiftify</span>
+            </div>
+          </div>
+          <m3-wavy-progress id="seek" value="0.32" interactive aria-label="Seek"></m3-wavy-progress>
+          <div class="times"><span id="time-now">1:04</span><span id="time-total">3:20</span></div>
+          <div class="controls">
+            <button class="m3-icon-btn" data-toggle data-effect="bounce" data-toggled-shape="cookie4" aria-pressed="false" aria-label="Shuffle" data-tooltip="Shuffle"><span class="m3-icon">shuffle</span></button>
+            <button class="m3-icon-btn" id="prev" data-effect="nudge-left" data-hover-shape="arrow" data-hover-angle="-90" aria-label="Previous" data-tooltip="Previous"><span class="m3-icon filled">skip_previous</span></button>
+            <m3-play-button id="play" size="56"></m3-play-button>
+            <button class="m3-icon-btn" id="next" data-effect="nudge-right" data-hover-shape="arrow" data-hover-angle="90" aria-label="Next" data-tooltip="Next"><span class="m3-icon filled">skip_next</span></button>
+            <button class="m3-icon-btn" data-toggle data-effect="bounce" data-toggled-shape="clover4" aria-pressed="true" aria-label="Repeat" data-tooltip="Repeat"><span class="m3-icon">repeat</span></button>
+          </div>
+          <div class="volume">
+            <button class="m3-icon-btn small" id="mute" aria-label="Mute" data-tooltip="Mute"><span class="m3-icon">volume_up</span></button>
+            <m3-slider id="volume" value="0.7" value-tip label="Volume"></m3-slider>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- colour -->
+    <section id="colour">
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="flower" symbol="palette" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Colour</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="m3-card panel">
+        <div class="seed-row" id="seeds" role="group" aria-label="Seed colour">
+          <input type="color" class="seed-input" id="seed-input" value="#6750a4" aria-label="Pick a seed colour" data-tooltip="Pick a seed colour">
+        </div>
+        <div class="row">
+          <div class="m3-segmented" role="radiogroup" aria-label="Mode" id="mode">
+            <button class="m3-segment" role="radio" aria-checked="true" data-symbol="brightness_auto" value="system">System</button>
+            <button class="m3-segment" role="radio" aria-checked="false" data-symbol="light_mode" value="light">Light</button>
+            <button class="m3-segment" role="radio" aria-checked="false" data-symbol="dark_mode" value="dark">Dark</button>
+          </div>
+          <div class="m3-segmented" role="radiogroup" aria-label="Scheme" id="variant">
+            <button class="m3-segment" role="radio" aria-checked="true" value="tonalSpot">Tonal spot</button>
+            <button class="m3-segment" role="radio" aria-checked="false" value="content">Content</button>
+            <button class="m3-segment" role="radio" aria-checked="false" value="expressive">Expressive</button>
+            <button class="m3-segment" role="radio" aria-checked="false" value="vibrant">Vibrant</button>
+            <button class="m3-segment" role="radio" aria-checked="false" value="neutral">Neutral</button>
+          </div>
+        </div>
+        <div class="roles" id="roles"></div>
+      </div>
+    </section>
+
+    <!-- buttons -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="cookie9" symbol="touch_app" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Buttons</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="m3-card panel">
+        <span class="label">Common buttons: a press squishes on a spring and ripples from the pointer</span>
+        <div class="row">
+          <button class="m3-btn filled">Filled</button>
+          <button class="m3-btn tonal">Tonal</button>
+          <button class="m3-btn outlined">Outlined</button>
+          <button class="m3-btn text">Text</button>
+          <button class="m3-btn elevated">Elevated</button>
+          <button class="m3-btn filled" disabled>Disabled</button>
+        </div>
+        <div class="row">
+          <button class="m3-btn filled" data-burst="pin"><span class="m3-icon">push_pin</span>Pin</button>
+          <button class="m3-btn tonal" data-burst="playlist"><span class="m3-icon">playlist_add</span>New playlist</button>
+          <button class="m3-btn outlined" id="save"><span class="m3-icon">save</span>Save<m3-loading class="m3-btn-spinner"></m3-loading></button>
+          <button class="m3-btn filled icon-only" aria-label="Add" data-tooltip="Add"><span class="m3-icon">add</span></button>
+        </div>
+        <span class="label">Wavy pills: the scallops deepen and run round the edge while hovered</span>
+        <div class="row">
+          <button class="m3-btn filled wavy" data-burst="play"><span class="m3-icon">play_arrow</span>Play all</button>
+          <button class="m3-btn tonal wavy"><span class="m3-icon">shuffle</span>Shuffle</button>
+        </div>
+        <span class="label">Icon buttons: standard, filled, tonal and outlined, each toggleable</span>
+        <div class="row">
+          <button class="m3-icon-btn" data-toggle aria-pressed="false" aria-label="Favourite" data-burst="hearts" data-tooltip="Favourite"><span class="m3-icon">favorite</span></button>
+          <button class="m3-icon-btn filled" data-toggle aria-pressed="true" aria-label="Bookmark" data-tooltip="Bookmark"><span class="m3-icon">bookmark</span></button>
+          <button class="m3-icon-btn tonal" data-toggle aria-pressed="false" aria-label="Notifications" data-tooltip="Notifications"><span class="m3-icon">notifications</span></button>
+          <button class="m3-icon-btn outlined" data-toggle aria-pressed="false" aria-label="Star" data-tooltip="Star"><span class="m3-icon">star</span></button>
+          <button class="m3-icon-btn filled" aria-label="Edit" data-tooltip="Edit"><span class="m3-icon">edit</span></button>
+          <button class="m3-icon-btn" aria-label="More" id="more-menu" data-tooltip="More"><span class="m3-icon">more_vert</span></button>
+        </div>
+        <span class="label">Toolbar buttons: a shape that turns on hover, and a pop, nudge or spin on click</span>
+        <div class="row">
+          <button class="m3-toolbar-btn" data-effect="pop" data-shape="cookie9" aria-label="Pop" data-tooltip="Pop"><span class="m3-icon">celebration</span></button>
+          <button class="m3-toolbar-btn" data-effect="nudge-left" data-shape="cookie7" aria-label="Back" data-tooltip="Back"><span class="m3-icon">arrow_back</span></button>
+          <button class="m3-toolbar-btn" data-effect="nudge-right" data-shape="cookie7" aria-label="Forward" data-tooltip="Forward"><span class="m3-icon">arrow_forward</span></button>
+          <button class="m3-toolbar-btn" data-effect="spin" data-shape="softBurst" aria-label="Refresh" data-tooltip="Refresh"><span class="m3-icon">refresh</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- selection -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="clover4" symbol="tune" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Selection</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="fields">
+        <div class="m3-card panel">
+          <span class="label">Switches</span>
+          <label class="switch-row"><input type="checkbox" class="m3-switch" role="switch" checked> Crossfade</label>
+          <label class="switch-row"><input type="checkbox" class="m3-switch" role="switch"> Reduce motion</label>
+          <label class="switch-row"><input type="checkbox" class="m3-switch" role="switch" disabled> Lossless (soon)</label>
+          <span class="label">Segmented</span>
+          <div class="m3-segmented" role="radiogroup" aria-label="Range">
+            <button class="m3-segment" role="radio" aria-checked="false" data-symbol="today" value="day">Day</button>
+            <button class="m3-segment" role="radio" aria-checked="true" data-symbol="date_range" value="week">Week</button>
+            <button class="m3-segment" role="radio" aria-checked="false" data-symbol="calendar_month" value="month">Month</button>
+          </div>
+          <span class="label">Slider: the track splits round a slim handle</span>
+          <m3-slider value="0.4" value-tip show-stop label="Tempo"></m3-slider>
+        </div>
+        <div class="m3-card panel">
+          <span class="label">Equalizer: vertical sliders</span>
+          <div class="eq">
+            <label><m3-slider orientation="vertical" value="0.55" value-tip label="60 Hz"></m3-slider><span class="label">60</span></label>
+            <label><m3-slider orientation="vertical" value="0.7" value-tip label="230 Hz"></m3-slider><span class="label">230</span></label>
+            <label><m3-slider orientation="vertical" value="0.45" value-tip label="910 Hz"></m3-slider><span class="label">910</span></label>
+            <label><m3-slider orientation="vertical" value="0.6" value-tip label="3.6 kHz"></m3-slider><span class="label">3.6k</span></label>
+            <label><m3-slider orientation="vertical" value="0.35" value-tip label="14 kHz"></m3-slider><span class="label">14k</span></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- shapes -->
+    <section id="shapes">
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="sunny" symbol="interests" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Shapes</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="m3-card shape-stage">
+        <div class="preview">
+          <m3-shape id="preview" shape="cookie9"></m3-shape>
+          <span class="m3-title" id="preview-name">cookie9</span>
+          <span class="label">springs into whatever you pick</span>
+        </div>
+        <div class="shape-grid" id="shape-grid"></div>
+      </div>
+      <div class="m3-card panel">
+        <span class="label">Loading and progress</span>
+        <div class="row" style="gap: 24px">
+          <m3-loading></m3-loading>
+          <m3-loading contained></m3-loading>
+          <m3-loading size="64"></m3-loading>
+          <m3-squiggle progress="0.68" style="width: 56px; height: 56px"></m3-squiggle>
+          <m3-squiggle free style="width: 56px; height: 56px"></m3-squiggle>
+          <m3-shape-icon shape="cookie9" hover-shape="heart" symbol="favorite" size="48" icon-size="24" data-tooltip="Hover me"></m3-shape-icon>
+          <m3-shape-icon shape="softBurst" hover-shape="flower" symbol="auto_awesome" size="48" icon-size="24"></m3-shape-icon>
+        </div>
+        <m3-wavy-progress value="0.6" playing aria-label="Progress"></m3-wavy-progress>
+      </div>
+    </section>
+
+    <!-- feedback -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="softBoom" symbol="campaign" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Feedback</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="m3-card panel">
+        <div class="row">
+          <button class="m3-btn tonal" id="show-snackbar"><span class="m3-icon">warning</span>Snackbar</button>
+          <button class="m3-btn tonal" id="show-toast"><span class="m3-icon">auto_awesome</span>Toast</button>
+          <button class="m3-btn tonal" id="show-dialog"><span class="m3-icon">delete</span>Dialog</button>
+          <button class="m3-btn tonal" id="show-menu"><span class="m3-icon">menu</span>Menu</button>
+          <span class="muted" data-tooltip="Tooltips spring in from the edge facing what they describe" tabindex="0">Hover for a tooltip</span>
+        </div>
+        <p class="muted" id="roll" style="margin: 0">Rolling text: <b id="roll-word">expressive</b></p>
+      </div>
+    </section>
+
+    <!-- text fields -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="pill" symbol="edit_note" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Text fields</h2>
+        <m3-wavy-line></m3-wavy-line>
+      </header>
+      <div class="m3-card fields">
+        <label class="m3-search"><span class="m3-icon">search</span><input type="search" placeholder="Search songs, albums, artists"><button type="button" class="m3-icon-btn small m3-search-clear" aria-label="Clear"><span class="m3-icon">close</span></button></label>
+        <input class="m3-field" placeholder="Playlist name">
+        <textarea class="m3-field" rows="3" placeholder="Description"></textarea>
+      </div>
+    </section>
+
+    <!-- cards -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="clamShell" symbol="album" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Cards</h2>
+        <m3-wavy-line></m3-wavy-line>
+        <button class="m3-btn tonal small" id="see-all"><span class="m3-icon">arrow_forward</span>See all</button>
+      </header>
+      <div class="shelf">
+        <button class="m3-media-card" data-title="Shapes of Spring" data-subtitle="Album • Cookie Nine" data-art="linear-gradient(135deg, #ff9a8b, #ff6a88 55%, #ff99ac)"></button>
+        <button class="m3-media-card" data-title="Overshoot" data-subtitle="Album • The Springs" data-art="linear-gradient(160deg, #a18cd1, #fbc2eb)"></button>
+        <button class="m3-media-card" data-title="Tonal Spot" data-subtitle="Playlist • 42 songs" data-art="linear-gradient(135deg, #43cea2, #185a9d)"></button>
+        <button class="m3-media-card" data-title="Wavy Edges" data-subtitle="Single • Scallop" data-art="linear-gradient(200deg, #f6d365, #fda085)"></button>
+        <button class="m3-media-card" data-title="Cookie Nine" data-subtitle="Artist" data-circular data-art="linear-gradient(135deg, #5ee7df, #b490ca)"></button>
+        <button class="m3-media-card" data-title="Nothing yet" data-subtitle="Playlist • empty" data-symbol="queue_music"></button>
+      </div>
+      <div class="m3-card">
+        <div class="m3-empty" data-symbol="search_off" data-title="Nothing matches that" data-description="Empty states put a symbol on a tonal shape that springs in with a twist."></div>
+      </div>
+    </section>
+
+    <!-- tokens -->
+    <section>
+      <header class="m3-section-header" data-m3-hover-root>
+        <m3-shape-icon shape="squircle" symbol="animation" size="34" icon-size="18"></m3-shape-icon>
+        <h2 class="m3-title">Motion and tokens</h2>
+        <m3-wavy-line></m3-wavy-line>
+        <button class="m3-btn filled small" id="run-motion"><span class="m3-icon">play_arrow</span>Run</button>
+      </header>
+      <div class="m3-card motion" id="motion"></div>
+      <div class="fields">
+        <div class="m3-card panel" id="type-scale"><span class="label">Type scale (Google Sans Flex; titles drawn round, wide and heavy)</span></div>
+        <div class="m3-card panel"><span class="label">Rounding</span><div class="radii" id="radii"></div></div>
+      </div>
+    </section>
+
+    <footer>
+      Ported from <a href="https://github.com/shredos67/swiftify">Swiftify</a>'s Qt Quick design system, which follows
+      end-4's <a href="https://github.com/end-4/dots-hyprland">dots-hyprland</a>. Shapes and morphing:
+      <a href="https://github.com/end-4/rounded-polygon-qmljs">rounded-polygon-qmljs</a> (Apache 2.0). Colour:
+      Google's <a href="https://github.com/material-foundation/material-color-utilities">material-color-utilities</a> (Apache 2.0).
+    </footer>
+  </main>
+
+  <script src="m3-shapes.js"></script>
+  <script src="m3.js"></script>
+  <script>
+    (() => {
+      const $ = (selector) => document.querySelector(selector);
+      const root = document.documentElement;
+
+      // ---- theme: seed, mode and scheme, remembered per browser ----
+      const SEEDS = ['#6750a4', '#1db954', '#e8467c', '#ff8a3d', '#3d7bff', '#00a6a6', '#b98c00', '#8b5cf6'];
+      const saved = (() => { try { return JSON.parse(localStorage.getItem('m3-showcase') || '{}'); } catch { return {}; } })();
+      const theme = { seed: saved.seed || '#6750a4', mode: saved.mode || 'system', variant: saved.variant || 'tonalSpot' };
+      const systemDark = matchMedia('(prefers-color-scheme: dark)');
+      const isDark = () => theme.mode === 'dark' || (theme.mode === 'system' && systemDark.matches);
+
+      async function applyTheme() {
+        try { localStorage.setItem('m3-showcase', JSON.stringify(theme)); } catch {}
+        // the baked tokens follow this too, so light/dark still works offline
+        if (theme.mode === 'system') root.removeAttribute('data-m3-theme');
+        else root.setAttribute('data-m3-theme', theme.mode);
+        $('#seed-input').value = theme.seed;
+        $('#dark-toggle .m3-icon').textContent = isDark() ? 'light_mode' : 'dark_mode';
+        for (const button of document.querySelectorAll('.seed')) button.setAttribute('aria-pressed', String(button.dataset.seed === theme.seed));
+        try {
+          await M3.color.setTheme({ seed: theme.seed, dark: isDark(), variant: theme.variant });
+        } catch (error) {
+          M3.snackbar("Couldn't load the colour library (offline?). Showing the built-in scheme.");
+        }
+      }
+      systemDark.addEventListener('change', () => theme.mode === 'system' && applyTheme());
+
+      const seeds = $('#seeds');
+      for (const [index, seed] of SEEDS.entries()) {
+        const button = document.createElement('button');
+        button.className = 'seed';
+        button.dataset.seed = seed;
+        button.setAttribute('aria-label', 'Seed ' + seed);
+        button.dataset.tooltip = seed;
+        const shapes = ['cookie9', 'flower', 'sunny', 'clover4', 'puffy', 'softBurst', 'heart', 'gem'];
+        button.innerHTML = `<m3-shape shape="${shapes[index]}" style="color:${seed}"></m3-shape>`;
+        button.addEventListener('click', () => { theme.seed = seed; applyTheme(); });
+        seeds.insertBefore(button, $('#seed-input'));
+      }
+      $('#seed-input').addEventListener('change', (event) => { theme.seed = event.target.value; applyTheme(); });
+      $('#random-seed').addEventListener('click', () => {
+        theme.seed = '#' + Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, '0');
+        applyTheme().then(() => M3.toast('Seeded from ' + theme.seed, { symbol: 'casino', shape: 'cookie6' }));
+      });
+      $('#dark-toggle').addEventListener('click', () => { theme.mode = isDark() ? 'light' : 'dark'; syncSegment('#mode', theme.mode); applyTheme(); });
+
+      function syncSegment(selector, value) {
+        const control = $(selector);
+        const buttons = [...control.querySelectorAll('.m3-segment')];
+        const index = buttons.findIndex((button) => button.value === value);
+        if (control.m3Select) control.m3Select(index);
+        else buttons.forEach((button, i) => button.setAttribute('aria-checked', String(i === index)));
+      }
+      $('#mode').addEventListener('change', (event) => { theme.mode = event.detail.value; applyTheme(); });
+      $('#variant').addEventListener('change', (event) => { theme.variant = event.detail.value; applyTheme(); });
+      M3.util.onReady(() => { syncSegment('#mode', theme.mode); syncSegment('#variant', theme.variant); });
+
+      // album-art theming, as Swiftify's player follows the cover
+      $('#image-seed').addEventListener('click', () => $('#image-input').click());
+      $('#image-input').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+          try {
+            theme.seed = await M3.color.seedFromImage(reader.result);
+            theme.variant = 'content';
+            syncSegment('#variant', 'content');
+            $('#art').style.backgroundImage = `url(${reader.result})`;
+            await applyTheme();
+            M3.toast('Coloured from your image', { symbol: 'image', shape: 'clover4' });
+          } catch (error) {
+            M3.snackbar("Couldn't read colours from that image.");
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // the role swatches read back whatever the scheme is now
+      const ROLE_PAIRS = [
+        ['primary', 'on-primary'], ['primary-container', 'on-primary-container'], ['secondary', 'on-secondary'],
+        ['secondary-container', 'on-secondary-container'], ['tertiary', 'on-tertiary'], ['tertiary-container', 'on-tertiary-container'],
+        ['error', 'on-error'], ['error-container', 'on-error-container'], ['surface', 'on-surface'],
+        ['surface-container-low', 'on-surface'], ['surface-container', 'on-surface'], ['surface-container-high', 'on-surface'],
+        ['surface-container-highest', 'on-surface'], ['inverse-surface', 'inverse-on-surface'], ['layer1-hover', 'on-surface'],
+        ['primary-hover', 'on-primary'], ['secondary-container-active', 'on-secondary-container'], ['outline', 'surface'],
+      ];
+      const roles = $('#roles');
+      roles.innerHTML = ROLE_PAIRS.map(([bg, fg]) =>
+        `<div class="role" style="background:var(--m3-${bg});color:var(--m3-${fg})"><b>${bg}</b><code data-var="--m3-${bg}"></code></div>`).join('');
+      const readRoles = () => {
+        const style = getComputedStyle(root);
+        for (const code of roles.querySelectorAll('code')) code.textContent = style.getPropertyValue(code.dataset.var).trim();
+      };
+      root.addEventListener('m3-themechange', readRoles);
+      readRoles();
+      applyTheme();
+
+      // ---- the player ----
+      const TRACKS = [
+        ['i mean i guess bro', 'Swiftify', 200, 'linear-gradient(135deg, var(--m3-primary), var(--m3-tertiary))'],
+        ['Cookie Nine', 'The Springs', 184, 'linear-gradient(135deg, #ff9a8b, #ff6a88)'],
+        ['Tonal Spot', 'Hct & the Palettes', 231, 'linear-gradient(135deg, #43cea2, #185a9d)'],
+        ['Overshoot', 'Bounce', 167, 'linear-gradient(160deg, #a18cd1, #fbc2eb)'],
+      ];
+      let trackIndex = 0;
+      let position = 64;
+      let playing = false;
+      const seek = $('#seek');
+      const play = $('#play');
+      const ring = $('#disc-ring');
+      const clock = (seconds) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
+      const showPosition = () => {
+        const length = TRACKS[trackIndex][2];
+        seek.value = position / length;
+        $('#time-now').textContent = clock(position);
+        $('#time-total').textContent = clock(length);
+      };
+      function setPlaying(on) {
+        playing = on;
+        play.toggleAttribute('playing', on);
+        seek.toggleAttribute('playing', on);
+        ring.toggleAttribute('playing', on);
+        $('#hero-play').lastChild.textContent = on ? 'Pause' : 'Play something';
+        $('#hero-play .m3-icon').textContent = on ? 'pause' : 'play_arrow';
+      }
+      function changeTrack(step) {
+        trackIndex = (trackIndex + step + TRACKS.length) % TRACKS.length;
+        const [name, artist, , art] = TRACKS[trackIndex];
+        M3.rollText($('#track-name'), name, { dx: step * 12, dy: 0 });
+        M3.rollText($('#track-artist'), artist, { dx: step * 12, dy: 0 });
+        if (!$('#art').style.backgroundImage.startsWith('url(data:')) $('#art').style.background = art;
+        position = 0;
+        showPosition();
+      }
+      play.addEventListener('toggle', (event) => setPlaying(event.detail.playing));
+      $('#hero-play').addEventListener('click', () => setPlaying(!playing));
+      $('#prev').addEventListener('click', () => changeTrack(-1));
+      $('#next').addEventListener('click', () => changeTrack(1));
+      seek.addEventListener('input', () => { position = seek.value * TRACKS[trackIndex][2]; $('#time-now').textContent = clock(position); });
+      setInterval(() => {
+        if (!playing) return;
+        position += 1;
+        if (position >= TRACKS[trackIndex][2]) changeTrack(1);
+        showPosition();
+      }, 1000);
+      showPosition();
+      $('#mute').addEventListener('click', () => {
+        const volume = $('#volume');
+        const icon = $('#mute .m3-icon');
+        if (volume.value > 0) { volume.dataset.was = volume.value; volume.value = 0; icon.textContent = 'volume_off'; }
+        else { volume.value = +(volume.dataset.was || 0.7); icon.textContent = 'volume_up'; }
+      });
+      $('#volume').addEventListener('input', (event) => { $('#mute .m3-icon').textContent = event.target.value > 0 ? 'volume_up' : 'volume_off'; });
+
+      // the brand mark turns with the music, like everything that spins
+      M3.spin.subscribe((value) => { $('#brand-shape').angle = value * 25; });
+
+      // ---- buttons ----
+      $('#save').addEventListener('click', (event) => {
+        const button = event.currentTarget;
+        button.setAttribute('aria-busy', 'true');
+        setTimeout(() => { button.removeAttribute('aria-busy'); M3.toast('Saved', { symbol: 'check', shape: 'cookie9' }); }, 1600);
+      });
+      const moreItems = () => [
+        { label: 'Add to queue', symbol: 'queue_music' },
+        { label: 'Go to album', symbol: 'album' },
+        { label: 'Share', symbol: 'share', onSelect: () => M3.toast('Link copied', { symbol: 'link' }) },
+        { separator: true },
+        { label: 'Show lyrics', checked: true },
+        { label: 'Remove from library', symbol: 'delete', destructive: true, onSelect: confirmDelete },
+      ];
+      $('#more-menu').addEventListener('click', (event) => M3.menu(event.currentTarget, moreItems()));
+      $('#show-menu').addEventListener('click', (event) => M3.menu(event.currentTarget, moreItems()));
+
+      // ---- shapes ----
+      const grid = $('#shape-grid');
+      const preview = $('#preview');
+      for (const name of M3Shapes.names) {
+        const button = document.createElement('button');
+        button.className = 'shape-pick';
+        button.setAttribute('aria-pressed', String(name === 'cookie9'));
+        button.innerHTML = `<m3-shape shape="${name}"></m3-shape><span>${name}</span>`;
+        button.addEventListener('click', () => {
+          for (const other of grid.children) other.setAttribute('aria-pressed', String(other === button));
+          preview.transitionTo(name, { spring: true });
+          M3.rollText($('#preview-name'), name);
+        });
+        grid.append(button);
+      }
+      M3.spin.subscribe((value) => { preview.angle = value * 12; });
+      $('#hero-shapes').addEventListener('click', () => $('#shapes').scrollIntoView({ behavior: 'smooth' }));
+
+      // ---- feedback ----
+      function confirmDelete() {
+        return M3.dialog({
+          headline: 'Remove from your library?',
+          symbol: 'delete',
+          iconShape: 'softBoom',
+          body: 'The playlist goes from your library, but anyone you shared it with keeps it.',
+          actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, variant: 'filled' }],
+        }).then((removed) => removed && M3.toast('Removed', { symbol: 'delete', shape: 'softBoom' }));
+      }
+      $('#show-snackbar').addEventListener('click', () => M3.snackbar('Spotify could not load this track.', { action: { label: 'Retry', onClick: () => M3.toast('Retrying…', { symbol: 'refresh' }) } }));
+      $('#show-toast').addEventListener('click', () => M3.toast('i mean i guess bro'));
+      $('#show-dialog').addEventListener('click', confirmDelete);
+      const WORDS = ['expressive', 'springy', 'tonal', 'wavy', 'round', 'bouncy'];
+      let word = 0;
+      setInterval(() => { word = (word + 1) % WORDS.length; M3.rollText($('#roll-word'), WORDS[word]); }, 2200);
+      $('#see-all').addEventListener('click', () => M3.toast('This is where "See all" would go', { symbol: 'arrow_forward', shape: 'arrow' }));
+
+      // ---- motion and tokens ----
+      const motion = $('#motion');
+      const rows = Object.entries(M3.motion.presets).map(([name, preset]) => [name, `${preset.duration}ms · ${preset.ease}`, preset.duration, preset.ease]);
+      const bounce = M3.motion.springEasing(M3.motion.springs.bounce);
+      const morph = M3.motion.springEasing(M3.motion.springs.morph);
+      rows.push(['bounce spring', `spring 7 · damping 0.24 · ${bounce.duration}ms`, bounce.duration, bounce.easing]);
+      rows.push(['morph spring', `spring 3.5 · damping 0.3 · ${morph.duration}ms`, morph.duration, morph.easing]);
+      motion.innerHTML = rows.map(([name, detail]) =>
+        `<div class="curve"><span class="name">${name}<small>${detail}</small></span><div class="track-line"><span class="dot"></span></div></div>`).join('');
+      let out = false;
+      $('#run-motion').addEventListener('click', () => {
+        out = !out;
+        motion.querySelectorAll('.curve').forEach((row, index) => {
+          const [, , duration, ease] = rows[index];
+          const dot = row.querySelector('.dot');
+          const distance = row.querySelector('.track-line').clientWidth - 28;
+          const from = out ? 0 : distance;
+          M3.motion.animate(dot, [{ transform: `translateX(${from}px)` }, { transform: `translateX(${distance - from}px)` }], { duration, ease, fill: 'forwards' });
+        });
+        $('#run-motion .m3-icon').textContent = out ? 'replay' : 'play_arrow';
+      });
+
+      const SIZES = ['display', 'headline', 'title', 'huge', 'larger', 'large', 'normal', 'small', 'smallie', 'smaller', 'smallest'];
+      $('#type-scale').insertAdjacentHTML('beforeend', SIZES.map((size, index) =>
+        `<div class="scale-row"><span class="label">${size} · ${getComputedStyle(root).getPropertyValue('--m3-fs-' + size).trim()}</span>` +
+        `<span class="${index < 3 ? 'm3-title' : ''}" style="font-size:var(--m3-fs-${size})">Overshoot</span></div>`).join(''));
+      const RADII = ['unsharpen', 'unsharpen-more', 'very-small', 'small', 'normal', 'large', 'very-large', 'full'];
+      $('#radii').innerHTML = RADII.map((radius) => `<div class="radius" style="border-radius:var(--m3-r-${radius})">${radius}</div>`).join('');
+    })();
+  </script>
+</body>
+</html>

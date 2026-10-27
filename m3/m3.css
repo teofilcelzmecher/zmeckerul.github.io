@@ -1,0 +1,1849 @@
+/*!
+ * m3.css: Material 3 Expressive for the web, after Swiftify's design language
+ * (https://github.com/shredos67/swiftify), which follows end-4's dots-hyprland.
+ * Tokens first (colours are a TonalSpot scheme, swapped at runtime by
+ * M3.color.setTheme), then the components.
+ */
+
+/* ---- generated tokens (bake.mjs) ---------------------------------------
+   a TonalSpot scheme from #6750a4, light and dark, with end4's derived layer,
+   hover and pressed colours; M3.color.setTheme replaces them at runtime.
+   then the easings css can't spell as a single cubic-bezier: the two-part
+   emphasized curve, Qt's OutBack, and Swiftify's springs (Bounce, the morph). */
+:root {
+  color-scheme: light;
+  --m3-background: #fdf7ff;
+  --m3-on-background: #1d1b20;
+  --m3-surface: #fdf7ff;
+  --m3-surface-dim: #ded8e0;
+  --m3-surface-bright: #fdf7ff;
+  --m3-surface-container-lowest: #ffffff;
+  --m3-surface-container-low: #f8f2fa;
+  --m3-surface-container: #f2ecf4;
+  --m3-surface-container-high: #ece6ee;
+  --m3-surface-container-highest: #e6e0e9;
+  --m3-on-surface: #1d1b20;
+  --m3-surface-variant: #e7e0eb;
+  --m3-on-surface-variant: #49454e;
+  --m3-inverse-surface: #322f35;
+  --m3-inverse-on-surface: #f5eff7;
+  --m3-outline: #7a757f;
+  --m3-outline-variant: #cac4cf;
+  --m3-shadow: #000000;
+  --m3-scrim: #000000;
+  --m3-surface-tint: #65558f;
+  --m3-primary: #65558f;
+  --m3-on-primary: #ffffff;
+  --m3-primary-container: #e9ddff;
+  --m3-on-primary-container: #4d3d75;
+  --m3-inverse-primary: #cfbdfe;
+  --m3-secondary: #625b71;
+  --m3-on-secondary: #ffffff;
+  --m3-secondary-container: #e8def8;
+  --m3-on-secondary-container: #4a4458;
+  --m3-tertiary: #7e5260;
+  --m3-on-tertiary: #ffffff;
+  --m3-tertiary-container: #ffd9e3;
+  --m3-on-tertiary-container: #633b48;
+  --m3-error: #ba1a1a;
+  --m3-on-error: #ffffff;
+  --m3-error-container: #ffdad6;
+  --m3-on-error-container: #93000a;
+  --m3-primary-fixed: #e9ddff;
+  --m3-primary-fixed-dim: #cfbdfe;
+  --m3-on-primary-fixed: #201047;
+  --m3-on-primary-fixed-variant: #4d3d75;
+  --m3-secondary-fixed: #e8def8;
+  --m3-secondary-fixed-dim: #cbc2db;
+  --m3-on-secondary-fixed: #1e192b;
+  --m3-on-secondary-fixed-variant: #4a4458;
+  --m3-tertiary-fixed: #ffd9e3;
+  --m3-tertiary-fixed-dim: #efb8c8;
+  --m3-on-tertiary-fixed: #31101d;
+  --m3-on-tertiary-fixed-variant: #633b48;
+  --m3-subtext: #7a757f;
+  --m3-layer0: #fdf7ff;
+  --m3-on-layer0: #1d1b20;
+  --m3-layer0-hover: #e7e1e9;
+  --m3-layer0-active: #d0cbd2;
+  --m3-layer0-border: #e9e3ec;
+  --m3-layer1: #f8f2fa;
+  --m3-on-layer1: #49454e;
+  --m3-on-layer1-inactive: #a9a4ad;
+  --m3-layer1-hover: #eae4ec;
+  --m3-layer1-active: #ded8e0;
+  --m3-layer2: #f2ecf4;
+  --m3-on-layer2: #1d1b20;
+  --m3-layer2-hover: #ddd7df;
+  --m3-layer2-active: #c7c2ca;
+  --m3-layer2-disabled: #f4eef6;
+  --m3-on-layer2-disabled: #a39fa6;
+  --m3-layer3: #ece6ee;
+  --m3-on-layer3: #1d1b20;
+  --m3-layer3-hover: #d7d2d9;
+  --m3-layer3-active: #c3bdc5;
+  --m3-layer4: #e6e0e9;
+  --m3-on-layer4: #1d1b20;
+  --m3-layer4-hover: #d2ccd5;
+  --m3-layer4-active: #beb9c1;
+  --m3-primary-hover: #76689b;
+  --m3-primary-active: #897ca7;
+  --m3-primary-container-hover: #d9cdf1;
+  --m3-primary-container-active: #cabde3;
+  --m3-secondary-hover: #767083;
+  --m3-secondary-active: #aca6b4;
+  --m3-secondary-container-hover: #d8cfe8;
+  --m3-secondary-container-active: #9f97ae;
+  --m3-tertiary-hover: #8e6875;
+  --m3-tertiary-active: #b7a2ad;
+  --m3-tertiary-container-hover: #efc9d3;
+  --m3-tertiary-container-active: #f0d9e2;
+  --m3-surface-container-highest-hover: #dcd6df;
+  --m3-surface-container-highest-active: #c8c2cb;
+  --m3-tooltip: #322f35;
+  --m3-on-tooltip: #f5eff7;
+  --m3-scrim-overlay: rgb(0 0 0 / 0.5);
+  --m3-shadow-color: rgb(0 0 0 / 0.3);
+  --m3-error-hover: #c1383a;
+  --m3-error-active: #c55355;
+  --m3-error-container-hover: #f4c4c2;
+  --m3-error-container-active: #df9999;
+  --m3-ease-emphasized: linear(0, 0.0035, 0.0141, 0.0329, 0.0616, 0.103, 0.1622, 0.2503, 0.4, 0.5711, 0.6686, 0.7297, 0.7728, 0.8055, 0.8315, 0.8528, 0.8706, 0.8858, 0.8989, 0.9104, 0.9204, 0.9293, 0.9372, 0.9443, 0.9506, 0.9563, 0.9614, 0.966, 0.9701, 0.9739, 0.9773, 0.9803, 0.983, 0.9855, 0.9877, 0.9897, 0.9914, 0.9929, 0.9943, 0.9955, 0.9965, 0.9974, 0.9981, 0.9987, 0.9992, 0.9996, 0.9998, 1, 1);
+  --m3-ease-out-back: linear(0, 0.0952, 0.185, 0.2695, 0.3489, 0.4233, 0.4929, 0.5578, 0.6182, 0.6742, 0.726, 0.7737, 0.8174, 0.8573, 0.8936, 0.9264, 0.9558, 0.982, 1.0051, 1.0253, 1.0428, 1.0576, 1.0699, 1.0799, 1.0877, 1.0935, 1.0973, 1.0995, 1.1, 1.0991, 1.0968, 1.0934, 1.089, 1.0837, 1.0777, 1.0711, 1.0641, 1.0568, 1.0494, 1.042, 1.0348, 1.0278, 1.0213, 1.0154, 1.0103, 1.006, 1.0028, 1.0007, 1);
+  --m3-ease-pop: linear(0, 0.1131, 0.2194, 0.3188, 0.4118, 0.4984, 0.5789, 0.6534, 0.7222, 0.7854, 0.8433, 0.896, 0.9437, 0.9867, 1.0251, 1.0591, 1.0889, 1.1147, 1.1367, 1.1551, 1.1701, 1.1819, 1.1907, 1.1967, 1.2, 1.2009, 1.1996, 1.1962, 1.191, 1.1841, 1.1758, 1.1662, 1.1556, 1.144, 1.1319, 1.1192, 1.1062, 1.0932, 1.0803, 1.0677, 1.0556, 1.0441, 1.0336, 1.0241, 1.016, 1.0093, 1.0043, 1.0011, 1);
+  --m3-ease-tooltip: linear(0, 0.1052, 0.2041, 0.2969, 0.3838, 0.465, 0.5406, 0.6109, 0.6759, 0.7359, 0.7911, 0.8416, 0.8875, 0.9291, 0.9666, 1, 1.0296, 1.0556, 1.0781, 1.0973, 1.1134, 1.1266, 1.1369, 1.1447, 1.15, 1.1531, 1.1541, 1.1531, 1.1505, 1.1462, 1.1406, 1.1338, 1.1259, 1.1172, 1.1078, 1.0978, 1.0875, 1.077, 1.0666, 1.0562, 1.0463, 1.0369, 1.0281, 1.0203, 1.0134, 1.0078, 1.0036, 1.0009, 1);
+  --m3-spring-bounce: linear(0, 0.112, 0.2966, 0.5156, 0.7364, 0.9337, 1.091, 1.2004, 1.2611, 1.278, 1.2597, 1.2167, 1.1598, 1.0986, 1.041, 0.9927, 0.9568, 0.9344, 0.9246, 0.9257, 0.9348, 0.9491, 0.9656, 0.982, 0.9965, 1.0079, 1.0157, 1.0198, 1.0208, 1.0192, 1.0158, 1.0115, 1.0069, 1.0026, 0.9991, 0.9965, 0.995, 0.9943, 0.9945, 0.9952, 0.9963, 0.9976, 0.9988, 0.9998, 1.0007, 1.0012, 1.0015, 1.0016, 1.0014, 1.0011, 1.0008, 1.0005, 1.0002, 0.9999, 0.9997, 0.9996, 0.9996, 1);
+  --m3-spring-bounce-duration: 912ms;
+  --m3-spring-morph: linear(0, 0.056, 0.1481, 0.2602, 0.3802, 0.4988, 0.61, 0.7096, 0.7956, 0.8672, 0.9248, 0.9694, 1.0022, 1.0251, 1.0398, 1.0478, 1.0507, 1.0499, 1.0466, 1.0416, 1.0358, 1.0297, 1.0238, 1.0184, 1.0135, 1.0094, 1.0059, 1.0032, 1.0011, 0.9996, 0.9985, 0.9979, 0.9975, 0.9974, 0.9975, 0.9977, 0.998, 0.9983, 0.9986, 0.9989, 0.9991, 0.9994, 0.9996, 0.9997, 0.9999, 1, 1, 1.0001, 1);
+  --m3-spring-morph-duration: 768ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) {
+    color-scheme: dark;
+    --m3-background: #141218;
+    --m3-on-background: #e6e0e9;
+    --m3-surface: #141218;
+    --m3-surface-dim: #141218;
+    --m3-surface-bright: #3b383e;
+    --m3-surface-container-lowest: #0f0d13;
+    --m3-surface-container-low: #1d1b20;
+    --m3-surface-container: #211f24;
+    --m3-surface-container-high: #2b292f;
+    --m3-surface-container-highest: #36343a;
+    --m3-on-surface: #e6e0e9;
+    --m3-surface-variant: #49454e;
+    --m3-on-surface-variant: #cac4cf;
+    --m3-inverse-surface: #e6e0e9;
+    --m3-inverse-on-surface: #322f35;
+    --m3-outline: #948f99;
+    --m3-outline-variant: #49454e;
+    --m3-shadow: #000000;
+    --m3-scrim: #000000;
+    --m3-surface-tint: #cfbdfe;
+    --m3-primary: #cfbdfe;
+    --m3-on-primary: #36275d;
+    --m3-primary-container: #4d3d75;
+    --m3-on-primary-container: #e9ddff;
+    --m3-inverse-primary: #65558f;
+    --m3-secondary: #cbc2db;
+    --m3-on-secondary: #332d41;
+    --m3-secondary-container: #4a4458;
+    --m3-on-secondary-container: #e8def8;
+    --m3-tertiary: #efb8c8;
+    --m3-on-tertiary: #4a2532;
+    --m3-tertiary-container: #633b48;
+    --m3-on-tertiary-container: #ffd9e3;
+    --m3-error: #ffb4ab;
+    --m3-on-error: #690005;
+    --m3-error-container: #93000a;
+    --m3-on-error-container: #ffdad6;
+    --m3-primary-fixed: #e9ddff;
+    --m3-primary-fixed-dim: #cfbdfe;
+    --m3-on-primary-fixed: #201047;
+    --m3-on-primary-fixed-variant: #4d3d75;
+    --m3-secondary-fixed: #e8def8;
+    --m3-secondary-fixed-dim: #cbc2db;
+    --m3-on-secondary-fixed: #1e192b;
+    --m3-on-secondary-fixed-variant: #4a4458;
+    --m3-tertiary-fixed: #ffd9e3;
+    --m3-tertiary-fixed-dim: #efb8c8;
+    --m3-on-tertiary-fixed: #31101d;
+    --m3-on-tertiary-fixed-variant: #633b48;
+    --m3-subtext: #948f99;
+    --m3-layer0: #141218;
+    --m3-on-layer0: #e6e0e9;
+    --m3-layer0-hover: #29272d;
+    --m3-layer0-active: #3e3b42;
+    --m3-layer0-border: #29262e;
+    --m3-layer1: #1d1b20;
+    --m3-on-layer1: #cac4cf;
+    --m3-on-layer1-inactive: #6b676f;
+    --m3-layer1-hover: #2b292e;
+    --m3-layer1-active: #37343a;
+    --m3-layer2: #211f24;
+    --m3-on-layer2: #e6e0e9;
+    --m3-layer2-hover: #353238;
+    --m3-layer2-active: #48464b;
+    --m3-layer2-disabled: #1e1c22;
+    --m3-on-layer2-disabled: #68646c;
+    --m3-layer3: #2b292f;
+    --m3-on-layer3: #e6e0e9;
+    --m3-layer3-hover: #3e3b42;
+    --m3-layer3-active: #504e54;
+    --m3-layer4: #36343a;
+    --m3-on-layer4: #e6e0e9;
+    --m3-layer4-hover: #48454c;
+    --m3-layer4-active: #59565d;
+    --m3-primary-hover: #baaae3;
+    --m3-primary-active: #a194c3;
+    --m3-primary-container-hover: #5d4d83;
+    --m3-primary-container-active: #6c5d91;
+    --m3-secondary-hover: #b3abc1;
+    --m3-secondary-active: #726d7b;
+    --m3-secondary-container-hover: #5a5368;
+    --m3-secondary-container-active: #938ba2;
+    --m3-tertiary-hover: #d2a2b1;
+    --m3-tertiary-active: #816973;
+    --m3-tertiary-container-hover: #734b58;
+    --m3-tertiary-container-active: #4f3842;
+    --m3-surface-container-highest-hover: #3f3d43;
+    --m3-surface-container-highest-active: #504e54;
+    --m3-tooltip: #e6e0e9;
+    --m3-on-tooltip: #322f35;
+    --m3-scrim-overlay: rgb(0 0 0 / 0.5);
+    --m3-shadow-color: rgb(0 0 0 / 0.3);
+    --m3-error-hover: #df9f98;
+    --m3-error-active: #c38e89;
+    --m3-error-container-hover: #9e161e;
+    --m3-error-container-active: #b34147;
+  }
+}
+
+:root[data-m3-theme='dark'] {
+  color-scheme: dark;
+  --m3-background: #141218;
+  --m3-on-background: #e6e0e9;
+  --m3-surface: #141218;
+  --m3-surface-dim: #141218;
+  --m3-surface-bright: #3b383e;
+  --m3-surface-container-lowest: #0f0d13;
+  --m3-surface-container-low: #1d1b20;
+  --m3-surface-container: #211f24;
+  --m3-surface-container-high: #2b292f;
+  --m3-surface-container-highest: #36343a;
+  --m3-on-surface: #e6e0e9;
+  --m3-surface-variant: #49454e;
+  --m3-on-surface-variant: #cac4cf;
+  --m3-inverse-surface: #e6e0e9;
+  --m3-inverse-on-surface: #322f35;
+  --m3-outline: #948f99;
+  --m3-outline-variant: #49454e;
+  --m3-shadow: #000000;
+  --m3-scrim: #000000;
+  --m3-surface-tint: #cfbdfe;
+  --m3-primary: #cfbdfe;
+  --m3-on-primary: #36275d;
+  --m3-primary-container: #4d3d75;
+  --m3-on-primary-container: #e9ddff;
+  --m3-inverse-primary: #65558f;
+  --m3-secondary: #cbc2db;
+  --m3-on-secondary: #332d41;
+  --m3-secondary-container: #4a4458;
+  --m3-on-secondary-container: #e8def8;
+  --m3-tertiary: #efb8c8;
+  --m3-on-tertiary: #4a2532;
+  --m3-tertiary-container: #633b48;
+  --m3-on-tertiary-container: #ffd9e3;
+  --m3-error: #ffb4ab;
+  --m3-on-error: #690005;
+  --m3-error-container: #93000a;
+  --m3-on-error-container: #ffdad6;
+  --m3-primary-fixed: #e9ddff;
+  --m3-primary-fixed-dim: #cfbdfe;
+  --m3-on-primary-fixed: #201047;
+  --m3-on-primary-fixed-variant: #4d3d75;
+  --m3-secondary-fixed: #e8def8;
+  --m3-secondary-fixed-dim: #cbc2db;
+  --m3-on-secondary-fixed: #1e192b;
+  --m3-on-secondary-fixed-variant: #4a4458;
+  --m3-tertiary-fixed: #ffd9e3;
+  --m3-tertiary-fixed-dim: #efb8c8;
+  --m3-on-tertiary-fixed: #31101d;
+  --m3-on-tertiary-fixed-variant: #633b48;
+  --m3-subtext: #948f99;
+  --m3-layer0: #141218;
+  --m3-on-layer0: #e6e0e9;
+  --m3-layer0-hover: #29272d;
+  --m3-layer0-active: #3e3b42;
+  --m3-layer0-border: #29262e;
+  --m3-layer1: #1d1b20;
+  --m3-on-layer1: #cac4cf;
+  --m3-on-layer1-inactive: #6b676f;
+  --m3-layer1-hover: #2b292e;
+  --m3-layer1-active: #37343a;
+  --m3-layer2: #211f24;
+  --m3-on-layer2: #e6e0e9;
+  --m3-layer2-hover: #353238;
+  --m3-layer2-active: #48464b;
+  --m3-layer2-disabled: #1e1c22;
+  --m3-on-layer2-disabled: #68646c;
+  --m3-layer3: #2b292f;
+  --m3-on-layer3: #e6e0e9;
+  --m3-layer3-hover: #3e3b42;
+  --m3-layer3-active: #504e54;
+  --m3-layer4: #36343a;
+  --m3-on-layer4: #e6e0e9;
+  --m3-layer4-hover: #48454c;
+  --m3-layer4-active: #59565d;
+  --m3-primary-hover: #baaae3;
+  --m3-primary-active: #a194c3;
+  --m3-primary-container-hover: #5d4d83;
+  --m3-primary-container-active: #6c5d91;
+  --m3-secondary-hover: #b3abc1;
+  --m3-secondary-active: #726d7b;
+  --m3-secondary-container-hover: #5a5368;
+  --m3-secondary-container-active: #938ba2;
+  --m3-tertiary-hover: #d2a2b1;
+  --m3-tertiary-active: #816973;
+  --m3-tertiary-container-hover: #734b58;
+  --m3-tertiary-container-active: #4f3842;
+  --m3-surface-container-highest-hover: #3f3d43;
+  --m3-surface-container-highest-active: #504e54;
+  --m3-tooltip: #e6e0e9;
+  --m3-on-tooltip: #322f35;
+  --m3-scrim-overlay: rgb(0 0 0 / 0.5);
+  --m3-shadow-color: rgb(0 0 0 / 0.3);
+  --m3-error-hover: #df9f98;
+  --m3-error-active: #c38e89;
+  --m3-error-container-hover: #9e161e;
+  --m3-error-container-active: #b34147;
+}
+
+/* ---- styles (css agent) -------------------------------------------------
+   the tokens that are not colours, then every component that is plain
+   markup and classes. colours are only ever --m3-* variables, so a theme
+   swap repaints everything at once. hover and press move `scale`, never
+   `transform`: the js effects own transform, and the two never fight. */
+
+/* ---- tokens ------------------------------------------------------------- */
+
+:root {
+  /* Appearance.rounding */
+  --m3-r-unsharpen: 2px;
+  --m3-r-unsharpen-more: 6px;
+  --m3-r-very-small: 8px;
+  --m3-r-small: 12px;
+  --m3-r-normal: 17px;
+  --m3-r-large: 23px;
+  --m3-r-very-large: 30px;
+  --m3-r-full: 9999px;
+  --m3-r-window: 18px;
+
+  /* Appearance.fontSize */
+  --m3-fs-smallest: 10px;
+  --m3-fs-smaller: 12px;
+  --m3-fs-smallie: 13px;
+  --m3-fs-small: 15px;
+  --m3-fs-normal: 16px;
+  --m3-fs-large: 17px;
+  --m3-fs-larger: 19px;
+  --m3-fs-huge: 22px;
+  --m3-fs-huge-ass: 23px;
+  --m3-fs-title: 22px;
+  --m3-fs-headline: 30px;
+  --m3-fs-display: 36px;
+
+  /* end4's google sans flex when it is there, then the nearest relatives */
+  --m3-font: 'Google Sans Flex', 'Google Sans', 'Roboto Flex', Roboto, system-ui, sans-serif;
+  --m3-font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --m3-font-icon: 'Material Symbols Rounded';
+
+  /* Appearance.curves. the two-part emphasized spline and the springs can't
+     be one cubic-bezier: they come baked as linear() with the colours */
+  --m3-ease-expressive-fast-spatial: cubic-bezier(0.42, 1.67, 0.21, 0.90);
+  --m3-ease-expressive-default-spatial: cubic-bezier(0.38, 1.21, 0.22, 1.00);
+  --m3-ease-expressive-slow-spatial: cubic-bezier(0.39, 1.29, 0.35, 0.98);
+  --m3-ease-expressive-effects: cubic-bezier(0.34, 0.80, 0.34, 1.00);
+  --m3-ease-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --m3-ease-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --m3-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --m3-ease-standard-accel: cubic-bezier(0.3, 0, 1, 1);
+  --m3-ease-standard-decel: cubic-bezier(0, 0, 0, 1);
+
+  /* end4's motion presets, each a `duration easing` pair for a transition */
+  --m3-motion-element-move: 500ms var(--m3-ease-expressive-default-spatial);
+  --m3-motion-element-move-enter: 400ms var(--m3-ease-emphasized-decel);
+  --m3-motion-element-move-exit: 200ms var(--m3-ease-emphasized-accel);
+  --m3-motion-element-move-fast: 200ms var(--m3-ease-expressive-effects);
+  --m3-motion-element-move-small: 350ms var(--m3-ease-expressive-fast-spatial);
+  --m3-motion-element-resize: 300ms var(--m3-ease-emphasized);
+  --m3-motion-click-bounce: 400ms var(--m3-ease-expressive-default-spatial);
+  --m3-motion-hover-fade: 350ms var(--m3-ease-standard);
+  --m3-motion-sidebar-slide-enter: 300ms var(--m3-ease-standard-decel);
+  --m3-motion-sidebar-slide-exit: 250ms var(--m3-ease-standard-accel);
+  --m3-motion-bounce: var(--m3-spring-bounce-duration) var(--m3-spring-bounce);
+
+  /* Appearance.sizes */
+  --m3-elevation-margin: 10px;
+  --m3-page-margin: 32px;
+  --m3-section-gap: 32px;
+  --m3-shelf-gap: 16px;
+  --m3-card-size: 176px;
+  --m3-header-artwork: 232px;
+  --m3-artwork-radius: 12px;
+  --m3-small-artwork-radius: 7px;
+  --m3-side-sheet-width: 320px;
+  --m3-top-bar-height: 64px;
+
+  /* material's lowest three elevations: a tight key shadow at the shadow
+     colour's 30% and a soft ambient one at half that */
+  --m3-elevation-1: 0 1px 2px 0 var(--m3-shadow-color),
+    0 1px 3px 1px color-mix(in srgb, var(--m3-shadow-color) 50%, transparent);
+  --m3-elevation-2: 0 1px 2px 0 var(--m3-shadow-color),
+    0 2px 6px 2px color-mix(in srgb, var(--m3-shadow-color) 50%, transparent);
+  --m3-elevation-3: 0 1px 3px 0 var(--m3-shadow-color),
+    0 4px 8px 3px color-mix(in srgb, var(--m3-shadow-color) 50%, transparent);
+}
+
+/* ---- base and type ------------------------------------------------------ */
+
+/* opt in on <body>: the app's face, size and colours */
+.m3-base {
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  line-height: 1.45;
+  background-color: var(--m3-background);
+  color: var(--m3-on-background);
+  accent-color: var(--m3-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* TitleText: google sans flex drawn fully round, a touch wide and heavy, so
+   headings read bubbly while body text stays plain */
+.m3-title {
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-title);
+  font-weight: 720;
+  font-stretch: 110%;
+  font-variation-settings: 'ROND' 100;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+.m3-title.headline {
+  font-size: var(--m3-fs-headline);
+}
+.m3-title.display {
+  font-size: var(--m3-fs-display);
+  letter-spacing: -0.4px;
+}
+
+/* a material symbols rounded ligature. the optical size steps with the size
+   it shows at, as MaterialSymbolItem's does (20 below 22px, 24, 40, 48) */
+.m3-icon {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  vertical-align: middle;
+  font-family: var(--m3-font-icon);
+  font-size: var(--m3-icon-size, 24px);
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  font-variation-settings: 'FILL' var(--m3-icon-fill, 0), 'wght' 400, 'GRAD' 0, 'opsz' var(--m3-icon-opsz, 24);
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: font-variation-settings 200ms var(--m3-ease-expressive-effects);
+}
+.m3-icon.filled {
+  --m3-icon-fill: 1;
+}
+
+.m3-card {
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: var(--m3-r-large);
+  background-color: var(--m3-surface-container-low);
+  color: var(--m3-on-surface);
+}
+.m3-card.filled {
+  background-color: var(--m3-surface-container-highest);
+}
+.m3-card.outlined {
+  border: 1px solid var(--m3-outline-variant);
+  background-color: var(--m3-surface);
+}
+.m3-card.elevated {
+  box-shadow: var(--m3-elevation-1);
+}
+
+/* ---- state layers ------------------------------------------------------- */
+
+/* the press ripple (Ripple.qml). it sits at z-index -1 in a host that
+   isolates, so it paints over the host's background and under its content,
+   and its own rounded overflow clips it: the host needn't clip anything */
+:where([data-m3-ripple]) {
+  position: relative;
+  isolation: isolate;
+}
+.m3-ripple {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.m3-ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--m3-ripple, var(--m3-layer1-active));
+  /* solid through 60% of the radius, then a soft edge (ripple.frag) */
+  -webkit-mask-image: radial-gradient(closest-side, #000 60%, transparent);
+  mask-image: radial-gradient(closest-side, #000 60%, transparent);
+  pointer-events: none;
+}
+
+/* a press squishes and the release springs back (RippleButton's bounce). js
+   sets --m3-press-scale from the width, so wide rows barely move */
+:where([data-m3-bounce]) {
+  transition: scale var(--m3-motion-bounce);
+}
+.m3-btn:active:not(:disabled),
+.m3-icon-btn:active:not(:disabled),
+[data-m3-bounce]:active:not(:disabled) {
+  scale: var(--m3-press-scale, 0.95);
+}
+
+/* keyboard focus: a ring just outside, in the secondary colour */
+:is(.m3-btn, .m3-icon-btn, .m3-toolbar-btn, .m3-switch, .m3-media-card):focus-visible {
+  outline: 2px solid var(--m3-secondary);
+  outline-offset: 2px;
+}
+
+/* disabled: the whole control at 38%, as RippleButton fades it, and out of
+   the pointer's way */
+:is(.m3-btn, .m3-icon-btn, .m3-toolbar-btn, .m3-segment, .m3-menu-item, .m3-switch, .m3-field, .m3-media-card):is(:disabled, [aria-disabled='true']),
+.m3-search:has(> input:disabled) {
+  opacity: 0.38;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ---- tooltip ------------------------------------------------------------ */
+
+/* StyledToolTip: js places it above what it describes and springs it in
+   from the edge that faces it, so that edge is where it grows from */
+.m3-tooltip {
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 280px;
+  padding: 6px 10px;
+  border-radius: var(--m3-r-very-small);
+  background-color: var(--m3-tooltip);
+  color: var(--m3-on-tooltip);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 400;
+  line-height: 16px;
+  text-align: start;
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  -webkit-font-smoothing: antialiased;
+}
+.m3-tooltip.is-below {
+  transform-origin: 50% 0;
+}
+
+/* ---- buttons ------------------------------------------------------------ */
+
+/* TextButton: a pill whose variant is four colours, so a wavy edge, a busy
+   spinner or anything nested can take them from the same place */
+.m3-btn {
+  --m3-btn-bg: var(--m3-primary);
+  --m3-btn-bg-hover: var(--m3-primary-hover);
+  --m3-btn-fg: var(--m3-on-primary);
+  --m3-ripple: var(--m3-primary-active);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  margin: 0;
+  padding: 0 24px;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-btn-bg);
+  color: var(--m3-btn-fg);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: normal;
+  text-decoration: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    color var(--m3-motion-element-move-fast),
+    box-shadow var(--m3-motion-element-move-fast),
+    scale var(--m3-motion-bounce),
+    opacity 200ms var(--m3-ease-standard);
+}
+.m3-btn:hover {
+  background-color: var(--m3-btn-bg-hover);
+}
+/* a leading symbol takes the side nearer it in to 16 */
+.m3-btn:has(> .m3-icon) {
+  padding-inline-start: 16px;
+}
+.m3-btn > .m3-icon {
+  --m3-icon-size: 18px;
+  --m3-icon-fill: 1;
+  --m3-icon-opsz: 20;
+}
+
+.m3-btn.tonal {
+  --m3-btn-bg: var(--m3-secondary-container);
+  --m3-btn-bg-hover: var(--m3-secondary-container-hover);
+  --m3-btn-fg: var(--m3-on-secondary-container);
+  --m3-ripple: var(--m3-secondary-container-active);
+}
+.m3-btn.outlined,
+.m3-btn.text {
+  --m3-btn-bg: transparent;
+  --m3-btn-bg-hover: color-mix(in srgb, var(--m3-primary) 8%, transparent);
+  --m3-btn-fg: var(--m3-primary);
+  --m3-ripple: color-mix(in srgb, var(--m3-primary) 14%, transparent);
+}
+/* drawn inside, as qml draws a border, so it takes no room */
+.m3-btn.outlined {
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+}
+.m3-btn.elevated {
+  --m3-btn-bg: var(--m3-surface-container-low);
+  --m3-btn-bg-hover: var(--m3-layer1-hover);
+  --m3-btn-fg: var(--m3-primary);
+  --m3-ripple: var(--m3-layer1-active);
+  box-shadow: var(--m3-elevation-1);
+}
+.m3-btn.elevated:hover {
+  box-shadow: var(--m3-elevation-2);
+}
+
+.m3-btn.small {
+  height: 32px;
+  padding: 0 16px;
+  gap: 6px;
+}
+.m3-btn.small:has(> .m3-icon) {
+  padding-inline-start: 12px;
+}
+
+/* only the symbol: a circle. the words, if any, stay for screen readers */
+.m3-btn.icon-only {
+  width: 40px;
+  padding: 0;
+  gap: 0;
+  font-size: 0;
+}
+.m3-btn.icon-only > :not(.m3-icon, .m3-ripple, .m3-wavy-bg, .m3-btn-spinner) {
+  display: none;
+}
+.m3-btn.icon-only > .m3-icon {
+  --m3-icon-size: 22px;
+  --m3-icon-opsz: 24;
+}
+.m3-btn.small.icon-only {
+  width: 32px;
+  padding: 0;
+}
+.m3-btn.small.icon-only > .m3-icon {
+  --m3-icon-size: 18px;
+  --m3-icon-opsz: 20;
+}
+
+/* busy: the words and symbol fade out and a loading shape springs in where
+   they were, in their colour (Reveal's timings). once it has gone it is
+   display:none, so it stops drawing */
+.m3-btn[aria-busy='true'] {
+  color: transparent;
+  cursor: progress;
+}
+.m3-btn > .m3-btn-spinner {
+  --m3-loading-color: currentColor;
+  position: absolute;
+  inset: 0;
+  display: none;
+  width: 20px;
+  height: 20px;
+  margin: auto;
+  color: var(--m3-btn-fg);
+  opacity: 0;
+  scale: 0.85;
+  pointer-events: none;
+  transition:
+    opacity 150ms cubic-bezier(0.33, 0, 0.67, 0),
+    scale 170ms cubic-bezier(0.33, 0, 0.67, 0);
+  transition:
+    opacity 150ms cubic-bezier(0.33, 0, 0.67, 0),
+    scale 170ms cubic-bezier(0.33, 0, 0.67, 0),
+    display 170ms allow-discrete;
+}
+.m3-btn[aria-busy='true'] > .m3-btn-spinner {
+  display: block;
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity 200ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale 440ms var(--m3-ease-tooltip);
+  transition:
+    opacity 200ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale 440ms var(--m3-ease-tooltip),
+    display 440ms allow-discrete;
+}
+@starting-style {
+  .m3-btn[aria-busy='true'] > .m3-btn-spinner {
+    opacity: 0;
+    scale: 0.85;
+  }
+}
+
+/* wavy (WavyPill): the scalloped svg js draws is the background, so the
+   button itself has none */
+.m3-btn.wavy,
+.m3-btn.wavy:hover {
+  background-color: transparent;
+  box-shadow: none;
+}
+.m3-wavy-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: var(--m3-btn-bg);
+  pointer-events: none;
+  transition: fill 200ms var(--m3-ease-expressive-effects);
+}
+.m3-btn.wavy:hover > .m3-wavy-bg {
+  fill: var(--m3-btn-bg-hover);
+}
+.m3-btn.wavy:active > .m3-wavy-bg {
+  fill: var(--m3-ripple);
+}
+.m3-btn.elevated.wavy > .m3-wavy-bg {
+  filter: drop-shadow(0 1px 2px var(--m3-shadow-color));
+}
+
+/* ---- icon buttons ------------------------------------------------------- */
+
+/* IconButton. a toggle (aria-pressed) fills its glyph and, filled or tonal,
+   shows an unselected container until it is pressed */
+.m3-icon-btn {
+  --m3-btn-bg: transparent;
+  --m3-btn-bg-hover: var(--m3-layer1-hover);
+  --m3-btn-fg: var(--m3-on-surface-variant);
+  --m3-ripple: var(--m3-layer1-active);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-btn-bg);
+  color: var(--m3-btn-fg);
+  font: inherit;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    color var(--m3-motion-element-move-fast),
+    box-shadow var(--m3-motion-element-move-fast),
+    scale var(--m3-motion-bounce),
+    opacity 200ms var(--m3-ease-standard);
+}
+.m3-icon-btn:hover {
+  background-color: var(--m3-btn-bg-hover);
+}
+.m3-icon-btn > .m3-icon {
+  --m3-icon-size: 24px;
+}
+.m3-icon-btn[aria-pressed='true'] {
+  --m3-btn-fg: var(--m3-primary);
+}
+.m3-icon-btn[aria-pressed='true'] > .m3-icon {
+  --m3-icon-fill: 1;
+}
+
+.m3-icon-btn.filled,
+.m3-icon-btn.filled[aria-pressed='true'] {
+  --m3-btn-bg: var(--m3-primary);
+  --m3-btn-bg-hover: var(--m3-primary-hover);
+  --m3-btn-fg: var(--m3-on-primary);
+  --m3-ripple: var(--m3-primary-active);
+}
+.m3-icon-btn.filled[aria-pressed='false'] {
+  --m3-btn-bg: var(--m3-surface-container-highest);
+  --m3-btn-bg-hover: var(--m3-surface-container-highest-hover);
+  --m3-btn-fg: var(--m3-primary);
+}
+.m3-icon-btn.tonal {
+  --m3-btn-bg: var(--m3-surface-container-highest);
+  --m3-btn-bg-hover: var(--m3-surface-container-highest-hover);
+  --m3-btn-fg: var(--m3-on-surface-variant);
+}
+.m3-icon-btn.tonal[aria-pressed='true'] {
+  --m3-btn-bg: var(--m3-secondary-container);
+  --m3-btn-bg-hover: var(--m3-secondary-container-hover);
+  --m3-btn-fg: var(--m3-on-secondary-container);
+}
+.m3-icon-btn.outlined {
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+}
+.m3-icon-btn.outlined[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px transparent;
+}
+
+.m3-icon-btn.small {
+  width: 32px;
+  height: 32px;
+}
+.m3-icon-btn.small > .m3-icon {
+  --m3-icon-size: 20px;
+  --m3-icon-opsz: 20;
+}
+
+/* a shape behind it is its state layer: no round hover, no round ripple */
+.m3-icon-btn.has-shape:hover {
+  background-color: var(--m3-btn-bg);
+}
+.m3-icon-btn.has-shape > .m3-ripple {
+  display: none;
+}
+
+/* ---- toolbar buttons ---------------------------------------------------- */
+
+/* ToolbarButton: a top-bar button on a shape of its own, as the bar has no
+   background. hovered it grows a touch and its shape takes the hover colour;
+   pressed it squishes. the click effects run on transform, from js */
+.m3-toolbar-btn {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  background: transparent;
+  color: var(--m3-on-surface-variant);
+  font: inherit;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    scale var(--m3-motion-bounce),
+    color var(--m3-motion-element-move-fast),
+    opacity 200ms var(--m3-ease-standard);
+}
+.m3-toolbar-btn > .m3-icon {
+  --m3-icon-size: 26px;
+}
+.m3-toolbar-btn[aria-pressed='true'] {
+  color: var(--m3-primary);
+}
+.m3-toolbar-btn[aria-pressed='true'] > .m3-icon {
+  --m3-icon-fill: 1;
+}
+.m3-toolbar-btn:hover:not(:disabled) {
+  scale: 1.08;
+}
+.m3-toolbar-btn:active:not(:disabled) {
+  scale: 0.86;
+}
+.m3-toolbar-backing {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-surface-container-high);
+  scale: 0.9;
+  pointer-events: none;
+  transition:
+    color var(--m3-motion-element-move-fast),
+    scale var(--m3-motion-bounce);
+}
+.m3-toolbar-btn:is(:hover, :focus-visible):not(:disabled) > .m3-toolbar-backing {
+  color: var(--m3-secondary-container);
+  scale: 1;
+}
+.m3-toolbar-btn:active:not(:disabled) > .m3-toolbar-backing {
+  color: var(--m3-secondary-container-active);
+}
+
+/* ---- transport shapes --------------------------------------------------- */
+
+/* TransportButton: a shape springs in behind the button while it is on, or
+   while it is hovered. a little bigger than the button, as qml draws it */
+.m3-transport-shape {
+  position: absolute;
+  inset: -4px;
+  z-index: -1;
+  width: auto;
+  height: auto;
+  color: var(--m3-surface-container-highest);
+  opacity: 0;
+  scale: 0.35;
+  pointer-events: none;
+  transition:
+    opacity 140ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale var(--m3-motion-bounce),
+    color var(--m3-motion-element-move-fast);
+}
+.m3-transport-shape.is-shown {
+  opacity: 1;
+  scale: 1;
+}
+.m3-icon-btn:active > .m3-transport-shape {
+  color: var(--m3-surface-container-highest-active);
+}
+.m3-icon-btn[aria-pressed='true'] > .m3-transport-shape {
+  color: var(--m3-secondary-container);
+}
+.m3-icon-btn[aria-pressed='true']:hover > .m3-transport-shape {
+  color: var(--m3-secondary-container-hover);
+}
+.m3-icon-btn[aria-pressed='true']:active > .m3-transport-shape {
+  color: var(--m3-secondary-container-active);
+}
+
+/* ---- switch ------------------------------------------------------------- */
+
+/* StyledSwitch, all css: the thumb grows when on and squeezes while held.
+   it is placed by its centre (16 from either end of the track, whatever
+   its size), so growing never pushes it off its spot */
+.m3-switch {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  box-sizing: border-box;
+  display: inline-block;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--m3-outline);
+  border-radius: 16px;
+  background-color: var(--m3-surface-container-highest);
+  vertical-align: middle;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    border-color var(--m3-motion-element-move-fast),
+    opacity 200ms var(--m3-ease-standard);
+}
+.m3-switch::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--m3-outline);
+  translate: calc(14px - 50%) -50%;
+  transition:
+    translate var(--m3-motion-element-move-small),
+    width var(--m3-motion-element-move-fast),
+    height var(--m3-motion-element-move-fast),
+    background-color var(--m3-motion-element-move-fast);
+}
+.m3-switch:checked {
+  border-color: var(--m3-primary);
+  background-color: var(--m3-primary);
+}
+.m3-switch:checked::before {
+  width: 24px;
+  height: 24px;
+  background-color: var(--m3-on-primary);
+  translate: calc(34px - 50%) -50%;
+}
+.m3-switch:active:not(:disabled)::before {
+  width: 28px;
+  height: 28px;
+}
+/* right to left, on is to the left */
+.m3-switch:dir(rtl)::before {
+  translate: calc(34px - 50%) -50%;
+}
+.m3-switch:dir(rtl):checked::before {
+  translate: calc(14px - 50%) -50%;
+}
+
+/* ---- segmented control -------------------------------------------------- */
+
+/* SegmentedControl, drawn as end4 draws its tab groups: a pill track, and
+   the choice a filled pill that slides to the chosen segment. each segment's
+   hover tint lies under that pill, so the pill slides over it */
+.m3-segmented {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  /* as wide as its segments: grid and flex-column parents would otherwise
+     stretch the track past the last one */
+  width: fit-content;
+  justify-self: start;
+  align-self: start;
+  max-width: 100%;
+  padding: 4px;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-surface-container-high);
+  vertical-align: middle;
+}
+.m3-segment {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  background: transparent;
+  color: var(--m3-on-surface-variant);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-smallie);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--m3-motion-element-move-fast),
+    scale var(--m3-motion-bounce),
+    opacity 200ms var(--m3-ease-standard);
+}
+/* a segment is a RippleButton too: its words squish, the pill under them
+   holds still */
+.m3-segment:active:not(:disabled) {
+  scale: var(--m3-press-scale, 0.95);
+}
+.m3-segment > .m3-icon {
+  --m3-icon-size: 20px;
+  --m3-icon-opsz: 20;
+}
+.m3-segment[aria-checked='true'] {
+  color: var(--m3-on-secondary-container);
+}
+.m3-segment[aria-checked='true'] > .m3-icon {
+  --m3-icon-fill: 1;
+}
+/* inside the track, so the ring is drawn inside too */
+.m3-segment:focus-visible {
+  outline: 2px solid var(--m3-secondary);
+  outline-offset: -2px;
+}
+.m3-segmented-indicator {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  z-index: 1;
+  width: 0;
+  height: 36px;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-secondary-container);
+  pointer-events: none;
+}
+/* its first placement jumps straight there; only later choices slide */
+.m3-segmented.is-ready > .m3-segmented-indicator {
+  transition:
+    left var(--m3-motion-element-move),
+    width var(--m3-motion-element-move);
+}
+.m3-segmented-tint {
+  --m3-ripple: var(--m3-layer1-active);
+  position: absolute;
+  top: 4px;
+  z-index: 0;
+  isolation: isolate;
+  height: 36px;
+  border-radius: var(--m3-r-full);
+  background-color: transparent;
+  pointer-events: none;
+  transition: background-color var(--m3-motion-element-move-fast);
+}
+.m3-segmented-tint.is-hovered {
+  background-color: var(--m3-layer1-hover);
+}
+/* before the script has drawn the pill, the choice still shows */
+.m3-segmented:not(:has(> .m3-segmented-indicator)) > .m3-segment[aria-checked='true'] {
+  background-color: var(--m3-secondary-container);
+}
+
+/* ---- text fields -------------------------------------------------------- */
+
+/* OutlinedTextField: focused, the outline turns primary and thickens
+   inwards, so nothing moves */
+.m3-field {
+  box-sizing: border-box;
+  display: inline-block;
+  width: 280px;
+  max-width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 13px 16px;
+  border: 1px solid var(--m3-outline);
+  border-radius: var(--m3-r-very-small);
+  outline: none;
+  background-color: transparent;
+  color: var(--m3-on-surface);
+  caret-color: var(--m3-primary);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  font-weight: 400;
+  line-height: 20px;
+  vertical-align: middle;
+  transition:
+    border-color var(--m3-motion-element-move-fast),
+    box-shadow var(--m3-motion-element-move-fast),
+    opacity 200ms var(--m3-ease-standard);
+}
+textarea.m3-field {
+  resize: vertical;
+}
+.m3-field::placeholder {
+  color: var(--m3-on-surface-variant);
+  opacity: 1;
+}
+.m3-field::selection {
+  background-color: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.m3-field:focus {
+  border-color: var(--m3-primary);
+  box-shadow: inset 0 0 0 1px var(--m3-primary);
+}
+.m3-field:user-invalid {
+  border-color: var(--m3-error);
+}
+.m3-field:user-invalid:focus {
+  box-shadow: inset 0 0 0 1px var(--m3-error);
+}
+
+/* SearchField: a full pill with a leading magnifier, and a clear button
+   once there is something to clear */
+.m3-search {
+  position: relative;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: 260px;
+  max-width: 100%;
+  height: 40px;
+  padding: 0;
+  padding-inline: 12px 4px;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  line-height: 20px;
+  vertical-align: middle;
+  cursor: text;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    box-shadow var(--m3-motion-element-move-fast);
+}
+.m3-search:focus-within {
+  background-color: color-mix(in srgb, var(--m3-surface-container-highest) 50%, transparent);
+  box-shadow: inset 0 0 0 2px var(--m3-primary);
+}
+.m3-search > .m3-icon {
+  --m3-icon-size: 20px;
+  --m3-icon-opsz: 20;
+  color: var(--m3-on-surface-variant);
+}
+.m3-search > input {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  caret-color: var(--m3-primary);
+  font: inherit;
+}
+.m3-search > input::placeholder {
+  color: var(--m3-on-surface-variant);
+  opacity: 1;
+}
+.m3-search > input::selection {
+  background-color: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+/* our own clear button stands in for the browser's */
+.m3-search > input::-webkit-search-cancel-button,
+.m3-search > input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  display: none;
+}
+/* the clear button springs in as Reveal does: fading up quickly as it grows,
+   and out faster than it came */
+.m3-search-clear {
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    color var(--m3-motion-element-move-fast),
+    opacity 200ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale var(--m3-motion-bounce),
+    visibility 0s;
+}
+.m3-search-clear > .m3-icon {
+  --m3-icon-size: 18px;
+}
+/* hidden with nothing to clear, and out of the tab order once faded */
+.m3-search:not(.has-text) .m3-search-clear {
+  opacity: 0;
+  scale: 0.6;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    color var(--m3-motion-element-move-fast),
+    opacity 150ms cubic-bezier(0.33, 0, 0.67, 0),
+    scale 170ms cubic-bezier(0.33, 0, 0.67, 0),
+    visibility 0s linear 170ms;
+}
+
+/* ---- menu --------------------------------------------------------------- */
+
+/* StyledMenu, as end4 draws its popup menus: a surface-container card of
+   rounded rows, as wide as its widest row up to a point */
+.m3-menu {
+  position: fixed;
+  z-index: 900;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  max-width: min(440px, 100vw - 16px);
+  max-height: calc(100dvh - 16px);
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--m3-layer0-border);
+  border-radius: var(--m3-r-normal);
+  outline: none;
+  background-color: var(--m3-surface-container);
+  color: var(--m3-on-surface);
+  box-shadow: var(--m3-elevation-2);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  scrollbar-width: thin;
+  -webkit-font-smoothing: antialiased;
+}
+.m3-menu-item {
+  --m3-ripple: var(--m3-layer2-active);
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  padding-inline: 12px 16px;
+  border: 0;
+  border-radius: var(--m3-r-small);
+  outline: none;
+  background-color: transparent;
+  color: var(--m3-on-surface);
+  font: inherit;
+  font-size: var(--m3-fs-small);
+  line-height: 20px;
+  text-align: start;
+  white-space: nowrap;
+  /* a menu row keeps the arrow, as qml's menu items do */
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color var(--m3-motion-element-move-fast),
+    opacity 200ms var(--m3-ease-standard);
+}
+.m3-menu-item:is(:hover, :focus-visible) {
+  background-color: var(--m3-layer2-hover);
+}
+.m3-menu-item:active {
+  background-color: var(--m3-layer2-active);
+}
+.m3-menu-item > .m3-icon {
+  --m3-icon-size: 20px;
+  --m3-icon-opsz: 20;
+  color: var(--m3-on-surface-variant);
+}
+/* a plain item with no symbol starts at its words; a checkable one keeps
+   the room for its tick, so the words line up whether ticked or not */
+.m3-menu-item[role='menuitem'] > .m3-icon:empty {
+  display: none;
+}
+.m3-menu-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m3-menu-item.is-destructive,
+.m3-menu-item.is-destructive > .m3-icon {
+  color: var(--m3-error);
+}
+.m3-menu-separator {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 8px;
+  margin: 2px 8px;
+}
+.m3-menu-separator > m3-wavy-line {
+  display: block;
+  flex: 1;
+  width: 100%;
+  height: 8px;
+}
+
+/* ---- toaster, snackbar and toast ---------------------------------------- */
+
+/* one strip along the bottom that never takes a click itself; what it
+   holds does */
+.m3-toaster {
+  position: fixed;
+  right: 0;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  z-index: 950;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+.m3-toaster > * {
+  pointer-events: auto;
+}
+
+/* Snackbar: the error banner, an error container with words you can
+   select and copy, and a close button */
+.m3-snackbar {
+  --m3-shape-icon-color: var(--m3-error);
+  --m3-shape-icon-on-color: var(--m3-on-error);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(560px, 100vw - 32px);
+  padding: 12px 0;
+  padding-inline: 16px 8px;
+  border-radius: var(--m3-r-normal);
+  background-color: var(--m3-error-container);
+  color: var(--m3-on-error-container);
+  box-shadow: var(--m3-elevation-2);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  line-height: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.m3-snackbar > m3-shape-icon {
+  flex: none;
+}
+.m3-snackbar-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.m3-snackbar-text::selection {
+  background-color: var(--m3-error);
+  color: var(--m3-on-error);
+}
+/* its buttons take the container's own ink rather than primary */
+.m3-snackbar .m3-btn.text,
+.m3-snackbar .m3-snackbar-close {
+  --m3-btn-fg: var(--m3-on-error-container);
+  --m3-btn-bg-hover: color-mix(in srgb, var(--m3-on-error-container) 8%, transparent);
+  --m3-ripple: color-mix(in srgb, var(--m3-on-error-container) 14%, transparent);
+  flex: none;
+}
+
+/* Toast: the catchphrase pill, a sparkle and a phrase */
+.m3-toast {
+  --m3-shape-icon-color: var(--m3-inverse-primary);
+  --m3-shape-icon-on-color: var(--m3-inverse-surface);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  height: 48px;
+  padding: 0 18px;
+  border-radius: var(--m3-r-full);
+  background-color: var(--m3-inverse-surface);
+  color: var(--m3-inverse-on-surface);
+  box-shadow: var(--m3-elevation-2);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-normal);
+  font-weight: 600;
+  line-height: 20px;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+.m3-toast > m3-shape-icon {
+  flex: none;
+}
+.m3-toast-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- dialog ------------------------------------------------------------- */
+
+/* StyledDialog over a scrim: a headline, a line of text, anything else it
+   needs, and its buttons to the right */
+.m3-dialog {
+  box-sizing: border-box;
+  width: min(440px, 100vw - 48px);
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 24px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-radius: 28px;
+  outline: none;
+  background-color: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+/* a closed dialog keeps the browser's display:none */
+.m3-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* the scrim; M3.dialog fades it in and out with the dialog */
+.m3-dialog::backdrop {
+  background-color: var(--m3-scrim-overlay);
+}
+.m3-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.m3-dialog-header > m3-shape-icon {
+  flex: none;
+}
+.m3-dialog-headline {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--m3-fs-huge);
+  overflow-wrap: break-word;
+}
+.m3-dialog-body {
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-small);
+}
+.m3-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.m3-dialog-body:empty,
+.m3-dialog-content:empty {
+  display: none;
+}
+.m3-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+/* ---- media card --------------------------------------------------------- */
+
+/* MediaCard: artwork, a title of up to two lines and a subtitle. it lifts on
+   hover, squishes and dims on press, and springs between them. js leans it
+   toward the pointer on transform, about the artwork's centre */
+.m3-media-card {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: var(--m3-card-size);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--m3-r-small);
+  background: none;
+  color: var(--m3-on-surface);
+  font-family: var(--m3-font);
+  font-size: var(--m3-fs-small);
+  text-align: start;
+  vertical-align: top;
+  cursor: pointer;
+  transform-origin: 50% calc(var(--m3-card-size) / 2);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    scale var(--m3-motion-bounce),
+    opacity 120ms var(--m3-ease-standard);
+}
+.m3-media-card:hover {
+  scale: 1.03;
+}
+.m3-media-card:active {
+  scale: 0.95;
+  opacity: 0.86;
+}
+.m3-media-card:focus-visible {
+  outline-offset: 4px;
+}
+/* the cover's soft shadow, deepening on hover. it is drawn by the card,
+   not the cover, so the wavy clip on the cover never cuts it off */
+.m3-media-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--m3-artwork-radius);
+  box-shadow: 0 3px 7px color-mix(in srgb, var(--m3-shadow) 11%, transparent);
+  pointer-events: none;
+  transition:
+    box-shadow 160ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale 160ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+.m3-media-card:hover::before {
+  box-shadow: 0 6px 13px color-mix(in srgb, var(--m3-shadow) 22%, transparent);
+}
+.m3-media-art {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--m3-artwork-radius);
+  background-color: var(--m3-surface-container-high);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: var(--m3-on-surface-variant);
+  transition: scale 160ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+/* the cover lifts a little more than the card, its shadow with it */
+.m3-media-card:hover .m3-media-art,
+.m3-media-card:hover::before {
+  scale: 1.015;
+}
+.m3-media-art > .m3-icon {
+  --m3-icon-size: 48px;
+  --m3-icon-opsz: 48;
+}
+:is(.m3-media-card.is-circular, .m3-media-card[data-circular])::before,
+:is(.m3-media-card.is-circular, .m3-media-card[data-circular]) .m3-media-art,
+.m3-media-art.is-circular {
+  border-radius: 50%;
+}
+.m3-media-badge {
+  position: absolute;
+  inset-inline-end: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+  transition:
+    opacity 160ms cubic-bezier(0.33, 1, 0.68, 1),
+    scale var(--m3-motion-bounce);
+}
+.m3-media-badge > m3-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-primary);
+}
+.m3-media-badge > .m3-icon {
+  --m3-icon-size: 22px;
+  --m3-icon-fill: 1;
+  position: relative;
+  color: var(--m3-on-primary);
+}
+.m3-media-card:is(:hover, :focus-visible) .m3-media-badge {
+  opacity: 1;
+  scale: 1;
+}
+.m3-media-title {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--m3-on-surface);
+  font-size: var(--m3-fs-small);
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.m3-media-subtitle {
+  display: block;
+  overflow: hidden;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m3-media-subtitle:empty {
+  display: none;
+}
+:is(.m3-media-card.is-circular, .m3-media-card[data-circular]) :is(.m3-media-title, .m3-media-subtitle) {
+  text-align: center;
+}
+
+/* ---- empty state -------------------------------------------------------- */
+
+/* EmptyState: end4's page placeholder, a symbol on a tonal shape over a
+   title and a line of explanation, with a few faint shapes about it */
+.m3-empty {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  margin-inline: auto;
+  color: var(--m3-on-surface);
+  text-align: center;
+}
+.m3-empty-badge {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 80px;
+  height: 80px;
+}
+.m3-empty-badge > m3-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-secondary-container);
+}
+.m3-empty-badge > .m3-icon {
+  --m3-icon-size: 34px;
+  --m3-icon-fill: 1;
+  --m3-icon-opsz: 40;
+  position: relative;
+  color: var(--m3-on-secondary-container);
+}
+.m3-empty .m3-empty-title {
+  margin: 0;
+  color: var(--m3-on-surface);
+  font-size: var(--m3-fs-larger);
+}
+.m3-empty-description {
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+}
+
+/* ---- section header ----------------------------------------------------- */
+
+/* SectionHeader: a symbol on a shape, the title drawn round, and a squiggle
+   running on to the button. hovering the heading turns the shape */
+.m3-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+}
+.m3-section-header > m3-shape-icon,
+.m3-section-header > .m3-btn,
+.m3-section-header > .m3-icon-btn {
+  flex: none;
+}
+.m3-section-header > .m3-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--m3-fs-title);
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m3-section-header > m3-wavy-line {
+  flex: 1 1 0;
+  min-width: 24px;
+  margin-inline: 4px 2px;
+}
+
+/* ---- stickers ----------------------------------------------------------- */
+
+/* Stickers: big faint shapes behind whatever holds them, under its content
+   and never in the way of a click */
+:where([data-m3-stickers]) {
+  position: relative;
+  isolation: isolate;
+}
+.m3-stickers {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.m3-stickers > m3-shape {
+  position: absolute;
+}
+
+/* ---- placeholders ------------------------------------------------------- */
+
+/* the custom elements hold their size while the scripts load, so nothing
+   jumps when they arrive. no specificity, so any rule above still wins */
+:where(m3-shape, m3-shape-icon, m3-loading, m3-play-button, m3-squiggle, m3-slider):where(:not(:defined)) {
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+}
+:where(m3-shape, m3-shape-icon, m3-loading):where(:not(:defined)) {
+  width: 40px;
+  height: 40px;
+}
+:where(m3-play-button):where(:not(:defined)) {
+  width: 56px;
+  height: 56px;
+}
+:where(m3-squiggle):where(:not(:defined)) {
+  width: 48px;
+  height: 48px;
+}
+:where(m3-wavy-line):where(:not(:defined)) {
+  display: block;
+  height: 8px;
+}
+:where(m3-wavy-progress):where(:not(:defined)) {
+  display: block;
+  height: 24px;
+}
+:where(m3-slider):where(:not(:defined)) {
+  width: 200px;
+  height: 30px;
+}
+:where(m3-slider[orientation='vertical']):where(:not(:defined)) {
+  width: 30px;
+  height: 200px;
+}
+
+/* ---- forced colours ----------------------------------------------------- */
+
+/* with the system's own colours, the parts drawn only as fills keep a shape */
+@media (forced-colors: active) {
+  .m3-switch::before {
+    background-color: ButtonText;
+  }
+  .m3-switch:checked::before {
+    background-color: Highlight;
+  }
+  .m3-segmented-indicator {
+    background-color: Highlight;
+  }
+  .m3-segment[aria-checked='true'] {
+    color: HighlightText;
+  }
+}

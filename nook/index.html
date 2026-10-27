@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Nook</title>
+  <meta name="description" content="Nook: communities with their own colours and shapes. Join nooks, post, vote, spark and chat.">
+  <meta name="theme-color" content="#fdf7ff">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght,GRAD,ROND@6..144,25..151,1..1000,0..100,0..100&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
+  <link rel="stylesheet" href="../m3/m3.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body class="m3-base">
+  <a class="skip" href="#main" id="skip">Skip to content</a>
+
+  <header class="topbar" id="topbar">
+    <button class="m3-toolbar-btn only-narrow" id="menu-btn" data-effect="nudge-right" data-shape="cookie7" aria-label="Open navigation" aria-controls="drawer" aria-expanded="false"><span class="m3-icon">menu</span></button>
+    <button class="m3-toolbar-btn" id="search-back" data-effect="nudge-left" data-shape="cookie7" aria-label="Close search"><span class="m3-icon">arrow_back</span></button>
+    <a class="brand" href="#/" aria-label="Nook home">
+      <m3-shape id="brand-shape" shape="cookie9" aria-hidden="true"></m3-shape>
+      <span class="m3-title brand-word">nook</span>
+    </a>
+    <form class="m3-search topbar-search" id="search-form" role="search">
+      <span class="m3-icon">search</span>
+      <input type="search" id="search-input" placeholder="Search posts, nooks and people" autocomplete="off" enterkeyhint="search">
+      <button type="button" class="m3-icon-btn small m3-search-clear" aria-label="Clear search"><span class="m3-icon">close</span></button>
+    </form>
+    <div class="topbar-actions">
+      <button class="m3-toolbar-btn only-narrow" id="search-btn" data-shape="clover4" aria-label="Search" data-tooltip="Search"><span class="m3-icon">search</span></button>
+      <a class="m3-btn filled create-btn only-wide" href="#/submit" data-tooltip="Create a post (n)"><span class="m3-icon">add</span>Create</a>
+      <a class="m3-toolbar-btn only-wide" id="inbox-btn" href="#/inbox" data-shape="clover4" aria-label="Inbox" data-tooltip="Inbox"><span class="m3-icon">notifications</span><span class="badge" id="inbox-badge" hidden></span></a>
+      <button class="m3-toolbar-btn" id="theme-btn" data-effect="spin" data-shape="sunny" aria-label="Switch light or dark" data-tooltip="Light or dark"><span class="m3-icon">dark_mode</span></button>
+      <button class="me-btn" id="me-btn" aria-label="Your account" data-tooltip="You"></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="drawer" id="drawer" aria-label="Main navigation">
+      <a class="nav-item" href="#/" data-nav="home" data-m3-ripple><span class="nav-ind"><span class="m3-icon">home</span></span><span class="nav-label">Home</span></a>
+      <a class="nav-item" href="#/popular" data-nav="popular" data-m3-ripple><span class="nav-ind"><span class="m3-icon">local_fire_department</span></span><span class="nav-label">Popular</span></a>
+      <a class="nav-item" href="#/explore" data-nav="explore" data-m3-ripple><span class="nav-ind"><span class="m3-icon">explore</span></span><span class="nav-label">Explore</span></a>
+      <a class="nav-item" href="#/saved" data-nav="saved" data-m3-ripple><span class="nav-ind"><span class="m3-icon">bookmarks</span></span><span class="nav-label">Saved</span></a>
+      <a class="nav-item" href="#/inbox" data-nav="inbox" data-m3-ripple><span class="nav-ind"><span class="m3-icon">notifications</span></span><span class="nav-label">Inbox</span><span class="nav-count" id="drawer-unread"></span></a>
+      <div class="nav-heading"><span>Your nooks</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
+      <div id="nav-nooks"></div>
+      <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nook"><span class="nav-ind"><span class="m3-icon">add_circle</span></span><span class="nav-label">Create a nook</span></button>
+      <div class="recent-block" id="nav-recent"></div>
+      <div class="nav-foot">
+        <a href="#/settings">Settings</a>
+        <button type="button" data-act="shortcuts">Shortcuts</button>
+        <a href="../m3/">Design system</a>
+      </div>
+    </nav>
+    <div class="scrim" id="scrim" hidden></div>
+    <main class="main" id="main" tabindex="-1"></main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a href="#/" data-nav="home"><span class="nav-ind"><span class="m3-icon">home</span></span>Home</a>
+    <a href="#/explore" data-nav="explore"><span class="nav-ind"><span class="m3-icon">explore</span></span>Explore</a>
+    <a href="#/submit" data-nav="submit" class="create"><span class="nav-ind"><span class="m3-icon">add</span></span>Create</a>
+    <a href="#/inbox" data-nav="inbox"><span class="nav-ind"><span class="m3-icon">notifications</span><span class="badge" id="bottom-badge" hidden></span></span>Inbox</a>
+    <a href="#/saved" data-nav="saved"><span class="nav-ind"><span class="m3-icon">bookmarks</span></span>Saved</a>
+  </nav>
+
+  <script src="../m3/m3-shapes.js"></script>
+  <script src="../m3/m3.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
