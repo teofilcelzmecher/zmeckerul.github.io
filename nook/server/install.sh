@@ -141,25 +141,27 @@ sleep 2
 if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null; then
   echo "Nook's server is running on this laptop (port $PORT)."
 else
-  echo "The server didn't answer. See what went wrong with:  sudo nook logs"
+  echo "The server didn't answer. See what went wrong with:  ${SUDO_USER:+sudo }nook logs"
   exit 1
 fi
 
+# logged in as root there may be no sudo at all, so it's only shown when this ran with sudo
+S="${SUDO_USER:+sudo }"
 cat <<EOF
 
 Next, put it on the internet with Tailscale Funnel (free, no router changes):
 
-  1. sudo tailscale up
-       Open the link it prints and sign in (make a free account if you need one).
-  2. sudo tailscale funnel --bg $PORT
+  1. ${S}tailscale up --qr
+       Scan the QR code with your phone and sign in (make a free account if you need one).
+  2. ${S}tailscale funnel --bg $PORT
        If it asks you to enable HTTPS or Funnel, open the link it prints, click Enable, and run it again.
        It ends by printing your server's address, like https://your-laptop.tail1234.ts.net
   3. Send that address to whoever updates the app, so the app knows where its server is.
 
 Then make yourself an account and an admin:
 
-  sudo nook invite 1 "for me"     (prints a code: use it to sign up in the app)
-  sudo nook admin YOUR_USERNAME   (after signing up)
+  ${S}nook invite 1 "for me"     (prints a code: use it to sign up in the app)
+  ${S}nook admin YOUR_USERNAME   (after signing up)
 
 Closing the lid now keeps the laptop running (fully after the next reboot). Keep it plugged in.
 EOF
