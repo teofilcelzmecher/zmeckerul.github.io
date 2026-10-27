@@ -19,14 +19,21 @@
   // ---- folding: the disguises people use, undone ---------------------------------------------
 
   const LEET = { 0: 'o', 1: 'i', 3: 'e', 4: 'a', 5: 's', 7: 't', 8: 'b', '@': 'a', $: 's', '!': 'i', '|': 'i', '€': 'e' };
+  // Cyrillic and Greek letters that look Latin, used to slip words past filters
+  const LOOKALIKES = {
+    'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'к': 'k', 'м': 'm', 'т': 't', 'і': 'i', 'ј': 'j', 'ѕ': 's', 'ԁ': 'd',
+    'α': 'a', 'ε': 'e', 'ι': 'i', 'κ': 'k', 'ν': 'v', 'ο': 'o', 'ρ': 'p', 'τ': 't', 'υ': 'u', 'χ': 'x',
+  };
 
   function fold(text) {
     let t = String(text || '')
-      .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
+      .normalize('NFKD') // ă â î ș ț and fancy fonts (𝐟𝐮𝐜𝐤, ｆｕｃｋ) become plain letters plus marks
+      .replace(/[\u0300-\u036f]/g, '') // the marks go
+      .replace(/[\u00ad\u200b-\u200f\u2060\ufeff]/g, '') // so do invisible characters hidden inside words
       .toLowerCase()
+      .replace(/[аеорсухкмтіјѕԁαεικνορτυχ]/g, (ch) => LOOKALIKES[ch])
       .replace(/[01345789@$!|€]/g, (ch) => LEET[ch]);
-    // letters split by dots, stars, dashes or underscores join up: f.u.c.k
+    // letters split by dots, stars, dashes or underscores join up: f.u.c.k, p-u-l-a
     t = t.replace(/([a-z])[._*~-]+(?=[a-z])/g, '$1');
     // single letters split by spaces join up: f u c k
     t = t.replace(/(?:^|\s)((?:[a-z] ){2,}[a-z])(?=\s|$)/g, (m, run) => m.replace(run, run.replace(/ /g, '')));
@@ -34,8 +41,8 @@
   }
 
   // a listed word matches stretched (fuuuck) and with the usual endings, in English and Romanian
-  const ENDINGS = '(?:s|es|ed|er|ers|ing|in|y|ies|ty|ting|head|heads|hole|holes|face|i|ii|ei|ul|ule|ului|ilor|ele|a|e|uri)?';
-  const stretch = (word) => word.split('').map((ch) => (ch === ' ' ? '\\s+' : ch + '+')).join('');
+  const ENDINGS = '(?:s|es|ed|er|ers|ing|in|y|ies|ty|ting|head|heads|hole|holes|face|i|ii|ei|ul|ule|ului|ilor|ele|a|e|o|uri|ul|ii)?';
+  const stretch = (word) => word.split('').map((ch) => (ch === ' ' ? '\\s+' : ch === 'u' ? '[uv]+' : ch + '+')).join('');
   // plain entries need a word edge on both sides and may take an ending; "~" entries match inside
   // longer words too; "=" entries match only exactly as written (so "spic" never catches "spicy")
   function pattern(entries) {
@@ -53,7 +60,9 @@
   const SLURS = pattern([
     '~nigger', '~nigga', '~faggot', 'retard', '=spic', '=spics', '=chink', '=chinks', '=kike', '=kikes',
     '=gook', '=gooks', '~wetback', '=coon', '=coons', '=tranny', '=trannies', '=dyke', '=dykes', '=paki', '=pakis',
-    '~raghead', '~towelhead', '=beaner', '=beaners', '~poponar', '~bozgor', '~jidan',
+    '~raghead', '~towelhead', '=beaner', '=beaners',
+    // Romanian: homophobic, antisemitic, anti-Hungarian, anti-Roma and ableist slurs
+    '~poponar', '~homalau', '~bozgor', '~jidan', '=cioroi', '=ciorii', 'retardat', '=mongoloid', '=mongoloizi',
   ]);
 
   // threats and telling people to hurt themselves: never posted
@@ -65,10 +74,16 @@
     /(?:i\s*'?\s*ll|i\s+will|im\s+(?:going\s+to|gonna)|i\s+am\s+going\s+to|gonna)\s+(?:kill|murder|stab|shoot|hurt)\s+(?:you|u|ya|him|her|them)(?![a-z])/,
     /(?:neck|end|hang)\s+yourself/,
     /drink\s+bleach/,
+    // Romanian: kill yourself, hang yourself, throw yourself off the block, cut your veins, I'll kill you
     /omoara\s*-?\s*te/,
     /sinucide\s*-?\s*te/,
-    /(?:^|[^a-z])te\s+(?:omor|injunghi|impusc|tai)(?![a-z])/,
-    /du\s*-?\s*te\s+(?:si\s+)?mori/,
+    /spanzura\s*-?\s*te/,
+    /arunca\s*-?\s*te\s+(?:de\s+pe|de\s+la|in\s+fata)/,
+    /taie\s*-?\s*ti\s*venele/,
+    /(?:^|[^a-z])te\s+(?:omor|ucid|injunghi|impusc|tai|spanzur)(?![a-z])/,
+    /(?:^|[^a-z])iti\s+(?:tai|rup)\s+(?:gatul|capul)/,
+    /du\s*-?\s*te\s+(?:si\s+)?(?:mori|te\s+sinucide|te\s+omoara)/,
+    /(?:^|[^a-z])(?:sper|sa)\s+(?:sa\s+)?(?:mori|crapi)\s+(?:naibii|dracului|in\s+chinuri)/,
   ];
 
   // someone may be in a bad place: not blocked, met with care
@@ -81,13 +96,20 @@
     /(?:^|[^a-z])ma\s+sinucid/,
     /vreau\s+sa\s+mor(?![a-z])/,
     /sa\s+ma\s+omor(?![a-z])/,
+    /nu\s+mai\s+vreau\s+sa\s+(?:traiesc|exist)/,
+    /(?:^|[^a-z])(?:ma\s+autovatam|autovatamare)/,
+    /(?:^|[^a-z])ma\s+tai\s+pe\s+(?:maini|brate|picioare)/,
   ];
 
   // swearing: allowed, but softened for anyone with the language filter on
   const STRONG = pattern([
     '~fuck', '~fck', 'shit', 'bullshit', 'horseshit', 'dipshit', 'apeshit', '~bitch', '~asshole', 'ass', 'arse', '~arsehole', '~bastard',
     'dick', '=cock', '=cocks', 'cunt', 'twat', '~wanker', 'prick', 'piss', 'pissed', 'bollocks', '~slut', '~whore',
-    'pula', 'pizda', 'muie', 'muist', 'futu', 'fut', 'fute', 'futut', 'cacat', 'curva', 'coaie', 'labagiu', 'bulangiu', 'pizdos',
+    // Romanian, with the spellings and short forms people use
+    'pula', 'pulamea', 'pule', '=plm', 'pizda', 'pizde', 'pizdos', 'pizdulici', '=pzd', '=pzda', 'muie', 'muist', 'muisti', 'muista',
+    'futu', 'fututi', 'futuva', 'futui', 'fut', 'fute', 'futem', 'futeti', 'futut', 'futai', 'futacios', '=fmm', '=mtfm',
+    'cacat', 'cacatul', 'cacanar', 'curva', 'curvo', 'curvar', 'tarfa', 'tarfe', 'tarfo', 'zdreanta', 'zdreanto', 'pizdo', 'coaie', 'coi', 'coaiele', '=cur', '=curu', '=curul',
+    'labagiu', 'bulangiu', 'lindic', 'matii', 'mortii matii', 'mortii mamii', 'gaozar', 'gaoaza', 'sugaci',
   ]);
 
   // ---- personal information -------------------------------------------------------------------
@@ -202,7 +224,7 @@
   /** text with strong words dotted out (f•••), for anyone with the language filter on */
   function soften(text) {
     if (!text) return text;
-    return String(text).replace(/(?:[\p{L}\p{N}@$€*]|[!|](?=\p{L}))+/gu, (token) => {
+    return String(text).replace(/(?:[\p{L}\p{N}@$€*]|[!|._-](?=\p{L}))+/gu, (token) => {
       if (!/\p{L}/u.test(token) || !STRONG.test(fold(token))) return token;
       const chars = [...token];
       return chars[0] + '•'.repeat(chars.length - 1);

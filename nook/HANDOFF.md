@@ -42,4 +42,4 @@ Read this first when picking Nook up again (a new chat, or after a long break).
 
 ## Testing
 
-`node nook/tools/api-test.js` runs about 70 checks against a temporary server. Browser tests were written with Playwright during development: sign-up, posting, comments, friends, chat, moderation, every button on every page, CSP violations and phone layouts. Re-create them as needed.
+`node nook/tools/api-test.js` runs about 70 checks against a temporary server; `node nook/tools/moderation-test.js` checks the moderation rules on 112 English and Romanian sentences. Browser tests were written with Playwright during development: sign-up, posting, comments, friends, chat, moderation, every button on every page, CSP violations and phone layouts. Re-create them as needed.
