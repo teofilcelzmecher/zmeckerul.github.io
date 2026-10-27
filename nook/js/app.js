@@ -296,14 +296,18 @@
   }
 
   function openDrawer() {
+    // the menu's logo wears the shape the app wears now
+    $('#drawer-brand').setAttribute('shape', brandShape.showing);
+    drawer.scrollTop = 0;
     drawer.classList.add('open');
     scrim.hidden = false;
     fx.play(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: 'ease-out' });
     $('#menu-btn').setAttribute('aria-expanded', 'true');
     glide.style.opacity = '0';
     requestAnimationFrame(placeGlide);
-    const first = drawer.querySelector('a, button');
-    if (first) first.focus({ preventScroll: true });
+    fx.stagger($$('.nav-item, .nav-heading, .nav-foot', drawer), { y: 12, step: 22, max: 14 });
+    fx.haptic(6);
+    $('#drawer-close').focus({ preventScroll: true });
   }
   function closeDrawer() {
     if (!drawer.classList.contains('open')) return;
@@ -316,6 +320,7 @@
   }
 
   $('#menu-btn').addEventListener('click', openDrawer);
+  $('#drawer-close').addEventListener('click', closeDrawer);
   scrim.addEventListener('click', closeDrawer);
 
   $('#search-btn').addEventListener('click', () => {
