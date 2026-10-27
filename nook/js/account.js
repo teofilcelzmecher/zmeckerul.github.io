@@ -1,7 +1,8 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
- * The way in: sign in, create an account (with an invite code, if the server
- * asks for one), or get back in with a recovery code. Once signed in, it fetches everything the app needs
+ * The way in: the welcome page for someone who isn't signed in, then sign in,
+ * create an account (with an invite code, if the server asks for one), or get
+ * back in with a recovery code. Once signed in, it fetches everything the app needs
  * from the server and only then starts the app's own scripts.
  */
 (function () {
@@ -14,6 +15,7 @@
   const icon = (name) => `<span class="m3-icon" aria-hidden="true">${name}</span>`;
 
   let gate = null;
+  const landing = document.getElementById('landing');
   // open to everyone unless the server says it's invite-only (asked as soon as the page opens)
   let signup = 'open';
 
@@ -91,6 +93,11 @@
   function show(name, options = {}) {
     const root = frame();
     root.innerHTML = SCREENS[name](options);
+    // from the welcome page, a way back to it
+    if (landing && landing.isConnected && ['signin', 'signup', 'forgot'].includes(name)) {
+      root.insertAdjacentHTML('afterbegin', `<button type="button" class="m3-icon-btn gate-back" aria-label="Back">${icon('arrow_back')}</button>`);
+      root.querySelector('.gate-back').addEventListener('click', welcome);
+    }
     document.title = 'Budgie';
     const form = root.querySelector('form');
     root.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
@@ -220,7 +227,9 @@
     const leave = () => {
       if (gate) gate.remove();
       gate = null;
-      document.documentElement.classList.remove('gated');
+      if (landing) landing.remove();
+      clearInterval(cycle);
+      document.documentElement.classList.remove('gated', 'visitor');
       for (const src of APP) {
         const script = document.createElement('script');
         script.src = src;
@@ -236,7 +245,7 @@
   async function start() {
     if (starting || booted) return;
     if (!api.configured()) return show('offline', { setup: true });
-    if (!api.signedIn()) return show('signin');
+    if (!api.signedIn()) return landing ? welcome() : show('signin');
     starting = true;
     // a quick start shows nothing; a slow one says what's happening
     const slow = setTimeout(() => show('loading'), gate ? 0 : 250);
@@ -253,6 +262,59 @@
       } else {
         show('offline', { message: error.offline ? '' : error.message });
       }
+    }
+  }
+
+  // ---- the welcome page ------------------------------------------------------------------------------
+
+  let wired = false;
+  let cycle = 0;
+
+  function welcome() {
+    document.documentElement.classList.add('visitor');
+    if (gate) gate.remove();
+    gate = null;
+    if (wired) return;
+    wired = true;
+    landing.querySelectorAll('[data-gate]').forEach((b) => b.addEventListener('click', () => show(b.dataset.gate)));
+    const chips = [...landing.querySelectorAll('.nest-chip')];
+    const shape = landing.querySelector('#landing-shape');
+    const symbol = landing.querySelector('#landing-symbol');
+    const name = landing.querySelector('#landing-name');
+    let wearing = 0;
+    // a nest's colour becomes the whole page's, as it does in the app
+    async function wear(seed) {
+      const mine = ++wearing;
+      try {
+        const colors = await M3.color.scheme({ seed, dark: matchMedia('(prefers-color-scheme: dark)').matches, variant: 'tonalSpot' });
+        if (mine === wearing && landing.isConnected) M3.color.apply(colors, landing);
+      } catch (_) {
+        /* the page keeps its own colours */
+      }
+    }
+    function pick(chip) {
+      chips.forEach((c) => c.setAttribute('aria-pressed', String(c === chip)));
+      const nest = chip.dataset;
+      if (shape.transitionTo) shape.transitionTo(nest.shape, { spring: true });
+      else shape.setAttribute('shape', nest.shape);
+      symbol.textContent = nest.symbol;
+      name.textContent = 'n/' + nest.nest;
+      if (!still()) symbol.animate([{ scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,1.4,.4,1)' });
+      wear(nest.color);
+    }
+    chips.forEach((chip) =>
+      chip.addEventListener('click', () => {
+        clearInterval(cycle);
+        pick(chip);
+      })
+    );
+    // on its own it shows off a nest every few seconds, until someone picks one
+    if (!still()) {
+      cycle = setInterval(() => {
+        if (document.hidden) return;
+        const now = chips.findIndex((c) => c.getAttribute('aria-pressed') === 'true');
+        pick(chips[(now + 1) % chips.length]);
+      }, 3200);
     }
   }
 

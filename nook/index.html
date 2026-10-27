@@ -5,22 +5,93 @@
   <!-- Only the two scripts written into this page may run (their fingerprints are below; `python3
        nook/tools/csp.py nook/index.html` refreshes them), and whatever those load: Budgie's own files,
        and Google's ad code when ads are switched on. Ads show in frames, so frames may come from https. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-070xSe2/xm5r2FIgS/3crYVG2VPcEcy4s/ErEgoMJGA=' 'sha256-CnMYptf+kJZulADqFKAA4oYqEMxVhKQ0kmT3wb4ehnE=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-6B+8LVKVAqUpcyRWFB5gbVsjS8Luoq4i8Q9+Ew+rtW4=' 'sha256-CnMYptf+kJZulADqFKAA4oYqEMxVhKQ0kmT3wb4ehnE=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Budgie</title>
-  <meta name="description" content="Budgie: communities with their own colours and shapes. Join nests, post, vote, spark and chat.">
+  <meta name="description" content="Budgie is a friendly home for communities, called nests. Each nest has its own colour and shape. Post, comment, add friends and chat. Free, and no email needed.">
+  <link rel="canonical" href="https://budgiesocial.com/">
+  <!-- the card a link shows on Discord, WhatsApp, iMessage and the like -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Budgie">
+  <meta property="og:title" content="Budgie: find your nest">
+  <meta property="og:description" content="A friendly home for communities. Every community is a nest with its own colour and shape. Post, comment, add friends and chat. Free, and no email needed.">
+  <meta property="og:url" content="https://budgiesocial.com/">
+  <meta property="og:image" content="https://budgiesocial.com/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Budgie: find your nest">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#fdf7ff">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../m3/fonts/fonts.css">
   <link rel="stylesheet" href="../m3/m3.css">
   <link rel="stylesheet" href="app.css">
-  <!-- first: hide the app until signing in decides what to show, and refuse to run inside another
-       site's frame, where someone could trick you into tapping things -->
-  <script>document.documentElement.classList.add('gated');if(window.top!==window.self)document.documentElement.classList.add('framed');</script>
+  <!-- first: hide the app until signing in decides what to show (someone not signed in sees the
+       welcome page), and refuse to run inside another site's frame, where someone could trick you into
+       tapping things -->
+  <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');</script>
 </head>
 <body class="m3-base">
   <a class="skip" href="#main" id="skip">Skip to content</a>
+
+  <!-- what someone who isn't signed in sees first: what Budgie is, and the way in -->
+  <section class="landing" id="landing" aria-labelledby="landing-title">
+    <header class="landing-bar">
+      <span class="landing-brand"><m3-shape shape="cookie9" aria-hidden="true"></m3-shape>budgie</span>
+      <span class="landing-bar-actions"><button type="button" class="m3-btn text" data-gate="signin">Sign in</button><button type="button" class="m3-btn filled" data-gate="signup">Join</button></span>
+    </header>
+
+    <div class="landing-hero">
+      <div class="landing-hero-text">
+        <h1 id="landing-title">Find your nest.</h1>
+        <p class="landing-lead">Budgie is a friendly home for communities. Every community is a <b>nest</b>, with its own colour and shape, and the whole app changes to match the nest you’re in.</p>
+        <div class="landing-cta"><button type="button" class="m3-btn filled big" data-gate="signup"><span class="m3-icon" aria-hidden="true">person_add</span>Join Budgie, it’s free</button><button type="button" class="m3-btn tonal big" data-gate="signin">Sign in</button></div>
+        <p class="landing-fine">No email or phone number needed. For ages 13 and up.</p>
+      </div>
+      <div class="landing-art" aria-hidden="true">
+        <m3-shape id="landing-shape" shape="cookie9"></m3-shape>
+        <span class="m3-icon" id="landing-symbol">campaign</span>
+        <span class="landing-art-name" id="landing-name">n/budgiehq</span>
+      </div>
+    </div>
+
+    <section class="landing-section" aria-labelledby="landing-nests">
+      <h2 id="landing-nests">Communities are nests</h2>
+      <p>Tap one and watch Budgie change around it. Join the nests you like, or start your own.</p>
+      <div class="landing-chips">
+          <button type="button" class="nest-chip" data-nest="budgiehq" data-title="Budgie HQ" data-color="#6750a4" data-shape="cookie9" data-symbol="campaign" aria-pressed="true"><m3-shape-icon shape="cookie9" symbol="campaign" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#6750a4;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/budgiehq</button>
+          <button type="button" class="nest-chip" data-nest="nightsky" data-title="Night Sky" data-color="#4b5bd6" data-shape="verySunny" data-symbol="rocket_launch" aria-pressed="false"><m3-shape-icon shape="verySunny" symbol="rocket_launch" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#4b5bd6;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/nightsky</button>
+          <button type="button" class="nest-chip" data-nest="cozygames" data-title="Cozy Games" data-color="#8b5cf6" data-shape="ghostish" data-symbol="sports_esports" aria-pressed="false"><m3-shape-icon shape="ghostish" symbol="sports_esports" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#8b5cf6;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/cozygames</button>
+          <button type="button" class="nest-chip" data-nest="houseplants" data-title="Plant Parenthood" data-color="#3f8f4f" data-shape="clover4" data-symbol="potted_plant" aria-pressed="false"><m3-shape-icon shape="clover4" symbol="potted_plant" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#3f8f4f;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/houseplants</button>
+          <button type="button" class="nest-chip" data-nest="homecooking" data-title="Home Cooking" data-color="#ff8a3d" data-shape="cookie6" data-symbol="soup_kitchen" aria-pressed="false"><m3-shape-icon shape="cookie6" symbol="soup_kitchen" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#ff8a3d;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/homecooking</button>
+          <button type="button" class="nest-chip" data-nest="webdev" data-title="Web Dev" data-color="#3d7bff" data-shape="pixelCircle" data-symbol="code" aria-pressed="false"><m3-shape-icon shape="pixelCircle" symbol="code" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#3d7bff;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/webdev</button>
+          <button type="button" class="nest-chip" data-nest="bookclub" data-title="Book Nest" data-color="#b98c00" data-shape="clamShell" data-symbol="menu_book" aria-pressed="false"><m3-shape-icon shape="clamShell" symbol="menu_book" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#b98c00;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/bookclub</button>
+          <button type="button" class="nest-chip" data-nest="askbudgie" data-title="Ask Budgie" data-color="#c2185b" data-shape="softBurst" data-symbol="forum" aria-pressed="false"><m3-shape-icon shape="softBurst" symbol="forum" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#c2185b;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/askbudgie</button>
+      </div>
+    </section>
+
+    <section class="landing-section" aria-labelledby="landing-features">
+      <h2 id="landing-features">What you can do</h2>
+      <div class="landing-grid">
+          <article class="landing-feature"><m3-shape-icon shape="cookie9" symbol="edit_note" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Post anything</h3><p>Text, pictures, links and polls, with flairs and spoiler tags.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="heart" symbol="favorite" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Spark what you love</h3><p>Upvote, or add a Spark when something is lovely, clever, funny or wild.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="clover4" symbol="chat" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Friends and chats</h3><p>Add friends and chat privately. You’ll see when they’ve read it.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="flower" symbol="self_improvement" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Calm when you want it</h3><p>Calm mode hides every number. Break reminders, dark mode and compact cards too.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="pixelCircle" symbol="gavel" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Rules, not AI</h3><p>Clear rules keep it kind. Swearing gets dotted out, and real people read every report.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="gem" symbol="lock" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Private by default</h3><p>No email or phone number to sign up. Budgie doesn’t track you or sell your data.</p></article>
+      </div>
+    </section>
+
+    <section class="landing-section landing-end" aria-labelledby="landing-new">
+      <h2 id="landing-new">Brand new, made by one developer</h2>
+      <p>Budgie was built from scratch and it’s still growing. If something breaks, say so in n/budgiehq and it gets fixed.</p>
+      <button type="button" class="m3-btn filled big" data-gate="signup"><span class="m3-icon" aria-hidden="true">egg</span>Find your nest</button>
+    </section>
+
+    <footer class="landing-foot"><a href="terms.html">Terms of Use</a><a href="privacy.html">Privacy Policy</a><a href="licenses.html">Open-source licenses</a></footer>
+  </section>
+
 
   <header class="topbar" id="topbar">
     <button class="m3-toolbar-btn only-narrow" id="menu-btn" data-effect="nudge-right" data-shape="cookie7" aria-label="Open navigation" aria-controls="drawer" aria-expanded="false"><span class="m3-icon">menu</span></button>

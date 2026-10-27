@@ -15,7 +15,7 @@ fix = lambda text: text.replace('href="../m3/"', 'href="m3/index.html"').replace
 for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html']:
     html = rehash(fix(open(f'{src}/nook/{page}').read()))
     open(f'{out}/{page}', 'w').write(html)
-for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md']:
+for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
     shutil.copy(f'{src}/nook/{f}', f'{out}/{f}')
 for f in os.listdir(f'{src}/nook/js'):
     open(f'{out}/js/{f}', 'w').write(fix(open(f'{src}/nook/js/{f}').read()))

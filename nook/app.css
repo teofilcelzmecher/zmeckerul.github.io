@@ -3051,9 +3051,252 @@ html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
 
 /* ---- early access: the invite-code gate -------------------------------------------------- */
 
-/* until someone is let in, only the gate shows */
-html.gated body > :not(.gate) {
+/* until someone is let in, only the gate shows, and the welcome page for someone not signed in */
+html.gated body > :not(.gate):not(.landing) {
   display: none !important;
+}
+
+/* ---- the welcome page ---------------------------------------------------------------------------- */
+
+.landing {
+  display: none;
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--m3-primary-container) 75%, transparent), transparent 40%),
+    radial-gradient(circle at 95% 30%, color-mix(in srgb, var(--m3-tertiary-container) 55%, transparent), transparent 40%),
+    var(--m3-background);
+  color: var(--m3-on-background);
+  transition: background-color 500ms ease, color 500ms ease;
+}
+html.visitor .landing {
+  display: block;
+}
+.landing-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) max(16px, calc((100% - 1080px) / 2)) 10px;
+  background: color-mix(in srgb, var(--m3-background) 82%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.landing-brand m3-shape {
+  width: 32px;
+  height: 32px;
+  color: var(--m3-primary);
+}
+.landing-bar-actions {
+  display: flex;
+  gap: 4px;
+}
+.landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 40px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 48px 20px 32px;
+}
+.landing h1 {
+  font-size: clamp(42px, 8vw, 76px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.landing-lead {
+  max-width: 32em;
+  margin-top: 18px;
+  color: var(--m3-on-surface-variant);
+  font-size: clamp(17px, 2.2vw, 20px);
+  line-height: 1.5;
+}
+.landing-lead b {
+  color: var(--m3-primary);
+}
+.landing-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 28px 0 12px;
+}
+.landing .m3-btn.big {
+  height: 52px;
+  padding: 0 24px;
+  border-radius: 26px;
+  font-size: 16px;
+}
+.landing-fine {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.landing-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  width: min(360px, 78vw);
+  aspect-ratio: 1;
+}
+#landing-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-primary);
+  transition: color 500ms ease;
+  animation: gate-spin 40s linear infinite;
+}
+#landing-symbol {
+  position: relative;
+  color: var(--m3-on-primary);
+  font-size: clamp(80px, 22vw, 132px);
+  --m3-icon-fill: 1;
+  transition: color 500ms ease;
+}
+.landing-art-name {
+  position: absolute;
+  bottom: 2%;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface);
+  font-weight: 700;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+.landing-section {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+.landing h2 {
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.landing-section > p {
+  max-width: 40em;
+  margin: 8px 0 22px;
+  color: var(--m3-on-surface-variant);
+  font-size: 17px;
+  line-height: 1.5;
+}
+.landing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.nest-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 18px 0 8px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: 24px;
+  background: var(--m3-surface-container-low);
+  color: var(--m3-on-surface);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 300ms, border-color 300ms, color 300ms, scale 200ms;
+}
+.nest-chip[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.nest-chip:active {
+  scale: 0.96;
+}
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 14px;
+}
+.landing-feature {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 22px;
+  border-radius: var(--m3-r-very-large);
+  background: var(--m3-surface-container-low);
+  transition: background-color 500ms ease;
+}
+.landing-feature h3 {
+  font-size: 19px;
+  font-weight: 700;
+}
+.landing-feature p {
+  color: var(--m3-on-surface-variant);
+  line-height: 1.5;
+}
+.landing-end {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin: 24px auto 0;
+  padding: 44px 24px;
+  border-radius: 32px;
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  text-align: center;
+  transition: background-color 500ms ease;
+}
+.landing-section.landing-end > p {
+  color: inherit;
+  opacity: 0.85;
+}
+.landing-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 22px;
+  padding: 32px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  font-size: var(--m3-fs-smaller);
+}
+.landing-foot a {
+  color: var(--m3-on-surface-variant);
+}
+/* from the welcome page, sign-in and sign-up have a way back */
+.gate-back {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 12px;
+}
+@media (max-width: 719px) {
+  .landing-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding-top: 16px;
+  }
+  .landing-art {
+    order: -1;
+    width: min(240px, 64vw);
+  }
+  .landing-section {
+    padding: 28px 16px;
+  }
+  .landing-end {
+    margin: 16px 16px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #landing-shape {
+    animation: none;
+  }
 }
 .gate {
   position: fixed;
@@ -3848,7 +4091,7 @@ html.gated body > :not(.gate) {
   color: var(--m3-on-surface-variant);
 }
 
-/* inside another site's frame Nook shows nothing (see js/early.js) */
+/* inside another site's frame Budgie shows nothing (see the first script in index.html) */
 html.framed body {
   display: none !important;
 }
