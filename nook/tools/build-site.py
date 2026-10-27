@@ -5,6 +5,7 @@ It rewrites ../m3/ paths to m3/, refreshes the pages' script fingerprints, write
 set up in js/config.js, and copies the app, legal pages, m3, fonts, server, LICENSE and SECURITY.md.
 """
 import os, re, shutil, sys
+sys.dont_write_bytecode = True  # no __pycache__ left behind in the repository
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from csp import rehash
 src, out = sys.argv[1], sys.argv[2]
