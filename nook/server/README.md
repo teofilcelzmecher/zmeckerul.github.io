@@ -100,5 +100,5 @@ To restore: `sudo systemctl stop nook`, copy the backup over `/var/lib/nook/nook
 - **Your data folder** is `/var/lib/nook`. It holds people's accounts and messages, so keep the laptop's
   login password strong and don't share the laptop.
 - **Settings** (in `/etc/systemd/system/nook.service`): `NOOK_PORT` (8787), `NOOK_DATA` (`/var/lib/nook`),
-  `NOOK_ORIGINS` (`https://teofilcelzmecher.github.io`). After changing them:
+  `NOOK_ORIGINS` (`https://budgiesocial.com`, its `www.` and `https://teofilcelzmecher.github.io`). After changing them:
   `sudo systemctl daemon-reload && sudo systemctl restart nook`.

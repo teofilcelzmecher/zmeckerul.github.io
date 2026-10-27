@@ -14,7 +14,7 @@ fi
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PORT="${NOOK_PORT:-8787}"
-ORIGINS="${NOOK_ORIGINS:-https://teofilcelzmecher.github.io}"
+ORIGINS="${NOOK_ORIGINS:-https://budgiesocial.com,https://www.budgiesocial.com,https://teofilcelzmecher.github.io}"
 DATA=/var/lib/nook
 
 if [[ "$REPO" == /home/* ]]; then

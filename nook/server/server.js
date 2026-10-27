@@ -31,7 +31,7 @@ const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
   data: process.env.NOOK_DATA || path.join(__dirname, 'data'),
-  origins: (process.env.NOOK_ORIGINS || 'https://teofilcelzmecher.github.io')
+  origins: (process.env.NOOK_ORIGINS || 'https://budgiesocial.com,https://www.budgiesocial.com,https://teofilcelzmecher.github.io')
     .split(',')
     .map((s) => s.trim().replace(/\/$/, ''))
     .filter(Boolean),
