@@ -4,5 +4,5 @@
  * https://your-laptop.your-tailnet.ts.net) with no trailing slash.
  */
 window.NOOK_CONFIG = {
-  api: '',
+  api: 'https://nook.tailfb59a9.ts.net',
 };
