@@ -343,9 +343,10 @@
         e.preventDefault();
         close(null);
       });
-      // a press on the scrim dismisses, as a sheet should
+      // a press on the scrim dismisses, as a sheet should, but not the second half of the double-tap that opened it
+      const openedAt = performance.now();
       el.addEventListener('pointerdown', (e) => {
-        if (e.target !== el) return;
+        if (e.target !== el || performance.now() - openedAt < 350) return;
         const r = el.getBoundingClientRect();
         if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close(null);
       });

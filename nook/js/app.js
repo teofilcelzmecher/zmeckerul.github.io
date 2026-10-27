@@ -7,6 +7,8 @@
   'use strict';
 
   const Nook = window.Nook;
+  // a second copy of this script would run every button twice
+  if (Nook.app) return;
   const store = Nook.store;
   const ui = Nook.ui;
   const views = Nook.views;
@@ -444,6 +446,7 @@
   // ---- clicks: actions first, then whole-card links -----------------------------------
 
   const ACTIONS = {};
+  let lastAct = { el: null, at: 0 };
   const postOf = (el) => store.post((el.closest('[data-post]') || {}).dataset?.post);
 
   document.addEventListener('click', (e) => {
@@ -455,6 +458,10 @@
       const fn = ACTIONS[act.dataset.act];
       if (fn) {
         e.preventDefault();
+        // a double-tap is one press: the same button again within 400 ms is ignored
+        const t = performance.now();
+        if (act === lastAct.el && t - lastAct.at < 400) return;
+        lastAct = { el: act, at: t };
         fn(act, e);
         return;
       }

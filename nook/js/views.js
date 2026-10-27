@@ -1076,7 +1076,8 @@
       html:
         '<div class="page single chat-page"><div class="col">' +
         `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>u/${esc(u.name)}</small></span></a></div>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>u/${esc(u.name)}</small></span></a>` +
+        `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
         '<div class="chat" id="chat" aria-live="polite"><div class="chat-more" id="chat-more"></div><div id="chat-list"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
         (friends
           ? `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="Message u/${esc(u.name)}" aria-label="Message"></textarea><button class="m3-icon-btn filled" type="submit" aria-label="Send">${icon('send')}</button></form>`

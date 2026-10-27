@@ -150,7 +150,9 @@
     if (!still()) form.animate([{ translate: '0' }, { translate: '-10px' }, { translate: '9px' }, { translate: '-5px' }, { translate: '0' }], { duration: 380, easing: 'ease-out' });
   }
 
+  let busy = false;
   async function submit(name, form) {
+    if (busy) return;
     const $ = (sel) => form.querySelector(sel);
     const go = $('.gate-go');
     const msg = $('.gate-msg');
@@ -179,16 +181,19 @@
     }
 
     go.disabled = true;
+    busy = true;
     try {
       let result;
       if (name === 'signin') result = await api.post('/api/login', { name: value('g-name'), password });
       if (name === 'signup') result = await api.post('/api/signup', { invite: value('g-invite'), name: value('g-name'), password, age: true, terms: true });
       if (name === 'forgot') result = await api.post('/api/recover', { name: value('g-name'), recovery: value('g-recovery'), password });
       api.setToken(result.token);
+      busy = false;
       if (result.recovery) show('recovery', { code: result.recovery });
       else start();
     } catch (error) {
       go.disabled = false;
+      busy = false;
       const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass' };
       problem(map[error.field] || '', error.message);
     }
@@ -196,7 +201,11 @@
 
   // ---- starting the app ------------------------------------------------------------------------------
 
+  let booted = false;
   function boot(snapshot) {
+    // only ever once: a second start would run every button twice
+    if (booted) return;
+    booted = true;
     window.NOOK_BOOT = snapshot;
     const leave = () => {
       if (gate) gate.remove();
@@ -213,9 +222,12 @@
     gate.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }).onfinish = leave;
   }
 
+  let starting = false;
   async function start() {
+    if (starting || booted) return;
     if (!api.configured()) return show('offline', { setup: true });
     if (!api.signedIn()) return show('signin');
+    starting = true;
     // a quick start shows nothing; a slow one says what's happening
     const slow = setTimeout(() => show('loading'), gate ? 0 : 250);
     try {
@@ -224,6 +236,7 @@
       boot(snapshot);
     } catch (error) {
       clearTimeout(slow);
+      starting = false;
       if (error.status === 401 || error.status === 403) {
         api.setToken(null);
         show('signin', { message: error.status === 403 ? error.message : '' });

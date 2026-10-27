@@ -3414,6 +3414,9 @@ html.gated body > :not(.gate) {
   padding: 6px 8px;
   background: var(--m3-background);
 }
+.chat-report {
+  margin-left: auto;
+}
 .chat-who {
   display: flex;
   align-items: center;
