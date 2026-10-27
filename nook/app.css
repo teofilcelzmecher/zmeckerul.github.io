@@ -2939,3 +2939,133 @@ html[data-vt='morph']::view-transition-new(*.card) {
 html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
   animation: none !important;
 }
+
+/* ---- early access: the invite-code gate -------------------------------------------------- */
+
+/* until someone is let in, only the gate shows */
+html.gated body > :not(.gate) {
+  display: none !important;
+}
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--m3-primary-container) 70%, transparent), transparent 45%),
+    radial-gradient(circle at 90% 90%, color-mix(in srgb, var(--m3-tertiary-container) 60%, transparent), transparent 50%),
+    var(--m3-background);
+  color: var(--m3-on-background);
+}
+.gate-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(420px, 100%);
+  padding: 32px 24px 28px;
+  border-radius: var(--m3-r-very-large);
+  background: var(--m3-surface-container-low);
+  text-align: center;
+}
+.gate-shape {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 4px;
+  color: var(--m3-primary);
+  animation: gate-spin 14s linear infinite;
+}
+@keyframes gate-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+.gate.open .gate-shape {
+  color: var(--m3-tertiary);
+  animation: none;
+}
+.gate-tag {
+  padding: 4px 12px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.gate h1 {
+  margin: 0;
+  font-size: 30px;
+}
+.gate-text {
+  margin: 0 0 6px;
+  color: var(--m3-on-surface-variant);
+}
+.gate-code {
+  position: relative;
+  display: block;
+  width: 100%;
+  cursor: text;
+}
+/* one real input lies over six boxes that show its digits */
+.gate-code input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px;
+  outline: none;
+}
+.gate-cells {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.gate-cells span {
+  display: grid;
+  place-items: center;
+  height: 58px;
+  border-radius: var(--m3-r-normal);
+  background: var(--m3-surface-container-highest);
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+  font-family: var(--m3-font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  transition: box-shadow 150ms var(--m3-ease-standard), scale 250ms var(--m3-ease-expressive-fast-spatial, ease-out);
+}
+.gate-cells span.filled {
+  scale: 1.04;
+}
+.gate-cells span.here {
+  box-shadow: inset 0 0 0 2px var(--m3-primary);
+}
+.gate.open .gate-cells span {
+  background: var(--m3-primary-container);
+  box-shadow: none;
+  color: var(--m3-on-primary-container);
+}
+.gate-msg {
+  min-height: 1.4em;
+  margin: 0;
+  color: var(--m3-error);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+}
+.gate.open .gate-msg {
+  color: var(--m3-primary);
+}
+.gate-go {
+  width: 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-shape {
+    animation: none;
+  }
+}
