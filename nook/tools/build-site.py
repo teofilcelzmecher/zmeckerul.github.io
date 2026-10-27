@@ -1,4 +1,4 @@
-"""Build the standalone Nook site (repo root = the app, m3/ beside it) from the source branch.
+"""Build the standalone Budgie site (repo root = the app, m3/ beside it) from the source branch.
 
 Usage: python3 nook/tools/build-site.py <source repo root> <output folder, e.g. a nook-early-access-website clone>
 It rewrites ../m3/ paths to m3/, adds noindex, and copies the app, legal pages, m3, fonts, server, LICENSE and SECURITY.md.
@@ -30,6 +30,6 @@ open(f'{out}/.nojekyll', 'w').write('')
 open(f'{out}/.gitignore', 'w').write('server/data/\n*.db\n*.db-wal\n*.db-shm\n')
 open(f'{out}/robots.txt', 'w').write('User-agent: *\nDisallow: /\n')
 open(f'{out}/README.md', 'w').write(
-    '# Nook\n\nA community app built on Material 3 Expressive. Early access: you need an invite code to get in.\n\n'
+    '# Budgie\n\nA community app built on Material 3 Expressive. Early access: you need an invite code to get in.\n\n'
     'Plain HTML, CSS and JS with no build step, and a small Node server in `server/` (see server/README.md). Nothing is loaded from other companies.\n\n'
-    'See [Terms of Use](terms.html) and [Privacy Policy](privacy.html).\n\nNook is not open source: see [LICENSE](LICENSE). Security problems: see [SECURITY.md](SECURITY.md).\n')
+    'See [Terms of Use](terms.html) and [Privacy Policy](privacy.html).\n\nBudgie is not open source: see [LICENSE](LICENSE). Security problems: see [SECURITY.md](SECURITY.md).\n')

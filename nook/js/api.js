@@ -41,7 +41,7 @@
   const signedOutListeners = new Set();
 
   async function request(method, path, body, { keepalive = false } = {}) {
-    if (!base) throw new ApiError(0, { error: 'Nook’s server isn’t set up yet.', offline: true });
+    if (!base) throw new ApiError(0, { error: 'Budgie’s server isn’t set up yet.', offline: true });
     let res;
     try {
       res = await fetch(base + path, {
@@ -51,7 +51,7 @@
         keepalive,
       });
     } catch (_) {
-      throw new ApiError(0, { error: 'Can’t reach Nook’s server. Check your connection and try again.', offline: true });
+      throw new ApiError(0, { error: 'Can’t reach Budgie’s server. Check your connection and try again.', offline: true });
     }
     let payload = null;
     try {

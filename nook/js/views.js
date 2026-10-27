@@ -260,7 +260,7 @@
 
   function rulesCard(c) {
     if (!c.rules || !c.rules.length) return '';
-    return `<section class="card"><h3 class="card-title">${icon('gavel')}<span>Nook rules</span></h3><ol class="rules">${c.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol></section>`;
+    return `<section class="card"><h3 class="card-title">${icon('gavel')}<span>Nest rules</span></h3><ol class="rules">${c.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol></section>`;
   }
 
   function modsCard(c) {
@@ -295,21 +295,21 @@
       .slice(0, limit);
     if (!list.length) return '';
     return (
-      `<section class="card"><h3 class="card-title">${icon('trending_up')}<span>Nooks you might like</span></h3><div class="list">` +
+      `<section class="card"><h3 class="card-title">${icon('trending_up')}<span>Nests you might like</span></h3><div class="list">` +
       list
         .map(
           (c) =>
             `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 36, 19)}<span class="row-text"><b>n/${esc(c.id)}</b><small>${esc(c.category)}</small></span>${joinButton(c)}</div>`
         )
         .join('') +
-      `</div><a class="m3-btn text small" href="#/explore" style="margin-top:6px">${icon('explore')}See all nooks</a></section>`
+      `</div><a class="m3-btn text small" href="#/explore" style="margin-top:6px">${icon('explore')}See all nests</a></section>`
     );
   }
 
   const footCard = () =>
     '<div class="foot-links">' +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
-    '<button type="button" data-act="about-nook">What’s Nook?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
+    '<button type="button" data-act="about-nook">What’s Budgie?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
     '<span>Built with Material 3 Expressive. No ads, no trackers.</span></div>';
 
   // ---- comments -------------------------------------------------------------------------------
@@ -399,9 +399,9 @@
     const hello = !s.tourDone
       ? `<section class="hello" data-m3-stickers="hello-${name}" data-count="5" data-strength="1.3" data-clip-radius="30">` +
         `<button class="m3-icon-btn close" data-act="dismiss-hello" aria-label="Dismiss welcome"><span class="m3-icon">close</span></button>` +
-        `<h1 class="m3-title">Welcome to Nook, ${esc(name)}!</h1>` +
-        '<p>Every nook has its own colour and shape, and the app wears them as you move around. Join a few and Spark what you love.<span class="not-phone"> Press <kbd>?</kbd> for shortcuts.</span></p>' +
-        `<div class="row"><button class="m3-btn filled" data-act="about-nook">${icon('tour')}What’s Nook?</button><a class="m3-btn tonal" href="#/explore">${icon('explore')}Find your nooks</a></div></section>`
+        `<h1 class="m3-title">Welcome to Budgie, ${esc(name)}!</h1>` +
+        '<p>Every nest has its own colour and shape, and the app wears them as you move around. Join a few and Spark what you love.<span class="not-phone"> Press <kbd>?</kbd> for shortcuts.</span></p>' +
+        `<div class="row"><button class="m3-btn filled" data-act="about-nook">${icon('tour')}What’s Budgie?</button><a class="m3-btn tonal" href="#/explore">${icon('explore')}Find your nests</a></div></section>`
       : '';
     return {
       title: 'Home',
@@ -426,8 +426,8 @@
             store.feed({ joinedOnly: true, sort: settings().sort }),
             {},
             s.joined.length
-              ? empty('edit_note', 'It’s quiet in here', 'Nobody has posted in your nooks yet. Start the first conversation.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a><a class="m3-btn tonal" href="#/explore">${icon('explore')}Explore nooks</a>`)
-              : empty('diversity_3', 'Your home is empty', 'Join some nooks and their posts will show up here.', `<a class="m3-btn filled" href="#/explore">${icon('explore')}Explore nooks</a>`)
+              ? empty('edit_note', 'It’s quiet in here', 'Nobody has posted in your nests yet. Start the first conversation.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a><a class="m3-btn tonal" href="#/explore">${icon('explore')}Explore nests</a>`)
+              : empty('diversity_3', 'Your home is empty', 'Join some nests and their posts will show up here.', `<a class="m3-btn filled" href="#/explore">${icon('explore')}Explore nests</a>`)
           );
         render();
         app().onSort(root, (sort) => {
@@ -446,7 +446,7 @@
       brand: 'softBurst',
       html:
         '<div class="page"><div class="col">' +
-        `<div class="page-head"><m3-shape-icon shape="softBurst" symbol="local_fire_department" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Popular</h1><span class="muted">The best of every nook, joined or not</span></div></div>` +
+        `<div class="page-head"><m3-shape-icon shape="softBurst" symbol="local_fire_department" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Popular</h1><span class="muted">The best of every nest, joined or not</span></div></div>` +
         `<div class="toolbar">${sortControl(sort)}<span class="spacer"></span>${compactToggle()}</div>` +
         feedShell() +
         `</div><aside class="rail">${trendingCard(6)}${footCard()}</aside></div>`,
@@ -457,7 +457,7 @@
             root,
             store.feed({ sort: current }),
             {},
-            empty('local_fire_department', 'Nothing’s popular yet', 'Nook only shows what people really post. Start something and it could be the first thing here.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>`, 'softBurst')
+            empty('local_fire_department', 'Nothing’s popular yet', 'Budgie only shows what people really post. Start something and it could be the first thing here.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>`, 'softBurst')
           );
         render();
         app().onSort(root, (value) => {
@@ -470,7 +470,7 @@
 
   function community(params) {
     const c = store.community(params.nook);
-    if (!c) return notFound(`There’s no nook called n/${params.nook}. Yet.`);
+    if (!c) return notFound(`There’s no nest called n/${params.nook}. Yet.`);
     const flairs = c.flairs || [];
     return {
       title: `${c.title} (n/${c.id})`,
@@ -592,10 +592,10 @@
       brand: 'flower',
       html:
         '<div class="page wide"><div class="col">' +
-        `<div class="page-head"><m3-shape-icon shape="flower" symbol="explore" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Explore</h1><span class="muted">Find your nook. Each one has its own colour, shape and pace.</span></div><span class="spacer"></span>` +
-        `<button class="m3-btn filled" data-act="new-nook">${icon('add')}Create a nook</button></div>` +
+        `<div class="page-head"><m3-shape-icon shape="flower" symbol="explore" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Explore</h1><span class="muted">Find your nest. Each one has its own colour, shape and pace.</span></div><span class="spacer"></span>` +
+        `<button class="m3-btn filled" data-act="new-nook">${icon('add')}Create a nest</button></div>` +
         (fresh.length
-          ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="sunny" symbol="photo_library" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Fresh from the nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
+          ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="sunny" symbol="photo_library" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Fresh from the nests</h2><m3-wavy-line></m3-wavy-line></header>` +
             `<div class="shelf">${fresh
               .map((p) => {
                 const art = p.image ? `url(${p.image})` : `linear-gradient(${p.art.angle || 150}deg, ${p.art.from}, ${p.art.to})`;
@@ -603,7 +603,7 @@
               })
               .join('')}</div></section>`
           : '') +
-        `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="clover4" symbol="category" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">All nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
+        `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="clover4" symbol="category" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">All nests</h2><m3-wavy-line></m3-wavy-line></header>` +
         `<div class="chips" role="group" aria-label="Category">${cats.map((x) => `<button class="chip" data-m3-ripple data-cat="${esc(x)}" aria-pressed="${x === cat}">${esc(x)}</button>`).join('')}</div>` +
         `<div class="nook-grid" id="nook-grid">${grid(cat)}</div></section>` +
         '</div></div>',
@@ -800,19 +800,19 @@
       html:
         '<div class="page single"><div class="col">' +
         `<div class="page-head"><m3-shape-icon shape="ghostish" symbol="search" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">${q ? `Results for “${esc(q)}”` : 'Search'}</h1>` +
-        `<span class="muted">${q ? `${plural(r.posts.length, 'post')}, ${plural(r.nooks.length, 'nook')}, ${plural(r.people.length, 'person', 'people')}` : 'Type in the search bar above'}</span></div></div>` +
-        `<div class="toolbar">${segmented('search-tab', [['posts', `Posts`, 'article'], ['nooks', `Nooks`, 'diversity_3'], ['people', `People`, 'group']], tab, 'Result type')}</div>` +
+        `<span class="muted">${q ? `${plural(r.posts.length, 'post')}, ${plural(r.nooks.length, 'nest')}, ${plural(r.people.length, 'person', 'people')}` : 'Type in the search bar above'}</span></div></div>` +
+        `<div class="toolbar">${segmented('search-tab', [['posts', `Posts`, 'article'], ['nooks', `Nests`, 'diversity_3'], ['people', `People`, 'group']], tab, 'Result type')}</div>` +
         '<div id="search-results"></div></div></div>',
       mount(root) {
         const box = root.querySelector('#search-results');
         const show = (t) => {
           if (!q) {
-            box.innerHTML = empty('search', 'Search Nook', 'Find posts, nooks and people.');
+            box.innerHTML = empty('search', 'Search Budgie', 'Find posts, nests and people.');
           } else if (t === 'posts') {
             box.innerHTML = feedShell();
             mountFeed(box, r.posts, { query: q }, empty('search_off', 'No posts match', 'Try fewer or different words.'));
           } else if (t === 'nooks') {
-            box.innerHTML = r.nooks.length ? `<div class="card"><div class="list">${r.nooks.map(nookRow).join('')}</div></div>` : empty('search_off', 'No nooks match', 'Maybe it’s time to create one?', `<button class="m3-btn filled" data-act="new-nook">${icon('add')}Create a nook</button>`);
+            box.innerHTML = r.nooks.length ? `<div class="card"><div class="list">${r.nooks.map(nookRow).join('')}</div></div>` : empty('search_off', 'No nests match', 'Maybe it’s time to create one?', `<button class="m3-btn filled" data-act="new-nook">${icon('add')}Create a nest</button>`);
           } else {
             box.innerHTML = r.people.length ? `<div class="card"><div class="list">${r.people.map(personRow).join('')}</div></div>` : empty('search_off', 'Nobody by that name', 'Check the spelling and try again.');
           }
@@ -838,15 +838,15 @@
       brand: 'gem',
       html:
         '<div class="page single"><div class="col settings">' +
-        `<div class="page-head"><m3-shape-icon shape="gem" symbol="settings" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Settings</h1><span class="muted">Make Nook yours. Changes save as you go.</span></div></div>` +
+        `<div class="page-head"><m3-shape-icon shape="gem" symbol="settings" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Settings</h1><span class="muted">Make Budgie yours. Changes save as you go.</span></div></div>` +
         `<section>${header('flower', 'palette', 'Appearance')}<div class="card setting-card">` +
         `<div class="setting-row"><span class="label">Mode</span>${segmented('set-mode', [['system', 'System', 'brightness_auto'], ['light', 'Light', 'light_mode'], ['dark', 'Dark', 'dark_mode']], s.mode, 'Mode')}</div>` +
-        `<div class="setting-row"><span class="label">Your colour (used outside nooks)</span><div class="swatches" id="set-seeds">${ui.SEEDS.map(
+        `<div class="setting-row"><span class="label">Your colour (used outside nests)</span><div class="swatches" id="set-seeds">${ui.SEEDS.map(
           (seed, i) => `<button class="swatch" data-seed="${seed}" aria-pressed="${seed === s.seed}" aria-label="Colour ${seed}" data-tooltip="${seed}"><m3-shape shape="${ui.SEED_SHAPES[i]}" style="color:${seed}"></m3-shape></button>`
         ).join('')}<input type="color" class="color-input" id="set-color" value="${s.seed}" aria-label="Pick any colour" data-tooltip="Pick any colour"></div></div>` +
         `<div class="setting-row"><span class="label">Scheme style</span>${segmented('set-variant', [['tonalSpot', 'Tonal spot'], ['expressive', 'Expressive'], ['vibrant', 'Vibrant'], ['fidelity', 'Fidelity'], ['neutral', 'Neutral']], s.variant, 'Scheme style')}</div>` +
-        sw('set-themeNooks', 'Wear each nook’s colours', 'The whole app re-themes itself when you visit a nook.', s.themeNooks) +
-        sw('set-tintPosts', 'Tint posts by their nook', 'In mixed feeds, each card takes its nook’s colours.', s.tintPosts) +
+        sw('set-themeNooks', 'Wear each nest’s colours', 'The whole app re-themes itself when you visit a nest.', s.themeNooks) +
+        sw('set-tintPosts', 'Tint posts by their nest', 'In mixed feeds, each card takes its nest’s colours.', s.tintPosts) +
         sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
         sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
         (ui.theme.offline ? '<p class="muted">Couldn’t load the colour library (offline?), so only the built-in scheme is available right now.</p>' : '') +
@@ -866,12 +866,12 @@
         `<div class="toolbar"><button class="m3-btn outlined" data-act="sign-out">${icon('logout')}Sign out</button><button class="m3-btn text danger" data-act="delete-account">${icon('person_remove')}Delete account</button></div>` +
         '</div></section>' +
         `<section>${header('clover4', 'policy', 'Privacy and legal')}<div class="card setting-card">` +
-        '<p class="muted">Nook uses no cookies and no trackers, and loads nothing from other companies. Your account, posts and messages are kept on Nook’s own server; this browser keeps only what signs you in.</p>' +
+        '<p class="muted">Budgie uses no cookies and no trackers, and loads nothing from other companies. Your account, posts and messages are kept on Budgie’s own server; this browser keeps only what signs you in.</p>' +
         `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><a class="m3-btn tonal" href="licenses.html">${icon('license')}Open-source licenses</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
         '</div></section>' +
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
-        `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Nook</b><span class="muted">Version ${esc(store.VERSION)} · Early access</span></div></div>` +
-        `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Nook?</button></div>` +
+        `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Budgie</b><span class="muted">Version ${esc(store.VERSION)} · Early access</span></div></div>` +
+        `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Budgie?</button></div>` +
         `<p class="muted">Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols. <a class="md" style="color:var(--m3-primary)" href="../m3/">See the design system</a>.</p>` +
         '</div></section>' +
         '</div></div>',
@@ -929,8 +929,8 @@
   function submit(params) {
     const s = store.state;
     const draft = s.draft || {};
-    const start = params.n || draft.n || s.recent.find((id) => store.community(id)) || s.joined[0] || 'asknook';
-    const nook = store.community(start) || store.community('asknook');
+    const start = params.n || draft.n || s.recent.find((id) => store.community(id)) || s.joined[0] || 'askbudgie';
+    const nook = store.community(start) || store.community('askbudgie');
     const type = params.type || draft.type || 'text';
     return {
       title: 'Create a post',
@@ -1006,7 +1006,7 @@
           ? section('heart', 'diversity_1', 'Your friends', mine.map((f) => personRowHTML(store.user(f.name), friendButtons(f.name, true))).join(''))
           : empty('diversity_1', 'No friends yet', 'Send someone a request: when they accept, you can message each other.', '', 'heart')) +
         (outgoing.length ? section('clover4', 'schedule', 'Sent requests', outgoing.map((f) => personRowHTML(store.user(f.name), friendButtons(f.name, true))).join('')) : '') +
-        (others.length ? section('flower', 'waving_hand', 'People on Nook', others.map((u) => personRowHTML(u, friendButtons(u.name, true))).join('')) : '') +
+        (others.length ? section('flower', 'waving_hand', 'People on Budgie', others.map((u) => personRowHTML(u, friendButtons(u.name, true))).join('')) : '') +
         '</div></div>',
       mount(root) {
         root.querySelector('#add-friend').addEventListener('submit', async (e) => {
@@ -1164,7 +1164,7 @@
   // ---- moderation, for admins -------------------------------------------------------------------------------
 
   function adminPage() {
-    if (!store.isAdmin()) return notFound('Only Nook’s moderators can see this page.');
+    if (!store.isAdmin()) return notFound('Only Budgie’s moderators can see this page.');
     return {
       title: 'Moderation',
       brand: 'pixelCircle',

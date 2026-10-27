@@ -73,14 +73,14 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 2, 'bootstrap', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
 
   // posts, moderation
-  const kys = await api(A, 'POST', '/api/posts', { n: 'asknook', title: 'kys everyone', type: 'text' });
+  const kys = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'kys everyone', type: 'text' });
   ok(kys.status === 422 && kys.json.rule, 'server blocks threats', kys.json.rule);
   const noNook = await api(A, 'POST', '/api/posts', { n: 'nope', title: 'Hello there', type: 'text' });
   ok(noNook.status === 404, 'post needs a real nook');
-  const post = await api(A, 'POST', '/api/posts', { n: 'asknook', title: 'What is your favourite bread?', body: 'Mine is **sourdough**.', type: 'text', flair: 'Fun' });
+  const post = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'What is your favourite bread?', body: 'Mine is **sourdough**.', type: 'text', flair: 'Fun' });
   ok(post.status === 200 && post.json.post.score === 1 && post.json.post.flair === 'Fun', 'alice posts (with her own upvote)', post.json.post && post.json.post.id);
   const P = post.json.post.id;
-  const again = await api(A, 'POST', '/api/posts', { n: 'asknook', title: 'What is your favourite bread?', type: 'text' });
+  const again = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'What is your favourite bread?', type: 'text' });
   ok(again.status === 422 && /already posted/.test(again.json.error), 'duplicate post blocked', again.json.error);
   const png = 'data:image/png;base64,' + Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8cfc0f01f0005000201a3e5f9e60000000049454e44ae426082', 'hex').toString('base64');
   const img = await api(B, 'POST', '/api/posts', { n: 'photography', title: 'A tiny photo', type: 'image', image: png });

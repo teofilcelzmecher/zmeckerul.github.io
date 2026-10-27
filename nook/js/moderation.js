@@ -182,7 +182,7 @@
       if (!result.block) result.block = { rule: RULES[rule], why };
     };
 
-    if (SLURS.test(folded)) stop('hate', 'This contains a slur. Nook doesn’t allow words that attack people for who they are.');
+    if (SLURS.test(folded)) stop('hate', 'This contains a slur. Budgie doesn’t allow words that attack people for who they are.');
     if (THREATS.some((re) => re.test(folded))) stop('threat', 'This reads as a threat, or as telling someone to hurt themselves.');
 
     const links = (all.match(/(?:https?:\/\/|www\.)/gi) || []).length;

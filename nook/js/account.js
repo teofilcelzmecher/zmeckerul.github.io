@@ -37,7 +37,7 @@
 
   const SCREENS = {
     signin: (o) =>
-      `<form class="gate-card" novalidate>${head('Welcome back', o.message ? esc(o.message) : 'Sign in to Nook.')}` +
+      `<form class="gate-card" novalidate>${head('Welcome back', o.message ? esc(o.message) : 'Sign in to Budgie.')}` +
       field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required') +
       passwordField('g-pass', 'Password', 'current-password') +
       '<p class="gate-msg" role="status"></p>' +
@@ -46,12 +46,12 @@
       legal + '</form>',
 
     signup: () =>
-      `<form class="gate-card" novalidate>${head('Join Nook', 'Nook is invite-only for now. You’ll need the 6-digit code a friend gave you.')}` +
+      `<form class="gate-card" novalidate>${head('Join Budgie', 'Budgie is invite-only for now. You’ll need the 6-digit code a friend gave you.')}` +
       '<div class="gate-field"><span id="g-invite-label">Invite code</span><label class="gate-code">' +
       '<input id="g-invite" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-labelledby="g-invite-label" spellcheck="false">' +
       '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(6) + '</span></label><small class="gate-error" data-for="g-invite"></small></div>' +
       field('g-name', 'Pick a username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required aria-describedby="g-name-hint"') +
-      '<small class="gate-hint" id="g-name-hint">3–20 letters, numbers or underscores. Everyone on Nook sees it.</small>' +
+      '<small class="gate-hint" id="g-name-hint">3–20 letters, numbers or underscores. Everyone on Budgie sees it.</small>' +
       passwordField('g-pass', 'Password (at least 8 characters)', 'new-password') +
       '<label class="gate-check"><input type="checkbox" id="g-age"><span>I’m at least 13. Where my country requires it, a parent or guardian has said yes.</span></label>' +
       '<label class="gate-check"><input type="checkbox" id="g-terms"><span>I agree to the <a href="terms.html" target="_blank">Terms of Use</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</span></label>' +
@@ -67,7 +67,7 @@
       '<p class="gate-msg" role="status"></p>' +
       `<button class="m3-btn filled gate-go" type="submit">${icon('lock_reset')}Reset password</button>` +
       '<p class="gate-links"><button type="button" class="link" data-go="signin">Back to sign in</button></p>' +
-      '<p class="gate-hint">Lost the code too? Ask the person who runs Nook to reset your password.</p></form>',
+      '<p class="gate-hint">Lost the code too? Ask the person who runs Budgie to reset your password.</p></form>',
 
     recovery: (o) =>
       `<form class="gate-card" novalidate>${head('Save your recovery code', 'If you ever forget your password, this code gets you back in. It’s shown only now, so write it down or keep it in your password manager.', 'gem')}` +
@@ -77,17 +77,17 @@
       `<button class="m3-btn filled gate-go" type="submit" disabled>${icon('arrow_forward')}Continue</button></form>`,
 
     loading: () =>
-      `<div class="gate-card">${head('Opening Nook…', '')}<m3-loading aria-label="Loading"></m3-loading></div>`,
+      `<div class="gate-card">${head('Opening Budgie…', '')}<m3-loading aria-label="Loading"></m3-loading></div>`,
 
     offline: (o) =>
-      `<div class="gate-card">${head(o.setup ? 'Almost there' : 'Can’t reach Nook', o.setup ? 'Nook’s server hasn’t been connected yet. Check back soon.' : esc(o.message || 'Nook’s server isn’t answering. It may be restarting, or your connection may be down.'), 'pixelCircle')}` +
+      `<div class="gate-card">${head(o.setup ? 'Almost there' : 'Can’t reach Budgie', o.setup ? 'Budgie’s server hasn’t been connected yet. Check back soon.' : esc(o.message || 'Budgie’s server isn’t answering. It may be restarting, or your connection may be down.'), 'pixelCircle')}` +
       (o.setup ? '' : `<button class="m3-btn filled gate-go" type="button" data-retry>${icon('refresh')}Try again</button>`) + legal + '</div>',
   };
 
   function show(name, options = {}) {
     const root = frame();
     root.innerHTML = SCREENS[name](options);
-    document.title = 'Nook · Early access';
+    document.title = 'Budgie · Early access';
     const form = root.querySelector('form');
     root.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
     root.querySelectorAll('[data-show]').forEach((b) =>

@@ -41,9 +41,12 @@
         return at('popular');
       case 'explore':
         return at('explore');
-      case 'n':
-        if (parts[2] === 'p' && parts[3]) return at('postPage', { nook: parts[1], post: parts[3] });
-        return at('community', { nook: parts[1] });
+      case 'n': {
+        // the two starter nests renamed with the app (Nook became Budgie): old links still work
+        const id = { nookhq: 'budgiehq', asknook: 'askbudgie' }[parts[1]] || parts[1];
+        if (parts[2] === 'p' && parts[3]) return at('postPage', { nook: id, post: parts[3] });
+        return at('community', { nook: id });
+      }
       case 'u':
         return at('profile', { user: parts[1] });
       case 'saved':
@@ -205,7 +208,7 @@
     main.innerHTML = view.html;
     // a view transition moves the page itself; without one it fades up
     if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
-    document.title = `${view.title} · Nook`;
+    document.title = `${view.title} · Budgie`;
 
     // the app wears the nook it is in, and the brand takes its shape
     const wear = viewNook && S().themeNooks ? viewNook.color : null;
@@ -885,10 +888,10 @@
     const joined = store.state.joined.includes(c.id);
     M3.menu(btn, [
       { label: 'Create a post here', symbol: 'edit', onSelect: () => go('#/submit?n=' + c.id) },
-      { label: 'About this nook', symbol: 'info', onSelect: () => nookAbout(c) },
-      { label: 'Copy link', symbol: 'link', onSelect: () => share('#/n/' + c.id, 'nook') },
+      { label: 'About this nest', symbol: 'info', onSelect: () => nookAbout(c) },
+      { label: 'Copy link', symbol: 'link', onSelect: () => share('#/n/' + c.id, 'nest') },
       { separator: true },
-      { label: joined ? 'Leave nook' : 'Join nook', symbol: joined ? 'logout' : 'group_add', destructive: joined, onSelect: () => setJoined(c, !joined) },
+      { label: joined ? 'Leave nest' : 'Join nest', symbol: joined ? 'logout' : 'group_add', destructive: joined, onSelect: () => setJoined(c, !joined) },
     ], { placement: 'bottom-end' });
   };
 
@@ -908,7 +911,7 @@
   /** a sheet of reasons to choose from; resolves with the one picked, or null */
   function pickReason(headline, symbol, text, verb) {
     let reason = null;
-    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nook rules', 'Something else'];
+    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nest rules', 'Something else'];
     return ui.sheet({
       headline,
       symbol,
@@ -927,7 +930,7 @@
   }
 
   async function report(kind, thing) {
-    const reason = await pickReason(`Report this ${kind}`, 'flag', 'Reports go to Nook’s moderators, who will take a look. Thanks for keeping Nook kind.', 'Report');
+    const reason = await pickReason(`Report this ${kind}`, 'flag', 'Reports go to Budgie’s moderators, who will take a look. Thanks for keeping Budgie kind.', 'Report');
     if (!reason) return;
     try {
       await store.report(kind, kind === 'user' ? thing.name : thing.id, reason);
@@ -991,7 +994,7 @@
       shape: 'pixelCircle',
       html:
         ruleHTML(block) +
-        '<p class="muted">Nook checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
+        '<p class="muted">Budgie checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
       actions: [{ label: 'Edit it', variant: 'filled' }],
     });
   }
@@ -1232,7 +1235,7 @@
 
   ACTIONS['sign-out'] = async () => {
     const ok = await M3.dialog({
-      headline: 'Sign out of Nook?',
+      headline: 'Sign out of Budgie?',
       symbol: 'logout',
       iconShape: 'cookie9',
       body: 'You can sign back in any time with your username and password.',
@@ -1404,13 +1407,13 @@
     const model = { color: pickSeed, shape: 'cookie9', symbol: 'forum', category: 'Hobbies' };
     const categories = [...new Set(store.allCommunities().map((c) => c.category))].filter((c) => c !== 'Meta');
     ui.sheet({
-      headline: 'Create a nook',
+      headline: 'Create a nest',
       symbol: 'castle',
       shape: 'softBurst',
       className: 'wide',
       html:
         '<div class="nook-preview" id="np"><m3-shape-icon id="np-icon" shape="cookie9" symbol="forum" size="72" icon-size="34"></m3-shape-icon>' +
-        '<div class="np-text"><b class="m3-title" id="np-title">Your nook</b><span class="muted" id="np-id">n/your_nook</span><span id="np-tag" class="muted">A cosy corner for…</span></div></div>' +
+        '<div class="np-text"><b class="m3-title" id="np-title">Your nest</b><span class="muted" id="np-id">n/your_nest</span><span id="np-tag" class="muted">A cosy corner for…</span></div></div>' +
         '<div class="split">' +
         '<div class="field"><label for="nn-id">Name (n/…)</label><input class="m3-field" id="nn-id" maxlength="21" placeholder="pottery_club" autocomplete="off" autofocus><span class="error" id="nn-id-err"></span></div>' +
         '<div class="field"><label for="nn-title">Display title</label><input class="m3-field" id="nn-title" maxlength="40" placeholder="Pottery Club"></div></div>' +
@@ -1429,8 +1432,8 @@
         retint();
         const slug = () => idInput.value.trim().toLowerCase();
         const sync = () => {
-          body.querySelector('#np-title').textContent = titleInput.value.trim() || (slug() ? slug().replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Your nook');
-          body.querySelector('#np-id').textContent = 'n/' + (slug() || 'your_nook');
+          body.querySelector('#np-title').textContent = titleInput.value.trim() || (slug() ? slug().replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Your nest');
+          body.querySelector('#np-id').textContent = 'n/' + (slug() || 'your_nest');
           body.querySelector('#np-tag').textContent = tagInput.value.trim() || 'A cosy corner for…';
         };
         [idInput, titleInput, tagInput].forEach((el) => el.addEventListener('input', sync));
@@ -1456,7 +1459,7 @@
       actions: [
         { label: 'Cancel', value: null },
         {
-          label: 'Create nook',
+          label: 'Create nest',
           variant: 'filled',
           symbol: 'castle',
           run(close, body) {
@@ -1473,11 +1476,11 @@
               return false;
             }
             const title = body.querySelector('#nn-title').value.trim() || id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-            const tagline = body.querySelector('#nn-tag').value.trim() || `A brand new nook about ${title.toLowerCase()}.`;
+            const tagline = body.querySelector('#nn-tag').value.trim() || `A brand new nest about ${title.toLowerCase()}.`;
             const verdict = Nook.mod.check([id.replace(/_/g, ' '), title, tagline], { kind: 'nook' });
             const problem =
               verdict.block ||
-              (verdict.strong && { why: 'Keep swearing out of a nook’s name and description: everyone sees them.' }) ||
+              (verdict.strong && { why: 'Keep swearing out of a nest’s name and description: everyone sees them.' }) ||
               verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
             if (problem) {
               err.textContent = problem.why;
@@ -1623,7 +1626,7 @@
         '</div>' +
         `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
         `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
-        '<span class="error" id="ep-photo-err"></span><small class="muted">Everyone on Nook can see your photo.</small></div>' +
+        '<span class="error" id="ep-photo-err"></span><small class="muted">Everyone on Budgie can see your photo.</small></div>' +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>`,
       setup(body) {
@@ -1762,21 +1765,21 @@
     const points = [
       ['forum', 'cookie6', 'Everything here is written by people. No bots, no made-up posts, no padded numbers.'],
       ['favorite', 'heart', 'Vote, add Sparks to what you love, and save the good stuff into collections.'],
-      ['palette', 'flower', 'Every nook has its own colour and shape, and Nook wears them as you move around.'],
-      ['add_circle', 'clover4', 'Can’t find your people? Start a nook of your own.'],
-      ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Nook’s own small server, not a big company’s.'],
+      ['palette', 'flower', 'Every nest has its own colour and shape, and Budgie wears them as you move around.'],
+      ['add_circle', 'clover4', 'Can’t find your people? Start a nest of your own.'],
+      ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Budgie’s own small server, not a big company’s.'],
     ];
     ui.sheet({
-      headline: 'What’s Nook?',
+      headline: 'What’s Budgie?',
       symbol: 'diversity_3',
       shape: 'cookie9',
       html:
-        '<p class="muted" style="margin-top:0">A home for communities, called nooks.</p><ul class="about-nook">' +
+        '<p class="muted" style="margin-top:0">A home for communities, called nests.</p><ul class="about-nook">' +
         points.map(([symbol, shape, text]) => `<li><m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon><span>${text}</span></li>`).join('') +
         '</ul>',
       actions: [
         { label: 'Close', variant: 'text' },
-        { label: 'Find your nooks', variant: 'filled', run: () => { go('#/explore'); } },
+        { label: 'Find your nests', variant: 'filled', run: () => { go('#/explore'); } },
       ],
     });
   };
@@ -1802,7 +1805,7 @@
         `<ul class="credits credits-lead">${person(CREDITS.creator, 56, CREDITS.creator.role)}</ul>` +
         '<h3 class="credits-heading">Testers and supporters</h3>' +
         `<ul class="credits">${CREDITS.testers.map((p) => person(p, 40, 'Tester and supporter')).join('')}</ul>` +
-        `<p class="muted credits-foot">Nook ${esc(store.VERSION)} · Thank you for helping make it.</p>`,
+        `<p class="muted credits-foot">Budgie ${esc(store.VERSION)} · Thank you for helping make it.</p>`,
       setup(body) {
         fx.stagger([...body.querySelectorAll('li')], { y: 10, step: 60 });
       },
@@ -1813,7 +1816,7 @@
   // ---- storage and cookies: said once, plainly ----------------------------------------------------
 
   function storageNotice({ banner = false } = {}) {
-    const text = 'Nook keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Nook’s server. No cookies, no ads, no tracking.';
+    const text = 'Budgie keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Budgie’s server. No cookies, no ads, no tracking.';
     if (!banner) {
       ui.sheet({
         headline: 'Storage and cookies',
@@ -1851,7 +1854,7 @@
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `nook-${store.state.me.name}.json`;
+    a.download = `budgie-${store.state.me.name}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     M3.toast('Exported', { symbol: 'download', shape: 'pixelCircle' });
@@ -1908,7 +1911,7 @@
       model.nook = c;
       if (!(c.flairs || []).includes(model.flair)) model.flair = null;
       $('#nook-picker', root).innerHTML = `${nookIcon(c, 32, 18)}<span>n/${esc(c.id)}</span>${icon('expand_more')}`;
-      $('#f-flairs', root).innerHTML = (c.flairs || []).map((f) => `<button type="button" class="chip" data-flair="${esc(f)}" aria-pressed="${f === model.flair}">${esc(f)}</button>`).join('') || '<span class="muted">This nook has no flairs.</span>';
+      $('#f-flairs', root).innerHTML = (c.flairs || []).map((f) => `<button type="button" class="chip" data-flair="${esc(f)}" aria-pressed="${f === model.flair}">${esc(f)}</button>`).join('') || '<span class="muted">This nest has no flairs.</span>';
       $('#submit-rail', root).innerHTML = views.submitRail(c);
       viewNook = c;
       ui.theme.setRoot(S().themeNooks ? c.color : null);
@@ -2304,7 +2307,7 @@
   let offline = 0;
   store.on('sync-failed', (error) => {
     offline++;
-    if (offline === 2) M3.snackbar(error.offline ? 'Can’t reach Nook’s server right now. Your changes may not save until it’s back.' : error.message);
+    if (offline === 2) M3.snackbar(error.offline ? 'Can’t reach Budgie’s server right now. Your changes may not save until it’s back.' : error.message);
   });
   store.on('error', (error) => showError(error));
   store.on('changed', () => render());
@@ -2336,7 +2339,7 @@
       headline: 'Time for a breather?',
       symbol: 'self_improvement',
       iconShape: 'heart',
-      body: `You’ve been on Nook for about ${S().breakMinutes} minutes. Stretch, sip some water, look at something far away. The nooks will still be here.`,
+      body: `You’ve been on Budgie for about ${S().breakMinutes} minutes. Stretch, sip some water, look at something far away. The nests will still be here.`,
       actions: [{ label: '5 more minutes', value: 'snooze' }, { label: 'Take a break', value: 'break', variant: 'filled' }],
     }).then((choice) => {
       if (choice === 'snooze') nudgeAt = looked + 5 * 60;

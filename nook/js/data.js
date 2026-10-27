@@ -7,9 +7,9 @@
 window.NOOK_DATA = {
   communities: [
     {
-      id: 'nookhq', title: 'Nook HQ', color: '#6750a4', shape: 'cookie9', symbol: 'campaign', category: 'Meta',
-      tagline: 'Ideas, feedback and questions about Nook itself.',
-      description: 'Tell us what you would change about Nook, report something that broke, or suggest a feature.',
+      id: 'budgiehq', title: 'Budgie HQ', color: '#6750a4', shape: 'cookie9', symbol: 'campaign', category: 'Meta',
+      tagline: 'Ideas, feedback and questions about Budgie itself.',
+      description: 'Tell us what you would change about Budgie, report something that broke, or suggest a feature.',
       rules: ['Feedback is welcome, cruelty is not', 'One idea per post makes voting fair', 'Describe bugs step by step'],
       flairs: ['Idea', 'Feedback', 'Bug', 'Question'],
     },
@@ -63,7 +63,7 @@ window.NOOK_DATA = {
       flairs: ['Ride report', 'Repair', 'Gear', 'Route'],
     },
     {
-      id: 'bookclub', title: 'Book Nook', color: '#b98c00', shape: 'clamShell', symbol: 'menu_book', category: 'Books',
+      id: 'bookclub', title: 'Book Nest', color: '#b98c00', shape: 'clamShell', symbol: 'menu_book', category: 'Books',
       tagline: 'Reading together, one chapter at a time.',
       description: 'Talk about the books you love, the one you are reading, and the pile you mean to get to.',
       rules: ['Spoiler-tag plot details', 'Recommendations need a reason', 'All genres welcome'],
@@ -91,9 +91,9 @@ window.NOOK_DATA = {
       flairs: ['Trip report', 'Itinerary', 'Question', 'Tip'],
     },
     {
-      id: 'asknook', title: 'Ask Nook', color: '#c2185b', shape: 'softBurst', symbol: 'forum', category: 'Discussion',
+      id: 'askbudgie', title: 'Ask Budgie', color: '#c2185b', shape: 'softBurst', symbol: 'forum', category: 'Discussion',
       tagline: 'Ask anything. Seriously, anything.',
-      description: 'Open-ended questions for everyone on Nook.',
+      description: 'Open-ended questions for everyone on Budgie.',
       rules: ['Questions only in titles', 'No personal info', 'Serious tag means serious answers'],
       flairs: ['Serious', 'Fun', 'Poll'],
     },

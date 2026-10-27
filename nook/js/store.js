@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.2.0';
+  const VERSION = '0.2.1';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -28,17 +28,17 @@
   ];
 
   const BADGES = [
-    { id: 'hello', name: 'Hello, Nook', desc: 'Visited Nook for the first time', shape: 'cookie9', symbol: 'waving_hand' },
+    { id: 'hello', name: 'Hello, Budgie', desc: 'Visited Budgie for the first time', shape: 'cookie9', symbol: 'waving_hand' },
     { id: 'streak3', name: 'Regular', desc: 'Kept a 3-day visit streak', shape: 'heart', symbol: 'local_fire_department' },
     { id: 'streak7', name: 'Devoted', desc: 'Kept a 7-day visit streak', shape: 'burst', symbol: 'whatshot' },
     { id: 'firstpost', name: 'First words', desc: 'Made your first post', shape: 'sunny', symbol: 'edit' },
     { id: 'chatty', name: 'Conversationalist', desc: 'Left 5 comments', shape: 'clover4', symbol: 'forum' },
-    { id: 'joiner', name: 'Social butterfly', desc: 'Joined 8 nooks', shape: 'flower', symbol: 'diversity_3' },
-    { id: 'explorer', name: 'Explorer', desc: 'Visited 6 different nooks', shape: 'arch', symbol: 'explore' },
+    { id: 'joiner', name: 'Social butterfly', desc: 'Joined 8 nests', shape: 'flower', symbol: 'diversity_3' },
+    { id: 'explorer', name: 'Explorer', desc: 'Visited 6 different nests', shape: 'arch', symbol: 'explore' },
     { id: 'pollster', name: 'Voice of the people', desc: 'Voted in a poll', shape: 'pill', symbol: 'how_to_vote' },
     { id: 'sparky', name: 'Sparky', desc: 'Gave 10 Sparks', shape: 'boom', symbol: 'auto_awesome' },
     { id: 'curator', name: 'Curator', desc: 'Made a collection', shape: 'gem', symbol: 'collections_bookmark' },
-    { id: 'founder', name: 'Founder', desc: 'Created a nook', shape: 'softBurst', symbol: 'castle' },
+    { id: 'founder', name: 'Founder', desc: 'Created a nest', shape: 'softBurst', symbol: 'castle' },
     { id: 'friendly', name: 'Friendly', desc: 'Made your first friend', shape: 'heart', symbol: 'diversity_1' },
   ];
 
@@ -331,7 +331,7 @@
       try {
         fn(detail);
       } catch (error) {
-        console.error('nook:', type, error);
+        console.error('budgie:', type, error);
       }
     }
   }

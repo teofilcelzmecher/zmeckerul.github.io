@@ -24,7 +24,7 @@ const date = (t) => (t ? new Date(t).toISOString().slice(0, 16).replace('T', ' '
 const COMMANDS = {
   help() {
     out(
-      'Nook admin commands:',
+      'Budgie admin commands:',
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
       '  nook users                       list accounts',
@@ -69,7 +69,7 @@ const COMMANDS = {
   admin(name) {
     const u = userNamed(name);
     db.run("UPDATE users SET role = 'admin', rev = ? WHERE id = ?", db.bump(), u.id);
-    out(`u/${u.name} is now an admin. They'll see the Moderation page after reloading Nook.`);
+    out(`u/${u.name} is now an admin. They'll see the Moderation page after reloading Budgie.`);
   },
 
   unadmin(name) {
@@ -80,7 +80,7 @@ const COMMANDS = {
 
   ban(name, ...reason) {
     const u = userNamed(name);
-    nook.ban(u.name, reason.join(' ') || 'Broke Nook’s rules', true);
+    nook.ban(u.name, reason.join(' ') || 'Broke Budgie’s rules', true);
     out(`u/${u.name} is banned and signed out everywhere.`);
   },
 
@@ -101,7 +101,7 @@ const COMMANDS = {
 
   remove(kind, id, ...reason) {
     if (!['post', 'comment'].includes(kind) || !id) quit('Usage: nook remove <post|comment> <id> [reason]');
-    if (!nook.takeDown(kind, id, reason.join(' ') || 'Breaks Nook’s rules')) quit(`No ${kind} ${id}, or it's already removed.`);
+    if (!nook.takeDown(kind, id, reason.join(' ') || 'Breaks Budgie’s rules')) quit(`No ${kind} ${id}, or it's already removed.`);
     out(`Removed ${kind} ${id}; its author has been told why.`);
   },
 
@@ -115,7 +115,7 @@ const COMMANDS = {
     const count = (sql) => db.get(sql).n;
     const size = fs.statSync(path.join(nook.CONFIG.data, 'nook.db')).size;
     out(
-      `Nook ${nook.VERSION}, database ${(size / 1024 / 1024).toFixed(1)} MB in ${nook.CONFIG.data}`,
+      `Budgie ${nook.VERSION}, database ${(size / 1024 / 1024).toFixed(1)} MB in ${nook.CONFIG.data}`,
       `  accounts:  ${count('SELECT COUNT(*) AS n FROM users')}`,
       `  posts:     ${count('SELECT COUNT(*) AS n FROM posts WHERE removed_at IS NULL')}`,
       `  comments:  ${count('SELECT COUNT(*) AS n FROM comments WHERE removed_at IS NULL')}`,

@@ -25,7 +25,7 @@ const { promisify } = require('node:util');
 const { open } = require('./db');
 const mod = require('../js/moderation.js');
 
-const VERSION = '0.2.0';
+const VERSION = '0.2.1';
 const TERMS = '2026-10-27';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -41,7 +41,7 @@ const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const SESSION_IDLE = 90 * DAY;
-const DEFAULT_JOINS = ['nookhq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'asknook'];
+const DEFAULT_JOINS = ['budgiehq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'askbudgie'];
 const SPARK_KINDS = ['love', 'insight', 'funny', 'fire', 'wow'];
 const COLORS = ['#6750a4', '#e8467c', '#ff8a3d', '#1db954', '#3d7bff', '#00a6a6'];
 const SHAPES = ['cookie9', 'flower', 'heart', 'clover4', 'puffy', 'sunny'];
@@ -55,6 +55,17 @@ const STARTERS = (() => {
 })();
 
 const db = open(CONFIG.data);
+
+// two starter nests were renamed with the app (Nook became Budgie): what was in them moves along, once
+for (const [was, now] of [['nookhq', 'budgiehq'], ['asknook', 'askbudgie']]) {
+  if (!db.get('SELECT 1 AS x FROM posts WHERE nook = ? UNION ALL SELECT 1 FROM joins WHERE nook = ?', was, was)) continue;
+  db.tx(() => {
+    for (const p of db.all('SELECT id FROM posts WHERE nook = ?', was)) db.run('UPDATE posts SET nook = ?, rev = ? WHERE id = ?', now, db.bump(), p.id);
+    db.run('UPDATE OR IGNORE joins SET nook = ? WHERE nook = ?', now, was);
+    db.run('DELETE FROM joins WHERE nook = ?', was);
+    db.run('UPDATE notes SET href = ? || substr(href, ?) WHERE href LIKE ?', `#/n/${now}/`, `#/n/${was}/`.length + 1, `#/n/${was}/%`);
+  });
+}
 
 // invite codes are only 6 digits, so they're stored keyed with a secret that never leaves this
 // computer: a copy of the database alone isn't enough to work them out
@@ -422,7 +433,7 @@ route('GET', '/api/account/export', ({ user }) => {
   const id = user.id;
   return {
     exportedAt: new Date().toISOString(),
-    note: 'Everything Nook’s server holds about your account. Images are linked; open each link to download it.',
+    note: 'Everything Budgie’s server holds about your account. Images are linked; open each link to download it.',
     profile: Object.assign(meOut(user), { termsAccepted: user.terms }),
     settings: JSON.parse(user.prefs || '{}'),
     nooksJoined: db.all('SELECT nook, created_at AS joinedAt FROM joins WHERE user_id = ?', id),
@@ -540,7 +551,7 @@ route('POST', '/api/posts', ({ user, body }) => {
   limit('post:' + user.id, 20, HOUR, 'That’s a lot of posts. Take a break and try again later.');
   const n = text(body.n, 30);
   const nook = nookData(n);
-  if (!nook) fail(404, 'That nook doesn’t exist.');
+  if (!nook) fail(404, 'That nest doesn’t exist.');
   const type = ['text', 'image', 'link', 'poll'].includes(body.type) ? body.type : 'text';
   const title = text(body.title, 300);
   const postBody = text(body.body, 10000);
@@ -705,12 +716,12 @@ route('POST', '/api/polls', ({ user, body }) => {
 // nooks -----------------------------------------------------------------------------------------------------
 
 route('POST', '/api/nooks', ({ user, body }) => {
-  limit('nook:' + user.id, 3, DAY, 'You can create up to 3 nooks a day.');
+  limit('nook:' + user.id, 3, DAY, 'You can create up to 3 nests a day.');
   const id = text(body.id, 30).toLowerCase();
   if (!/^[a-z0-9_]{3,21}$/.test(id)) fail(400, 'Use 3–21 letters, numbers or underscores.', { field: 'id' });
   if (nookExists(id)) fail(409, `n/${id} already exists. Try another name.`, { field: 'id' });
   const title = text(body.title, 60) || id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  const tagline = text(body.tagline, 200) || `A brand new nook about ${title.toLowerCase()}.`;
+  const tagline = text(body.tagline, 200) || `A brand new nest about ${title.toLowerCase()}.`;
   vet([id.replace(/_/g, ' '), title, tagline], { kind: 'nook' }, { strongNames: true, personal: true });
   const data = {
     title, tagline, description: text(body.description, 500) || tagline,
@@ -731,7 +742,7 @@ route('POST', '/api/nooks', ({ user, body }) => {
 
 route('POST', '/api/joins', ({ user, body }) => {
   const nook = text(body.nook, 30);
-  if (!nookExists(nook)) fail(404, 'That nook doesn’t exist.');
+  if (!nookExists(nook)) fail(404, 'That nest doesn’t exist.');
   if (body.on) db.run('INSERT OR IGNORE INTO joins (user_id, nook, created_at) VALUES (?, ?, ?)', user.id, nook, now());
   else db.run('DELETE FROM joins WHERE user_id = ? AND nook = ?', user.id, nook);
   return { members: members()[nook] || 0 };
@@ -898,14 +909,14 @@ function takeDown(kind, id, reason) {
     const p = db.get('SELECT * FROM posts WHERE id = ?', id);
     if (!p || p.removed_at) return false;
     removePost(p, reason);
-    if (p.author_id) notify(p.author_id, { kind: 'moderation', text: `A moderator removed your post “${p.title.slice(0, 60)}”. Reason: ${reason}. If you think this was a mistake, contact Nook.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
+    if (p.author_id) notify(p.author_id, { kind: 'moderation', text: `A moderator removed your post “${p.title.slice(0, 60)}”. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   if (kind === 'comment') {
     const c = db.get('SELECT * FROM comments WHERE id = ?', id);
     if (!c || c.removed_at) return false;
     db.run("UPDATE comments SET body = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), c.id);
-    if (c.author_id) notify(c.author_id, { kind: 'moderation', text: `A moderator removed your comment. Reason: ${reason}. If you think this was a mistake, contact Nook.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
+    if (c.author_id) notify(c.author_id, { kind: 'moderation', text: `A moderator removed your comment. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   if (kind === 'message') {
@@ -942,13 +953,13 @@ route('POST', '/api/admin/resolve', ({ body }) => {
 }, { admin: true });
 
 route('POST', '/api/admin/remove', ({ body }) => {
-  const reason = text(body.reason, 200) || 'Breaks Nook’s rules';
+  const reason = text(body.reason, 200) || 'Breaks Budgie’s rules';
   if (!takeDown(body.kind, text(body.id, 60), reason)) fail(404, 'That’s already gone.');
   return { ok: true };
 }, { admin: true });
 
 route('POST', '/api/admin/ban', ({ body }) => {
-  ban(text(body.name, 40), text(body.reason, 200) || 'Broke Nook’s rules', body.on !== false);
+  ban(text(body.name, 40), text(body.reason, 200) || 'Broke Budgie’s rules', body.on !== false);
   return { ok: true };
 }, { admin: true });
 
@@ -1028,7 +1039,7 @@ async function handle(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
     res.setHeader('Access-Control-Max-Age', '86400');
   } else if (origin && req.method !== 'GET') {
-    fail(403, 'This site isn’t allowed to use Nook’s server.');
+    fail(403, 'This site isn’t allowed to use Budgie’s server.');
   }
   if (req.method === 'OPTIONS') {
     res.writeHead(204);
@@ -1066,7 +1077,7 @@ const server = http.createServer((req, res) => {
   handle(req, res).catch((error) => {
     if (error instanceof HttpError) return send(res, error.status, Object.assign({ error: error.message }, error.extra));
     console.error(new Date().toISOString(), req.method, req.url.split('?')[0], error);
-    send(res, 500, { error: 'Something went wrong on Nook’s server. Try again in a moment.' });
+    send(res, 500, { error: 'Something went wrong on Budgie’s server. Try again in a moment.' });
   });
 });
 server.requestTimeout = 30000;
@@ -1074,7 +1085,7 @@ server.headersTimeout = 15000;
 
 if (require.main === module) {
   server.listen(CONFIG.port, CONFIG.host, () => {
-    console.log(`Nook server ${VERSION} on http://${CONFIG.host}:${CONFIG.port}, data in ${CONFIG.data}, allowing ${CONFIG.origins.join(', ')}`);
+    console.log(`Budgie server ${VERSION} on http://${CONFIG.host}:${CONFIG.port}, data in ${CONFIG.data}, allowing ${CONFIG.origins.join(', ')}`);
   });
   const stop = () => server.close(() => (db.close(), process.exit(0)));
   process.on('SIGTERM', stop);

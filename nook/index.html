@@ -5,8 +5,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Nook</title>
-  <meta name="description" content="Nook: communities with their own colours and shapes. Join nooks, post, vote, spark and chat.">
+  <title>Budgie</title>
+  <meta name="description" content="Budgie: communities with their own colours and shapes. Join nests, post, vote, spark and chat.">
   <meta name="theme-color" content="#fdf7ff">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="../m3/fonts/fonts.css">
@@ -20,13 +20,13 @@
   <header class="topbar" id="topbar">
     <button class="m3-toolbar-btn only-narrow" id="menu-btn" data-effect="nudge-right" data-shape="cookie7" aria-label="Open navigation" aria-controls="drawer" aria-expanded="false"><span class="m3-icon">menu</span></button>
     <button class="m3-toolbar-btn" id="search-back" data-effect="nudge-left" data-shape="cookie7" aria-label="Close search"><span class="m3-icon">arrow_back</span></button>
-    <a class="brand" href="#/" aria-label="Nook home">
+    <a class="brand" href="#/" aria-label="Budgie home">
       <m3-shape id="brand-shape" shape="cookie9" aria-hidden="true"></m3-shape>
-      <span class="m3-title brand-word">nook</span>
+      <span class="m3-title brand-word">budgie</span>
     </a>
     <form class="m3-search topbar-search" id="search-form" role="search">
       <span class="m3-icon">search</span>
-      <input type="search" id="search-input" placeholder="Search posts, nooks and people" autocomplete="off" enterkeyhint="search">
+      <input type="search" id="search-input" placeholder="Search posts, nests and people" autocomplete="off" enterkeyhint="search">
       <button type="button" class="m3-icon-btn small m3-search-clear" aria-label="Clear search"><span class="m3-icon">close</span></button>
     </form>
     <div class="topbar-actions">
@@ -42,7 +42,7 @@
   <div class="layout">
     <nav class="drawer" id="drawer" aria-label="Main navigation">
       <div class="drawer-head">
-        <a class="brand" href="#/" aria-label="Nook home"><m3-shape id="drawer-brand" shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-title brand-word">nook</span></a>
+        <a class="brand" href="#/" aria-label="Budgie home"><m3-shape id="drawer-brand" shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-title brand-word">budgie</span></a>
         <button class="m3-toolbar-btn" id="drawer-close" data-effect="spin" data-shape="cookie7" aria-label="Close navigation"><span class="m3-icon">close</span></button>
       </div>
       <a class="drawer-me" id="drawer-me" href="#/" data-m3-ripple></a>
@@ -57,14 +57,14 @@
       <a class="nav-item" href="#/admin" data-nav="admin" data-admin-only hidden data-m3-ripple><span class="nav-ind"><span class="m3-icon">shield_person</span></span><span class="nav-label">Moderation</span></a>
       <a class="nav-item only-phone" href="#/settings" data-nav="settings" data-m3-ripple><span class="nav-ind"><span class="m3-icon">settings</span></span><span class="nav-label">Settings</span></a>
       </div>
-      <div class="nav-heading"><span>Your nooks</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
+      <div class="nav-heading"><span>Your nests</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
       <div id="nav-nooks"></div>
-      <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nook"><span class="nav-ind"><span class="m3-icon">add_circle</span></span><span class="nav-label">Create a nook</span></button>
+      <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nest"><span class="nav-ind"><span class="m3-icon">add_circle</span></span><span class="nav-label">Create a nest</span></button>
       <div class="recent-block" id="nav-recent"></div>
       <div class="nav-foot">
         <a href="#/settings" class="not-phone">Settings</a>
         <button type="button" data-act="shortcuts" class="not-phone">Shortcuts</button>
-        <button type="button" data-act="about-nook">What’s Nook?</button>
+        <button type="button" data-act="about-nook">What’s Budgie?</button>
         <a href="../m3/">Design system</a>
       </div>
     </nav>

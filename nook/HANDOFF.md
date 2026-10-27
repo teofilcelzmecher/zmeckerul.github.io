@@ -1,6 +1,6 @@
-# Nook: where things stand
+# Budgie (formerly Nook): where things stand
 
-Read this first when picking Nook up again (a new chat, or after a long break).
+Read this first when picking Budgie up again (a new chat, or after a long break).
 
 ## Where everything lives
 
@@ -13,7 +13,8 @@ Read this first when picking Nook up again (a new chat, or after a long break).
 
 ## Versions
 
-- **Live:** 0.2.0 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
+- **Name:** the app is **Budgie** and its communities are **nests** (still `n/…`). It was called Nook until 0.2.1. Only what people see was renamed: the code, CSS classes, storage keys, the folder `nook/`, the server's `nook` command, service, user and paths, and the live repository's name all still say nook. The starter nests `nookhq` and `asknook` became `budgiehq` and `askbudgie` (the server moves their posts once; old links redirect).
+- **Live:** 0.2.1 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
   It has accounts, friends, messages, live updates, reports and a Moderation page.
 - **Earlier:** 0.1.2 was local-only, behind a client-side code gate. It's gone, and its eight codes don't work on the server.
 
@@ -33,7 +34,7 @@ Read this first when picking Nook up again (a new chat, or after a long break).
 ## Rules to keep
 
 - **Commits:** author `teofilcelzmecher <217388809+teofilcelzmecher@users.noreply.github.com>`, no AI attribution lines. Use the GitHub handle, not a real name, in code and copyright lines.
-- **Design system (`m3/`):** GPL-3.0-or-later, ported from Swiftify with its authors' permission. Each `m3` file keeps "Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors" at the top, plus the credit and the link to https://github.com/swiftify-org/swiftify. Keep it separate from Nook's own code, which is all rights reserved (`nook/LICENSE`).
+- **Design system (`m3/`):** GPL-3.0-or-later, ported from Swiftify with its authors' permission. Each `m3` file keeps "Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors" at the top, plus the credit and the link to https://github.com/swiftify-org/swiftify. Keep it separate from Budgie's own code, which is all rights reserved (`nook/LICENSE`).
 - **Nothing from other companies:** fonts and the colour library are self-hosted (OFL and Apache license texts ship with them). Keep the Content Security Policy in the HTML pages.
 - **No fake content:** no made-up people, posts or numbers.
 - **Credits:** Teofil Ionescu-Mihai, creator and main developer. Alex Vochin, Petcu David Andrei and Crisu Radu, testers and supporters.

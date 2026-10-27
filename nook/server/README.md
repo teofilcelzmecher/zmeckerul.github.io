@@ -1,6 +1,9 @@
-# Nook's server
+# Budgie's server
 
-Accounts, posts, comments, votes, nooks, friends and messages, kept in one SQLite file. It's plain
+The app used to be called Nook, so on the laptop its command, service, user and folders are still
+called `nook`. Only the name people see changed.
+
+Accounts, posts, comments, votes, nests, friends and messages, kept in one SQLite file. It's plain
 Node.js (22.5 or newer) with nothing to download from npm, and it uses about 50–80 MB of memory, so
 an old laptop is plenty.
 
@@ -11,7 +14,7 @@ HTTPS: free, no router changes, a fixed address, and your home IP address stays 
 
 Plug the laptop in and connect it to the internet, then open a terminal.
 
-1. **Update the system and get Nook's code**
+1. **Update the system and get Budgie's code**
 
    ```sh
    sudo pacman -Syu git
@@ -24,9 +27,9 @@ Plug the laptop in and connect it to the internet, then open a terminal.
    sudo /opt/nook/server/install.sh
    ```
 
-   This installs Node.js and Tailscale, creates a `nook` system user, starts Nook as a service that
+   This installs Node.js and Tailscale, creates a `nook` system user, starts Budgie as a service that
    restarts by itself (and after a reboot), sets up nightly backups, and stops the laptop sleeping when
-   the lid closes. It ends with "Nook's server is running".
+   the lid closes. It ends with "Budgie's server is running".
 
 3. **Put it on the internet**
 
@@ -95,7 +98,7 @@ To restore: `sudo systemctl stop nook`, copy the backup over `/var/lib/nook/nook
 
 ## Good to know
 
-- **Keep it plugged in and on.** If the laptop is off, Nook is off too: the app says it can't reach the server.
+- **Keep it plugged in and on.** If the laptop is off, Budgie is off too: the app says it can't reach the server.
 - **Updates:** run `sudo pacman -Syu` every week or two, and reboot if the kernel updated.
 - **Security:** the server answers only the app's own website (`NOOK_ORIGINS`), stores passwords with
   scrypt, keeps only a hash of each sign-in token and recovery code, and enforces the same moderation rules as the app.

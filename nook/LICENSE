@@ -1,14 +1,14 @@
-Nook
+Budgie
 Copyright (C) 2026 teofilcelzmecher. All rights reserved.
 
-This code is published so people can see how Nook works (and, for the design system, because
+This code is published so people can see how Budgie works (and, for the design system, because
 its license requires the source to be available). It is not open source. Unless a file or
 folder is listed below, you may not copy, modify, redistribute, host or otherwise use any part
-of Nook (its code, text, styles or design) without written permission from the copyright holder.
+of Budgie (its code, text, styles or design) without written permission from the copyright holder.
 
 These parts are under their own licenses instead:
 
-- m3/m3.js, m3/m3.css, m3/m3-shapes.js and m3/index.html: Nook's design system, ported from
+- m3/m3.js, m3/m3.css, m3/m3-shapes.js and m3/index.html: Budgie's design system, ported from
   Swiftify. GNU General Public License, version 3 or (at your option) any later version; see
   m3/LICENSE.
   Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Installs Nook's server on Arch Linux. Run it from the copy of the repository in /opt/nook:
+# Installs Budgie's server on Arch Linux. Run it from the copy of the repository in /opt/nook:
 #
 #   sudo git clone https://github.com/teofilcelzmecher/nook-early-access-website /opt/nook
 #   sudo /opt/nook/server/install.sh
@@ -18,7 +18,7 @@ ORIGINS="${NOOK_ORIGINS:-https://teofilcelzmecher.github.io}"
 DATA=/var/lib/nook
 
 if [[ "$REPO" == /home/* ]]; then
-  echo "Nook's code is in your home folder ($REPO), which the server can't read."
+  echo "Budgie's code is in your home folder ($REPO), which the server can't read."
   echo "Put it in /opt/nook instead:"
   echo "  sudo git clone https://github.com/teofilcelzmecher/nook-early-access-website /opt/nook"
   echo "  sudo /opt/nook/server/install.sh"
@@ -30,7 +30,7 @@ step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 step "Installing Node.js, SQLite and Tailscale"
 pacman -S --needed --noconfirm nodejs sqlite tailscale git
 if ! node -e 'require("node:sqlite")' 2>/dev/null; then
-  echo "This Node.js ($(node --version)) is too old: Nook needs 22.5 or newer. Run: sudo pacman -Syu"
+  echo "This Node.js ($(node --version)) is too old: Budgie needs 22.5 or newer. Run: sudo pacman -Syu"
   exit 1
 fi
 NODE="$(command -v node)"
@@ -43,7 +43,7 @@ chmod -R a+rX "$REPO"
 step "Installing the nook service"
 cat > /etc/systemd/system/nook.service <<EOF
 [Unit]
-Description=Nook server
+Description=Budgie server
 After=network-online.target
 Wants=network-online.target
 
@@ -78,7 +78,7 @@ EOF
 step "Nightly backups (kept for 14 days in $DATA/backups)"
 cat > /usr/local/lib/nook-backup <<EOF
 #!/bin/sh
-# Copies Nook's database to $DATA/backups once a day and keeps the last 14 days.
+# Copies Budgie's database to $DATA/backups once a day and keeps the last 14 days.
 set -e
 file="$DATA/backups/nook-\$(date +%F).db"
 [ -e "\$file" ] || NOOK_DATA=$DATA $NODE --disable-warning=ExperimentalWarning $REPO/server/cli.js backup "\$file"
@@ -87,7 +87,7 @@ EOF
 chmod 755 /usr/local/lib/nook-backup
 cat > /etc/systemd/system/nook-backup.service <<EOF
 [Unit]
-Description=Back up Nook's database
+Description=Back up Budgie's database
 
 [Service]
 Type=oneshot
@@ -97,7 +97,7 @@ ExecStart=/usr/local/lib/nook-backup
 EOF
 cat > /etc/systemd/system/nook-backup.timer <<EOF
 [Unit]
-Description=Back up Nook's database every night
+Description=Back up Budgie's database every night
 
 [Timer]
 OnCalendar=*-*-* 03:30:00
@@ -110,10 +110,10 @@ EOF
 step "The nook command (invites, bans, backups, updates)"
 cat > /usr/local/bin/nook <<EOF
 #!/bin/sh
-# Nook's admin command. Try: sudo nook help
+# Budgie's admin command. Try: sudo nook help
 [ "\$(id -u)" -eq 0 ] || exec sudo "\$0" "\$@"
 case "\$1" in
-  update) cd $REPO && git pull --ff-only && chmod -R a+rX $REPO && systemctl restart nook && echo "Nook is updated and restarted." ; exit ;;
+  update) cd $REPO && git pull --ff-only && chmod -R a+rX $REPO && systemctl restart nook && echo "Budgie is updated and restarted." ; exit ;;
   logs) exec journalctl -u nook -f ;;
   status) exec systemctl status nook ;;
   restart) systemctl restart nook && echo "Restarted." ; exit ;;
@@ -125,7 +125,7 @@ chmod 755 /usr/local/bin/nook
 step "Keeping the laptop awake (it's a server now)"
 install -d /etc/systemd/logind.conf.d
 cat > /etc/systemd/logind.conf.d/nook-server.conf <<'EOF'
-# Nook runs on this laptop: closing the lid must not put it to sleep
+# Budgie runs on this laptop: closing the lid must not put it to sleep
 [Login]
 HandleLidSwitch=ignore
 HandleLidSwitchExternalPower=ignore
@@ -139,7 +139,7 @@ systemctl daemon-reload
 systemctl enable --now nook.service nook-backup.timer tailscaled.service
 sleep 2
 if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null; then
-  echo "Nook's server is running on this laptop (port $PORT)."
+  echo "Budgie's server is running on this laptop (port $PORT)."
 else
   echo "The server didn't answer. See what went wrong with:  ${SUDO_USER:+sudo }nook logs"
   exit 1
