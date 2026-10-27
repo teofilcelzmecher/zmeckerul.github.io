@@ -1786,7 +1786,6 @@
     testers: [
       { name: 'Alex Vochin', color: '#3d7bff', shape: 'cookie9' },
       { name: 'Petcu David Andrei', color: '#00a6a6', shape: 'clover4' },
-      { name: 'Mercuci Camelia', color: '#e8467c', shape: 'gem' },
       { name: 'Crisu Radu', color: '#ff8a3d', shape: 'flower' },
     ],
   };
