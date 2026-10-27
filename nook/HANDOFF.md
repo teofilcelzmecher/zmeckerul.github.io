@@ -13,17 +13,15 @@ Read this first when picking Nook up again (a new chat, or after a long break).
 
 ## Versions
 
-- **Live now:** 0.1.2, local-only (everything in each browser), behind the old client-side invite gate (`js/gate.js`, only on the live site).
-- **Ready, not live yet:** 0.2.0 with the server: accounts, friends, messages, live updates, reports and a Moderation page. The live repository already holds `server/`, so the laptop can install it.
+- **Live:** 0.2.0 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
+  It has accounts, friends, messages, live updates, reports and a Moderation page.
+- **Earlier:** 0.1.2 was local-only, behind a client-side code gate. It's gone, and its eight codes don't work on the server.
 
-## Switching the live site to 0.2.0 (once the owner sends the `.ts.net` address)
+## Updating the live site
 
-1. Set `api: 'https://….ts.net'` in `nook/js/config.js`. No trailing slash.
-2. Check `https://….ts.net/api/health` answers `{"ok":true,...}`.
-3. Build into a clone of the live repository: `python3 nook/tools/build-site.py <source repo root> <nook-early-access-website clone>`.
-   This replaces the app files; `js/gate.js` stays behind unused, so delete it.
-4. Commit and push both repositories. Then the owner runs `nook invite 1 "for me"`, signs up, runs `nook admin NAME`, and makes friends new codes with `nook invite 8 "friends"`.
-   The eight first-test codes don't work on the server: their hashes were public.
+1. Change the code in `nook/` and `m3/` on the source branch. Test it: `node nook/tools/api-test.js` and `node nook/tools/moderation-test.js`.
+2. Build into a clone of the live repository: `python3 nook/tools/build-site.py <source repo root> <nook-early-access-website clone>`. Commit and push both.
+3. Server changes reach the laptop when the owner runs `sudo nook update`.
 
 ## How the code is organised
 
