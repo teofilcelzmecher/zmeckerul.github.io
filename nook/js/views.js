@@ -85,7 +85,7 @@
           const pct = r.total ? Math.round((o.votes / r.total) * 100) : 0;
           const mine = r.chosen === o.index;
           return (
-            `<button class="poll-opt${mine ? ' mine' : ''}" data-act="poll" data-i="${o.index}" style="--p:${pct}%"${r.chosen != null ? ' aria-disabled="true"' : ''}>` +
+            `<button class="poll-opt${mine ? ' mine' : ''}" data-m3-ripple data-act="poll" data-i="${o.index}" style="--p:${pct}%"${r.chosen != null ? ' aria-disabled="true"' : ''}>` +
             `<span class="poll-bar"></span>${mine ? icon('check_circle', 'filled') : ''}<span class="poll-text">${esc(o.text)}</span><span class="poll-pct">${pct}%</span></button>`
           );
         })
@@ -168,7 +168,7 @@
 
     const tint = !inNook ? ` data-tint="${c.color}"` : '';
     return (
-      `<article class="post${open ? ' is-open' : ''}" data-post="${p.id}"${tint}${open ? '' : ` data-href="${href}"`} aria-labelledby="t-${p.id}">` +
+      `<article class="post${open ? ' is-open' : ''}" data-post="${p.id}"${tint}${open ? '' : ` data-href="${href}" data-m3-ripple data-m3-bounce data-m3-hover-root`} aria-labelledby="t-${p.id}">` +
       head + title + thumb(p) + content + sparksRow(p) + actions +
       '</article>'
     );
@@ -191,11 +191,13 @@
       box.innerHTML = emptyHTML || empty('search_off', 'Nothing here yet', 'Try another sort, or come back later.');
       return;
     }
-    const add = () => {
+    const add = (arrive) => {
       const next = list.slice(shown, shown + PAGE);
       box.insertAdjacentHTML('beforeend', next.map((p) => postCard(p, ctx)).join(''));
+      const fresh = [...box.children].slice(shown);
       shown += next.length;
       ui.theme.tintAll(box);
+      if (arrive) Nook.fx.stagger(fresh);
       if (shown >= list.length) {
         stop();
         more.innerHTML = `<div class="feed-end"><m3-wavy-line aria-hidden="true"></m3-wavy-line>You’re all caught up</div>`;
@@ -208,7 +210,7 @@
         // a beat for the loading shape to be seen morphing
         setTimeout(() => {
           busy = false;
-          if (box.isConnected) add();
+          if (box.isConnected) add(true);
         }, 420);
       },
       { rootMargin: '300px' }
@@ -219,8 +221,8 @@
     app().trackFeed(() => shown);
     // coming back to a feed, it shows as much as it did before
     const want = app().restoreCount();
-    add();
-    while (shown < want && shown < list.length) add();
+    add(!want && !app().inTransition());
+    while (shown < want && shown < list.length) add(false);
     if (shown < list.length) {
       more.innerHTML = '<m3-loading aria-label="Loading more posts"></m3-loading>';
       observer.observe(more);
@@ -261,7 +263,7 @@
     const mods = (c.mods || []).map((name) => store.user(name));
     return (
       `<section class="card"><h3 class="card-title">${icon('shield_person')}<span>Moderators</span></h3><div class="list">` +
-      mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(u.bio || '')}</small></span></a>`).join('') +
+      mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(u.bio || '')}</small></span></a>`).join('') +
       '</div></section>'
     );
   }
@@ -325,7 +327,7 @@
       list
         .map(
           (c) =>
-            `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple>${nookIcon(c, 36, 19)}<span class="row-text"><b>n/${esc(c.id)}</b><small><span class="count">${num(store.membersOf(c))} members · </span>${esc(c.category)}</small></span>${joinButton(c)}</div>`
+            `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 36, 19)}<span class="row-text"><b>n/${esc(c.id)}</b><small><span class="count">${num(store.membersOf(c))} members · </span>${esc(c.category)}</small></span>${joinButton(c)}</div>`
         )
         .join('') +
       `</div><a class="m3-btn text small" href="#/explore" style="margin-top:6px">${icon('explore')}See all nooks</a></section>`
@@ -512,7 +514,7 @@
         `<button class="m3-btn tonal small only-tablet" data-act="nook-about" data-nook="${c.id}">${icon('info')}About</button>` +
         `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>${compactToggle()}</div>` +
         (flairs.length
-          ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-flair="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join('')}</div>`
+          ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join('')}</div>`
           : '') +
         feedShell() +
         `</div><aside class="rail">${aboutCard(c)}${eventsCard(c)}${rulesCard(c)}${modsCard(c)}${footCard()}</aside></div>`,
@@ -601,7 +603,7 @@
         .sort((a, b) => store.membersOf(b) - store.membersOf(a))
         .map(
           (c) =>
-            `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
+            `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
             `<h3 class="m3-title">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${num(store.membersOf(c))} members · <span class="online-dot"></span>${num(c.online || 1)}</span></div>` +
             `<p>${esc(c.tagline)}</p><m3-wavy-progress value="${c.activity}" playing aria-label="Activity"></m3-wavy-progress></article>`
@@ -622,7 +624,7 @@
           })
           .join('')}</div></section>` +
         `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="clover4" symbol="category" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">All nooks</h2><m3-wavy-line></m3-wavy-line></header>` +
-        `<div class="chips" role="group" aria-label="Category">${cats.map((x) => `<button class="chip" data-cat="${esc(x)}" aria-pressed="${x === cat}">${esc(x)}</button>`).join('')}</div>` +
+        `<div class="chips" role="group" aria-label="Category">${cats.map((x) => `<button class="chip" data-m3-ripple data-cat="${esc(x)}" aria-pressed="${x === cat}">${esc(x)}</button>`).join('')}</div>` +
         `<div class="nook-grid" id="nook-grid">${grid(cat)}</div></section>` +
         '</div></div>',
       mount(root) {
@@ -754,7 +756,7 @@
                   .map((c) => {
                     const p = store.post(c.postId);
                     if (!p) return '';
-                    return `<article class="comment-card" data-href="#/n/${p.n}/p/${p.id}?c=${c.id}" tabindex="0"><div class="cc-head"><b>u/${esc(store.userName(c.author))}</b> in <b>n/${esc(p.n)}</b> · ${ago(c.createdAt)} · on “${esc(plain(p.title, 70))}”</div><div class="md">${md(c.body)}</div><div class="cc-head"><span class="count">${plural(store.commentScore(c), 'point')}</span></div></article>`;
+                    return `<article class="comment-card" data-href="#/n/${p.n}/p/${p.id}?c=${c.id}" data-m3-ripple data-m3-bounce tabindex="0"><div class="cc-head"><b>u/${esc(store.userName(c.author))}</b> in <b>n/${esc(p.n)}</b> · ${ago(c.createdAt)} · on “${esc(plain(p.title, 70))}”</div><div class="md">${md(c.body)}</div><div class="cc-head"><span class="count">${plural(store.commentScore(c), 'point')}</span></div></article>`;
                   })
                   .join('')}</div>`
               : empty('forum', 'No comments yet', me ? 'Jump into a thread and say hi.' : 'Quiet type.');
@@ -780,7 +782,7 @@
           ? `<div class="notes">${notes
               .map(
                 (n) =>
-                  `<button class="note${read.has(n.id) ? '' : ' unread'}" data-act="open-note" data-note="${n.id}" data-href="${esc(n.href || '')}">` +
+                  `<button class="note${read.has(n.id) ? '' : ' unread'}" data-m3-ripple data-act="open-note" data-note="${n.id}" data-href="${esc(n.href || '')}">` +
                   `<m3-shape-icon shape="${n.shape}" symbol="${n.symbol}" size="44" icon-size="22"></m3-shape-icon>` +
                   `<span class="note-text"><span>${esc(n.text)}</span><small>${ago(n.createdAt)}</small></span></button>`
               )
@@ -795,7 +797,7 @@
     const r = store.search(q);
     const tab = params.t || (r.posts.length ? 'posts' : r.nooks.length ? 'nooks' : r.people.length ? 'people' : 'posts');
     const nookRow = (c) =>
-      `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple>${nookIcon(c, 44, 22)}<span class="row-text"><b>${highlight(c.title, q)} · n/${highlight(c.id, q)}</b><small>${highlight(c.tagline, q)}</small></span>${joinButton(c)}</div>`;
+      `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 44, 22)}<span class="row-text"><b>${highlight(c.title, q)} · n/${highlight(c.id, q)}</b><small>${highlight(c.tagline, q)}</small></span>${joinButton(c)}</div>`;
     const personRow = (u) =>
       `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple>${avatar(u, 44)}<span class="row-text"><b>u/${highlight(u.name, q)}</b><small>${highlight(u.bio || '', q)}</small></span></a>`;
     return {
@@ -851,7 +853,8 @@
         `<div class="setting-row"><span class="label">Scheme style</span>${segmented('set-variant', [['tonalSpot', 'Tonal spot'], ['expressive', 'Expressive'], ['vibrant', 'Vibrant'], ['fidelity', 'Fidelity'], ['neutral', 'Neutral']], s.variant, 'Scheme style')}</div>` +
         sw('set-themeNooks', 'Wear each nook’s colours', 'The whole app re-themes itself when you visit a nook.', s.themeNooks) +
         sw('set-tintPosts', 'Tint posts by their nook', 'In mixed feeds, each card takes its nook’s colours.', s.tintPosts) +
-        sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own. Taps still bounce.', s.reduceMotion) +
+        sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
+        sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
         (ui.theme.offline ? '<p class="muted">Couldn’t load the colour library (offline?), so only the built-in scheme is available right now.</p>' : '') +
         '</div></section>' +
         `<section>${header('cookie9', 'dynamic_feed', 'Feed')}<div class="card setting-card">` +
@@ -872,29 +875,34 @@
         const $ = (sel) => root.querySelector(sel);
         const apply = () => {
           store.save();
-          app().applySettings();
+          return app().applySettings();
+        };
+        // a new look spreads out from what you tapped
+        const spread = (el) => {
+          const r = el.getBoundingClientRect();
+          Nook.fx.reveal(r.left + r.width / 2, r.top + r.height / 2, apply);
         };
         $('#set-mode').addEventListener('change', (e) => {
           s.mode = e.detail.value;
-          apply();
+          spread(e.currentTarget.querySelector('[aria-checked="true"]') || e.currentTarget);
         });
         $('#set-variant').addEventListener('change', (e) => {
           s.variant = e.detail.value;
-          apply();
+          spread(e.currentTarget.querySelector('[aria-checked="true"]') || e.currentTarget);
         });
         $('#set-sort').addEventListener('change', (e) => {
           s.sort = e.detail.value;
           store.save();
         });
-        const pickSeed = (seed) => {
+        const pickSeed = (seed, from) => {
           s.seed = seed;
           root.querySelectorAll('.swatch').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.seed === seed)));
           $('#set-color').value = seed;
-          apply();
+          spread(from);
         };
-        root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pickSeed(b.dataset.seed)));
-        $('#set-color').addEventListener('change', (e) => pickSeed(e.target.value));
-        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm']) {
+        root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pickSeed(b.dataset.seed, b)));
+        $('#set-color').addEventListener('change', (e) => pickSeed(e.target.value, e.target));
+        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics']) {
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();

@@ -219,23 +219,32 @@
 
     /** one element in a nook's colours; `always` for what stands for the nook itself */
     tint(el, seed, always) {
-      if (!seed || (!always && !store.state.settings.tintPosts) || seed.toLowerCase() === this.current) return clearVars(el);
-      this.scheme(seed.toLowerCase()).then(
+      if (!seed || (!always && !store.state.settings.tintPosts) || seed.toLowerCase() === this.current) {
+        clearVars(el);
+        return Promise.resolve();
+      }
+      return this.scheme(seed.toLowerCase()).then(
         (colors) => el.isConnected && M3.color.apply(colors, el),
         () => {}
       );
     },
 
+    /** settles once every tinted element there wears its colours */
     tintAll(root) {
+      const jobs = [];
       for (const el of (root || document).querySelectorAll('[data-tint]')) {
-        this.tint(el, el.dataset.tint, el.hasAttribute('data-tint-always'));
+        jobs.push(this.tint(el, el.dataset.tint, el.hasAttribute('data-tint-always')));
       }
+      return Promise.all(jobs);
     },
 
     clearVars,
   };
 
   // ---- sheets: dialogs that hold a form ---------------------------------------------
+
+  // on a phone a sheet rises from the bottom edge and can be swiped away
+  const phone = () => matchMedia('(max-width: 719px)').matches;
 
   /**
    * a dialog in M3's look that holds anything. `setup(body, close)` fills it;
@@ -246,6 +255,7 @@
       const el = document.createElement('dialog');
       el.className = 'm3-dialog sheet ' + className;
       el.innerHTML =
+        '<div class="sheet-grip" aria-hidden="true"><span></span></div>' +
         (headline
           ? `<div class="m3-dialog-header">${symbol ? `<m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="21" aria-hidden="true"></m3-shape-icon>` : ''}` +
             `<h2 class="m3-title m3-dialog-headline" id="sheet-title">${esc(headline)}</h2></div>`
@@ -260,9 +270,12 @@
         if (settled) return;
         settled = true;
         resolve(value == null ? null : value);
-        const fade = M3.motion.animate(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' });
+        // a phone's sheet drops back down from wherever a swipe left it
+        const fade = phone()
+          ? M3.motion.animate(el, [{ transform: el.style.transform || 'none' }, { transform: 'translateY(105%)' }], { duration: 240, ease: 'emphasizedAccel', fill: 'forwards' })
+          : M3.motion.animate(el, [{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' });
         try {
-          el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards', pseudoElement: '::backdrop' });
+          el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: phone() ? 240 : 120, fill: 'forwards', pseudoElement: '::backdrop' });
         } catch (_) {
           /* the scrim just goes */
         }
@@ -299,11 +312,42 @@
         if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close(null);
       });
 
+      // dragged down by its grip or headline far or fast enough, it goes
+      let drag = null;
+      el.addEventListener('pointerdown', (e) => {
+        if (!phone() || e.button !== 0 || !e.target.closest('.sheet-grip, .m3-dialog-header')) return;
+        drag = { y: e.clientY, t: performance.now(), dy: 0, v: 0 };
+        el.setPointerCapture(e.pointerId);
+      });
+      el.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        const dy = Math.max(0, e.clientY - drag.y);
+        const now = performance.now();
+        drag.v = (dy - drag.dy) / Math.max(1, now - drag.t);
+        drag.dy = dy;
+        drag.t = now;
+        el.style.transform = `translateY(${dy}px)`;
+      });
+      const release = () => {
+        if (!drag) return;
+        const { dy, v } = drag;
+        drag = null;
+        if (dy > 120 || v > 0.7) return close(null);
+        el.style.transform = '';
+        M3.motion.animate(el, [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0px)' }], { duration: 420, ease: 'expressiveDefaultSpatial' });
+      };
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+
       document.body.appendChild(el);
       if (setup) setup(body, close);
       el.showModal();
-      M3.motion.animate(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
-      M3.motion.animate(el, [{ transform: 'scale(0.92)' }, { transform: 'scale(1)' }], { duration: 380, ease: 'expressiveFastSpatial' });
+      if (phone()) {
+        M3.motion.animate(el, [{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 420, ease: 'emphasizedDecel' });
+      } else {
+        M3.motion.animate(el, [{ opacity: 0 }, { opacity: 1 }], { duration: 150 });
+        M3.motion.animate(el, [{ transform: 'scale(0.92)' }, { transform: 'scale(1)' }], { duration: 380, ease: 'expressiveFastSpatial' });
+      }
       try {
         el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 150, pseudoElement: '::backdrop' });
       } catch (_) {

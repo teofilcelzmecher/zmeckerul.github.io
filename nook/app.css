@@ -90,7 +90,13 @@ p {
   background: color-mix(in srgb, var(--m3-background) 84%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   backdrop-filter: blur(16px) saturate(1.3);
-  transition: var(--nook-surface-fade);
+  transition: var(--nook-surface-fade), box-shadow 250ms var(--m3-ease-standard);
+}
+/* scrolled under, the bar lifts off the page */
+.topbar.scrolled {
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--m3-outline-variant) 60%, transparent),
+    0 8px 20px -14px var(--m3-shadow-color);
 }
 
 .brand {
@@ -390,7 +396,11 @@ p {
   height: calc(76px + env(safe-area-inset-bottom, 0px));
   padding: 10px 4px env(safe-area-inset-bottom, 0px);
   background: var(--m3-surface-container);
-  transition: var(--nook-surface-fade);
+  transition: var(--nook-surface-fade), translate 320ms var(--m3-ease-emphasized-decel);
+}
+/* reading down, the bottom bar steps out of the way; scrolling up brings it back */
+body.bars-hidden .bottom-nav {
+  translate: 0 110%;
 }
 .bottom-nav a {
   position: relative;
@@ -613,10 +623,18 @@ p {
   background: var(--m3-surface-container-low);
   color: var(--m3-on-surface);
   cursor: pointer;
-  transition: var(--nook-surface-fade), box-shadow 200ms var(--m3-ease-standard);
+  transition:
+    var(--nook-surface-fade),
+    box-shadow 250ms var(--m3-ease-standard),
+    translate 300ms var(--m3-ease-expressive-default-spatial),
+    scale var(--m3-motion-bounce);
 }
 .post:hover {
   background: var(--m3-surface-container);
+}
+.post[data-href]:hover {
+  translate: 0 -2px;
+  box-shadow: var(--m3-elevation-1);
 }
 .post.is-open {
   cursor: auto;
@@ -734,6 +752,9 @@ mark {
   background: var(--m3-surface-container-highest);
   color: inherit;
   cursor: auto;
+}
+.post-veil > :not(.veil-btn) {
+  transition: filter 520ms var(--m3-ease-emphasized-decel);
 }
 
 /* a whole post can be a spoiler: blurred until you ask */
@@ -1981,10 +2002,11 @@ input[type='color'].color-input::-moz-color-swatch {
   background: linear-gradient(160deg, var(--m3-primary-container) 0, var(--m3-surface-container-low) 46%);
   color: var(--m3-on-surface);
   cursor: pointer;
-  transition: var(--nook-surface-fade), scale var(--m3-motion-bounce);
+  transition: var(--nook-surface-fade), scale var(--m3-motion-bounce), box-shadow 250ms var(--m3-ease-standard);
 }
 .nook-card:hover {
   scale: 1.015;
+  box-shadow: var(--m3-elevation-2);
 }
 .nook-card:active {
   scale: 0.98;
@@ -2487,4 +2509,357 @@ kbd {
   #search-back {
     display: none;
   }
+}
+
+/* ==== motion =================================================================================== */
+
+/* while a new theme spreads out, colours arrive whole rather than mid-fade */
+.fx-still,
+.fx-still * {
+  transition: none !important;
+}
+
+html {
+  /* our own pull to refresh, not the browser's */
+  overscroll-behavior-y: none;
+}
+
+/* ---- page changes: the bars hold still while the page slides the way you went ---- */
+
+html[data-vt='nav'] .topbar {
+  view-transition-name: topbar;
+}
+html[data-vt='nav'] .drawer {
+  view-transition-name: drawer;
+}
+html[data-vt='nav'] .bottom-nav {
+  view-transition-name: bottomnav;
+}
+html[data-vt='nav'] #main {
+  view-transition-name: page;
+}
+::view-transition-old(topbar),
+::view-transition-old(drawer),
+::view-transition-old(bottomnav) {
+  animation: none;
+  opacity: 0;
+}
+::view-transition-new(topbar),
+::view-transition-new(drawer),
+::view-transition-new(bottomnav) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(page) {
+  animation: 170ms var(--m3-ease-emphasized-accel) both nook-page-out;
+}
+::view-transition-new(page) {
+  animation: 420ms var(--m3-ease-emphasized-decel) both nook-page-in;
+}
+html[data-vt-dir='back']::view-transition-old(page) {
+  animation-name: nook-page-out-back;
+}
+html[data-vt-dir='back']::view-transition-new(page) {
+  animation-name: nook-page-in-back;
+}
+html[data-vt-dir='same']::view-transition-old(page) {
+  animation-name: nook-fade-out;
+}
+html[data-vt-dir='same']::view-transition-new(page) {
+  animation-name: nook-fade-in;
+}
+@keyframes nook-page-out {
+  to {
+    opacity: 0;
+    translate: -32px 0;
+  }
+}
+@keyframes nook-page-in {
+  from {
+    opacity: 0;
+    translate: 48px 0;
+  }
+}
+@keyframes nook-page-out-back {
+  to {
+    opacity: 0;
+    translate: 32px 0;
+  }
+}
+@keyframes nook-page-in-back {
+  from {
+    opacity: 0;
+    translate: -48px 0;
+  }
+}
+@keyframes nook-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes nook-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* a tapped post grows into the open post, and shrinks back into the feed */
+::view-transition-group(post-hero) {
+  overflow: clip;
+  border-radius: var(--m3-r-large);
+  animation-duration: 480ms;
+  animation-timing-function: var(--m3-ease-emphasized-decel);
+}
+::view-transition-old(post-hero),
+::view-transition-new(post-hero) {
+  animation-duration: 300ms;
+}
+
+/* a nook's icon flies up into its banner */
+::view-transition-group(nook-hero) {
+  animation-duration: 560ms;
+  animation-timing-function: var(--m3-ease-emphasized-decel);
+}
+::view-transition-old(nook-hero),
+::view-transition-new(nook-hero) {
+  height: 100%;
+  animation-duration: 260ms;
+}
+
+/* a new theme, revealed in a circle: the old one stays underneath until covered */
+html[data-vt='reveal']::view-transition-old(root),
+html[data-vt='reveal']::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* compact and full cards morph into each other */
+html[data-vt='morph']::view-transition-group(*.card) {
+  overflow: clip;
+  border-radius: var(--m3-r-large);
+  animation-duration: 460ms;
+  animation-timing-function: var(--m3-ease-emphasized-decel);
+}
+html[data-vt='morph']::view-transition-old(*.card),
+html[data-vt='morph']::view-transition-new(*.card) {
+  animation-duration: 260ms;
+}
+
+/* ---- navigation: the highlight glides, the pills grow in place ---- */
+
+.nav-glide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-secondary-container);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform var(--nook-spring-snappy, 350ms var(--m3-ease-standard)),
+    width var(--nook-spring-snappy, 350ms var(--m3-ease-standard)),
+    height var(--nook-spring-snappy, 350ms var(--m3-ease-standard)),
+    opacity 200ms var(--m3-ease-standard),
+    background-color 450ms var(--m3-ease-standard);
+}
+.drawer.has-glide .nav-item[aria-current='page'],
+.drawer.has-glide .nav-item[aria-current='page']:hover {
+  background: transparent;
+}
+.drawer .nav-item[aria-current='page'] .nav-ind .m3-icon,
+.bottom-nav a[aria-current='page'] .nav-ind .m3-icon {
+  animation: nook-icon-hop 520ms var(--m3-ease-expressive-fast-spatial) both;
+}
+.bottom-nav a[aria-current='page'] .nav-ind {
+  animation: nook-pill-grow var(--nook-spring-gentle, 500ms var(--m3-ease-emphasized-decel)) both;
+}
+@keyframes nook-pill-grow {
+  from {
+    scale: 0.4 1;
+  }
+}
+@keyframes nook-icon-hop {
+  35% {
+    translate: 0 -3px;
+    scale: 1.12;
+  }
+}
+
+/* ---- a bell that rings when switched on ---- */
+
+.ring .m3-icon {
+  transform-origin: 50% 15%;
+  animation: nook-ring 900ms ease-out both;
+}
+@keyframes nook-ring {
+  10% {
+    rotate: 18deg;
+  }
+  22% {
+    rotate: -15deg;
+  }
+  34% {
+    rotate: 11deg;
+  }
+  46% {
+    rotate: -7deg;
+  }
+  58% {
+    rotate: 4deg;
+  }
+  70%,
+  100% {
+    rotate: 0deg;
+  }
+}
+
+/* ---- back to the top ---- */
+
+.fab-top {
+  position: fixed;
+  right: calc(20px + env(safe-area-inset-right, 0px));
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 66;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--m3-on-primary-container);
+  cursor: pointer;
+  opacity: 0;
+  scale: 0.3;
+  pointer-events: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    opacity 180ms var(--m3-ease-standard),
+    scale var(--nook-spring-lively, 500ms var(--m3-ease-expressive-fast-spatial)),
+    translate 320ms var(--m3-ease-emphasized-decel);
+}
+.fab-top.shown {
+  opacity: 1;
+  scale: 1;
+  pointer-events: auto;
+}
+.fab-top.shown:hover {
+  scale: 1.08;
+}
+.fab-top.shown:active {
+  scale: 0.9;
+}
+.fab-top m3-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-primary-container);
+  filter: drop-shadow(0 3px 6px var(--m3-shadow-color));
+  transition: color 200ms var(--m3-ease-standard);
+}
+.fab-top:hover m3-shape {
+  color: var(--m3-primary-container-hover);
+}
+.fab-top .m3-icon {
+  position: relative;
+}
+
+/* ---- pull to refresh ---- */
+
+.ptr {
+  position: fixed;
+  top: calc(var(--nook-bar) + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 59;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-left: -23px;
+  border-radius: 50%;
+  background: var(--m3-surface-container-high);
+  box-shadow: var(--m3-elevation-2);
+  opacity: 0;
+  translate: 0 -64px;
+  pointer-events: none;
+  transition:
+    translate var(--nook-spring-gentle, 450ms var(--m3-ease-emphasized-decel)),
+    opacity 200ms var(--m3-ease-standard);
+}
+.ptr.pulling {
+  transition: none;
+}
+.ptr m3-shape,
+.ptr m3-loading {
+  width: 30px;
+  height: 30px;
+  color: var(--m3-primary);
+}
+
+/* ---- sheets on phones rise from the bottom and can be swiped away ---- */
+
+.sheet-grip {
+  display: none;
+}
+@media (max-width: 719px) {
+  .m3-dialog.sheet {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 90dvh;
+    margin: auto 0 0;
+    padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 28px 28px 0 0;
+  }
+  .m3-dialog.sheet[open] {
+    gap: 14px;
+  }
+  .sheet-grip {
+    display: grid;
+    flex: none;
+    place-items: center;
+    height: 26px;
+    margin: 0 -20px -6px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .sheet-grip span {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--m3-outline-variant);
+  }
+  .m3-dialog.sheet .m3-dialog-header {
+    touch-action: none;
+  }
+  .fab-top {
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  body.bars-hidden .fab-top {
+    translate: 0 72px;
+  }
+}
+
+/* ---- held still: nothing above moves on its own ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-glide,
+  .fab-top,
+  .ptr,
+  .bottom-nav,
+  .post,
+  .post-veil > * {
+    transition-duration: 1ms !important;
+  }
+  .ring .m3-icon,
+  .drawer .nav-item[aria-current='page'] .nav-ind .m3-icon,
+  .bottom-nav a[aria-current='page'] .nav-ind,
+  .bottom-nav a[aria-current='page'] .nav-ind .m3-icon,
+  .enter {
+    animation: none !important;
+  }
+}
+html[data-m3-reduce-motion] :is(.ring .m3-icon, .nav-ind, .nav-ind .m3-icon, .enter) {
+  animation: none !important;
 }

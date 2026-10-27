@@ -12,6 +12,7 @@
   const store = Nook.store;
   const ui = Nook.ui;
   const views = Nook.views;
+  const fx = Nook.fx;
   const { esc, icon, num, plural, avatar, nookIcon } = ui;
   const S = () => store.state.settings;
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -69,12 +70,15 @@
   let feedShown = () => 0;
   let route = null;
   let viewNook = null;
+  let navigating = false; // drawing a page inside a view transition
+  let pendingShare = null; // what was tapped, to carry over into the next page
   const scrolls = new Map();
 
   const app = (Nook.app = {
     onLeave: (fn) => leaving.push(fn),
     restoreCount: () => (restoring ? restoring.count : 0),
     trackFeed: (fn) => (feedShown = fn),
+    inTransition: () => navigating,
   });
 
   function go(hash, { replace = false } = {}) {
@@ -95,20 +99,74 @@
   window.addEventListener('hashchange', () => {
     const hash = location.hash || '#/';
     scrolls.set(current, { y: scrollY, count: feedShown() });
+    let direction = 'forward';
     if (replacing) {
       stack[stack.length - 1] = hash;
       replacing = false;
       restoring = null;
+      direction = 'same';
     } else if (stack.length > 1 && stack[stack.length - 2] === hash) {
       stack.pop();
       restoring = scrolls.get(hash) || null;
+      direction = 'back';
     } else {
       stack.push(hash);
       restoring = null;
     }
     current = hash;
-    render();
+    navigate(direction);
   });
+
+  // what gets tapped on the way to a new page: a post card grows into the
+  // post, a nook's icon into its banner
+  document.addEventListener(
+    'click',
+    (e) => {
+      const target = e.target instanceof Element ? e.target : null;
+      pendingShare = null;
+      if (!target || e.metaKey || e.ctrlKey) return;
+      const toNook = target.closest('a[href^="#/n/"]:not([href*="/p/"]), [data-href^="#/n/"]:not([data-href*="/p/"])');
+      if (toNook) {
+        const iconEl = toNook.querySelector('m3-shape-icon');
+        if (iconEl) pendingShare = { nookEl: iconEl, at: Date.now() };
+        return;
+      }
+      const card = target.closest('.post[data-href]');
+      if (card && !target.closest('button, input, textarea, label, .author')) pendingShare = { post: card.dataset.post, postEl: card, at: Date.now() };
+    },
+    true
+  );
+
+  /** draws the new page, moving from the old one the way you went */
+  function navigate(direction) {
+    const shared = pendingShare && Date.now() - pendingShare.at < 1500 ? pendingShare : null;
+    pendingShare = null;
+    let postId = shared && shared.post;
+    if (fx.supported()) {
+      if (postId) fx.share(shared.postEl, 'post-hero');
+      // going back, the open post shrinks into its place in the feed
+      const open = direction === 'back' && !postId ? $('.post.is-open', main) : null;
+      if (open) {
+        postId = open.dataset.post;
+        fx.share(open, 'post-hero');
+      }
+      if (shared && shared.nookEl) fx.share(shared.nookEl, 'nook-hero');
+    }
+    fx.transition(
+      'nav',
+      () => {
+        navigating = fx.supported();
+        try {
+          render();
+        } finally {
+          navigating = false;
+        }
+        if (postId) fx.share($(`.post[data-post="${postId}"]`, main), 'post-hero');
+        if (shared && shared.nookEl) fx.share($('.nook-hero .nook-avatar', main), 'nook-hero');
+      },
+      { direction }
+    );
+  }
 
   function render() {
     for (const fn of leaving) {
@@ -134,7 +192,8 @@
     }
     viewNook = view.nook || null;
     main.innerHTML = view.html;
-    if (main.firstElementChild) main.firstElementChild.classList.add('enter');
+    // a view transition moves the page itself; without one it fades up
+    if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
     document.title = `${view.title} · Nook`;
 
     // the app wears the nook it is in, and the brand takes its shape
@@ -158,11 +217,13 @@
     ui.theme.tintAll(main);
     M3.spin.hold('live', !!main.querySelector('[data-live]'));
 
+    // scrolled now, in the same frame, so a view transition captures the page where it will be
     const target = restoring;
     restoring = null;
-    if (target) requestAnimationFrame(() => scrollTo(0, target.y));
+    if (target) scrollTo(0, target.y);
     else if (!route.params.c && route.params.focus !== 'comments') scrollTo(0, 0);
     if (route.view === 'searchPage') searchInput.value = route.params.q || '';
+    onScroll();
   }
   app.render = render;
 
@@ -183,34 +244,75 @@
     $('#nav-recent').innerHTML = recent.length
       ? `<div class="nav-heading"><span>Recently visited</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>${recent.map(row).join('')}`
       : '';
+    placeGlide();
   }
+
+  // in the full drawer the highlight glides from one row to the next
+  const glide = document.createElement('span');
+  glide.className = 'nav-glide';
+  glide.setAttribute('aria-hidden', 'true');
+  drawer.prepend(glide);
+  drawer.classList.add('has-glide');
+
+  function placeGlide() {
+    const here = drawer.querySelector('.nav-item[aria-current="page"]');
+    if (!here || getComputedStyle(glide).display === 'none' || !here.offsetHeight) {
+      glide.style.opacity = '0';
+      return;
+    }
+    // from nowhere it appears in place; from another row it slides
+    const jump = glide.style.opacity !== '1';
+    if (jump) glide.style.transition = 'none';
+    glide.style.transform = `translate(${here.offsetLeft}px, ${here.offsetTop}px)`;
+    glide.style.width = here.offsetWidth + 'px';
+    glide.style.height = here.offsetHeight + 'px';
+    glide.style.opacity = '1';
+    if (jump) {
+      void glide.offsetWidth;
+      glide.style.transition = '';
+    }
+  }
+  addEventListener('resize', () => {
+    glide.style.opacity = '0';
+    placeGlide();
+  });
 
   function renderMe() {
     $('#me-btn').innerHTML = avatar(store.user(store.ME), 36);
   }
 
+  let lastUnread = -1;
   function renderBadges() {
     const n = store.unread();
     for (const id of ['inbox-badge', 'bottom-badge']) {
       const el = document.getElementById(id);
       el.hidden = !n;
       el.textContent = n > 9 ? '9+' : String(n);
+      // a new arrival makes the badge hop
+      if (lastUnread >= 0 && n > lastUnread) fx.pop(el, 0.3);
     }
+    lastUnread = n;
     $('#drawer-unread').textContent = n ? String(n) : '';
   }
 
   function openDrawer() {
     drawer.classList.add('open');
     scrim.hidden = false;
+    fx.play(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: 'ease-out' });
     $('#menu-btn').setAttribute('aria-expanded', 'true');
+    glide.style.opacity = '0';
+    requestAnimationFrame(placeGlide);
     const first = drawer.querySelector('a, button');
     if (first) first.focus({ preventScroll: true });
   }
   function closeDrawer() {
     if (!drawer.classList.contains('open')) return;
     drawer.classList.remove('open');
-    scrim.hidden = true;
     $('#menu-btn').setAttribute('aria-expanded', 'false');
+    fx.settled(fx.play(scrim, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => {
+      if (!drawer.classList.contains('open')) scrim.hidden = true;
+      scrim.getAnimations().forEach((a) => a.cancel());
+    });
   }
 
   $('#menu-btn').addEventListener('click', openDrawer);
@@ -240,10 +342,20 @@
     }, 350);
   });
 
-  $('#theme-btn').addEventListener('click', () => {
-    S().mode = ui.theme.isDark() ? 'light' : 'dark';
-    store.save();
-    applySettings();
+  // light or dark spreads out from the button in a circle
+  $('#theme-btn').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    fx.haptic(6);
+    fx.reveal(r.left + r.width / 2, r.top + r.height / 2, () => {
+      S().mode = ui.theme.isDark() ? 'light' : 'dark';
+      store.save();
+      return applySettings();
+    });
+  });
+
+  // the brand takes a spin home
+  $('.brand').addEventListener('click', () => {
+    fx.play(brandShape, [{ rotate: '0deg', scale: 1 }, { rotate: '200deg', scale: 1.15, offset: 0.5 }, { rotate: '360deg', scale: 1 }], { duration: 700, easing: 'cubic-bezier(.3,0,.2,1)' });
   });
 
   $('#me-btn').addEventListener('click', (e) => {
@@ -261,21 +373,40 @@
   });
 
   function toggleSetting(key) {
-    S()[key] = !S()[key];
-    store.save();
-    applySettings();
+    const flip = () => {
+      S()[key] = !S()[key];
+      store.save();
+      return applySettings();
+    };
+    if (key === 'compact') {
+      // each card on screen morphs between its sizes
+      const onScreen = $$('.feed .post', main).filter((card) => {
+        const r = card.getBoundingClientRect();
+        return r.bottom > -200 && r.top < innerHeight + 200;
+      });
+      if (fx.supported()) {
+        onScreen.slice(0, 14).forEach((card) => {
+          fx.share(card, 'post-' + card.dataset.post);
+          card.style.viewTransitionClass = 'card';
+        });
+      }
+      fx.transition('morph', flip).finished.finally(() => onScreen.forEach((card) => (card.style.viewTransitionClass = '')));
+    } else {
+      flip();
+    }
     if (key === 'calm') M3.toast(S().calm ? 'Calm mode on: no more numbers' : 'Calm mode off', { symbol: 'self_improvement', shape: 'heart' });
   }
 
+  /** puts the settings into effect; settles once every colour is in place */
   function applySettings() {
     const s = S();
     document.body.classList.toggle('calm', !!s.calm);
     document.body.classList.toggle('compact', !!s.compact);
     $$('[data-act="compact"]').forEach((b) => b.setAttribute('aria-pressed', String(!!s.compact)));
     $('#theme-btn .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
-    ui.theme.setRoot(viewNook && s.themeNooks ? viewNook.color : null).then(() => ui.theme.tintAll(document));
     ui.favicon(brandShape.showing, viewNook && s.themeNooks ? viewNook.color : s.seed);
     scheduleBreak();
+    return ui.theme.setRoot(viewNook && s.themeNooks ? viewNook.color : null).then(() => ui.theme.tintAll(document));
   }
   app.applySettings = applySettings;
   ui.systemDark.addEventListener('change', () => S().mode === 'system' && applySettings());
@@ -356,11 +487,15 @@
 
   // ---- votes, sparks, polls, saves ---------------------------------------------------------
 
-  function setVoteBox(box, next, score, dir) {
+  function setVoteBox(box, next, score, dir, pressed) {
+    const was = box.dataset.dir;
     box.dataset.dir = next || '';
     box.querySelector('.up').setAttribute('aria-pressed', String(next === 1));
     box.querySelector('.down').setAttribute('aria-pressed', String(next === -1));
     M3.rollText(box.querySelector('.score'), num(score), { dx: 0, dy: dir > 0 ? 8 : -8 });
+    // the arrow you pressed jumps the way it points, and a fresh vote makes the pill pop
+    if (pressed) fx.nudge(pressed.querySelector('.m3-icon'), dir > 0 ? -6 : 6);
+    if (next && String(next) !== was) fx.pop(box, 0.86);
   }
 
   ACTIONS.vote = (btn) => {
@@ -368,7 +503,9 @@
     if (!p) return;
     const dir = +btn.dataset.dir;
     const next = store.vote(p.id, dir);
-    $$(`.vote[data-post-id="${p.id}"]`).forEach((box) => setVoteBox(box, next, store.score(p), dir));
+    $$(`.vote[data-post-id="${p.id}"]`).forEach((box) => setVoteBox(box, next, store.score(p), dir, box.contains(btn) ? btn : null));
+    if (next === 1) M3.burst(btn, 'play', { count: 7 });
+    fx.haptic(next ? 10 : 5);
   };
 
   ACTIONS.cvote = (btn) => {
@@ -377,26 +514,52 @@
     if (!c) return;
     const dir = +btn.dataset.dir;
     const next = store.voteComment(c.id, dir);
-    setVoteBox(box, next, store.commentScore(c), dir);
+    setVoteBox(box, next, store.commentScore(c), dir, btn);
+    if (next === 1) M3.burst(btn, 'play', { count: 5 });
+    fx.haptic(next ? 8 : 4);
   };
 
-  function refreshSparks(p, popKind) {
-    $$(`[data-post="${p.id}"] .sparks`).forEach((row) => {
-      row.outerHTML = views.sparksRow(p);
-    });
-    if (!popKind) return;
-    const chip = $(`[data-post="${p.id}"] .spark[data-kind="${popKind}"]`);
+  /** a post's sparks, changed in place: counts roll, a new kind springs in, the last of one shrinks away */
+  function refreshSparks(p, kind, { from = null } = {}) {
+    const spark = store.SPARKS.find((s) => s.id === kind);
+    const now = store.sparks(p).find((s) => s.id === kind);
+    for (const row of $$(`[data-post="${p.id}"] .sparks`)) {
+      const chip = row.querySelector(`.spark[data-kind="${kind}"]`);
+      const redraw = () => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = views.sparksRow(p);
+        if (row.isConnected) row.replaceWith(tmp.firstElementChild);
+      };
+      if (chip && now.count > 0) {
+        chip.setAttribute('aria-pressed', String(now.mine));
+        chip.setAttribute('aria-label', `${spark.label}: ${now.count}`);
+        M3.rollText(chip.querySelector('.n'), num(now.count), { dy: now.mine ? -8 : 8 });
+      } else if (chip) {
+        fx.settled(fx.play(chip, [{ scale: 1, opacity: 1 }, { scale: 0.4, opacity: 0 }], { duration: 180, fill: 'forwards' })).then(redraw);
+      } else {
+        redraw();
+      }
+    }
+    fx.haptic(now.mine ? 12 : 5);
+    if (!now.mine) return;
+    const chip = $(`[data-post="${p.id}"] .spark[data-kind="${kind}"]`);
     if (!chip) return;
-    const spark = store.SPARKS.find((s) => s.id === popKind);
-    M3.motion.animate(chip, [{ transform: 'scale(.4)' }, { transform: 'scale(1)' }], { duration: 520, ease: 'expressiveFastSpatial' });
-    requestAnimationFrame(() => M3.burst(chip, spark.burst, { count: 9 }));
+    const land = () => {
+      chip.style.opacity = '';
+      fx.pop(chip, 0.4);
+      M3.burst(chip, spark.burst, { count: 9 });
+    };
+    // picked from the picker, the spark flies down to its place first
+    if (!from) return land();
+    chip.style.opacity = '0';
+    fx.flyTo(from, chip, { shape: spark.shape, color: fx.tone(chip, '--m3-primary'), size: 30, lift: 60, duration: 560 }).then(land);
   }
 
   ACTIONS.react = (btn) => {
     const p = postOf(btn);
     if (!p) return;
-    const on = store.react(p.id, btn.dataset.kind);
-    refreshSparks(p, on ? btn.dataset.kind : null);
+    store.react(p.id, btn.dataset.kind);
+    refreshSparks(p, btn.dataset.kind);
   };
 
   let picker = null;
@@ -443,11 +606,9 @@
     el.addEventListener('click', (e) => {
       const choice = e.target.closest('button[data-kind]');
       if (!choice) return;
-      const spark = store.SPARKS.find((s) => s.id === choice.dataset.kind);
-      const on = store.react(p.id, spark.id);
+      store.react(p.id, choice.dataset.kind);
+      refreshSparks(p, choice.dataset.kind, { from: choice });
       closePicker();
-      refreshSparks(p, on ? spark.id : null);
-      if (on) M3.toast(`Sparked: ${spark.label}`, { symbol: spark.symbol, shape: spark.shape });
     });
     const away = (e) => {
       if (!el.contains(e.target) && !btn.contains(e.target)) closePicker();
@@ -475,9 +636,17 @@
     const fresh = tmp.firstElementChild;
     box.replaceWith(fresh);
     void fresh.offsetWidth;
-    requestAnimationFrame(() => fresh.classList.add('voted'));
+    // the bars spring out and their percentages count up with them
+    requestAnimationFrame(() => {
+      fresh.classList.add('voted');
+      fresh.querySelectorAll('.poll-pct').forEach((el) => fx.countUp(el, parseInt(el.textContent, 10) || 0, { format: (n) => Math.round(n) + '%' }));
+    });
     const mine = fresh.querySelector('.poll-opt.mine');
-    if (mine) M3.burst(mine, 'play', { count: 8 });
+    if (mine) {
+      M3.burst(mine, 'play', { count: 10 });
+      fx.pop(mine.querySelector('.m3-icon'), 0.2);
+    }
+    fx.haptic([8, 50, 8]);
     M3.toast('Vote counted', { symbol: 'how_to_vote', shape: 'pill' });
   };
 
@@ -489,8 +658,31 @@
       b.setAttribute('aria-pressed', String(on));
       b.dataset.tooltip = on ? 'Saved' : 'Save';
     });
-    M3.toast(on ? 'Saved' : 'Removed from saved', { symbol: on ? 'bookmark_added' : 'bookmark_remove', shape: 'clover4' });
+    fx.haptic(on ? 10 : 5);
+    // saved, it flies to Saved, which catches it; where Saved isn't in sight, a toast says so
+    const target = on ? savedTarget() : null;
+    if (on) fx.pop(btn.querySelector('.m3-icon'), 0.5);
+    if (target) {
+      fx.flyTo(btn, target, { shape: 'clover4', size: 24 }).then((flew) => {
+        if (!flew) return M3.toast('Saved', { symbol: 'bookmark_added', shape: 'clover4' });
+        fx.pop(target, 0.7);
+        fx.haptic(6);
+      });
+    } else {
+      M3.toast(on ? 'Saved' : 'Removed from saved', { symbol: on ? 'bookmark_added' : 'bookmark_remove', shape: 'clover4' });
+    }
   };
+
+  /** the Saved tab, wherever it can be seen right now */
+  function savedTarget() {
+    return (
+      $$('[data-nav="saved"] .nav-ind').find((el) => {
+        const r = el.getBoundingClientRect();
+        const bar = el.closest('nav');
+        return r.width > 0 && r.left >= 0 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(bar).visibility !== 'hidden';
+      }) || null
+    );
+  }
 
   async function share(hash, what) {
     const ok = await ui.copy(ui.linkTo(hash));
@@ -508,20 +700,16 @@
 
   ACTIONS.unveil = (btn) => {
     const veil = btn.closest('.post-veil');
-    veil.classList.remove('is-veiled');
+    fx.haptic(6);
+    fx.settled(fx.play(btn, [{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8 }], { duration: 160, fill: 'forwards' })).then(() => veil.classList.remove('is-veiled'));
   };
 
   ACTIONS.compact = () => toggleSetting('compact');
 
   // ---- menus on posts, comments and nooks ----------------------------------------------------
 
-  function removeCard(card) {
-    if (!card) return;
-    const out = M3.motion.animate(card, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.94)' }], { duration: 200, fill: 'forwards' });
-    const done = () => card.remove();
-    if (out) out.finished.then(done, done);
-    else done();
-  }
+  // a card leaves, then the ones below close the gap
+  const removeCard = (card) => fx.collapseOut(card);
 
   ACTIONS['post-menu'] = (btn) => {
     const p = postOf(btn);
@@ -672,25 +860,41 @@
 
   // ---- joining, bells, events ------------------------------------------------------------------
 
-  function setJoined(c, on) {
+  function setJoined(c, on, from) {
     const joined = store.join(c.id, on);
+    let origin = null;
     $$(`[data-act="join"][data-nook="${c.id}"]`).forEach((b) => {
+      const width = b.getBoundingClientRect().width;
       const tmp = document.createElement('div');
       tmp.innerHTML = views.joinButton(c, b.classList.contains('small'));
       const fresh = tmp.firstElementChild;
       b.replaceWith(fresh);
-      if (joined) {
-        M3.motion.animate(fresh, [{ transform: 'scale(.85)' }, { transform: 'scale(1)' }], { duration: 500, ease: 'expressiveFastSpatial' });
-        if (fresh.isConnected && fresh.getBoundingClientRect().width) M3.burst(fresh, 'playlist', { count: 8 });
+      if (b === from) origin = fresh;
+      // the button eases to its new width as its words change, and its symbol turns in
+      const to = fresh.getBoundingClientRect().width;
+      if (width && to && Math.abs(width - to) > 1) {
+        fresh.style.overflow = 'hidden';
+        fx.settled(fx.play(fresh, [{ width: width + 'px' }, { width: to + 'px' }], { duration: fx.gentle.duration, easing: fx.gentle.easing })).then(() => (fresh.style.overflow = ''));
       }
+      fx.play(fresh.querySelector('.m3-icon'), [{ rotate: joined ? '-120deg' : '120deg', scale: 0.2 }, { rotate: '0deg', scale: 1 }], { duration: fx.lively.duration, easing: fx.lively.easing });
+      if (joined && fresh.getBoundingClientRect().width) M3.burst(fresh, 'playlist', { count: 8 });
     });
     renderDrawerNooks();
-    M3.toast(joined ? `Joined n/${c.id}` : `Left n/${c.id}`, { symbol: joined ? c.symbol : 'logout', shape: c.shape });
+    fx.haptic(joined ? [10, 40, 10] : 6);
+    // joined, its icon flies into Your nooks, where its new row slides in to catch it
+    const row = joined ? $(`#nav-nooks a[href="#/n/${c.id}"]`) : null;
+    const catcher = row && row.querySelector('m3-shape-icon');
+    if (row) fx.play(row, [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'none' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
+    const flight = origin && catcher ? fx.flyTo(origin, catcher, { shape: c.shape, color: c.color, size: 28 }) : Promise.resolve(false);
+    flight.then((flew) => {
+      if (flew) fx.pop(catcher, 0.3);
+      else M3.toast(joined ? `Joined n/${c.id}` : `Left n/${c.id}`, { symbol: joined ? c.symbol : 'logout', shape: c.shape });
+    });
   }
 
   ACTIONS.join = (btn) => {
     const c = store.community(btn.dataset.nook);
-    if (c) setJoined(c, !store.state.joined.includes(c.id));
+    if (c) setJoined(c, !store.state.joined.includes(c.id), btn);
   };
 
   ACTIONS.bell = (btn) => {
@@ -698,6 +902,11 @@
     const on = store.bell(c.id);
     btn.setAttribute('aria-pressed', String(on));
     btn.querySelector('.m3-icon').textContent = on ? 'notifications_active' : 'notifications';
+    // switched on, the bell rings
+    btn.classList.remove('ring');
+    void btn.offsetWidth;
+    if (on) btn.classList.add('ring');
+    fx.haptic(on ? [6, 60, 6] : 5);
     M3.toast(on ? `You’ll hear about events in n/${c.id}` : `Event alerts off for n/${c.id}`, { symbol: on ? 'notifications_active' : 'notifications_off', shape: c.shape });
   };
 
@@ -711,9 +920,13 @@
       tmp.innerHTML = views.eventRow(ev, c, row.hasAttribute('data-show-nook'));
       row.replaceWith(tmp.firstElementChild);
     });
+    fx.haptic(on ? 10 : 5);
     if (on) {
       const fresh = $(`.event[data-event="${ev.id}"] [data-act="rsvp"]`);
-      if (fresh) M3.burst(fresh, 'pin', { count: 8 });
+      if (fresh) {
+        M3.burst(fresh, 'pin', { count: 8 });
+        fx.pop(fresh, 0.8);
+      }
       store.notify({ kind: 'event', symbol: ev.symbol, shape: c.shape, text: `You’re going to “${ev.title}” in n/${c.id}. We’ll remind you.`, href: '#/n/' + c.id });
     }
     M3.toast(on ? 'See you there!' : 'RSVP cancelled', { symbol: on ? 'event_available' : 'event_busy', shape: c.shape });
@@ -737,14 +950,22 @@
     return el.querySelectorAll('.c-children .comment').length;
   }
 
+  // a thread folds shut, or opens back up, instead of jumping
   function toggleCollapse(el) {
-    const collapsed = el.classList.toggle('collapsed');
-    const note = el.querySelector(':scope > .c-main > .c-head .c-hidden');
-    const n = descendants(el);
-    if (note) note.textContent = collapsed ? `· ${n ? plural(n, 'reply', 'replies') + ' hidden' : 'collapsed'}` : '';
-    const thread = el.querySelector(':scope > .c-side > .c-thread');
-    if (thread) thread.setAttribute('aria-label', collapsed ? 'Expand this thread' : 'Collapse this thread');
-    if (!collapsed) M3.motion.animate(el.querySelector(':scope > .c-main'), [{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 });
+    let collapsed = false;
+    fx.flipHeight(el, () => {
+      collapsed = el.classList.toggle('collapsed');
+      const note = el.querySelector(':scope > .c-main > .c-head .c-hidden');
+      const n = descendants(el);
+      if (note) note.textContent = collapsed ? `· ${n ? plural(n, 'reply', 'replies') + ' hidden' : 'collapsed'}` : '';
+      const thread = el.querySelector(':scope > .c-side > .c-thread');
+      if (thread) thread.setAttribute('aria-label', collapsed ? 'Expand this thread' : 'Collapse this thread');
+    });
+    if (!collapsed) {
+      fx.play(el.querySelector(':scope > .c-main'), [{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 });
+      fx.play(el.querySelector(':scope > .c-children'), [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: fx.decel });
+    }
+    fx.haptic(5);
   }
   ACTIONS.collapse = (btn) => toggleCollapse(btn.closest('.comment'));
 
@@ -784,7 +1005,10 @@
       const c = store.addOwnComment(p.id, parentId, text);
       textarea.value = '';
       rerenderComments();
+      // the new comment opens into the thread
+      fx.expand(document.getElementById('c-' + c.id));
       jumpToComment(c.id);
+      fx.haptic(10);
       M3.toast(parentId ? 'Reply posted' : 'Comment posted', { symbol: 'chat', shape: 'clover4' });
     });
   }
@@ -795,12 +1019,13 @@
     const c = store.commentsById.get(el.dataset.comment);
     const box = el.querySelector(':scope > .c-main > .c-reply');
     if (box.firstElementChild) {
-      box.innerHTML = '';
+      fx.flipHeight(box, () => (box.innerHTML = ''));
       return;
     }
     box.innerHTML = views.replyBox(`Reply to ${store.userName(c.author)}…`, 'Reply');
     wireReplyBox(box.querySelector('form'), store.post(c.postId), c.id);
-    box.querySelector('textarea').focus();
+    fx.expand(box);
+    box.querySelector('textarea').focus({ preventScroll: true });
   };
 
   ACTIONS['reply-cancel'] = (btn) => {
@@ -814,8 +1039,10 @@
       const main = box.parentElement;
       main.querySelector(':scope > .c-body').hidden = false;
       main.querySelector(':scope > .c-actions').hidden = false;
+      box.innerHTML = '';
+      return;
     }
-    box.innerHTML = '';
+    fx.flipHeight(box, () => (box.innerHTML = ''));
   };
 
   ACTIONS['hide-highlights'] = (btn) => removeCard(btn.closest('.highlights'));
@@ -840,7 +1067,11 @@
     store.save();
     btn.className = `m3-btn ${on ? 'tonal' : 'filled'}`;
     btn.innerHTML = `${icon(on ? 'how_to_reg' : 'person_add')}${on ? 'Following' : 'Follow'}`;
-    if (on) M3.burst(btn, 'hearts', { count: 8 });
+    if (on) {
+      M3.burst(btn, 'hearts', { count: 8 });
+      fx.pop(btn, 0.85);
+    }
+    fx.haptic(on ? 10 : 5);
     M3.toast(on ? `Following u/${name}` : `Unfollowed u/${name}`, { symbol: on ? 'how_to_reg' : 'person_remove', shape: 'heart' });
   };
 
@@ -849,7 +1080,11 @@
   ACTIONS['read-all'] = () => {
     store.markRead();
     renderBadges();
-    render();
+    // the unread ones settle one after another
+    $$('.note.unread', main).forEach((note, i) => setTimeout(() => note.classList.remove('unread'), fx.reduced() ? 0 : i * 70));
+    const count = $('.page-head .muted', main);
+    if (count) M3.rollText(count, plural(0, 'unread notification'));
+    fx.haptic(8);
     M3.toast('All caught up', { symbol: 'done_all', shape: 'clover4' });
   };
 
@@ -976,7 +1211,11 @@
             setTimeout(() => {
               go('#/n/' + c.id);
               M3.toast(`Welcome to n/${c.id}, founder!`, { symbol: c.symbol, shape: c.shape });
-              setTimeout(() => M3.burst(brandShape, 'play', { count: 14 }), 300);
+              // a nook is born: confetti in its own shape and colours
+              setTimeout(() => {
+                fx.confetti($('.nook-hero .nook-avatar', main) || { x: innerWidth / 2, y: innerHeight / 3 }, { shapes: [c.shape, c.shape, 'sunny', 'heart'], count: 40, power: 1.2 });
+                fx.haptic([12, 60, 12, 60, 20]);
+              }, 450);
             }, 140);
             return c.id;
           },
@@ -1452,6 +1691,14 @@
       if (!store.saveNow() && p.image) M3.snackbar('Posted, but this browser couldn’t store the image. It may vanish after a reload.');
       go(`#/n/${p.n}/p/${p.id}`, { replace: true });
       M3.toast(`Posted to n/${p.n}`, { symbol: 'send', shape: model.nook.shape });
+      // the new post lands with a little confetti in its nook's shape
+      setTimeout(() => {
+        const card = $('.post.is-open', main);
+        if (!card) return;
+        fx.pop(card, 0.94);
+        fx.confetti(card.querySelector('.post-title') || card, { shapes: [model.nook.shape, 'sunny', 'heart', 'cookie9'], count: 26 });
+        fx.haptic([10, 60, 20]);
+      }, 380);
     });
   };
 
@@ -1587,7 +1834,8 @@
   store.on('badge', (badge) => {
     setTimeout(() => {
       M3.toast(`Badge unlocked: ${badge.name}`, { symbol: badge.symbol, shape: badge.shape, timeout: 3200 });
-      M3.burst({ x: innerWidth / 2, y: innerHeight - (innerWidth < 720 ? 130 : 60) }, 'play', { count: 14 });
+      fx.confetti({ x: innerWidth / 2, y: innerHeight - (innerWidth < 720 ? 130 : 60) }, { shapes: [badge.shape, badge.shape, 'sunny'], count: 24, power: 0.9 });
+      fx.haptic([8, 50, 8]);
     }, 600);
   });
 
@@ -1626,6 +1874,131 @@
       }
     });
   }, 15000);
+
+  // ---- scrolling: a lifted top bar, a bottom bar that steps aside, a way back up ------------------------
+
+  const fab = document.createElement('button');
+  fab.type = 'button';
+  fab.className = 'fab-top';
+  fab.setAttribute('aria-label', 'Back to top');
+  fab.dataset.tooltip = 'Back to top';
+  fab.innerHTML = '<m3-shape shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-icon" aria-hidden="true">arrow_upward</span>';
+  document.body.appendChild(fab);
+  fab.addEventListener('click', () => {
+    fx.haptic(8);
+    fx.play(fab.querySelector('m3-shape'), [{ rotate: '0deg' }, { rotate: '360deg' }], { duration: 800, easing: 'cubic-bezier(.3,0,.2,1)' });
+    scrollTo({ top: 0, behavior: fx.reduced() ? 'auto' : 'smooth' });
+  });
+
+  let lastY = scrollY;
+  let ticking = false;
+  function onScroll() {
+    const y = scrollY;
+    topbar.classList.toggle('scrolled', y > 4);
+    fab.classList.toggle('shown', !!main.querySelector('[data-feed]') && y > innerHeight * 1.2);
+    // on a phone the bottom bar steps aside while you read on, and comes back as you go up
+    const delta = y - lastY;
+    if (y < 80 || delta < -6) document.body.classList.remove('bars-hidden');
+    else if (delta > 8) document.body.classList.add('bars-hidden');
+    lastY = y;
+  }
+  addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        onScroll();
+      });
+    },
+    { passive: true }
+  );
+
+  // ---- pull to refresh, on touch screens ------------------------------------------------------------
+
+  const ptr = document.createElement('div');
+  ptr.className = 'ptr';
+  ptr.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(ptr);
+  const PULL = 80;
+  let pull = null;
+
+  function resetPull() {
+    ptr.classList.remove('pulling', 'refreshing');
+    ptr.style.translate = '';
+    ptr.style.opacity = '';
+    ptr.innerHTML = '<m3-shape shape="cookie9"></m3-shape>';
+  }
+  resetPull();
+
+  addEventListener(
+    'touchstart',
+    (e) => {
+      pull = null;
+      if (e.touches.length !== 1 || scrollY > 0 || ptr.classList.contains('refreshing')) return;
+      if (!main.querySelector('[data-feed]') || drawer.classList.contains('open') || document.querySelector('dialog[open]')) return;
+      pull = { x: e.touches[0].clientX, y: e.touches[0].clientY, d: 0, active: false, armed: false };
+    },
+    { passive: true }
+  );
+  addEventListener(
+    'touchmove',
+    (e) => {
+      if (!pull) return;
+      const dy = e.touches[0].clientY - pull.y;
+      const dx = e.touches[0].clientX - pull.x;
+      if (!pull.active) {
+        // only a pull that heads straight down
+        if (dy < 6 || Math.abs(dx) > dy) {
+          if (dy < -4 || Math.abs(dx) > 12) pull = null;
+          return;
+        }
+        pull.active = true;
+        ptr.classList.add('pulling');
+      }
+      if (scrollY > 0) {
+        pull = null;
+        return resetPull();
+      }
+      e.preventDefault();
+      pull.d = Math.min(150, dy * 0.55);
+      const t = Math.min(1, pull.d / PULL);
+      const shape = ptr.querySelector('m3-shape');
+      ptr.style.translate = `0 ${pull.d - 64}px`;
+      ptr.style.opacity = String(Math.min(1, t * 1.5));
+      if (shape) {
+        shape.angle = pull.d * 3;
+        shape.style.scale = String(0.6 + t * 0.4);
+      }
+      // far enough: it changes shape and taps once, so you know letting go will refresh
+      if (t >= 1 && !pull.armed) {
+        pull.armed = true;
+        fx.haptic(8);
+        if (shape) shape.transitionTo('softBurst', { spring: true });
+      } else if (t < 1 && pull.armed) {
+        pull.armed = false;
+        if (shape) shape.transitionTo('cookie9', { spring: true });
+      }
+    },
+    { passive: false }
+  );
+  addEventListener('touchend', () => {
+    if (!pull) return;
+    const armed = pull.active && pull.armed;
+    pull = null;
+    if (!armed) return resetPull();
+    ptr.classList.remove('pulling');
+    ptr.classList.add('refreshing');
+    ptr.style.translate = '0 18px';
+    ptr.innerHTML = '<m3-loading aria-label="Refreshing"></m3-loading>';
+    setTimeout(() => {
+      render();
+      resetPull();
+      fx.haptic(6);
+      M3.toast('You’re up to date', { symbol: 'refresh', shape: 'cookie9' });
+    }, 900);
+  });
 
   // ---- start ---------------------------------------------------------------------------------------
 

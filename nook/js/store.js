@@ -51,7 +51,7 @@
       },
       settings: {
         mode: 'system', seed: '#6750a4', variant: 'tonalSpot', themeNooks: true, tintPosts: true,
-        calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false,
+        calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false, haptics: true,
       },
       joined: ['nookhq', 'houseplants', 'homecooking', 'webdev', 'cozygames', 'nightsky', 'asknook'],
       bells: [],

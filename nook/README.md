@@ -20,6 +20,12 @@ host (GitHub Pages serves it at `/nook/`).
 - **Inbox** with simulated replies to what you post, so the demo feels lived in.
 - **Keyboard shortcuts** (`?` lists them), light/dark/system mode, any seed colour, compact cards.
 - Responsive: a drawer on desktop, a navigation rail on tablets, a bottom bar on phones.
+- **Motion that answers you**: pages slide the way you're going, a tapped post grows into the full
+  post and shrinks back, a nook's icon flies into its banner, light/dark spreads out in a circle,
+  saved posts fly to Saved, sparks fly to their chip, votes pop, polls count up, threads fold shut,
+  cards morph between compact and full, confetti for new posts, nooks and badges. On phones: pull to
+  refresh, swipeable bottom sheets, a bottom bar that steps aside as you read, and haptic taps.
+  All of it holds still under reduced motion.
 
 Everything you do is saved in the browser's localStorage. Settings → Your data exports or resets it.
 
@@ -32,5 +38,6 @@ Everything you do is saved in the browser's localStorage. Settings → Your data
 | `js/data.js` | Seed content: nooks, people, posts, comments, events |
 | `js/store.js` | State, persistence, ranking, badges and every mutation |
 | `js/ui.js` | Markdown-lite, formatters, avatars, the theme engine, sheets |
+| `js/fx.js` | Motion: view transitions, springs, flights, confetti, haptics |
 | `js/views.js` | One function per page, returning its markup and wiring |
 | `js/app.js` | Router, actions, sheets, the composer, shortcuts, simulations |
