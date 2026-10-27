@@ -1798,7 +1798,9 @@
       ['favorite', 'heart', 'Vote, add Sparks to what you love, and save the good stuff into collections.'],
       ['palette', 'flower', 'Every nest has its own colour and shape, and Budgie wears them as you move around.'],
       ['add_circle', 'clover4', 'Can’t find your people? Start a nest of your own.'],
-      ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Budgie’s own small server, not a big company’s.'],
+      Nook.ads.on
+        ? ['lock', 'pixelCircle', 'Ads only ever sit between posts: never in your chats or on top of what you read. Your account lives on Budgie’s own small server, not a big company’s.']
+        : ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Budgie’s own small server, not a big company’s.'],
     ];
     ui.sheet({
       headline: 'What’s Budgie?',
@@ -1847,26 +1849,38 @@
   // ---- storage and cookies: said once, plainly ----------------------------------------------------
 
   function storageNotice({ banner = false } = {}) {
-    const text = 'Budgie keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Budgie’s server. No cookies, no ads, no tracking.';
+    const ads = Nook.ads.on;
+    const text = ads
+      ? 'Budgie keeps you signed in with a small key in this browser’s storage, and your posts and profile live on Budgie’s server. Budgie itself uses no cookies or tracking. The ads between posts come from Google, which uses cookies for them only as far as you allow.'
+      : 'Budgie keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Budgie’s server. No cookies, no ads, no tracking.';
     if (!banner) {
       ui.sheet({
         headline: 'Storage and cookies',
         symbol: 'cookie',
         shape: 'cookie9',
-        html: `<p>${text}</p><p class="muted">That key is needed to keep you signed in, so there’s nothing to switch off. Signing out removes it.</p><p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>`,
-        actions: [{ label: 'Got it', variant: 'filled' }],
+        html:
+          `<p>${text}</p><p class="muted">The sign-in key is needed to keep you signed in, so there’s nothing to switch off. Signing out removes it.</p>` +
+          (ads ? '<p class="muted">Ads aren’t personalised. In the EU, the UK and Switzerland, Google asks before using cookies for ads, and you can change your answer any time.</p>' : '') +
+          '<p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>',
+        actions: ads
+          ? [{ label: 'Ad cookie choices', variant: 'text', run: () => Nook.ads.choices() }, { label: 'Got it', variant: 'filled' }]
+          : [{ label: 'Got it', variant: 'filled' }],
       });
       return;
     }
-    if (store.state.noticeSeen) return;
+    // shown once, and once more when ads arrive, since that changes what Budgie does
+    if (ads ? store.state.noticeSeen === 'ads' : store.state.noticeSeen) return;
     const el = document.createElement('aside');
     el.className = 'storage-notice';
     el.setAttribute('aria-label', 'Storage and cookies');
     el.innerHTML =
       `<m3-shape-icon shape="cookie9" symbol="cookie" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
-      `<p>No cookies, no ads, no tracking: Budgie only keeps a sign-in key on this device. <a href="privacy.html">Privacy Policy</a></p><button class="m3-btn filled small" type="button">Got it</button>`;
+      (ads
+        ? '<p>New: Budgie now shows ads from Google between posts, never in chats. They aren’t personalised. <a href="privacy.html">What changed</a></p>'
+        : '<p>No cookies, no ads, no tracking: Budgie only keeps a sign-in key on this device. <a href="privacy.html">Privacy Policy</a></p>') +
+      '<button class="m3-btn filled small" type="button">Got it</button>';
     el.querySelector('button').addEventListener('click', () => {
-      store.state.noticeSeen = true;
+      store.state.noticeSeen = ads ? 'ads' : true;
       store.save();
       fx.settled(fx.play(el, [{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '0 16px' }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => el.remove());
     });
@@ -1874,6 +1888,7 @@
     fx.play(el, [{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 320, easing: fx.decel });
   }
   ACTIONS['storage-notice'] = () => storageNotice();
+  ACTIONS['ad-choices'] = () => Nook.ads.choices();
 
   ACTIONS.export = async () => {
     let data;

@@ -36,8 +36,11 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(health.headers.get('access-control-allow-origin') === 'http://localhost:8790', 'CORS for an allowed origin');
   const evil = await api(null, 'POST', '/api/login', { name: 'x', password: 'y' }, 'https://evil.example');
   ok(evil.status === 403, 'other sites are refused', evil.json.error);
+  ok(health.json.signup === 'open', 'sign-up is open by default');
 
-  // sign-up: codes only come from the admin command now
+  // sign-up with codes, after the owner switches invite-only back on; codes only come from the admin command
+  ok(/invite-only/.test(cli('signups', 'invite')), 'the cli turns invite-only on');
+  ok((await api(null, 'GET', '/api/health')).json.signup === 'invite', 'health says invite-only');
   const [codeA] = cli('invite', '1').match(/\b\d{6}\b/g);
   const published = await api(null, 'POST', '/api/signup', { invite: '210945', name: 'mallory', password: 'correct horse', age: true, terms: true });
   ok(published.status === 400 && published.json.field === 'invite', 'an old published code is refused', published.json.error);
@@ -57,6 +60,10 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(dup.status === 409, 'names are unique, ignoring case', dup.json.error);
   const b = await api(null, 'POST', '/api/signup', { invite: fresh[0], name: 'bob', password: 'battery staple', age: true, terms: true });
   ok(b.status === 200, 'bob signs up with a new code');
+  // and open again: no code needed
+  ok(/open/.test(cli('signups', 'open')), 'the cli opens sign-up');
+  const open = await api(null, 'POST', '/api/signup', { name: 'dora', password: 'correct horse', age: true, terms: true });
+  ok(open.status === 200 && open.json.token, 'with sign-up open, no code is needed', open.json.error);
   const A = a.json.token;
   const B = b.json.token;
 
@@ -70,7 +77,7 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
 
   // bootstrap
   const boot = await api(A, 'GET', '/api/bootstrap');
-  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 2, 'bootstrap', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
+  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 3, 'bootstrap (alice, bob and dora)', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
 
   // posts, moderation
   const kys = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'kys everyone', type: 'text' });
@@ -197,7 +204,7 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   const bobAfter = await api(null, 'POST', '/api/login', { name: 'bob', password: 'new password 1' });
   const B2 = bobAfter.json.token;
   const world = await api(B2, 'GET', '/api/bootstrap');
-  ok(world.json.users.length === 1 && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
+  ok(world.json.users.length === 2 && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
   ok(world.json.comments.every((c) => c.author !== 'alice'), 'her comments are wiped');
   ok(world.json.nooks[0].mods.length === 0, 'her nook stays, without her');
 

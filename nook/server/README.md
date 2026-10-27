@@ -49,13 +49,7 @@ Plug the laptop in and connect it to the internet, then open a terminal.
 
 4. **Connect the app**: the address goes in `js/config.js` of the website (`api: 'https://…ts.net'`).
 
-5. **Make yourself an account and an admin**
-
-   ```sh
-   sudo nook invite 1 "for me"
-   ```
-
-   Sign up in the app with the code it prints, then:
+5. **Make yourself an account and an admin**: sign up in the app, then:
 
    ```sh
    sudo nook admin YOUR_USERNAME
@@ -63,14 +57,15 @@ Plug the laptop in and connect it to the internet, then open a terminal.
 
    Reload the app and you'll have a **Moderation** page for reports.
 
-Invite codes only come from `nook invite`, and each one creates one account. The eight codes from
-the first test version don’t work here (they were published, scrambled, in the old app), so make your
-friends new ones: `sudo nook invite 8 "friends"`.
+Anyone can sign up. If fake accounts ever pile up, switch invite codes back on with
+`sudo nook signups invite`, make codes with `sudo nook invite 8 "friends"`, and open up again later
+with `sudo nook signups open`. Even when it's open, the server lets only 60 new accounts a hour.
 
 ## Everyday commands
 
 | Command | What it does |
 |---|---|
+| `sudo nook signups open` / `invite` | Anyone can join, or only with an invite code |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |

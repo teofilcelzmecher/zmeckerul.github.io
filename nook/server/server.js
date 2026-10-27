@@ -25,7 +25,7 @@ const { promisify } = require('node:util');
 const { open } = require('./db');
 const mod = require('../js/moderation.js');
 
-const VERSION = '0.2.2';
+const VERSION = '0.3.0';
 const TERMS = '2026-10-27';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -335,21 +335,29 @@ function route(method, pattern, handler, { auth = true, admin = false, body = 64
   routes.push({ method, re, keys, handler, auth, admin, body });
 }
 
-route('GET', '/api/health', () => ({ ok: true, version: VERSION }), { auth: false });
+// anyone can join, unless the owner turned invite codes back on with `nook signups invite`
+const signupMode = () => (db.meta('signup') === 'invite' ? 'invite' : 'open');
+
+route('GET', '/api/health', () => ({ ok: true, version: VERSION, signup: signupMode() }), { auth: false });
 
 // accounts ------------------------------------------------------------------------------------------
 
 route('POST', '/api/signup', async ({ body, ip }) => {
   limit('signup:' + ip, 10, HOUR);
+  // with sign-up open to everyone, a cap for the whole site too: behind the tunnel many visitors can share one address
+  limit('signup-all', 60, HOUR, 'Lots of people are joining right now. Try again in a little while.');
   const name = text(body.name, 40);
   const password = typeof body.password === 'string' ? body.password : '';
   if (!body.age || !body.terms) fail(400, 'Please confirm your age and agree to the Terms of Use and Privacy Policy.');
-  const invite = db.get('SELECT * FROM invites WHERE code = ?', inviteHash(body.invite));
-  if (!invite) {
-    limit('bad-invite', 100, HOUR, 'Too many wrong invite codes. Try again later.');
-    fail(400, 'That invite code doesn’t work. Check it and try again.', { field: 'invite' });
+  let invite = null;
+  if (signupMode() === 'invite') {
+    invite = db.get('SELECT * FROM invites WHERE code = ?', inviteHash(body.invite));
+    if (!invite) {
+      limit('bad-invite', 100, HOUR, 'Too many wrong invite codes. Try again later.');
+      fail(400, 'Budgie is invite-only right now. That invite code doesn’t work. Check it and try again.', { field: 'invite' });
+    }
+    if (invite.used_by || invite.used_at) fail(400, 'That invite code has already been used.', { field: 'invite' });
   }
-  if (invite.used_by || invite.used_at) fail(400, 'That invite code has already been used.', { field: 'invite' });
   if (!NAME_RE.test(name)) fail(400, 'Usernames are 3–20 letters, numbers or underscores.', { field: 'name' });
   vet([name.replace(/_/g, ' ')], { kind: 'profile' }, { strongNames: true });
   if (db.get('SELECT 1 AS x FROM users WHERE name = ?', name)) fail(409, `u/${name} is taken. Try another name.`, { field: 'name' });
@@ -362,7 +370,7 @@ route('POST', '/api/signup', async ({ body, ip }) => {
   const t = now();
   const user = db.tx(() => {
     // checked again inside the transaction, so two people can't take one code or one name
-    if (db.get('SELECT used_by FROM invites WHERE code = ?', invite.code).used_by) fail(400, 'That invite code has already been used.', { field: 'invite' });
+    if (invite && db.get('SELECT used_by FROM invites WHERE code = ?', invite.code).used_by) fail(400, 'That invite code has already been used.', { field: 'invite' });
     if (db.get('SELECT 1 AS x FROM users WHERE name = ?', name)) fail(409, `u/${name} is taken. Try another name.`, { field: 'name' });
     const color = COLORS[crypto.randomInt(COLORS.length)];
     const shape = SHAPES[crypto.randomInt(SHAPES.length)];
@@ -371,7 +379,7 @@ route('POST', '/api/signup', async ({ body, ip }) => {
       name, pass, recoveryHash(recovery), color, shape, TERMS, t, db.bump()
     );
     const id = Number(lastInsertRowid);
-    db.run('UPDATE invites SET used_by = ?, used_at = ? WHERE code = ?', id, t, invite.code);
+    if (invite) db.run('UPDATE invites SET used_by = ?, used_at = ? WHERE code = ?', id, t, invite.code);
     for (const nook of DEFAULT_JOINS) db.run('INSERT OR IGNORE INTO joins (user_id, nook, created_at) VALUES (?, ?, ?)', id, nook, t);
     return db.get('SELECT * FROM users WHERE id = ?', id);
   });

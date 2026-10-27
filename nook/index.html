@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
+  <!-- Only the two scripts written into this page may run (their fingerprints are below; `python3
+       nook/tools/csp.py nook/index.html` refreshes them), and whatever those load: Budgie's own files,
+       and Google's ad code when ads are switched on. Ads show in frames, so frames may come from https. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-070xSe2/xm5r2FIgS/3crYVG2VPcEcy4s/ErEgoMJGA=' 'sha256-CnMYptf+kJZulADqFKAA4oYqEMxVhKQ0kmT3wb4ehnE=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Budgie</title>
@@ -12,7 +15,9 @@
   <link rel="stylesheet" href="../m3/fonts/fonts.css">
   <link rel="stylesheet" href="../m3/m3.css">
   <link rel="stylesheet" href="app.css">
-  <script src="js/early.js"></script>
+  <!-- first: hide the app until signing in decides what to show, and refuse to run inside another
+       site's frame, where someone could trick you into tapping things -->
+  <script>document.documentElement.classList.add('gated');if(window.top!==window.self)document.documentElement.classList.add('framed');</script>
 </head>
 <body class="m3-base">
   <a class="skip" href="#main" id="skip">Skip to content</a>
@@ -80,11 +85,7 @@
     <a href="#/inbox" data-nav="inbox"><span class="nav-ind"><span class="m3-icon">notifications</span><span class="badge" id="bottom-badge" hidden></span></span>Inbox</a>
   </nav>
 
-  <script src="../m3/m3-shapes.js"></script>
-  <script src="../m3/m3.js"></script>
-  <!-- signing in comes first: it fetches what the app needs, then starts it -->
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/account.js"></script>
+  <!-- the design system, then signing in, which fetches what the app needs and then starts it -->
+  <script>['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js','js/account.js'].forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});</script>
 </body>
 </html>

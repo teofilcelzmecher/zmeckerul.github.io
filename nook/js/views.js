@@ -192,12 +192,17 @@
       box.innerHTML = emptyHTML || empty('search_off', 'Nothing here yet', 'Try another sort, or come back later.');
       return;
     }
+    const ads = ctx.ads && Nook.ads && Nook.ads.on;
     const add = (arrive) => {
       const next = list.slice(shown, shown + PAGE);
-      box.insertAdjacentHTML('beforeend', next.map((p) => postCard(p, ctx)).join(''));
-      const fresh = [...box.children].slice(shown);
+      const before = box.children.length;
+      // an ad can come between two posts, never before the first or after the last
+      const cards = next.map((p, i) => postCard(p, ctx) + (ads && Nook.ads.after(shown + i + 1, list.length) ? Nook.ads.slotHTML() : ''));
+      box.insertAdjacentHTML('beforeend', cards.join(''));
+      const fresh = [...box.children].slice(before);
       shown += next.length;
       ui.theme.tintAll(box);
+      if (ads) Nook.ads.fill(box);
       if (arrive) Nook.fx.stagger(fresh);
       if (shown >= list.length) {
         stop();
@@ -310,7 +315,7 @@
     '<div class="foot-links">' +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
     '<button type="button" data-act="about-nook">What’s Budgie?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
-    '<span>Built with Material 3 Expressive. No ads, no trackers.</span></div>';
+    `<span>Built with Material 3 Expressive. ${Nook.ads && Nook.ads.on ? 'Ads only between posts.' : 'No ads, no trackers.'}</span></div>`;
 
   // ---- comments -------------------------------------------------------------------------------
 
@@ -424,7 +429,7 @@
           mountFeed(
             root,
             store.feed({ joinedOnly: true, sort: settings().sort }),
-            {},
+            { ads: true },
             s.joined.length
               ? empty('edit_note', 'It’s quiet in here', 'Nobody has posted in your nests yet. Start the first conversation.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a><a class="m3-btn tonal" href="#/explore">${icon('explore')}Explore nests</a>`)
               : empty('diversity_3', 'Your home is empty', 'Join some nests and their posts will show up here.', `<a class="m3-btn filled" href="#/explore">${icon('explore')}Explore nests</a>`)
@@ -456,7 +461,7 @@
           mountFeed(
             root,
             store.feed({ sort: current }),
-            {},
+            { ads: true },
             empty('local_fire_department', 'Nothing’s popular yet', 'Budgie only shows what people really post. Start something and it could be the first thing here.', `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>`, 'softBurst')
           );
         render();
@@ -502,7 +507,7 @@
           mountFeed(
             root,
             store.feed({ nook: c.id, sort, flair }),
-            { nook: c.id },
+            { nook: c.id, ads: true },
             empty('edit_note', flair ? `No “${flair}” posts yet` : 'No posts yet', 'Be the first to start something here.', `<a class="m3-btn filled" href="#/submit?n=${c.id}">${icon('edit')}Write the first post</a>`)
           );
         render();
@@ -866,8 +871,12 @@
         `<div class="toolbar"><button class="m3-btn outlined" data-act="sign-out">${icon('logout')}Sign out</button><button class="m3-btn text danger" data-act="delete-account">${icon('person_remove')}Delete account</button></div>` +
         '</div></section>' +
         `<section>${header('clover4', 'policy', 'Privacy and legal')}<div class="card setting-card">` +
-        '<p class="muted">Budgie uses no cookies and no trackers, and loads nothing from other companies. Your account, posts and messages are kept on Budgie’s own server; this browser keeps only what signs you in.</p>' +
-        `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><a class="m3-btn tonal" href="licenses.html">${icon('license')}Open-source licenses</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button></div>` +
+        (Nook.ads && Nook.ads.on
+          ? '<p class="muted">Budgie itself uses no cookies and no trackers. The ads between posts come from Google: they aren’t personalised, and Google uses cookies for them only as far as you allow. Your account, posts and messages are kept on Budgie’s own server; this browser keeps only what signs you in.</p>'
+          : '<p class="muted">Budgie uses no cookies and no trackers, and loads nothing from other companies. Your account, posts and messages are kept on Budgie’s own server; this browser keeps only what signs you in.</p>') +
+        `<div class="toolbar"><a class="m3-btn tonal" href="terms.html">${icon('gavel')}Terms of Use</a><a class="m3-btn tonal" href="privacy.html">${icon('shield_lock')}Privacy Policy</a><a class="m3-btn tonal" href="licenses.html">${icon('license')}Open-source licenses</a><button class="m3-btn outlined" data-act="storage-notice">${icon('cookie')}Storage and cookies</button>` +
+        (Nook.ads && Nook.ads.on ? `<button class="m3-btn outlined" data-act="ad-choices">${icon('ad_units')}Ad cookie choices</button>` : '') +
+        '</div>' +
         '</div></section>' +
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
         `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Budgie</b><span class="muted">Version ${esc(store.VERSION)} · Early access</span></div></div>` +

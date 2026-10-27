@@ -25,6 +25,7 @@ const COMMANDS = {
   help() {
     out(
       'Budgie admin commands:',
+      '  nook signups [open|invite]       anyone can join (open), or only with an invite code',
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
       '  nook users                       list accounts',
@@ -38,6 +39,13 @@ const COMMANDS = {
       '  nook stats                       how much is stored',
       '  nook backup <file>               copy the whole database to a file, safely, while running'
     );
+  },
+
+  signups(mode) {
+    if (mode === 'open' || mode === 'invite') db.meta('signup', mode);
+    else if (mode) quit('Usage: nook signups [open|invite]');
+    const now = db.meta('signup') === 'invite' ? 'invite' : 'open';
+    out(now === 'open' ? 'Sign-up is open: anyone can create an account.' : 'Sign-up is invite-only: new accounts need a code from `nook invite`.');
   },
 
   invite(count = '1', ...note) {

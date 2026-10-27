@@ -28,15 +28,19 @@ with a set of empty nests, and every post, comment and vote is one a person actu
   about personal information, and meet signs of distress with where to find help. Swearing is allowed
   but dotted out (f•••) for anyone with the filter on. Every decision says which rule it applied.
 - **Profile pictures**: a letter, one of 24 icons, or a photo cut to your avatar's shape.
-- **Accounts**: sign up with a single-use 6-digit invite code, a username and a password; a recovery
-  code (shown once) resets a forgotten password. Export your data or delete your account in Settings.
+- **Accounts**: sign up with a username and a password (or, if the owner switches it on, a single-use
+  6-digit invite code too); a recovery code (shown once) resets a forgotten password. Export your data
+  or delete your account in Settings.
 - **Friends and messages**: friend requests, private chats between friends, all moderated by the same rules.
 - **Live**: the app asks the server what changed every 15 seconds; new comments, votes, messages and
   notifications arrive without a reload.
 - **Moderators**: reports go to a Moderation page for admins, who can remove content (its author is told
   why) or ban accounts.
-- **Privacy first**: no cookies, no trackers, and nothing loaded from other companies (fonts and the
-  colour library are served from `../m3/`). Terms of Use and a Privacy Policy cover the EU (GDPR,
+- **Ads, only between posts**: Google AdSense in-feed ads in the home, popular and nest feeds, never
+  banners and never in chats. Off until the ids are filled in `js/config.js`; non-personalised by default,
+  with Google's own consent message where the law asks for one.
+- **Privacy first**: no cookies or trackers of Budgie's own, and nothing else loaded from other companies
+  (fonts and the colour library are served from `../m3/`). Terms of Use and a Privacy Policy cover the EU (GDPR,
   ePrivacy, DSA) and the US (COPPA, CCPA).
 - **Inbox** for replies, friend requests, moderation notices and badges.
 - **Keyboard shortcuts** (`?` lists them), light/dark/system mode, any seed colour, compact cards.

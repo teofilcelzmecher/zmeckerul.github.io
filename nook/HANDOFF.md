@@ -14,8 +14,9 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 ## Versions
 
 - **Name:** the app is **Budgie** and its communities are **nests** (still `n/…`). It was called Nook until 0.2.1. Only what people see was renamed: the code, CSS classes, storage keys, the folder `nook/`, the server's `nook` command, service, user and paths, and the live repository's name all still say nook. The starter nests `nookhq` and `asknook` became `budgiehq` and `askbudgie` (the server moves their posts once; old links redirect).
-- **Live:** 0.2.2 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
-  It has accounts, friends, messages, live updates, reports and a Moderation page.
+- **Live:** 0.3.0 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
+  It has accounts, friends, messages, live updates, reports and a Moderation page. Sign-up is open (no code); `nook signups invite` brings codes back.
+- **Ads:** Google AdSense in-feed ads between posts (home, popular, nest feeds only), in `js/ads.js`, off until `ads.client`, `ads.slot` and `ads.layoutKey` are filled in `js/config.js`. The build then writes `ads.txt`. Non-personalised by default; consent comes from Google's own message (AdSense → Privacy & messaging). Auto ads must stay off in AdSense, so there are no banners.
 - **Earlier:** 0.1.2 was local-only, behind a client-side code gate. It's gone, and its eight codes don't work on the server.
 
 ## Updating the live site
@@ -26,7 +27,7 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 
 ## How the code is organised
 
-- `nook/index.html` loads `early.js` → (m3) → `config.js`, `api.js`, `account.js`. `account.js` signs in, fetches `/api/bootstrap` into `window.NOOK_BOOT`, then loads `data, store, ui, moderation, fx, views, app`.
+- `nook/index.html` runs two small scripts written into the page (their sha256 fingerprints are in its Content-Security-Policy, with `'strict-dynamic'`, so only they and what they load can run; `python3 nook/tools/csp.py nook/index.html` refreshes them, and the build does it too). The second loads (m3) → `config.js`, `api.js`, `account.js`. `account.js` signs in, fetches `/api/bootstrap` into `window.NOOK_BOOT`, then loads `data, store, ui, moderation, fx, views, app`.
 - `store.js` holds the server snapshot and polls `/api/updates?rev&note&msg` every 15 s. Writes are optimistic and undone if the server refuses.
 - `server/server.js` is plain Node ≥ 22.5 with `node:sqlite` and no npm packages. `db.js` holds the schema, with revision stamps for deltas. `cli.js` has the admin commands; `install.sh` sets up the systemd service, backups and lid handling.
 - `js/moderation.js` holds rule-based moderation (no AI). The browser and the server both load the same file.

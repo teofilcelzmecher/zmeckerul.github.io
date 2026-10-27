@@ -1,19 +1,21 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
- * The way in: sign in, create an account with an invite code, or get back in
- * with a recovery code. Once signed in, it fetches everything the app needs
+ * The way in: sign in, create an account (with an invite code, if the server
+ * asks for one), or get back in with a recovery code. Once signed in, it fetches everything the app needs
  * from the server and only then starts the app's own scripts.
  */
 (function () {
   'use strict';
 
   const api = window.Nook.api;
-  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/app.js'];
+  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/app.js'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const icon = (name) => `<span class="m3-icon" aria-hidden="true">${name}</span>`;
 
   let gate = null;
+  // open to everyone unless the server says it's invite-only (asked as soon as the page opens)
+  let signup = 'open';
 
   function frame() {
     if (gate) return gate;
@@ -45,11 +47,13 @@
       '<p class="gate-links"><button type="button" class="link" data-go="signup">New here? Create an account</button><button type="button" class="link" data-go="forgot">Forgot your password?</button></p>' +
       legal + '</form>',
 
-    signup: () =>
-      `<form class="gate-card" novalidate>${head('Join Budgie', 'Budgie is invite-only for now. You’ll need the 6-digit code a friend gave you.')}` +
-      '<div class="gate-field"><span id="g-invite-label">Invite code</span><label class="gate-code">' +
-      '<input id="g-invite" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-labelledby="g-invite-label" spellcheck="false">' +
-      '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(6) + '</span></label><small class="gate-error" data-for="g-invite"></small></div>' +
+    signup: (o) =>
+      (signup === 'invite'
+        ? `<form class="gate-card" novalidate>${head('Join Budgie', o.message ? esc(o.message) : 'Budgie is invite-only right now. You’ll need the 6-digit code a friend gave you.')}` +
+          '<div class="gate-field"><span id="g-invite-label">Invite code</span><label class="gate-code">' +
+          '<input id="g-invite" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-labelledby="g-invite-label" spellcheck="false">' +
+          '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(6) + '</span></label><small class="gate-error" data-for="g-invite"></small></div>'
+        : `<form class="gate-card" novalidate>${head('Join Budgie', 'Pick a username and a password, and you’re in.')}`) +
       field('g-name', 'Pick a username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required aria-describedby="g-name-hint"') +
       '<small class="gate-hint" id="g-name-hint">3–20 letters, numbers or underscores. Everyone on Budgie sees it.</small>' +
       passwordField('g-pass', 'Password (at least 8 characters)', 'new-password') +
@@ -87,7 +91,7 @@
   function show(name, options = {}) {
     const root = frame();
     root.innerHTML = SCREENS[name](options);
-    document.title = 'Budgie · Early access';
+    document.title = 'Budgie';
     const form = root.querySelector('form');
     root.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', () => show(b.dataset.go)));
     root.querySelectorAll('[data-show]').forEach((b) =>
@@ -101,7 +105,7 @@
     );
     const retry = root.querySelector('[data-retry]');
     if (retry) retry.addEventListener('click', start);
-    if (name === 'signup') wireCode(root);
+    if (name === 'signup' && signup === 'invite') wireCode(root);
     if (name === 'recovery') wireRecovery(root, options);
     if (form && name !== 'recovery') form.addEventListener('submit', (e) => (e.preventDefault(), submit(name, form)));
     const first = root.querySelector('input:not([type=checkbox])');
@@ -171,7 +175,7 @@
     };
 
     if (name === 'signup') {
-      if (value('g-invite').length !== 6) return problem('g-invite', 'Enter all 6 digits of your invite code.');
+      if (signup === 'invite' && value('g-invite').length !== 6) return problem('g-invite', 'Enter all 6 digits of your invite code.');
       if (!/^[A-Za-z0-9_]{3,20}$/.test(value('g-name'))) return problem('g-name', 'Use 3–20 letters, numbers or underscores.');
       if (password.length < 8) return problem('g-pass', 'Use at least 8 characters.');
       if (!$('#g-age').checked || !$('#g-terms').checked) return problem('', 'Please tick both boxes to continue.');
@@ -195,6 +199,11 @@
     } catch (error) {
       go.disabled = false;
       busy = false;
+      // the owner switched invite codes on since this page opened: show the code boxes and say why
+      if (error.field === 'invite' && signup !== 'invite') {
+        signup = 'invite';
+        return show('signup', { message: error.message });
+      }
       const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass' };
       problem(map[error.field] || '', error.message);
     }
@@ -247,5 +256,9 @@
     }
   }
 
+  api
+    .get('/api/health')
+    .then((health) => (signup = health.signup === 'invite' || !health.signup ? 'invite' : 'open'))
+    .catch(() => {});
   start();
 })();
