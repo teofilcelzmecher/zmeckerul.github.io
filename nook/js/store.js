@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.2.1';
+  const VERSION = '0.2.2';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -725,7 +725,15 @@
           }
           state.conversations = d.conversations.map((c) => Object.assign(conversation(c.with) || {}, c));
         }
-        if (d.messages.length) emit('messages', d.messages.filter((m) => !m.mine));
+        // how far each friend has read: your messages up to there are "Seen"
+        let seen = false;
+        for (const [name, upTo] of Object.entries(d.seen || {})) {
+          const t = threads.get(name.toLowerCase());
+          for (const m of t ? t.messages : []) {
+            if (m.mine && !m.read && m.id <= upTo) seen = m.read = true;
+          }
+        }
+        if (d.messages.length || seen) emit('messages', d.messages.filter((m) => !m.mine));
         emit('synced', news);
       })
       .catch((error) => emit('sync-failed', error))

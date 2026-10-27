@@ -195,6 +195,7 @@
     topbar.classList.remove('searching');
 
     route = parse();
+    document.body.dataset.view = route.view;
     let view;
     try {
       view = route.view === 'notFound' ? views.notFound() : views[route.view](route.params);
@@ -237,6 +238,7 @@
     else if (!route.params.c && route.params.focus !== 'comments') scrollTo(0, 0);
     if (route.view === 'searchPage') searchInput.value = route.params.q || '';
     onScroll();
+    armPull(!!main.querySelector('[data-feed]'));
   }
   app.render = render;
 
@@ -392,7 +394,7 @@
 
   $('#me-btn').addEventListener('click', (e) => {
     const s = S();
-    M3.menu(e.currentTarget, [
+    menu(e.currentTarget, [
       { label: 'u/' + store.state.me.name, symbol: 'account_circle', onSelect: () => go('#/u/' + encodeURIComponent(store.state.me.name)) },
       { label: 'Edit profile', symbol: 'edit', onSelect: editProfile },
       { label: 'Friends', symbol: 'group', onSelect: () => go('#/friends') },
@@ -725,6 +727,35 @@
     );
   }
 
+  // on a phone a menu rises from the bottom as a sheet, where your thumb already is
+  function menu(anchor, items, options) {
+    if (!matchMedia('(max-width: 719px) and (pointer: coarse)').matches) return M3.menu(anchor, items, options);
+    const list = items.filter(Boolean);
+    const row = (item, i) => {
+      if (item.separator) return '<m3-wavy-line class="menu-sheet-line" amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line>';
+      const checkable = typeof item.checked === 'boolean';
+      const symbol = checkable ? (item.checked ? 'check' : '') : item.symbol || '';
+      return (
+        `<button type="button" class="menu-sheet-item${item.destructive ? ' is-destructive' : ''}" role="${checkable ? 'menuitemcheckbox' : 'menuitem'}"` +
+        `${checkable ? ` aria-checked="${item.checked}"` : ''} data-i="${i}"${item.disabled ? ' disabled' : ''} data-m3-ripple>` +
+        `<span class="m3-icon" aria-hidden="true">${symbol}</span><span>${esc(item.label)}</span></button>`
+      );
+    };
+    ui.sheet({
+      className: 'menu-sheet',
+      html: `<div class="menu-sheet-list" role="menu">${list.map(row).join('')}</div>`,
+      setup(body, close) {
+        body.addEventListener('click', (e) => {
+          const button = e.target.closest('[data-i]');
+          if (!button) return;
+          close();
+          const item = list[+button.dataset.i];
+          if (typeof item.onSelect === 'function') item.onSelect(item);
+        });
+      },
+    });
+  }
+
   async function share(hash, what) {
     const ok = await ui.copy(ui.linkTo(hash));
     M3.toast(ok ? `Link to ${what} copied` : 'Couldn’t copy the link', { symbol: 'link', shape: 'cookie12' });
@@ -758,7 +789,7 @@
     const mine = store.isMe(p.author);
     const saved = store.state.saved.includes(p.id);
     const card = btn.closest('[data-post]');
-    M3.menu(btn, [
+    menu(btn, [
       { label: 'Add to collection…', symbol: 'collections_bookmark', onSelect: () => collectSheet(p) },
       { label: saved ? 'Unsave' : 'Save', symbol: saved ? 'bookmark_remove' : 'bookmark_add', onSelect: () => ACTIONS.save(card.querySelector('[data-act="save"]')) },
       { label: 'Copy link', symbol: 'link', onSelect: () => share(`#/n/${p.n}/p/${p.id}`, 'post') },
@@ -824,7 +855,7 @@
     const c = store.commentsById.get(el.dataset.comment);
     if (!c) return;
     const mine = store.isMe(c.author);
-    M3.menu(btn, [
+    menu(btn, [
       { label: 'Copy text', symbol: 'content_copy', onSelect: () => ui.copy(c.body).then((ok) => M3.toast(ok ? 'Copied' : 'Couldn’t copy', { symbol: 'content_copy' })) },
       { label: 'Collapse thread', symbol: 'unfold_less', onSelect: () => toggleCollapse(el) },
       { separator: true },
@@ -886,7 +917,7 @@
   ACTIONS['nook-menu'] = (btn) => {
     const c = store.community(btn.dataset.nook);
     const joined = store.state.joined.includes(c.id);
-    M3.menu(btn, [
+    menu(btn, [
       { label: 'Create a post here', symbol: 'edit', onSelect: () => go('#/submit?n=' + c.id) },
       { label: 'About this nest', symbol: 'info', onSelect: () => nookAbout(c) },
       { label: 'Copy link', symbol: 'link', onSelect: () => share('#/n/' + c.id, 'nest') },
@@ -1415,7 +1446,7 @@
         '<div class="nook-preview" id="np"><m3-shape-icon id="np-icon" shape="cookie9" symbol="forum" size="72" icon-size="34"></m3-shape-icon>' +
         '<div class="np-text"><b class="m3-title" id="np-title">Your nest</b><span class="muted" id="np-id">n/your_nest</span><span id="np-tag" class="muted">A cosy corner for…</span></div></div>' +
         '<div class="split">' +
-        '<div class="field"><label for="nn-id">Name (n/…)</label><input class="m3-field" id="nn-id" maxlength="21" placeholder="pottery_club" autocomplete="off" autofocus><span class="error" id="nn-id-err"></span></div>' +
+        '<div class="field"><label for="nn-id">Name (n/…)</label><input class="m3-field" id="nn-id" maxlength="21" placeholder="pottery_club" autocomplete="off"><span class="error" id="nn-id-err"></span></div>' +
         '<div class="field"><label for="nn-title">Display title</label><input class="m3-field" id="nn-title" maxlength="40" placeholder="Pottery Club"></div></div>' +
         '<div class="field"><label for="nn-tag">What’s it about?</label><input class="m3-field" id="nn-tag" maxlength="120" placeholder="Wobbly mugs and the people who make them."></div>' +
         `<div class="field"><span class="field-label">Category</span><div class="chips" style="flex-wrap:wrap">${categories.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === model.category}">${c}</button>`).join('')}</div></div>` +
@@ -1833,7 +1864,7 @@
     el.setAttribute('aria-label', 'Storage and cookies');
     el.innerHTML =
       `<m3-shape-icon shape="cookie9" symbol="cookie" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
-      `<p>${text} <a href="privacy.html">Privacy Policy</a></p><button class="m3-btn filled small" type="button">Got it</button>`;
+      `<p>No cookies, no ads, no tracking: Budgie only keeps a sign-in key on this device. <a href="privacy.html">Privacy Policy</a></p><button class="m3-btn filled small" type="button">Got it</button>`;
     el.querySelector('button').addEventListener('click', () => {
       store.state.noticeSeen = true;
       store.save();
@@ -1923,7 +1954,7 @@
     $('#nook-picker', root).addEventListener('click', (e) => {
       const joined = store.state.joined.map(store.community).filter(Boolean);
       const others = store.allCommunities().filter((c) => !store.state.joined.includes(c.id));
-      M3.menu(e.currentTarget, [
+      menu(e.currentTarget, [
         ...joined.map((c) => ({ label: `n/${c.id}`, symbol: c.symbol, onSelect: () => (setNook(c), saveDraft()) })),
         others.length ? { separator: true } : null,
         ...others.map((c) => ({ label: `n/${c.id}`, symbol: c.symbol, onSelect: () => (setNook(c), saveDraft()) })),
@@ -2238,7 +2269,9 @@
     renderBadges();
     if (main._onMessages) return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
-    if (last) M3.toast(`u/${last.from}: ${ui.plain(last.body, 70)}`, { symbol: 'chat', shape: 'clover4', timeout: 3600 });
+    if (!last) return;
+    const text = S().filterLanguage === false ? last.body : Nook.mod.soften(last.body);
+    M3.snackbar(`u/${last.from}: ${ui.plain(text, 70)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
   });
 
   store.on('friends', () => {
@@ -2398,6 +2431,21 @@
   document.body.appendChild(ptr);
   const PULL = 80;
   let pull = null;
+  let pullArmed = false;
+
+  // typing, or the keyboard up: the page must scroll freely, so a pull never starts
+  const typing = () => !!document.activeElement && document.activeElement.matches('input, textarea, select, [contenteditable="true"]');
+  const keyboardUp = () => !!window.visualViewport && visualViewport.height < innerHeight - 120;
+
+  // a touchmove listener that can cancel makes every scroll wait for this page, so it's only
+  // there on feeds, where pulling down refreshes
+  function armPull(on) {
+    if (on === pullArmed) return;
+    pullArmed = on;
+    if (on) addEventListener('touchmove', onPullMove, { passive: false });
+    else removeEventListener('touchmove', onPullMove, { passive: false });
+    if (!on) pull = null;
+  }
 
   function resetPull() {
     ptr.classList.remove('pulling', 'refreshing');
@@ -2411,53 +2459,49 @@
     'touchstart',
     (e) => {
       pull = null;
-      if (e.touches.length !== 1 || scrollY > 0 || ptr.classList.contains('refreshing')) return;
-      if (!main.querySelector('[data-feed]') || drawer.classList.contains('open') || document.querySelector('dialog[open]')) return;
+      if (!pullArmed || e.touches.length !== 1 || scrollY > 0 || ptr.classList.contains('refreshing')) return;
+      if (typing() || keyboardUp() || drawer.classList.contains('open') || document.querySelector('dialog[open]')) return;
       pull = { x: e.touches[0].clientX, y: e.touches[0].clientY, d: 0, active: false, armed: false };
     },
     { passive: true }
   );
-  addEventListener(
-    'touchmove',
-    (e) => {
-      if (!pull) return;
-      const dy = e.touches[0].clientY - pull.y;
-      const dx = e.touches[0].clientX - pull.x;
-      if (!pull.active) {
-        // only a pull that heads straight down
-        if (dy < 6 || Math.abs(dx) > dy) {
-          if (dy < -4 || Math.abs(dx) > 12) pull = null;
-          return;
-        }
-        pull.active = true;
-        ptr.classList.add('pulling');
+  function onPullMove(e) {
+    if (!pull) return;
+    const dy = e.touches[0].clientY - pull.y;
+    const dx = e.touches[0].clientX - pull.x;
+    if (!pull.active) {
+      // only a pull that heads straight down
+      if (dy < 6 || Math.abs(dx) > dy) {
+        if (dy < -4 || Math.abs(dx) > 12) pull = null;
+        return;
       }
-      if (scrollY > 0) {
-        pull = null;
-        return resetPull();
-      }
-      e.preventDefault();
-      pull.d = Math.min(150, dy * 0.55);
-      const t = Math.min(1, pull.d / PULL);
-      const shape = ptr.querySelector('m3-shape');
-      ptr.style.translate = `0 ${pull.d - 64}px`;
-      ptr.style.opacity = String(Math.min(1, t * 1.5));
-      if (shape) {
-        shape.angle = pull.d * 3;
-        shape.style.scale = String(0.6 + t * 0.4);
-      }
-      // far enough: it changes shape and taps once, so you know letting go will refresh
-      if (t >= 1 && !pull.armed) {
-        pull.armed = true;
-        fx.haptic(8);
-        if (shape) shape.transitionTo('softBurst', { spring: true });
-      } else if (t < 1 && pull.armed) {
-        pull.armed = false;
-        if (shape) shape.transitionTo('cookie9', { spring: true });
-      }
-    },
-    { passive: false }
-  );
+      pull.active = true;
+      ptr.classList.add('pulling');
+    }
+    if (scrollY > 0 || typing()) {
+      pull = null;
+      return resetPull();
+    }
+    e.preventDefault();
+    pull.d = Math.min(150, dy * 0.55);
+    const t = Math.min(1, pull.d / PULL);
+    const shape = ptr.querySelector('m3-shape');
+    ptr.style.translate = `0 ${pull.d - 64}px`;
+    ptr.style.opacity = String(Math.min(1, t * 1.5));
+    if (shape) {
+      shape.angle = pull.d * 3;
+      shape.style.scale = String(0.6 + t * 0.4);
+    }
+    // far enough: it changes shape and taps once, so you know letting go will refresh
+    if (t >= 1 && !pull.armed) {
+      pull.armed = true;
+      fx.haptic(8);
+      if (shape) shape.transitionTo('softBurst', { spring: true });
+    } else if (t < 1 && pull.armed) {
+      pull.armed = false;
+      if (shape) shape.transitionTo('cookie9', { spring: true });
+    }
+  }
   addEventListener('touchend', () => {
     if (!pull) return;
     const armed = pull.active && pull.armed;
@@ -2467,13 +2511,32 @@
     ptr.classList.add('refreshing');
     ptr.style.translate = '0 18px';
     ptr.innerHTML = '<m3-loading aria-label="Refreshing"></m3-loading>';
-    setTimeout(() => {
+    // really asks the server, and shows the spinner at least a moment so it doesn't flicker
+    const wait = new Promise((r) => setTimeout(r, 700));
+    Promise.all([store.sync(), wait]).then(() => {
       render();
       resetPull();
       fx.haptic(6);
       M3.toast('You’re up to date', { symbol: 'refresh', shape: 'cookie9' });
-    }, 900);
+    });
   });
+
+  // ---- the on-screen keyboard -----------------------------------------------------------------------
+
+  // phones: how much of the window the keyboard covers, so what's pinned to the bottom (the chat
+  // box) can sit on top of it, and while you type the bottom bar steps aside
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const fitKeyboard = () => {
+      const covered = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+      document.documentElement.style.setProperty('--kb', (covered > 80 ? covered : 0) + 'px');
+      document.body.classList.toggle('keyboard', covered > 80 || (typing() && keyboardUp()));
+    };
+    vv.addEventListener('resize', fitKeyboard);
+    vv.addEventListener('scroll', fitKeyboard);
+  }
+  document.addEventListener('focusin', () => document.body.classList.toggle('typing', typing()));
+  document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', typing()), 0));
 
   // ---- start ---------------------------------------------------------------------------------------
 

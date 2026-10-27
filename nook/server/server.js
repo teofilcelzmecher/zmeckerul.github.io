@@ -25,7 +25,7 @@ const { promisify } = require('node:util');
 const { open } = require('./db');
 const mod = require('../js/moderation.js');
 
-const VERSION = '0.2.1';
+const VERSION = '0.2.2';
 const TERMS = '2026-10-27';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -541,6 +541,10 @@ route('GET', '/api/updates', ({ user, query }) => {
     messages: messages.map((r) => messageOut(r, id)),
     friends: friendsOf(id),
     conversations: messages.length ? conversations(id) : undefined,
+    // the newest of your messages each friend has read, for "Seen" in chats
+    seen: Object.fromEntries(
+      db.all('SELECT u.name, MAX(m.id) AS id FROM messages m JOIN users u ON u.id = m.to_id WHERE m.from_id = ? AND m.read_at IS NOT NULL GROUP BY m.to_id', id).map((r) => [r.name, r.id])
+    ),
     me: user.rev > since ? meOut(user) : undefined,
   };
 });

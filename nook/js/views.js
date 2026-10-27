@@ -35,7 +35,7 @@
   }
 
   const compactToggle = () =>
-    `<button class="m3-icon-btn tonal" data-act="compact" aria-pressed="${settings().compact}" aria-label="Compact cards" data-tooltip="Compact cards"><span class="m3-icon">view_agenda</span></button>`;
+    `<button class="m3-icon-btn tonal not-phone" data-act="compact" aria-pressed="${settings().compact}" aria-label="Compact cards" data-tooltip="Compact cards"><span class="m3-icon">view_agenda</span></button>`;
 
   function empty(symbol, title, description, actions = '', shape = '') {
     return (
@@ -336,7 +336,7 @@
         : '<div class="c-actions">' +
           voteBox('comment', c.id, store.commentScore(c), dir, true) +
           `<button class="m3-btn text" data-act="reply">${icon('reply')}Reply</button>` +
-          `<button class="m3-btn text" data-act="comment-share">${icon('ios_share')}Share</button>` +
+          `<button class="m3-btn text" data-act="comment-share" aria-label="Share">${icon('ios_share')}<span class="not-phone">Share</span></button>` +
           `<button class="m3-icon-btn small" data-act="comment-menu" aria-label="More options for this comment"><span class="m3-icon">more_horiz</span></button>` +
           '</div>') +
       '<div class="c-reply"></div></div>' +
@@ -409,7 +409,7 @@
       html:
         '<div class="page"><div class="col">' +
         hello +
-        `<div class="composer">${avatar(store.user(store.ME), 40)}<a class="fake-input" href="#/submit" role="button">What’s on your mind, ${esc(name)}?</a>` +
+        `<div class="composer">${avatar(store.user(store.ME), 40)}<a class="fake-input" href="#/submit" role="button"><span class="not-phone">What’s on your mind, ${esc(name)}?</span><span class="only-phone">Share something…</span></a>` +
         `<a class="m3-icon-btn" href="#/submit?type=image" aria-label="Post an image" data-tooltip="Image"><span class="m3-icon">image</span></a>` +
         `<a class="m3-icon-btn" href="#/submit?type=poll" aria-label="Start a poll" data-tooltip="Poll"><span class="m3-icon">ballot</span></a></div>` +
         `<div class="toolbar">${sortControl(s.settings.sort)}<span class="spacer"></span>${compactToggle()}</div>` +
@@ -1063,8 +1063,66 @@
     };
   }
 
-  function bubbleHTML(m) {
-    return `<div class="bubble${m.mine ? ' mine' : ''}" data-message="${m.id}"><div class="md">${md(clean(m.body))}</div><small>${ago(m.createdAt)}</small></div>`;
+  // ---- chat --------------------------------------------------------------------------------------------
+
+  const GROUP_GAP = 5 * 60000; // messages closer together than this, from the same person, share one group
+  // only one to three emoji: shown big, without a bubble
+  const JUMBO = /^(?:\p{Extended_Pictographic}[\p{Emoji_Modifier}\p{Variation_Selector}\p{Join_Control}\p{Extended_Pictographic}]*\s*){1,3}$/u;
+  const clock = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  function dayLabel(t) {
+    const d = new Date(t);
+    const now = new Date();
+    const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return d.toLocaleDateString([], { weekday: 'long' });
+    return d.toLocaleDateString([], { day: 'numeric', month: 'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+  }
+
+  /** a conversation as days, and in each day groups of bubbles from one side */
+  function chatHTML(messages, them) {
+    let html = '';
+    let day = '';
+    let group = null;
+    const lastMine = [...messages].reverse().find((m) => m.mine && !m.pending && !m.failed);
+    const close = () => {
+      if (group) html += groupHTML(group, them, lastMine);
+      group = null;
+    };
+    for (const m of messages) {
+      const d = new Date(m.createdAt).toDateString();
+      if (d !== day) {
+        close();
+        day = d;
+        html += `<div class="chat-day" role="separator"><span>${esc(dayLabel(m.createdAt))}</span></div>`;
+      }
+      const prev = group && group.items[group.items.length - 1];
+      if (group && (group.mine !== !!m.mine || m.createdAt - prev.createdAt > GROUP_GAP)) close();
+      if (!group) group = { mine: !!m.mine, items: [] };
+      group.items.push(m);
+    }
+    close();
+    return html;
+  }
+
+  function groupHTML(g, them, lastMine) {
+    const n = g.items.length;
+    const bubbles = g.items
+      .map((m, i) => {
+        const where = n === 1 ? 'solo' : i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid';
+        const big = JUMBO.test(m.body.trim()) ? ' jumbo' : '';
+        const state = m.failed ? ' failed' : m.pending ? ' pending' : '';
+        return `<div class="bubble ${where}${big}${state}" data-message="${esc(String(m.id))}" title="${esc(new Date(m.createdAt).toLocaleString())}"><div class="md">${md(clean(m.body))}</div></div>`;
+      })
+      .join('');
+    const last = g.items[n - 1];
+    let meta = esc(clock(last.createdAt));
+    if (g.items.some((m) => m.failed)) meta = `<button type="button" class="chat-retry">${icon('error')}Not sent. Tap to try again</button>`;
+    else if (g.items.some((m) => m.pending)) meta = 'Sending…';
+    else if (last === lastMine) meta += last.read ? ` · <span class="seen">${icon('done_all')}Seen</span>` : ` · ${icon('check')}Sent`;
+    const face = g.mine ? '' : `<a class="msg-avatar" href="#/u/${encodeURIComponent(them.name)}" aria-label="u/${esc(them.name)}">${avatar(them, 28)}</a>`;
+    return `<div class="msg-group ${g.mine ? 'mine' : 'them'}">${face}<div class="msg-stack">${bubbles}<small class="msg-meta">${meta}</small></div></div>`;
   }
 
   function thread(params) {
@@ -1077,86 +1135,166 @@
       html:
         '<div class="page single chat-page"><div class="col">' +
         `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>u/${esc(u.name)}</small></span></a>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
         `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
-        '<div class="chat" id="chat" aria-live="polite"><div class="chat-more" id="chat-more"></div><div id="chat-list"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
+        '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
         (friends
-          ? `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="Message u/${esc(u.name)}" aria-label="Message"></textarea><button class="m3-icon-btn filled" type="submit" aria-label="Send">${icon('send')}</button></form>`
+          ? `<button type="button" class="chat-jump" id="chat-jump" hidden>${icon('arrow_downward')}<span>New messages</span></button>` +
+            `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="Message u/${esc(u.name)}" aria-label="Message" enterkeyhint="send"></textarea>` +
+            `<button class="m3-icon-btn filled chat-send" type="submit" aria-label="Send" disabled>${icon('send')}</button></form>`
           : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`) +
         '</div></div>',
       mount(root) {
         const list = root.querySelector('#chat-list');
         const more = root.querySelector('#chat-more');
-        const toBottom = () => requestAnimationFrame(() => scrollTo({ top: document.body.scrollHeight }));
-        const paint = (t) => {
-          list.innerHTML = t.messages.length ? t.messages.map(bubbleHTML).join('') : `<p class="muted chat-empty">No messages yet. Say hi to u/${esc(u.name)}!</p>`;
-          more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
-          const btn = more.querySelector('button');
-          if (btn)
-            btn.addEventListener('click', async () => {
-              const h = document.body.scrollHeight;
-              paint(await store.loadThread(u.name, { older: true }));
-              scrollTo({ top: document.body.scrollHeight - h });
-            });
-        };
-        const existing = store.thread(u.name);
-        if (existing.loaded) {
-          paint(existing);
-          toBottom();
+        const jump = root.querySelector('#chat-jump');
+        const pending = []; // sent from here, not yet confirmed by the server
+        let sending = 0; // while one is on its way, its own reply repaints, not the store's news
+        const shown = new Set(); // ids already on screen: anything else is new and springs in
+        let first = true;
+
+        const end = () => document.documentElement.scrollHeight - innerHeight;
+        const nearEnd = () => scrollY >= end() - 140;
+        const toEnd = (smooth) => scrollTo({ top: end(), behavior: smooth && !Nook.fx.reduced() ? 'smooth' : 'auto' });
+
+        function arrive(el) {
+          const mine = !!el.closest('.mine');
+          el.style.transformOrigin = mine ? '100% 100%' : '0 100%';
+          Nook.fx.play(el, [{ opacity: 0, scale: 0.5, translate: `${mine ? 12 : -12}px 16px` }, { opacity: 1, scale: 1, translate: '0 0' }], {
+            duration: Nook.fx.lively.duration,
+            easing: Nook.fx.lively.easing,
+          });
         }
+
+        function paint({ follow = false } = {}) {
+          const t = store.thread(u.name);
+          const all = t.messages.concat(pending);
+          const wasNear = nearEnd();
+          list.innerHTML = all.length ? chatHTML(all, u) : `<div class="chat-empty">${avatar(u, 72)}<b>u/${esc(u.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`;
+          more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
+          const fresh = [];
+          for (const el of list.querySelectorAll('[data-message]')) {
+            if (!first && !shown.has(el.dataset.message)) fresh.push(el);
+            shown.add(el.dataset.message);
+          }
+          fresh.forEach(arrive);
+          const theirs = fresh.some((el) => el.closest('.them'));
+          if (first || follow || wasNear) {
+            const smooth = !first;
+            requestAnimationFrame(() => toEnd(smooth));
+            if (jump) jump.hidden = true;
+          } else if (theirs && jump) {
+            jump.hidden = false;
+            Nook.fx.pop(jump, 0.6);
+          }
+          first = false;
+        }
+
+        more.addEventListener('click', async (e) => {
+          if (!e.target.closest('button')) return;
+          const from = document.documentElement.scrollHeight - scrollY;
+          await store.loadThread(u.name, { older: true });
+          paint();
+          scrollTo({ top: document.documentElement.scrollHeight - from });
+        });
+
+        if (store.thread(u.name).loaded) paint();
         store
           .loadThread(u.name)
-          .then((t) => {
-            paint(t);
-            toBottom();
+          .then(() => {
+            paint();
             store.markThreadRead(u.name);
           })
           .catch((error) => (list.innerHTML = `<p class="muted chat-empty">${esc(error.message)}</p>`));
         root._onMessages = () => {
-          const t = store.thread(u.name);
-          if (!t.loaded) return;
-          paint(t);
-          toBottom();
+          if (sending || !store.thread(u.name).loaded) return;
+          paint();
           store.markThreadRead(u.name);
         };
         root._onFriends = () => app().rerender();
+
+        // while a chat is open it listens a little harder
+        const quick = setInterval(() => document.visibilityState === 'visible' && store.sync(), 4000);
+        const onScroll = () => jump && !jump.hidden && nearEnd() && (jump.hidden = true);
+        addEventListener('scroll', onScroll, { passive: true });
+        app().onLeave(() => {
+          clearInterval(quick);
+          removeEventListener('scroll', onScroll);
+        });
+
         const form = root.querySelector('#chat-box');
         if (!form) return;
         const input = form.querySelector('#chat-input');
+        const send = form.querySelector('.chat-send');
+        jump.addEventListener('click', () => {
+          toEnd(true);
+          jump.hidden = true;
+        });
         const grow = () => {
           input.style.height = 'auto';
           input.style.height = Math.min(input.scrollHeight, 160) + 'px';
         };
-        input.addEventListener('input', grow);
+        const ready = () => {
+          const on = !!input.value.trim();
+          if (send.disabled === !on) return;
+          send.disabled = !on;
+          if (on) Nook.fx.pop(send, 0.7);
+        };
+        input.addEventListener('input', () => {
+          grow();
+          ready();
+        });
         input.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(hover: hover)').matches) {
             e.preventDefault();
             form.requestSubmit();
           }
         });
-        form.addEventListener('submit', async (e) => {
+        // the keyboard opening shouldn't leave the newest messages hidden underneath it
+        input.addEventListener('focus', () => setTimeout(() => nearEnd() || toEnd(true), 350));
+
+        async function deliver(m) {
+          m.pending = true;
+          m.failed = false;
+          paint({ follow: true });
+          sending++;
+          try {
+            const real = await store.sendMessage(u.name, m.body);
+            pending.splice(pending.indexOf(m), 1);
+            // the confirmed message takes the place of the one already on screen, without springing in again
+            shown.add(String(real.id));
+          } catch (error) {
+            m.pending = false;
+            m.failed = true;
+            app().showError(error);
+          } finally {
+            sending--;
+          }
+          paint({ follow: !m.failed });
+        }
+
+        form.addEventListener('submit', (e) => {
           e.preventDefault();
           const text = input.value.trim();
           if (!text) return;
           const verdict = Nook.mod.check([text], { kind: 'message' });
           if (verdict.block) return app().showError({ rule: verdict.block.rule, message: verdict.block.why });
-          const send = form.querySelector('button');
-          send.disabled = true;
-          try {
-            await store.sendMessage(u.name, text);
-            input.value = '';
-            grow();
-            paint(store.thread(u.name));
-            toBottom();
-            Nook.fx.haptic(8);
-          } catch (error) {
-            app().showError(error);
-          } finally {
-            send.disabled = false;
-            input.focus();
-          }
+          // it's on screen at once, and you can keep typing while it goes
+          input.value = '';
+          grow();
+          ready();
+          const m = { id: store.uid('local'), body: text, createdAt: Date.now(), mine: true };
+          pending.push(m);
+          deliver(m);
+          Nook.fx.haptic(8);
+          input.focus({ preventScroll: true });
         });
-        input.focus({ preventScroll: true });
+        list.addEventListener('click', (e) => {
+          if (!e.target.closest('.chat-retry')) return;
+          pending.filter((m) => m.failed).forEach(deliver);
+        });
+        // on a computer the box is ready to type in; on a phone the keyboard waits for a tap
+        if (matchMedia('(hover: hover)').matches) input.focus({ preventScroll: true });
       },
     };
   }

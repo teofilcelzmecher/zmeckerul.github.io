@@ -393,8 +393,14 @@
       } catch (_) {
         /* the scrim just appears */
       }
-      const first = body.querySelector('[autofocus], input:not([type=hidden]), textarea');
+      // on a phone the keyboard only comes up when you tap a box, unless a sheet is all about typing
+      const first = phone() ? body.querySelector('[autofocus]') : body.querySelector('[autofocus], input:not([type=hidden]), textarea');
       if (first) first.focus();
+      else if (phone() && document.activeElement && document.activeElement.matches('input, textarea')) {
+        // opening a dialog focuses its first box by itself: the sheet takes focus instead
+        el.tabIndex = -1;
+        el.focus({ preventScroll: true });
+      }
     });
   }
 

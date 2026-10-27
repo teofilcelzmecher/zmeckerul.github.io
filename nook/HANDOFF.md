@@ -14,7 +14,7 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 ## Versions
 
 - **Name:** the app is **Budgie** and its communities are **nests** (still `n/…`). It was called Nook until 0.2.1. Only what people see was renamed: the code, CSS classes, storage keys, the folder `nook/`, the server's `nook` command, service, user and paths, and the live repository's name all still say nook. The starter nests `nookhq` and `asknook` became `budgiehq` and `askbudgie` (the server moves their posts once; old links redirect).
-- **Live:** 0.2.1 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
+- **Live:** 0.2.2 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
   It has accounts, friends, messages, live updates, reports and a Moderation page.
 - **Earlier:** 0.1.2 was local-only, behind a client-side code gate. It's gone, and its eight codes don't work on the server.
 
