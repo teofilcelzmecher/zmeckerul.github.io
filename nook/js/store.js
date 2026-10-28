@@ -256,8 +256,9 @@
     const lower = String(userName(name)).toLowerCase();
     const own = visiblePosts().filter((p) => p.author.toLowerCase() === lower);
     const said = [...commentsById.values()].filter((c) => !removed.has(c.id) && c.author.toLowerCase() === lower && posts.has(c.postId));
-    const karma = own.reduce((sum, p) => sum + score(p), 0) + said.reduce((sum, c) => sum + commentScore(c), 0);
-    return { posts: own, comments: said, karma };
+    // feathers: what Budgie calls the votes someone's posts and comments have earned (karma, elsewhere)
+    const feathers = own.reduce((sum, p) => sum + score(p), 0) + said.reduce((sum, c) => sum + commentScore(c), 0);
+    return { posts: own, comments: said, feathers };
   }
 
   /** what you've posted lately, for the spam rules */

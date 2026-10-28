@@ -726,7 +726,7 @@
         '</div>' +
         (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
         '</div><div class="stats">' +
-        `<div class="stat"><b class="count">${num(st.karma)}</b><span>Karma</span></div>` +
+        `<div class="stat" title="Every upvote on their posts and comments is a feather"><b class="count">${num(st.feathers)}</b><span>Feathers</span></div>` +
         `<div class="stat"><b class="count">${num(st.posts.length)}</b><span>Posts</span></div>` +
         `<div class="stat"><b class="count">${num(st.comments.length)}</b><span>Comments</span></div>` +
         (me ? `<div class="stat"><b>${plural(s.streak.count, 'day')}</b><span>Streak</span></div>` : '') +
