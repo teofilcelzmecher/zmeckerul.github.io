@@ -39,7 +39,7 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 - **Design system (`m3/`):** GPL-3.0-or-later, ported from Swiftify with its authors' permission. Each `m3` file keeps "Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors" at the top, plus the credit and the link to https://github.com/swiftify-org/swiftify. Keep it separate from Budgie's own code, which is all rights reserved (`nook/LICENSE`).
 - **Nothing from other companies:** fonts and the colour library are self-hosted (OFL and Apache license texts ship with them). Keep the Content Security Policy in the HTML pages.
 - **No fake content:** no made-up people, posts or numbers.
-- **Credits:** Teofil Ionescu-Mihai, creator and main developer. Alex Vochin, Petcu David Andrei and Crisu Radu, testers and supporters.
+- **Credits:** Teofil Ionescu-Mihai, creator and main developer. Alex Vochin and Petcu David Andrei, testers and supporters.
 
 ## Testing
 
