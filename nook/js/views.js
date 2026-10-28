@@ -1339,7 +1339,8 @@
     if (!serverAt('0.9.5')) return '';
     return (
       '<div class="chat-tools">' +
-      `<button type="button" class="m3-icon-btn chat-tool" data-chat="picture" aria-label="Send a photo or GIF" data-tooltip="Photo or GIF">${icon('add_photo_alternate')}</button>` +
+      // a real file box under your finger, as the profile's photo pickers have: phones open it reliably
+      `<label class="m3-icon-btn chat-tool photo-pick" data-tooltip="Photo or GIF">${icon('add_photo_alternate')}<input type="file" class="chat-file" accept="image/*" aria-label="Send a photo or GIF"></label>` +
       (Nook.pickers && Nook.pickers.gifsOn() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="gif" aria-label="Find a GIF" data-tooltip="GIFs">${icon('gif_box')}</button>` : '') +
       `<button type="button" class="m3-icon-btn chat-tool only-hover" data-chat="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
       '</div>'
@@ -1476,17 +1477,20 @@
       if (!tool || !Nook.pickers) return;
       const kind = tool.dataset.chat;
       if (kind === 'emoji') return Nook.pickers.emoji(tool, (emoji) => Nook.pickers.insertAt(input, emoji));
-      if (kind === 'picture') {
-        const picture = await Nook.pickers.picture();
-        if (picture) attach(picture);
-        return;
-      }
       if (kind === 'gif') {
         // a GIF goes as soon as it's picked, as its own message
         const g = await Nook.pickers.gif();
         if (g) queue({ id: store.uid('local'), body: '', createdAt: Date.now(), mine: true, media: { type: 'klipy', local: g.url, width: g.width, height: g.height, title: g.title }, extra: { gif: g } });
       }
     });
+    // a picture from the device
+    const fileBox = form.querySelector('.chat-file');
+    if (fileBox)
+      fileBox.addEventListener('change', () => {
+        const file = fileBox.files && fileBox.files[0];
+        fileBox.value = ''; // so the same photo can be picked again
+        if (file && Nook.pickers) Nook.pickers.readPicture(file).then(attach, (error) => M3.snackbar(error.message));
+      });
     // a picture pasted in (from a screenshot, say) is attached
     input.addEventListener('paste', (e) => {
       const file = [...((e.clipboardData && e.clipboardData.files) || [])].find((f) => /^image\//.test(f.type));

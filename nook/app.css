@@ -4001,6 +4001,10 @@ html.visitor .landing {
   opacity: 0;
   cursor: pointer;
 }
+.photo-pick:has(input:focus-visible) {
+  outline: 2px solid var(--m3-primary);
+  outline-offset: 2px;
+}
 
 /* ---- moderation sheets ------------------------------------------------------------------------ */
 

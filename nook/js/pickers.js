@@ -277,7 +277,8 @@
   /** a picture file, ready to send: { image (a data URL), width, height, gif } */
   function readPicture(file) {
     return new Promise((resolve, reject) => {
-      if (!file || !/^image\//.test(file.type)) return reject(new Error('That file isn’t a picture.'));
+      // some phones' galleries give a photo no type at all: then whether it opens as a picture decides
+      if (!file || (file.type && !/^image\//.test(file.type))) return reject(new Error('That file isn’t a picture.'));
       const gif = file.type === 'image/gif';
       if (gif && file.size > GIF_MAX) return reject(new Error('That GIF is too big. Try one under 4 MB.'));
       if (file.size > 30 * 1024 * 1024) return reject(new Error('That picture is too big. Try one under 30 MB.'));
@@ -313,24 +314,6 @@
     });
   }
 
-  /** asks for a picture from the device; resolves with it, ready to send, or null */
-  function picture() {
-    return new Promise((resolve) => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'image/*';
-      input.addEventListener('change', () => {
-        const file = input.files && input.files[0];
-        if (!file) return resolve(null);
-        readPicture(file).then(resolve, (error) => {
-          M3.snackbar(error.message);
-          resolve(null);
-        });
-      });
-      input.click();
-    });
-  }
-
   // ---- seeing a picture full size ----------------------------------------------------------------------------
 
   function view(src, label = 'Picture') {
@@ -354,5 +337,5 @@
     fx.play(el.querySelector('img'), [{ opacity: 0, transform: 'scale(0.92)' }, { opacity: 1, transform: 'none' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
   }
 
-  Nook.pickers = { emoji, closeEmoji: closePicker, insertAt, gif, gifsOn, picture, readPicture, view };
+  Nook.pickers = { emoji, closeEmoji: closePicker, insertAt, gif, gifsOn, readPicture, view };
 })();
