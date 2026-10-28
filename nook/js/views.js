@@ -114,6 +114,13 @@
 
   // ---- the post card --------------------------------------------------------------
 
+  /** a tag by someone's name for their role in a nest: Owner, Moderator, or whatever their role is called there */
+  function roleTag(nook, name) {
+    const c = nook && store.community(nook);
+    const r = c && store.nestRole(c, name);
+    return r ? `<span class="tag role ${esc(r.role)}" title="${esc(r.label)} in n/${esc(c.id)}">${icon(r.role === 'owner' ? 'castle' : 'shield_person')}${esc(r.label)}</span>` : '';
+  }
+
   function postCard(p, ctx = {}) {
     const c = store.community(p.n);
     const name = store.userName(p.author);
@@ -129,8 +136,8 @@
     const head =
       '<header class="post-head">' +
       (inNook
-        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}`) +
+        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`
+        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`) +
       `<span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time>` +
       (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
       (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '') +
@@ -264,18 +271,41 @@
   }
 
   function rulesCard(c) {
-    if (!c.rules || !c.rules.length) return '';
-    return `<section class="card"><h3 class="card-title">${icon('gavel')}<span>Nest rules</span></h3><ol class="rules">${c.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol></section>`;
+    const edit = store.nestCan(c, 'rules') && serverAt('0.9.5') ? `<a class="m3-btn text small" href="#/n/${esc(c.id)}/manage?tab=rules">${icon('edit')}Edit</a>` : '';
+    if ((!c.rules || !c.rules.length) && !edit) return '';
+    return (
+      `<section class="card"><h3 class="card-title">${icon('gavel')}<span>Nest rules</span>${edit}</h3>` +
+      (c.rules && c.rules.length ? `<ol class="rules">${c.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : '<p class="muted">No rules yet.</p>') +
+      '</section>'
+    );
   }
 
+  /** who runs a nest: its owner and its team, each with their role */
   function modsCard(c) {
-    const mods = (c.mods || []).map((name) => store.user(name));
-    if (!mods.length) return '';
+    const people = [];
+    if (c.owner) people.push({ name: c.owner, label: 'Owner', symbol: 'castle' });
+    for (const t of c.team || []) people.push({ name: t.name, label: t.title || store.ROLE_LABELS[t.role] || 'Team', symbol: 'shield_person' });
+    const manage = store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-btn tonal small" href="#/n/${esc(c.id)}/manage">${icon('tune')}Manage</a>` : '';
+    if (!people.length && !manage && !c.starter) return '';
     return (
-      `<section class="card"><h3 class="card-title">${icon('shield_person')}<span>Moderators</span></h3><div class="list">` +
-      mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(plain(u.bio || '', 90))}</small></span></a>`).join('') +
-      '</div></section>'
+      `<section class="card"><h3 class="card-title">${icon('shield_person')}<span>Team</span>${manage}</h3><div class="list">` +
+      people
+        .map(({ name, label, symbol }) => {
+          const u = store.user(name);
+          return `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small class="team-role">${icon(symbol)}${esc(label)}</small></span></a>`;
+        })
+        .join('') +
+      '</div>' +
+      (c.starter && !c.owner ? '<p class="muted team-note">Budgie’s own moderators look after this nest.</p>' : '') +
+      '</section>'
     );
+  }
+
+  /** a note at the top of a nest you can't post in for now */
+  function bannedNote(c) {
+    const b = store.bannedFrom(c.id);
+    if (!b) return '';
+    return `<div class="card banned-note" role="status">${icon('block')}<div><b>You can’t post or comment in n/${esc(c.id)}${b.until ? ' until ' + esc(new Date(b.until).toLocaleDateString([], { day: 'numeric', month: 'long' })) : ''}.</b><small>Reason: ${esc(b.reason)}. You can still read it.</small></div></div>`;
   }
 
   function streakCard() {
@@ -331,7 +361,7 @@
       `<div class="c-side">${avatar(removed ? ghost : u, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
       '<div class="c-main">' +
       '<div class="c-head">' +
-      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>${prideFlag(u)}${devTag(u)}`) +
+      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag((store.post(c.postId) || {}).n, name)}`) +
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
@@ -371,7 +401,7 @@
     return (
       '<form class="reply-box">' +
       `<textarea class="m3-field" rows="3" placeholder="${esc(placeholder)}" required>${esc(value)}</textarea>` +
-      `<div class="row"><span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
+      `<div class="row"><button type="button" class="m3-icon-btn small only-hover" data-act="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button><span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
       `<button type="button" class="m3-btn text" data-act="reply-cancel">Cancel</button>` +
       `<button type="submit" class="m3-btn filled">${icon('send')}${esc(submitLabel)}</button></div></form>`
     );
@@ -488,10 +518,12 @@
         `<m3-shape-icon class="nook-avatar" shape="${c.shape}" hover-shape="${c.shape === 'heart' ? 'flower' : 'heart'}" symbol="${c.symbol}" size="104" icon-size="48"></m3-shape-icon>` +
         `<div class="nook-id"><h1 class="m3-title">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
+        (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span class="m3-icon">more_horiz</span></button></div></div>` +
         `<p class="nook-tagline">${esc(c.tagline)}</p>` +
         pulse(c) +
         '</section>' +
+        bannedNote(c) +
         `<div class="toolbar">${sortControl('hot')}<span class="spacer"></span>` +
         `<button class="m3-btn tonal small only-tablet" data-act="nook-about" data-nook="${c.id}">${icon('info')}About</button>` +
         `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>${compactToggle()}</div>` +
@@ -887,6 +919,10 @@
         (chatsPlus()
           ? `<section>${header('clover8', 'call', 'Calls')}<div class="card setting-card">` +
             sw('set-calls', 'Let friends call me', 'Voice and video calls from your friends and the groups you’re in. Off, nobody can ring you, but you can still call them.', store.state.me.calls !== 'off') +
+            (serverAt('0.9.5') && Nook.calls
+              ? `<div class="setting-row"><span class="label">Ringtone</span>${segmented('set-ringtone', Nook.calls.RINGTONES.map((id) => [id, id[0].toUpperCase() + id.slice(1)]), s.ringtone || 'budgie', 'Ringtone')}</div>` +
+                `<div class="toolbar"><button class="m3-btn tonal" data-act="call-look">${icon('palette')}Call look</button><button class="m3-btn text" data-act="ring-preview">${icon('volume_up')}Hear the ringtone</button></div>`
+              : '') +
             '<p class="muted">Calls go straight between devices, encrypted, and are never recorded. As with any direct call, the people in a call can see your device’s internet (IP) address, unless it goes through Budgie’s relay. Only call people you trust.</p>' +
             '</div></section>'
           : '') +
@@ -944,6 +980,14 @@
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();
+          });
+        }
+        const tone = $('#set-ringtone');
+        if (tone) {
+          tone.addEventListener('change', (e) => {
+            s.ringtone = e.detail.value;
+            store.save();
+            Nook.calls.preview(s.ringtone);
           });
         }
         const calls = $('#set-calls');
@@ -1126,11 +1170,15 @@
   // only one to three emoji: shown big, without a bubble
   const JUMBO = /^(?:\p{Extended_Pictographic}[\p{Emoji_Modifier}\p{Variation_Selector}\p{Join_Control}\p{Extended_Pictographic}]*\s*){1,3}$/u;
   const clock = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  // group chats and calls came with the server's 0.9.0
-  const chatsPlus = () => {
-    const [major, minor] = String(Nook.serverVersion || '0.0').split('.').map(Number);
-    return major > 0 || minor >= 9;
-  };
+  /** whether the server is at least `version` (features come with the server they need) */
+  function serverAt(version) {
+    const have = String(Nook.serverVersion || '0.0.0').split('.').map(Number);
+    const want = version.split('.').map(Number);
+    for (let i = 0; i < 3; i++) if ((have[i] || 0) !== (want[i] || 0)) return (have[i] || 0) > (want[i] || 0);
+    return true;
+  }
+  // group chats and calls came with the server's 0.9.0; pictures in chats with 0.9.5
+  const chatsPlus = () => serverAt('0.9.0');
   const groupIcon = (g, size = 40, iconSize = Math.round(size * 0.5)) => nookIcon({ shape: g.shape, symbol: 'groups', color: g.color }, size, iconSize);
 
   function dayLabel(t) {
@@ -1185,8 +1233,22 @@
     if (m.kind === 'call') return d.missed && !m.mine ? (d.media === 'video' ? 'missed_video_call' : 'call_missed') : d.media === 'video' ? 'videocam' : 'call';
     return { created: 'groups', added: 'person_add', removed: 'person_remove', left: 'logout', renamed: 'edit', owner: 'shield_person' }[d.type] || 'info';
   }
+  const mediaWord = (x) => (x.type === 'klipy' || x.gif ? 'GIF' : 'Photo');
   /** the last message, for a list of chats */
-  const preview = (m, inGroup) => (!m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + plain(clean(m.body), 80));
+  const preview = (m, inGroup) =>
+    !m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + (m.body ? plain(clean(m.body), 80) : m.media ? (mediaWord(m.media) === 'GIF' ? 'GIF' : '📷 Photo') : '');
+
+  /** a picture or GIF in a bubble; it opens full size when pressed */
+  function mediaHTML(x) {
+    const moving = !ui.motionOff();
+    const src = x.local || (x.type === 'klipy' && !moving && x.still ? x.still : Nook.api.url(x.url));
+    const label = x.type === 'klipy' ? x.title || 'GIF' : mediaWord(x);
+    const shape = x.width && x.height ? ` style="aspect-ratio:${x.width}/${x.height}"` : '';
+    return (
+      `<button type="button" class="msg-media" data-act="view-media" data-src="${esc(x.local || Nook.api.url(x.url))}" data-label="${esc(label)}" aria-label="Open ${esc(label)}">` +
+      `<img src="${esc(src)}" alt="${esc(label)}" loading="lazy" referrerpolicy="no-referrer"${shape}>${mediaWord(x) === 'GIF' ? '<span class="gif-tag">GIF</span>' : ''}</button>`
+    );
+  }
 
   /** a conversation as days, in each day runs of bubbles from one person, with calls and group news as lines between */
   function chatHTML(messages, them, inGroup = false) {
@@ -1233,9 +1295,16 @@
     const bubbles = g.items
       .map((m, i) => {
         const where = n === 1 ? 'solo' : i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid';
-        const big = JUMBO.test(m.body.trim()) ? ' jumbo' : '';
+        const words = (m.body || '').trim();
+        const big = !m.media && JUMBO.test(words) ? ' jumbo' : '';
         const state = m.failed ? ' failed' : m.pending ? ' pending' : '';
-        return `<div class="bubble ${where}${big}${state}" data-message="${esc(String(m.id))}" title="${esc(new Date(m.createdAt).toLocaleString())}"><div class="md">${md(clean(m.body))}</div></div>`;
+        const media = m.media ? ' has-media' + (words ? '' : ' only-media') : '';
+        return (
+          `<div class="bubble ${where}${big}${state}${media}" data-message="${esc(String(m.id))}" title="${esc(new Date(m.createdAt).toLocaleString())}">` +
+          (m.media ? mediaHTML(m.media) : '') +
+          (words ? `<div class="md">${md(clean(m.body))}</div>` : '') +
+          '</div>'
+        );
       })
       .join('');
     const last = g.items[n - 1];
@@ -1258,9 +1327,22 @@
       '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
       (locked ||
         `<button type="button" class="chat-jump" id="chat-jump" hidden>${icon('arrow_downward')}<span>New messages</span></button>` +
-          `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="${esc(placeholder)}" aria-label="Message" enterkeyhint="send"></textarea>` +
+          '<div class="chat-attach" id="chat-attach" hidden></div>' +
+          `<form class="chat-box" id="chat-box">${chatTools()}<textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="${esc(placeholder)}" aria-label="Message" enterkeyhint="send"></textarea>` +
           `<button class="m3-icon-btn filled chat-send" type="submit" aria-label="Send" disabled>${icon('send')}</button></form>`) +
       '</div></div>'
+    );
+  }
+
+  /** what can go in a message besides words, once the server takes pictures (0.9.5) */
+  function chatTools() {
+    if (!serverAt('0.9.5')) return '';
+    return (
+      '<div class="chat-tools">' +
+      `<button type="button" class="m3-icon-btn chat-tool" data-chat="picture" aria-label="Send a photo or GIF" data-tooltip="Photo or GIF">${icon('add_photo_alternate')}</button>` +
+      (Nook.pickers && Nook.pickers.gifsOn() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="gif" aria-label="Find a GIF" data-tooltip="GIFs">${icon('gif_box')}</button>` : '') +
+      `<button type="button" class="m3-icon-btn chat-tool only-hover" data-chat="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
+      '</div>'
     );
   }
 
@@ -1364,12 +1446,54 @@
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 160) + 'px';
     };
+    // a picture waiting to go with the next message
+    let attached = null;
+    const attachBox = root.querySelector('#chat-attach');
     const ready = () => {
-      const on = !!input.value.trim();
+      const on = !!input.value.trim() || !!attached;
       if (send.disabled === !on) return;
       send.disabled = !on;
       if (on) Nook.fx.pop(send, 0.7);
     };
+    function attach(picture) {
+      attached = picture;
+      attachBox.hidden = !picture;
+      attachBox.innerHTML = picture
+        ? `<img src="${esc(picture.image)}" alt=""><span>${picture.gif ? 'GIF' : 'Photo'} ready to send${input.value.trim() ? '' : '. Add a message, or just send it'}</span>` +
+          `<button type="button" class="m3-icon-btn small" data-chat="unattach" aria-label="Don’t send this ${picture.gif ? 'GIF' : 'photo'}" data-tooltip="Remove">${icon('close')}</button>`
+        : '';
+      if (picture) Nook.fx.pop(attachBox, 0.9);
+      ready();
+    }
+    attachBox.addEventListener('click', (e) => e.target.closest('[data-chat="unattach"]') && (attach(null), input.focus({ preventScroll: true })));
+    const queue = (m) => {
+      pending.push(m);
+      deliver(m);
+      Nook.fx.haptic(8);
+    };
+    form.addEventListener('click', async (e) => {
+      const tool = e.target.closest('[data-chat]');
+      if (!tool || !Nook.pickers) return;
+      const kind = tool.dataset.chat;
+      if (kind === 'emoji') return Nook.pickers.emoji(tool, (emoji) => Nook.pickers.insertAt(input, emoji));
+      if (kind === 'picture') {
+        const picture = await Nook.pickers.picture();
+        if (picture) attach(picture);
+        return;
+      }
+      if (kind === 'gif') {
+        // a GIF goes as soon as it's picked, as its own message
+        const g = await Nook.pickers.gif();
+        if (g) queue({ id: store.uid('local'), body: '', createdAt: Date.now(), mine: true, media: { type: 'klipy', local: g.url, width: g.width, height: g.height, title: g.title }, extra: { gif: g } });
+      }
+    });
+    // a picture pasted in (from a screenshot, say) is attached
+    input.addEventListener('paste', (e) => {
+      const file = [...((e.clipboardData && e.clipboardData.files) || [])].find((f) => /^image\//.test(f.type));
+      if (!file || !serverAt('0.9.5') || !Nook.pickers) return;
+      e.preventDefault();
+      Nook.pickers.readPicture(file).then(attach, (error) => M3.snackbar(error.message));
+    });
     input.addEventListener('input', () => {
       grow();
       ready();
@@ -1389,7 +1513,7 @@
       paint({ follow: true });
       sending++;
       try {
-        const real = await c.send(m.body);
+        const real = await c.send(m.body, m.extra || {});
         pending.splice(pending.indexOf(m), 1);
         // the confirmed message takes the place of the one already on screen, without springing in again
         shown.add(String(real.id));
@@ -1406,17 +1530,20 @@
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const text = input.value.trim();
-      if (!text) return;
-      const verdict = Nook.mod.check([text], { kind: 'message' });
+      if (!text && !attached) return;
+      const verdict = text ? Nook.mod.check([text], { kind: 'message' }) : {};
       if (verdict.block) return app().showError({ rule: verdict.block.rule, message: verdict.block.why });
       // it's on screen at once, and you can keep typing while it goes
+      const picture = attached;
       input.value = '';
       grow();
-      ready();
+      attach(null);
       const m = { id: store.uid('local'), body: text, createdAt: Date.now(), mine: true };
-      pending.push(m);
-      deliver(m);
-      Nook.fx.haptic(8);
+      if (picture) {
+        m.media = { type: 'image', local: picture.image, width: picture.width, height: picture.height, gif: picture.gif };
+        m.extra = { image: picture.image, width: picture.width, height: picture.height };
+      }
+      queue(m);
       input.focus({ preventScroll: true });
     });
     list.addEventListener('click', (e) => {
@@ -1441,8 +1568,10 @@
       Nook.fx.haptic(10);
       ui.sheet({
         html:
-          `<div class="msg-menu-quote">${esc(plain(clean(m.body), 160))}</div><div class="list">` +
-          `<button type="button" class="row-link" data-do="copy" data-m3-ripple>${icon('content_copy')}<span class="row-text"><b>Copy text</b></span></button>` +
+          (m.body ? `<div class="msg-menu-quote">${esc(plain(clean(m.body), 160))}</div>` : '') +
+          '<div class="list">' +
+          (m.body ? `<button type="button" class="row-link" data-do="copy" data-m3-ripple>${icon('content_copy')}<span class="row-text"><b>Copy text</b></span></button>` : '') +
+          (m.media ? `<button type="button" class="row-link" data-do="open" data-m3-ripple>${icon('open_in_full')}<span class="row-text"><b>Open ${m.media.type === 'klipy' || m.media.gif ? 'GIF' : 'photo'}</b></span></button>` : '') +
           (m.mine ? '' : `<button type="button" class="row-link" data-do="report" data-m3-ripple>${icon('flag')}<span class="row-text"><b>Report message</b><small>Moderators will see it, and who sent it</small></span></button>`) +
           '</div>',
         setup(body, close) {
@@ -1451,6 +1580,7 @@
             if (!act) return;
             close(null);
             if (act.dataset.do === 'copy') navigator.clipboard.writeText(m.body).then(() => M3.snackbar('Copied'), () => M3.snackbar('Couldn’t copy that.'));
+            else if (act.dataset.do === 'open') Nook.pickers.view(Nook.api.url(m.media.url), 'Picture');
             else app().report(c.reportKind, { id: m.id });
           });
         },
@@ -1495,7 +1625,7 @@
         mountChat(root, {
           thread: () => store.thread(u.name),
           load: (options) => store.loadThread(u.name, options),
-          send: (body) => store.sendMessage(u.name, body),
+          send: (body, extra) => store.sendMessage(u.name, body, extra),
           read: () => store.markThreadRead(u.name),
           reportKind: 'message',
           render: (all) => chatHTML(all, u),
@@ -1525,7 +1655,7 @@
         mountChat(root, {
           thread: () => store.groupThread(id),
           load: (options) => store.loadGroupThread(id, options),
-          send: (body) => store.sendGroupMessage(id, body),
+          send: (body, extra) => store.sendGroupMessage(id, body, extra),
           read: () => store.markGroupRead(id),
           reportKind: 'gmessage',
           render: (all) => chatHTML(all, null, true),
@@ -1566,11 +1696,368 @@
     };
   }
 
+  // ---- running a nest: its team, rules, bans and reports (from 0.9.5) ---------------------------------------------
+
+  const PERM_INFO = {
+    pin: ['push_pin', 'Pin posts', 'Pin up to 3 posts to the top of the nest'],
+    remove: ['delete', 'Remove posts and comments', 'Take down what breaks the rules, and handle reports'],
+    ban: ['block', 'Ban people', 'Stop someone posting and commenting in this nest'],
+    rules: ['gavel', 'Edit the rules', 'Change the rules, the tagline and the description'],
+    team: ['group', 'Manage the team', 'Give people roles and take them away'],
+  };
+  const ROLE_INFO = {
+    admin: ['Admin', 'Everything, including the team'],
+    moderator: ['Moderator', 'Pins, removes posts and comments, and bans people'],
+    helper: ['Helper', 'Pins, and removes posts and comments'],
+    custom: ['Your own', 'Name it and choose what it can do'],
+  };
+  const permIcons = (perms) => `<span class="perm-icons">${perms.map((p) => `<span title="${esc(PERM_INFO[p][1])}">${icon(PERM_INFO[p][0])}</span>`).join('')}</span>`;
+
+  function nestManage(params) {
+    const c = store.community(params.nook);
+    if (!c) return notFound(`There’s no nest called n/${params.nook}.`);
+    const perms = store.nestPerms(c);
+    if (!perms.length || !serverAt('0.9.5')) return notFound(`Only the people who run n/${c.id} can see this page.`);
+    const tabs = [['team', 'Team', 'group'], ['rules', 'Rules', 'gavel'], ['bans', 'Bans', 'block'], ['reports', 'Reports', 'flag']].filter(([id]) =>
+      id === 'team' ? true : id === 'rules' ? perms.includes('rules') : id === 'bans' ? perms.includes('ban') : perms.includes('remove')
+    );
+    const start = tabs.some(([id]) => id === params.tab) ? params.tab : 'team';
+    const mine = store.nestRole(c, store.state.me.name);
+    return {
+      title: `Manage n/${c.id}`,
+      nook: c,
+      brand: c.shape,
+      html:
+        '<div class="page single"><div class="col manage">' +
+        `<div class="page-head">${nookIcon(c, 48, 24)}<div><h1 class="m3-title">Manage n/${esc(c.id)}</h1><span class="muted">${
+          mine ? `You’re ${mine.role === 'owner' ? 'its owner' : `on its team, as ${esc(mine.label)}`}` : 'You’re one of Budgie’s moderators'
+        }</span></div><span class="spacer"></span><a class="m3-btn tonal small" href="#/n/${esc(c.id)}">${icon('arrow_back')}Back to the nest</a></div>` +
+        (tabs.length > 1 ? segmented('manage-tabs', tabs, start, 'Sections') : '') +
+        '<div id="manage-body"><m3-loading aria-label="Loading"></m3-loading></div>' +
+        '</div></div>',
+      mount(root) {
+        const body = root.querySelector('#manage-body');
+        let tab = start;
+        let data = null;
+        const boss = () => !!(data && data.boss);
+        async function load() {
+          try {
+            data = await store.manageNest(c.id);
+          } catch (error) {
+            body.innerHTML = `<p class="muted">${esc(error.message)}</p>`;
+            return;
+          }
+          draw();
+        }
+        const fresh = () => store.community(c.id);
+        function draw() {
+          body.innerHTML = { team: teamHTML, rules: rulesHTML, bans: bansHTML, reports: reportsHTML }[tab]();
+          Nook.fx.stagger(body.querySelectorAll('.card'), { y: 10, step: 30 });
+          if (tab === 'rules') wireRules();
+        }
+        const tabsEl = root.querySelector('#manage-tabs');
+        if (tabsEl) {
+          tabsEl.addEventListener('change', (e) => {
+            tab = e.detail.value;
+            // the address remembers the section, without drawing the page again
+            history.replaceState(history.state, '', `#/n/${c.id}/manage?tab=${tab}`);
+            draw();
+          });
+        }
+
+        // the team: who has which role, and what each role can do
+        function teamHTML() {
+          const n = fresh();
+          const canTeam = data.perms.includes('team');
+          const rows = [];
+          if (n.owner) rows.push(`<div class="team-row">${avatar(store.user(n.owner), 40)}<span class="row-text"><b>u/${esc(n.owner)}</b><small class="team-role">${icon('castle')}Owner · can do everything</small></span></div>`);
+          for (const t of n.team || []) {
+            const u = store.user(t.name);
+            const me = store.isMe(t.name);
+            const editable = canTeam && !me && (!t.perms.includes('team') || boss());
+            rows.push(
+              `<div class="team-row">${avatar(u, 40)}<span class="row-text"><b>u/${esc(u.name)}${me ? ' <span class="muted">(you)</span>' : ''}</b><small class="team-role">${icon('shield_person')}${esc(t.title || store.ROLE_LABELS[t.role])}${permIcons(t.perms)}</small></span>` +
+                (editable ? `<button type="button" class="m3-btn text small" data-team="edit" data-name="${esc(u.name)}">${icon('edit')}Change</button><button type="button" class="m3-icon-btn small" data-team="remove" data-name="${esc(u.name)}" aria-label="Take u/${esc(u.name)}’s role away" data-tooltip="Take role away">${icon('person_remove')}</button>` : '') +
+                (me ? `<button type="button" class="m3-btn text small" data-team="leave" data-name="${esc(u.name)}">${icon('logout')}Step down</button>` : '') +
+                '</div>'
+            );
+          }
+          return (
+            `<section class="card"><h3 class="card-title">${icon('group')}<span>Team</span>${canTeam ? `<button type="button" class="m3-btn filled small" data-team="add">${icon('person_add')}Add someone</button>` : ''}</h3>` +
+            (rows.length ? `<div class="team-list">${rows.join('')}</div>` : '<p class="muted">Nobody yet. Budgie’s own moderators look after this nest.</p>') +
+            '</section>' +
+            `<section class="card"><h3 class="card-title">${icon('info')}<span>What each role can do</span></h3><div class="role-guide">` +
+            ['admin', 'moderator', 'helper'].map((r) => `<div><b>${ROLE_INFO[r][0]}</b>${permIcons(store.NEST_ROLES[r])}<small>${ROLE_INFO[r][1]}</small></div>`).join('') +
+            '<div><b>Your own</b><small>A role with a name you choose, that can do only what you pick. People can only give the kinds of access they have themselves, and only the owner can let someone manage the team.</small></div></div></section>'
+          );
+        }
+
+        // the rules, the tagline and the description
+        function rulesHTML() {
+          const n = fresh();
+          return (
+            `<form class="card form" id="rules-form" novalidate><h3 class="card-title">${icon('gavel')}<span>Rules</span></h3>` +
+            '<p class="muted">Everyone sees these on the nest’s page. Keep them short: up to 10, each up to 120 characters.</p>' +
+            `<ol class="rules-edit" id="rules-list">${(n.rules || []).map(ruleRow).join('')}</ol>` +
+            `<button type="button" class="m3-btn text small" id="rule-add">${icon('add')}Add a rule</button>` +
+            `<h3 class="card-title">${icon('info')}<span>About the nest</span></h3>` +
+            `<div class="field"><label for="nest-tagline">Tagline</label><input class="m3-field" id="nest-tagline" maxlength="200" value="${esc(n.tagline || '')}"></div>` +
+            `<div class="field"><label for="nest-desc">Description</label><textarea class="m3-field" id="nest-desc" rows="3" maxlength="500">${esc(n.description || '')}</textarea></div>` +
+            `<div class="form-actions"><span class="status" id="rules-status"></span><button type="submit" class="m3-btn filled">${icon('check')}Save</button></div></form>`
+          );
+        }
+        const ruleRow = (text = '') =>
+          `<li class="rule-row"><input class="m3-field" maxlength="120" value="${esc(text)}" placeholder="Be kind" aria-label="Rule">` +
+          `<button type="button" class="m3-icon-btn small" data-rule="up" aria-label="Move up" data-tooltip="Move up">${icon('arrow_upward')}</button>` +
+          `<button type="button" class="m3-icon-btn small" data-rule="drop" aria-label="Remove this rule" data-tooltip="Remove">${icon('close')}</button></li>`;
+        function wireRules() {
+          const form = body.querySelector('#rules-form');
+          const list = form.querySelector('#rules-list');
+          const status = form.querySelector('#rules-status');
+          const addBtn = form.querySelector('#rule-add');
+          const count = () => (addBtn.hidden = list.children.length >= 10);
+          count();
+          addBtn.addEventListener('click', () => {
+            list.insertAdjacentHTML('beforeend', ruleRow());
+            list.lastElementChild.querySelector('input').focus();
+            count();
+          });
+          list.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-rule]');
+            if (!b) return;
+            const row = b.closest('li');
+            if (b.dataset.rule === 'drop') row.remove();
+            else if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+            count();
+          });
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const rules = [...list.querySelectorAll('input')].map((i) => i.value.trim()).filter(Boolean);
+            const tagline = form.querySelector('#nest-tagline').value.trim();
+            const description = form.querySelector('#nest-desc').value.trim();
+            const verdict = Nook.mod.check([...rules, tagline, description], { kind: 'nook' });
+            if (verdict.block) return (status.textContent = verdict.block.why);
+            status.textContent = 'Saving…';
+            try {
+              await store.editNest(c.id, { rules, tagline, description });
+            } catch (error) {
+              status.textContent = error.message;
+              return;
+            }
+            status.textContent = '';
+            M3.toast('Saved', { symbol: 'gavel', shape: c.shape });
+            draw();
+          });
+        }
+
+        // who's banned from posting here
+        function bansHTML() {
+          const until = (b) => (b.until ? 'until ' + new Date(b.until).toLocaleDateString([], { day: 'numeric', month: 'long' }) : 'for good');
+          return (
+            `<section class="card"><h3 class="card-title">${icon('block')}<span>Banned from n/${esc(c.id)}</span><button type="button" class="m3-btn filled small" data-ban="add">${icon('block')}Ban someone</button></h3>` +
+            '<p class="muted">A ban only stops someone posting and commenting here. They can still read the nest, and use the rest of Budgie.</p>' +
+            (data.bans.length
+              ? `<div class="team-list">${data.bans
+                  .map((b) => {
+                    const u = store.user(b.name);
+                    return `<div class="team-row">${avatar(u, 40)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(until(b))} · ${esc(b.reason)}${b.by ? ` · by u/${esc(b.by)}` : ''}</small></span><button type="button" class="m3-btn text small" data-ban="lift" data-name="${esc(u.name)}">${icon('lock_open')}Unban</button></div>`;
+                  })
+                  .join('')}</div>`
+              : '<p class="muted">Nobody is banned.</p>') +
+            '</section>'
+          );
+        }
+
+        // reports about what's in this nest
+        function reportsHTML() {
+          return (
+            `<section class="card"><h3 class="card-title">${icon('flag')}<span>Reports</span></h3>` +
+            (data.reports.length
+              ? `<div class="report-list">${data.reports
+                  .map((r) => {
+                    const item = r.item || {};
+                    return (
+                      `<div class="report" data-report="${r.id}"><div class="report-head"><span class="tag">${r.kind === 'post' ? 'Post' : 'Comment'}</span>${r.automatic ? `<span class="tag">${icon('smart_toy')}Automatic check</span>` : ''}<span class="muted">${esc(r.reason)} · ${ago(r.createdAt)}</span></div>` +
+                      `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}</small></div>` +
+                      '<div class="toolbar">' +
+                      `<button type="button" class="m3-btn tonal small" data-report-do="remove" data-kind="${r.kind}" data-target="${esc(r.target)}">${icon('delete')}Remove</button>` +
+                      `<button type="button" class="m3-btn text small" data-report-do="dismiss" data-id="${r.id}">${icon('check')}Nothing wrong</button>` +
+                      (item.href ? `<a class="m3-btn text small" href="${esc(item.href)}">${icon('open_in_new')}Open</a>` : '') +
+                      '</div></div>'
+                    );
+                  })
+                  .join('')}</div>`
+              : '<p class="muted">No open reports. All quiet.</p>') +
+            '</section>'
+          );
+        }
+
+        body.addEventListener('click', async (e) => {
+          const t = e.target.closest('[data-team]');
+          const b = e.target.closest('[data-ban]');
+          const r = e.target.closest('[data-report-do]');
+          try {
+            if (t && t.dataset.team === 'add') await roleSheet(null);
+            else if (t && t.dataset.team === 'edit') await roleSheet(t.dataset.name);
+            else if (t && (t.dataset.team === 'remove' || t.dataset.team === 'leave')) {
+              const self = t.dataset.team === 'leave';
+              const ok = await M3.dialog({
+                headline: self ? `Step down from n/${c.id}’s team?` : `Take u/${t.dataset.name}’s role away?`,
+                symbol: 'person_remove',
+                iconShape: 'softBoom',
+                body: self ? 'You won’t be able to do anything here a member can’t. Someone on the team can give you a role again.' : 'They’ll be an ordinary member of the nest again, and they’re told.',
+                actions: [{ label: 'Cancel', value: false }, { label: self ? 'Step down' : 'Take it away', value: true, variant: 'filled' }],
+              });
+              if (!ok) return;
+              await store.removeNestRole(c.id, t.dataset.name);
+              if (self) return app().go('#/n/' + c.id, { replace: true });
+            } else if (b && b.dataset.ban === 'add') {
+              const done = await banSheet(c);
+              if (!done) return;
+            } else if (b && b.dataset.ban === 'lift') {
+              await store.unbanFromNest(c.id, b.dataset.name);
+              M3.toast(`u/${b.dataset.name} can post here again`, { symbol: 'lock_open', shape: c.shape });
+            } else if (r && r.dataset.reportDo === 'remove') {
+              const reason = await app().pickReason(`Remove this ${r.dataset.kind}?`, 'delete', `Its author is told a moderator of n/${esc(c.id)} removed it, and why.`, 'Remove');
+              if (!reason) return;
+              await store.nestRemove(c.id, r.dataset.kind, r.dataset.target, reason);
+              M3.toast(`Removed: ${reason}`, { symbol: 'delete', shape: c.shape });
+            } else if (r && r.dataset.reportDo === 'dismiss') {
+              await store.dismissNestReport(c.id, r.dataset.id);
+            } else return;
+          } catch (error) {
+            return app().showError(error);
+          }
+          load();
+        });
+
+        /** gives someone a role, or changes theirs */
+        function roleSheet(name) {
+          const n = fresh();
+          const had = name ? (n.team || []).find((t) => t.name.toLowerCase() === name.toLowerCase()) : null;
+          const model = { role: had ? had.role : 'moderator', title: had ? had.title || '' : '', perms: had ? [...had.perms] : ['pin', 'remove'] };
+          const allowed = (perm) => data.perms.includes(perm) && (perm !== 'team' || boss());
+          const roleOk = (role) => role === 'custom' || store.NEST_ROLES[role].every(allowed);
+          const people = store.people().filter((u) => !store.isMe(u.name)).map((u) => `<option value="${esc(u.name)}">`).join('');
+          return ui.sheet({
+            headline: name ? `u/${name}’s role` : 'Add someone to the team',
+            symbol: 'shield_person',
+            shape: c.shape,
+            className: 'wide',
+            html:
+              (name ? '' : `<div class="field"><label for="role-who">Who (they have to have joined n/${esc(c.id)})</label><input class="m3-field" id="role-who" list="role-people" autocomplete="off" placeholder="Username"><datalist id="role-people">${people}</datalist></div>`) +
+              `<div class="field"><span class="field-label">Role</span><div class="role-picks">${Object.entries(ROLE_INFO)
+                .map(([role, [label, text]]) => `<button type="button" class="role-pick" data-role="${role}" aria-pressed="${role === model.role}"${roleOk(role) ? '' : ' disabled'}><b>${label}</b><small>${text}</small></button>`)
+                .join('')}</div></div>` +
+              `<div class="custom-role"${model.role === 'custom' ? '' : ' hidden'}><div class="field"><label for="role-title">Its name</label><input class="m3-field" id="role-title" maxlength="24" placeholder="Glaze guru" value="${esc(model.title)}"></div>` +
+              Object.entries(PERM_INFO)
+                .map(([perm, [symbol, label, text]]) => `<label class="switch-row">${icon(symbol)}<span class="switch-text"><span>${label}</span><small>${text}</small></span><input type="checkbox" class="m3-switch" role="switch" data-perm="${perm}"${model.perms.includes(perm) ? ' checked' : ''}${allowed(perm) ? '' : ' disabled'}></label>`)
+                .join('') +
+              '</div><span class="error" id="role-err"></span>',
+            setup(sheetBody) {
+              const custom = sheetBody.querySelector('.custom-role');
+              sheetBody.querySelectorAll('.role-pick').forEach((pick) =>
+                pick.addEventListener('click', () => {
+                  model.role = pick.dataset.role;
+                  sheetBody.querySelectorAll('.role-pick').forEach((other) => other.setAttribute('aria-pressed', String(other === pick)));
+                  custom.hidden = model.role !== 'custom';
+                })
+              );
+            },
+            actions: [
+              { label: 'Cancel', value: null },
+              {
+                label: 'Save',
+                variant: 'filled',
+                symbol: 'check',
+                run(close, sheetBody) {
+                  const err = sheetBody.querySelector('#role-err');
+                  const who = name || sheetBody.querySelector('#role-who').value.trim().replace(/^u\//i, '');
+                  if (!who) return (err.textContent = 'Who should it be?'), false;
+                  const fields = { role: model.role };
+                  if (model.role === 'custom') {
+                    fields.title = sheetBody.querySelector('#role-title').value.trim();
+                    fields.perms = [...sheetBody.querySelectorAll('[data-perm]')].filter((i) => i.checked).map((i) => i.dataset.perm);
+                    if (!fields.title) return (err.textContent = 'Give the role a name.'), false;
+                    if (!fields.perms.length) return (err.textContent = 'Pick at least one thing it can do.'), false;
+                  }
+                  store
+                    .setNestRole(c.id, who, fields)
+                    .then(() => {
+                      close(true);
+                      M3.toast(`u/${who} is on the team`, { symbol: 'shield_person', shape: c.shape });
+                      load();
+                    })
+                    .catch((error) => (err.textContent = error.message));
+                  return false;
+                },
+              },
+            ],
+          });
+        }
+
+        load();
+      },
+    };
+  }
+
+  /** bans someone from posting in a nest: who, why, and for how long; resolves true once done */
+  function banSheet(c, name = '') {
+    let days = 7;
+    let reason = '';
+    const reasons = ['Spam', 'Harassment or bullying', 'Breaks nest rules', 'Off topic', 'Something else'];
+    return ui.sheet({
+      headline: name ? `Ban u/${name} from n/${c.id}?` : `Ban someone from n/${c.id}`,
+      symbol: 'block',
+      shape: 'softBoom',
+      className: 'wide',
+      html:
+        (name ? '' : '<div class="field"><label for="ban-who">Who</label><input class="m3-field" id="ban-who" autocomplete="off" placeholder="Username"></div>') +
+        `<div class="field"><span class="field-label">Why</span><div class="chips" style="flex-wrap:wrap">${reasons.map((r) => `<button type="button" class="chip" data-why="${r}" aria-pressed="false">${r}</button>`).join('')}</div>` +
+        '<input class="m3-field" id="ban-why" maxlength="200" placeholder="Or say why in your own words"></div>' +
+        `<div class="field"><span class="field-label">For how long</span>${segmented('ban-days', [['1', 'A day'], ['7', 'A week'], ['30', 'A month'], ['0', 'For good']], '7', 'For how long')}</div>` +
+        '<p class="muted">They’re told, with the reason. They can still read the nest, and use the rest of Budgie.</p><span class="error" id="ban-err"></span>',
+      setup(sheetBody) {
+        sheetBody.querySelectorAll('[data-why]').forEach((chip) =>
+          chip.addEventListener('click', () => {
+            reason = chip.dataset.why;
+            sheetBody.querySelectorAll('[data-why]').forEach((other) => other.setAttribute('aria-pressed', String(other === chip)));
+          })
+        );
+        sheetBody.querySelector('#ban-days').addEventListener('change', (e) => (days = Number(e.detail.value)));
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Ban',
+          variant: 'filled',
+          symbol: 'block',
+          run(close, sheetBody) {
+            const err = sheetBody.querySelector('#ban-err');
+            const who = name || sheetBody.querySelector('#ban-who').value.trim().replace(/^u\//i, '');
+            const why = sheetBody.querySelector('#ban-why').value.trim() || reason;
+            if (!who) return (err.textContent = 'Who should be banned?'), false;
+            if (!why) return (err.textContent = 'Say why: they’ll be told.'), false;
+            store
+              .banFromNest(c.id, who, why, days)
+              .then(() => {
+                close(true);
+                M3.toast(`u/${who} can’t post in n/${c.id} ${days ? `for ${days === 1 ? 'a day' : days + ' days'}` : 'any more'}`, { symbol: 'block', shape: c.shape });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
   // ---- moderation, for admins -------------------------------------------------------------------------------
 
   // a reported profile's picture and banner, small, so an admin can see what was reported
   function reportPictures(item) {
     const pic = (url, cls, label) => (url ? `<img class="${cls}" src="${esc(Nook.api.url(url))}" alt="${label}">` : '');
+    if (item.picture) return `<div class="report-pics">${pic(item.picture, 'rp-picture', 'The picture')}</div>`;
     return item.photo || item.banner ? `<div class="report-pics">${pic(item.banner, 'rp-banner', 'Banner')}${pic(item.photo, 'rp-photo', 'Profile picture')}</div>` : '';
   }
 
@@ -1658,7 +2145,7 @@
 
   Nook.views = {
     home, popular, community, postPage, explore, saved, collection, profile, inbox, searchPage, settingsPage, submit, notFound,
-    friendsPage, messagesPage, thread, groupThread, adminPage, friendButtons, lineText, groupIcon, chatsPlus,
+    friendsPage, messagesPage, thread, groupThread, adminPage, friendButtons, lineText, groupIcon, chatsPlus, serverAt, nestManage, banSheet, roleTag,
     postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
     submitRail, empty, mountFeed,
   };

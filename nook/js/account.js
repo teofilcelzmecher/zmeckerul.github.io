@@ -9,7 +9,7 @@
   'use strict';
 
   const api = window.Nook.api;
-  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/calls.js', 'js/app.js'];
+  const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/pickers.js', 'js/calls.js', 'js/app.js'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const icon = (name) => `<span class="m3-icon" aria-hidden="true">${name}</span>`;

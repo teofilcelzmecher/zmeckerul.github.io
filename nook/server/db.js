@@ -181,6 +181,29 @@ CREATE TABLE IF NOT EXISTS group_messages (
 );
 CREATE INDEX IF NOT EXISTS group_messages_group ON group_messages(group_id, id);
 
+-- a nest's team: the people its owner (or someone they trust) gave a role, and what each may do there
+CREATE TABLE IF NOT EXISTS nest_team (
+  nook TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '',
+  perms TEXT NOT NULL,
+  added_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (nook, user_id)
+);
+
+-- people banned from posting and commenting in one nest, for good or until a time
+CREATE TABLE IF NOT EXISTS nest_bans (
+  nook TEXT NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL,
+  by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  until INTEGER,
+  PRIMARY KEY (nook, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -225,7 +248,9 @@ function open(dir) {
   const LATER_COLUMNS = [['users', 'photo_gif'], ['users', 'banner'], ['users', 'banner_gif'], ['users', 'name_font'],
     ['users', 'pronouns'], ['users', 'pride_flag'], ['users', 'interests'], ['users', 'profile_scheme'], ['users', 'sticker_shape'], ['users', 'badges'],
     // a private message's kind ('' for words, 'call' for a call's line), and whether friends can call you ('' yes, 'off' no)
-    ['messages', 'kind'], ['users', 'calls']];
+    ['messages', 'kind'], ['users', 'calls'],
+    // a picture or GIF sent in a chat (JSON), and when a post was pinned to the top of its nest
+    ['messages', 'media'], ['group_messages', 'media'], ['posts', 'pinned_at']];
   for (const [table, column] of LATER_COLUMNS) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   }

@@ -4775,7 +4775,7 @@ html.framed body {
 /* the call screens are always dark: Material 3's dark baseline until the caller's own colours arrive */
 .call-ring,
 .call-screen,
-.call-pill {
+.call-bar {
   --m3-primary: #d0bcff;
   --m3-on-primary: #381e72;
   --m3-primary-container: #4f378b;
@@ -4926,7 +4926,8 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 .call-ring {
   position: fixed;
   inset: 0;
-  z-index: 935;
+  /* above snackbars and toasts, which mustn't cover Answer */
+  z-index: 955;
   display: flex;
   background: var(--m3-surface-container-lowest);
   color: var(--m3-on-surface);
@@ -5260,41 +5261,72 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   transform: translate(-50%, -50%);
 }
 
-/* a call carrying on while you look at something else */
-.call-pill {
-  position: fixed;
-  top: calc(8px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  z-index: 925;
-  display: inline-flex;
+/* a call carrying on while you look at something else: a slim bar across the top that moves the page down */
+html.has-call-bar {
+  --call-bar: 44px;
+  --nook-bar: calc(64px + var(--call-bar));
+}
+html.has-call-bar .topbar {
+  top: var(--call-bar);
+  height: 64px;
+}
+.call-bar {
+  position: sticky;
+  top: 0;
+  z-index: 70;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: calc(100vw - 32px);
-  height: 44px;
-  padding: 0 16px 0 14px;
-  border: 0;
-  border-radius: 22px;
+  gap: 4px;
+  height: var(--call-bar, 44px);
+  padding: 0 8px 0 4px;
   background: var(--m3-primary-container);
   color: var(--m3-on-primary-container);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
-  font: inherit;
   font-weight: 650;
-  transform: translateX(-50%);
+}
+.call-bar .m3-icon-btn {
+  flex: none;
+  color: inherit;
+}
+.call-bar-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
   cursor: pointer;
 }
-.call-pill > span:not(.pill-dot) {
+.call-bar .m3-icon {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1;
+}
+.call-bar-text {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.call-pill .m3-icon {
-  font-size: 20px;
-  font-variation-settings: 'FILL' 1;
-}
-.call-pill b {
+.call-bar-main b {
   flex: none;
   padding-left: 10px;
   border-left: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+}
+.call-bar .call-bar-hang {
+  background: #dc362e;
+  color: #fff;
+}
+.call-bar.rejoin {
+  padding-left: 12px;
+}
+.call-bar.rejoin > .m3-icon {
+  flex: none;
 }
 .pill-dot {
   flex: none;
@@ -5327,4 +5359,595 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 }
 .call-banner .m3-icon {
   font-variation-settings: 'FILL' 1;
+}
+
+/* ---- 0.9.5: nest teams, pictures in chats, emoji and GIFs ------------------------------------------------- */
+
+/* only where there's a mouse: a keyboard on a phone already has emoji */
+@media (hover: none) {
+  .only-hover {
+    display: none !important;
+  }
+}
+
+/* someone's role in a nest, by their name */
+.tag.role {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.tag.role.owner {
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.tag.role .m3-icon,
+.tag.dev .m3-icon {
+  font-size: 14px;
+}
+.card-title > .m3-btn {
+  margin-left: auto;
+}
+.team-role {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.team-role > .m3-icon {
+  color: var(--m3-primary);
+  font-size: 16px;
+}
+.team-note {
+  margin: 8px 0 0;
+  font-size: var(--m3-fs-smaller);
+}
+.banned-note {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  background: var(--m3-error-container);
+  color: var(--m3-on-error-container);
+}
+.banned-note > .m3-icon {
+  font-size: 28px;
+}
+.banned-note div {
+  display: grid;
+  gap: 2px;
+}
+
+/* the Manage page */
+.manage .m3-segmented {
+  margin-bottom: 16px;
+}
+#manage-body {
+  display: grid;
+  gap: 16px;
+}
+.team-list {
+  display: grid;
+  gap: 4px;
+}
+.team-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 4px;
+}
+.team-row .row-text {
+  flex: 1 1 200px;
+}
+.perm-icons {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 6px;
+  color: var(--m3-on-surface-variant);
+}
+.perm-icons .m3-icon {
+  font-size: 15px;
+}
+.role-guide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.role-guide > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--m3-r-normal);
+  background: var(--m3-surface-container);
+}
+.role-guide small {
+  color: var(--m3-on-surface-variant);
+}
+.role-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+.role-pick {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: var(--m3-r-normal);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 150ms, border-color 150ms, border-radius var(--m3-motion-click-bounce);
+}
+.role-pick small {
+  color: var(--m3-on-surface-variant);
+}
+.role-pick[aria-pressed='true'] {
+  border-color: transparent;
+  border-radius: 24px;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.role-pick:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.custom-role {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.custom-role .switch-row > .m3-icon {
+  color: var(--m3-primary);
+}
+.rules-edit {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+.rule-row {
+  padding-left: 4px;
+}
+.rule-row::marker {
+  color: var(--m3-primary);
+  font-weight: 700;
+}
+.rule-row {
+  display: list-item;
+}
+.rule-row > * {
+  vertical-align: middle;
+}
+.rule-row input {
+  width: calc(100% - 84px);
+}
+.rp-picture {
+  max-width: min(260px, 100%);
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: var(--m3-r-normal);
+}
+
+/* pictures and GIFs in chats */
+.chat-tools {
+  display: flex;
+  flex: none;
+  align-self: flex-end;
+}
+.chat-tool {
+  color: var(--m3-on-surface-variant);
+}
+.chat-attach {
+  position: sticky;
+  bottom: calc(var(--chat-bottom) + 70px);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 6px 6px 6px 8px;
+  border-radius: 20px;
+  background: var(--m3-surface-container-highest);
+  font-size: var(--m3-fs-smaller);
+}
+.chat-attach[hidden] {
+  display: none;
+}
+.chat-attach img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.chat-attach span {
+  flex: 1;
+}
+.bubble.has-media {
+  padding: 4px;
+}
+.bubble.has-media .md {
+  padding: 6px 10px 5px;
+}
+.bubble.only-media {
+  background: transparent;
+}
+.msg-media {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+.msg-media img {
+  display: block;
+  width: min(280px, 62vw);
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: calc(var(--r) - 4px);
+  background: var(--m3-surface-container);
+}
+.gif-tag {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.bubble.pending .msg-media img {
+  opacity: 0.7;
+}
+.media-viewer {
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: rgb(0 0 0 / 0.9);
+}
+.media-viewer[open] {
+  display: grid;
+  place-items: center;
+}
+.media-viewer::backdrop {
+  background: rgb(0 0 0 / 0.6);
+}
+.media-viewer img {
+  max-width: 96vw;
+  max-height: 90dvh;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.media-close {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  color: #fff;
+}
+
+/* the emoji picker: a card beside its button */
+.emoji-picker {
+  position: fixed;
+  z-index: 960;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 8px;
+  width: min(352px, calc(100vw - 16px));
+  height: min(400px, calc(100dvh - 16px));
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.22);
+}
+.ep-search {
+  height: 40px;
+  border-radius: 20px;
+}
+.ep-tabs {
+  display: flex;
+  justify-content: space-between;
+}
+.ep-tabs .m3-icon-btn {
+  color: var(--m3-on-surface-variant);
+}
+.ep-grid {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ep-grid h4 {
+  position: sticky;
+  top: 0;
+  margin: 0;
+  padding: 6px 4px;
+  background: var(--m3-surface-container-high);
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+}
+.ep-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+}
+.ep-row button {
+  display: grid;
+  place-items: center;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 120ms, border-radius var(--m3-motion-click-bounce);
+}
+.ep-row button:hover,
+.ep-row button:focus-visible {
+  border-radius: 50%;
+  background: var(--m3-layer1-hover);
+}
+.ep-row button[hidden],
+.ep-grid section[hidden] {
+  display: none;
+}
+
+/* GIFs from KLIPY */
+.gif-sheet .sheet-body {
+  max-height: min(70dvh, 640px);
+  overflow-y: auto;
+}
+.gif-search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.gif-grid {
+  columns: 3 120px;
+  column-gap: 6px;
+}
+.gif-item {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--m3-surface-container);
+  cursor: pointer;
+  break-inside: avoid;
+  transition: border-radius var(--m3-motion-click-bounce), transform var(--m3-motion-click-bounce);
+}
+.gif-item:hover,
+.gif-item:focus-visible {
+  border-radius: 20px;
+}
+.gif-item:active {
+  transform: scale(0.96);
+}
+.gif-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.gif-more {
+  display: grid;
+  place-items: center;
+  min-height: 24px;
+}
+.gif-credit {
+  margin: 8px 0 0;
+  color: var(--m3-on-surface-variant);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ---- 0.9.5: calls ------------------------------------------------------------------------------------------ */
+
+/* the call screen's background: plain, soft shapes drifting, or a glow from the top */
+.call-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.call-screen > :not(.call-bg) {
+  position: relative;
+}
+.call-screen > .call-self,
+.call-screen > .call-play {
+  position: absolute;
+}
+.call-bg m3-shape {
+  position: absolute;
+  width: 46vmax;
+  height: 46vmax;
+  color: var(--m3-primary-container);
+  opacity: 0;
+  transition: opacity 400ms;
+}
+.call-screen[data-bg='shapes'] .call-bg m3-shape {
+  opacity: 0.35;
+  animation: call-drift 38s ease-in-out infinite alternate;
+}
+.call-bg m3-shape:nth-child(1) {
+  top: -18vmax;
+  left: -14vmax;
+}
+.call-bg m3-shape:nth-child(2) {
+  top: 30%;
+  right: -22vmax;
+  animation-delay: -9s;
+  animation-duration: 44s;
+}
+.call-bg m3-shape:nth-child(3) {
+  bottom: -24vmax;
+  left: 12%;
+  width: 38vmax;
+  height: 38vmax;
+  animation-delay: -18s;
+}
+.call-bg m3-shape:nth-child(4) {
+  top: -10vmax;
+  right: 18%;
+  width: 22vmax;
+  height: 22vmax;
+  color: var(--m3-secondary-container);
+  animation-delay: -27s;
+  animation-duration: 30s;
+}
+@keyframes call-drift {
+  to {
+    rotate: 40deg;
+    translate: 4vmax 3vmax;
+  }
+}
+.call-screen[data-bg='glow'] .call-bg {
+  background: radial-gradient(120% 70% at 50% -10%, color-mix(in srgb, var(--m3-primary) 38%, transparent), transparent 70%);
+}
+html[data-m3-reduce-motion] .call-bg m3-shape {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .call-bg m3-shape {
+    animation: none;
+  }
+}
+.call-top .m3-icon-btn {
+  flex: none;
+}
+
+/* the ring screen's camera choice, for a video call */
+.ring-cam {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: 18px;
+  background: none;
+  color: var(--m3-on-surface);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ring-cam[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--m3-on-surface);
+  color: var(--m3-surface-container-lowest);
+}
+.ring-cam .m3-icon {
+  font-size: 20px;
+}
+
+/* before a video call: your camera, and the switches to go in with */
+.prejoin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border-radius: 24px;
+  background: #121016;
+  color: #e6e0e9;
+}
+.prejoin video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.prejoin video.mirror {
+  transform: scaleX(-1);
+}
+.prejoin-face {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.prejoin-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.prejoin-controls .call-btn:not(.off) {
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.prejoin-note {
+  margin: 10px 0 0;
+  text-align: center;
+}
+
+/* sharing a screen */
+.call-btn.sharing {
+  border-radius: 20px;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.call-screen > .share-note {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+}
+.share-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 4px 6px 4px 14px;
+  border-radius: 20px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.3);
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  font-weight: 650;
+}
+.call-stage.presenting {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+  grid-template-rows: minmax(0, 1fr) 130px;
+  grid-auto-rows: 130px;
+}
+.call-stage.presenting .screen-tile {
+  grid-column: 1 / -1;
+  background: #000;
+}
+.call-screen .call-stage .screen-tile video {
+  object-fit: contain;
+  opacity: 1;
+}
+.screen-tile .tile-name .m3-icon {
+  font-size: 18px;
+}
+.call-stage.presenting .call-tile:not(.screen-tile) .tile-face {
+  width: 72px;
+  height: 72px;
+}
+.call-stage.presenting .call-tile:not(.screen-tile) .tile-pic .avatar {
+  transform: scale(0.6);
+}
+.call-people .team-row {
+  padding: 6px 0;
 }

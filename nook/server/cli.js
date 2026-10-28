@@ -30,6 +30,7 @@ const COMMANDS = {
       '  nook invites                     list invite codes (used and unused)',
       '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
       '  nook turn <key id> <api token>   send calls through Cloudflare\'s TURN relay (they always connect, and nobody sees another\'s IP); nook turn off goes back to direct calls',
+      '  nook gifs <KLIPY app key>        turn on GIF search in chats (KLIPY); nook gifs off turns it off',
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
@@ -120,6 +121,38 @@ const COMMANDS = {
     db.meta('turn-key', key);
     db.meta('turn-token', token);
     out('Calls now go through Cloudflare\'s TURN relay: they connect on any network, and nobody in a call sees another\'s IP address. The first 1,000 GB a month are free. No restart needed.', 'To go back to direct calls: nook turn off');
+  },
+
+  async gifs(key) {
+    if (key === 'off') {
+      db.meta('klipy-key', '');
+      return out('GIF search is off. People can still send GIFs from their own device.', 'To turn it on again: nook gifs <KLIPY app key>');
+    }
+    if (!key) {
+      return out(
+        db.meta('klipy-key')
+          ? `GIF search is on, with the KLIPY app key ${db.meta('klipy-key').slice(0, 6)}…. Turn it off with: nook gifs off`
+          : 'GIF search is off. People can still send GIFs from their own device. To turn it on: nook gifs <KLIPY app key>'
+      );
+    }
+    if (!/^[A-Za-z0-9_-]{8,128}$/.test(key)) quit('Usage: nook gifs <KLIPY app key>   (from API Keys in KLIPY’s Partner Panel, https://partner.klipy.com)');
+    // one search, so a wrong key shows up now rather than in the app
+    if (process.env.NOOK_GIFS !== 'test') {
+      let res;
+      try {
+        res = await fetch(`https://api.klipy.com/api/v1/${encodeURIComponent(key)}/gifs/trending?per_page=8`, { signal: AbortSignal.timeout(15000) });
+      } catch (error) {
+        quit(`Couldn't reach KLIPY to check the key (${error.message}). Is the laptop online?`);
+      }
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body || body.result === false) quit(`KLIPY didn't accept that key (it answered ${res.status}). Copy it again from API Keys in the Partner Panel.`);
+    }
+    db.meta('klipy-key', key);
+    out(
+      'GIF search is on: people see it the next time they open Budgie. No restart needed.',
+      'While the key is in KLIPY’s testing mode, everyone together gets 100 searches an hour; ask for production access in the Partner Panel to lift that.',
+      'To turn it off: nook gifs off'
+    );
   },
 
   invite(count = '1', ...note) {

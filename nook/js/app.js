@@ -45,6 +45,7 @@
         // the two starter nests renamed with the app (Nook became Budgie): old links still work
         const id = { nookhq: 'budgiehq', asknook: 'askbudgie' }[parts[1]] || parts[1];
         if (parts[2] === 'p' && parts[3]) return at('postPage', { nook: id, post: parts[3] });
+        if (parts[2] === 'manage') return at('nestManage', { nook: id });
         return at('community', { nook: id });
       }
       case 'u':
@@ -820,8 +821,48 @@
         ? { label: 'Delete post', symbol: 'delete', destructive: true, onSelect: () => deletePost(p, card) }
         : { label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('post', p) },
       !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('post', p, card) } : null,
+      ...nestItems('post', p, card),
     ]);
   };
+
+  /** what a nest's team can do to a post or comment there: pin it, take it down, ban who wrote it */
+  function nestItems(kind, thing, card) {
+    const nook = kind === 'post' ? thing.n : (store.post(thing.postId) || {}).n;
+    const c = nook && store.community(nook);
+    if (!c || !views.serverAt('0.9.5') || !store.nestPerms(c).length) return [];
+    const mine = store.isMe(thing.author);
+    const author = thing.author && thing.author !== '[deleted]' ? thing.author : '';
+    const items = [];
+    if (kind === 'post' && store.nestCan(c, 'pin')) items.push({ label: thing.pinned ? 'Unpin' : `Pin to n/${nook}`, symbol: 'push_pin', onSelect: () => pin(thing) });
+    // Budgie's admins already have "Remove as moderator"
+    if (!mine && !store.isAdmin() && store.nestCan(c, 'remove')) items.push({ label: `Remove from n/${nook}`, symbol: 'delete', destructive: true, onSelect: () => nestTakeDown(kind, thing, c, card) });
+    if (!mine && author && store.nestCan(c, 'ban') && !store.nestRole(c, author)) items.push({ label: `Ban u/${author} from n/${nook}`, symbol: 'block', destructive: true, onSelect: () => views.banSheet(c, author) });
+    return items.length ? [{ separator: true }, ...items] : [];
+  }
+
+  async function pin(p) {
+    try {
+      await store.pinPost(p.id, !p.pinned);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(p.pinned ? `Pinned to the top of n/${p.n}` : 'Unpinned', { symbol: 'push_pin', shape: store.community(p.n).shape });
+    render();
+  }
+
+  async function nestTakeDown(kind, thing, c, card) {
+    const reason = await pickReason(`Remove this ${kind}?`, 'delete', `Its author is told a moderator of n/${esc(c.id)} removed it, and why.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.nestRemove(c.id, kind, thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`Removed: ${reason}`, { symbol: 'delete', shape: c.shape });
+    if (kind === 'post' && route.view === 'postPage') go('#/n/' + c.id, { replace: true });
+    else if (card) removeCard(card);
+    else rerenderComments();
+  }
 
   /** a moderator takes something down, with the reason its author will be told */
   async function modRemove(kind, thing, card) {
@@ -873,6 +914,7 @@
           ]
         : [{ label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('comment', c) }]),
       !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('comment', c) } : null,
+      ...nestItems('comment', c, null),
     ]);
   };
 
@@ -978,6 +1020,14 @@
     M3.toast('Thanks, a moderator will take a look', { symbol: 'shield', shape: 'gem' });
   }
   app.report = report;
+  app.pickReason = pickReason;
+
+  // pictures in chats open full size; emoji go where the cursor is
+  ACTIONS['view-media'] = (btn) => Nook.pickers.view(btn.dataset.src, btn.dataset.label);
+  ACTIONS.emoji = (btn) => {
+    const field = btn.closest('form') && btn.closest('form').querySelector('textarea');
+    if (field) Nook.pickers.emoji(btn, (emoji) => Nook.pickers.insertAt(field, emoji));
+  };
 
   // ---- joining ------------------------------------------------------------------------
 
@@ -1679,6 +1729,8 @@
     });
   }
   ACTIONS['new-group'] = () => newGroup();
+  ACTIONS['call-look'] = () => Nook.calls && Nook.calls.customise();
+  ACTIONS['ring-preview'] = () => Nook.calls && Nook.calls.preview();
   ACTIONS.call = (btn) => Nook.calls && Nook.calls.start({ to: btn.dataset.user || '', group: btn.dataset.group || '', media: btn.dataset.media === 'video' ? 'video' : 'voice' });
 
   /** a group's members and settings: add friends, remove people (the owner), rename it, leave or report it */
@@ -2278,6 +2330,11 @@
       [['g', 'then', 'h'], 'Go home (or p, e, s, i for popular, explore, saved, inbox)'],
       [['t'], 'Light or dark'],
       [['?'], 'This help'],
+      // in a call (calls.js listens for these first)
+      [['m'], 'In a call: mute or unmute'],
+      [['v'], 'In a call: camera on or off'],
+      [['Shift+S'], 'In a call: share your screen'],
+      [['c'], 'In a call: hide it, or bring it back'],
     ];
     const WORDS = ['or', 'then'];
     ui.sheet({
@@ -2779,7 +2836,7 @@
   store.on('notify', (note) => {
     renderBadges();
     // what someone else did gets a toast; badges have their own celebration
-    if (['reply', 'friend', 'moderation', 'report'].includes(note.kind)) M3.toast(note.text, { symbol: note.symbol, shape: note.shape, timeout: 3600 });
+    if (['reply', 'friend', 'moderation', 'report', 'nest'].includes(note.kind)) M3.toast(note.text, { symbol: note.symbol, shape: note.shape, timeout: 3600 });
   });
 
   // ---- live: what the server says changed ------------------------------------------------------------

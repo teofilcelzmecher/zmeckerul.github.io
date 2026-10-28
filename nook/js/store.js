@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.9.0';
+  const VERSION = '0.9.5';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -96,6 +96,9 @@
     // group chats (from 0.9.0): `seen` is the newest message already counted, so none is counted twice
     groups: (BOOT.groups || []).map((g) => Object.assign(g, { seen: g.last ? g.last.id : 0 })),
     following: [],
+    // nests you can't post in for now (from 0.9.5), and the key for KLIPY's GIF search, once the owner sets one
+    bannedFrom: BOOT.bannedFrom || [],
+    gifs: BOOT.gifs || '',
   });
   for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
 
@@ -668,8 +671,9 @@
     return t;
   }
 
-  async function sendGroupMessage(id, body) {
-    const { message } = await api.post(`/api/groups/${encodeURIComponent(id)}/messages`, { body });
+  /** `extra` is a picture ({ image, width, height }) or a GIF ({ gif }) going with the words */
+  async function sendGroupMessage(id, body, extra = {}) {
+    const { message } = await api.post(`/api/groups/${encodeURIComponent(id)}/messages`, Object.assign({ body }, extra));
     appendGroupMessage(message);
     emit('messages');
     return message;
@@ -750,8 +754,8 @@
     return t;
   }
 
-  async function sendMessage(name, body) {
-    const { message } = await api.post('/api/messages', { to: name, body });
+  async function sendMessage(name, body, extra = {}) {
+    const { message } = await api.post('/api/messages', Object.assign({ to: name, body }, extra));
     appendMessage(message);
     emit('messages');
     return message;
@@ -776,6 +780,52 @@
     if (kind === 'post') posts.delete(id);
   }
   const ban = (name, reason, on = true) => api.post('/api/admin/ban', { name, reason, on });
+
+  // ---- running a nest: its team, rules, pins, bans and reports (from 0.9.5) -------------------------------------
+
+  const NEST_PERMS = ['pin', 'remove', 'ban', 'rules', 'team'];
+  const NEST_ROLES = { admin: ['pin', 'remove', 'ban', 'rules', 'team'], moderator: ['pin', 'remove', 'ban'], helper: ['pin', 'remove'] };
+  const ROLE_LABELS = { owner: 'Owner', admin: 'Admin', moderator: 'Moderator', helper: 'Helper' };
+  /** what you may do in a nest: everything as its owner or one of Budgie's admins, your role's share on its team */
+  function nestPerms(c) {
+    if (!c) return [];
+    if (isAdmin() || (c.owner && isMe(c.owner))) return NEST_PERMS;
+    const t = (c.team || []).find((m) => isMe(m.name));
+    return t ? t.perms : [];
+  }
+  const nestCan = (c, perm) => nestPerms(c).includes(perm);
+  /** someone's role in a nest, for the tag by their name: { label, role } or null */
+  function nestRole(c, name) {
+    if (!c || !name) return null;
+    const lower = String(userName(name)).toLowerCase();
+    if (c.owner && c.owner.toLowerCase() === lower) return { label: 'Owner', role: 'owner' };
+    const t = (c.team || []).find((m) => m.name.toLowerCase() === lower);
+    return t ? { label: t.title || ROLE_LABELS[t.role] || 'Team', role: t.role } : null;
+  }
+  const bannedFrom = (nook) => state.bannedFrom.find((b) => b.nook === nook && (!b.until || b.until > Date.now())) || null;
+  const nestPath = (id) => `/api/nooks/${encodeURIComponent(id)}`;
+  const nestChanged = ({ nook }) => {
+    ingestNook(nook);
+    emit('changed');
+    return nook;
+  };
+  const manageNest = (id) => api.get(nestPath(id) + '/manage');
+  const setNestRole = (id, name, fields) => api.put(`${nestPath(id)}/team/${encodeURIComponent(name)}`, fields).then(nestChanged);
+  const removeNestRole = (id, name) => api.del(`${nestPath(id)}/team/${encodeURIComponent(name)}`).then(nestChanged);
+  const editNest = (id, fields) => api.patch(nestPath(id), fields).then(nestChanged);
+  const banFromNest = (id, name, reason, days) => api.post(nestPath(id) + '/bans', { name, reason, days });
+  const unbanFromNest = (id, name) => api.del(`${nestPath(id)}/bans/${encodeURIComponent(name)}`);
+  const dismissNestReport = (id, reportId) => api.post(`${nestPath(id)}/reports/${reportId}/dismiss`, {});
+  async function pinPost(id, on) {
+    const { post } = await api.post(`/api/posts/${encodeURIComponent(id)}/pin`, { on });
+    ingestPost(post);
+    return post;
+  }
+  async function nestRemove(nook, kind, id, reason) {
+    await api.post(nestPath(nook) + '/remove', { kind, id, reason });
+    removed.add(id);
+    if (kind === 'post') posts.delete(id);
+  }
 
   // ---- keeping up: what changed on the server since we last asked ------------------------------------------------
 
@@ -868,6 +918,8 @@
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
     markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
     friendStatus, friends, befriend, unfriend, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
+    NEST_PERMS, NEST_ROLES, ROLE_LABELS, nestPerms, nestCan, nestRole, bannedFrom, manageNest, setNestRole, removeNestRole, editNest, banFromNest, unbanFromNest,
+    dismissNestReport, pinPost, nestRemove,
     report, adminReports, resolveReport, adminRemove, ban, sync,
   };
 })();

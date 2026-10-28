@@ -68,6 +68,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook signups open` / `invite` | Anyone can join, or only with an invite code |
 | `sudo nook captcha SITE_KEY SECRET_KEY` / `captcha off` | Turns the robot check (Cloudflare Turnstile) on sign-up on or off |
 | `sudo nook turn KEY_ID API_TOKEN` / `turn off` | Sends calls through Cloudflare's TURN relay, or back to direct calls (see below) |
+| `sudo nook gifs KLIPY_APP_KEY` / `gifs off` | Turns GIF search in chats on or off (see below) |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
@@ -136,6 +137,29 @@ call up to about 11 MB a minute per person):
    calls fall back to going direct by themselves.
 
 People can stop anyone from ringing them in Settings → Calls.
+
+## GIF search in chats (KLIPY)
+
+People can always send pictures and GIFs from their own device. To let them search for GIFs too, Budgie
+uses KLIPY (Google closed Tenor's API in June 2026). It's free to start:
+
+1. Sign up at https://partner.klipy.com and open **API Keys**. Create a platform (Web) for Budgie, with
+   the website https://budgiesocial.com, and copy its **app key**.
+2. In **Manage content**, set the content filter as strict as it goes (Budgie also asks for KLIPY's
+   strictest filter with every search), and block any search terms you don't want.
+3. On the laptop:
+
+   ```sh
+   sudo nook gifs YOUR_APP_KEY
+   ```
+
+   It checks the key with KLIPY first and works the next time people open Budgie (no restart).
+   `sudo nook gifs` says whether it's on; `sudo nook gifs off` turns it off.
+
+While the key is in KLIPY's testing mode, everyone together gets 100 searches an hour. Once it works,
+ask for **production access** in the Partner Panel to lift that. KLIPY asks apps to search from the
+person's own browser and to load its GIFs from its own links, so the key is handed to the app (it's
+meant to be public, like the Turnstile site key) and searches don't touch the laptop.
 
 ## Automatic checks
 

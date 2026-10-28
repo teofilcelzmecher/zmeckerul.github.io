@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.9.0';
-const TERMS = '0.9.0, 2026-10-28';
+const VERSION = '0.9.5';
+const TERMS = '0.9.5, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -185,6 +185,7 @@ function saveImage(img, ownerId) {
 
 const PICTURE_REFUSED = {
   profile: 'This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be a profile picture or banner. Try a different one.',
+  message: 'This picture might not be OK to send (an automatic check flagged it as possibly sexual), so it wasn’t sent.',
   post: 'This picture looks like it shows nudity or sexual content, which isn’t allowed on Budgie.',
 };
 
@@ -198,7 +199,8 @@ async function checkPicture(img, where) {
     console.error('picture check failed:', error.message);
     fail(503, 'Pictures can’t be checked right now, so they can’t be posted. Try again in a minute.');
   }
-  const verdict = pictures.verdict(score, where);
+  // pictures in chats are held to the same limits as profile pictures
+  const verdict = pictures.verdict(score, where === 'message' ? 'profile' : where);
   if (verdict === 'block') fail(422, PICTURE_REFUSED[where], { rule: 'No sexual content' });
   return verdict;
 }
@@ -279,7 +281,11 @@ function meOut(u) {
 function nookOut(row) {
   const data = JSON.parse(row.data);
   const creator = row.created_by ? db.get('SELECT name FROM users WHERE id = ?', row.created_by) : null;
-  return Object.assign(data, { id: row.id, createdAt: row.created_at, mods: creator ? [creator.name] : [], rev: row.rev });
+  const team = teamOf(row.id);
+  return Object.assign(data, {
+    id: row.id, createdAt: row.created_at || undefined, owner: creator ? creator.name : undefined, mods: creator ? [creator.name] : [],
+    team: team.length ? team : undefined, starter: STARTERS.has(row.id) || undefined, rev: row.rev,
+  });
 }
 
 function postAggregates(id) {
@@ -299,6 +305,7 @@ function postOut(row) {
     type: row.type, flair: row.flair || null, spoiler: !!row.spoiler, score: a.score, sparks: a.sparks, rev: row.rev,
   };
   if (row.edited_at) out.edited = row.edited_at;
+  if (row.pinned_at) out.pinned = Number(row.pinned_at);
   if (row.link) out.link = JSON.parse(row.link);
   if (row.image) out.image = imageUrl(row.image);
   if (row.poll) out.poll = { options: JSON.parse(row.poll).map((option, i) => [option, a.polls[i] || 0]) };
@@ -331,8 +338,53 @@ function friendship(aId, bId) {
   return db.get('SELECT * FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', aId, bId, bId, aId) || null;
 }
 
+// a picture or GIF in a chat: one sent from a device is kept here (and checked like any picture); one found with
+// KLIPY's GIF search is kept as KLIPY's link, as KLIPY asks, and loaded from KLIPY by whoever sees it
+const CHAT_PICTURE = { still: 3 * 1024 * 1024, gif: 4 * 1024 * 1024, maxSide: 1600 };
+const KLIPY_MEDIA_RE = /^https:\/\/static\d*\.klipy\.com\/[\w./%-]+\.(?:gif|webp|jpe?g|png|mp4|webm)(?:\?[\w=&.%-]*)?$/;
+const dims = (w, h) => {
+  const width = Math.round(Number(w)) || 0, height = Math.round(Number(h)) || 0;
+  return width > 0 && height > 0 && width <= 8000 && height <= 8000 ? { width, height } : {};
+};
+function mediaOut(json) {
+  if (!json) return undefined;
+  const m = JSON.parse(json);
+  if (m.type === 'image') return { type: 'image', url: imageUrl(m.id), width: m.width, height: m.height, gif: m.gif };
+  if (m.type === 'klipy') return { type: 'klipy', url: m.url, still: m.still, width: m.width, height: m.height, title: m.title };
+  return undefined;
+}
+/** a picture leaving with its message */
+function dropMedia(json) {
+  if (!json) return;
+  const m = JSON.parse(json);
+  if (m.type === 'image' && m.id) db.run('DELETE FROM images WHERE id = ?', m.id);
+}
+/** reads what's attached to a message being sent: { media (to keep), picture (to save), review } or null */
+async function chatMedia(user, body) {
+  if (body.gif) {
+    if (!db.meta('klipy-key')) fail(400, 'GIF search is off.');
+    const url = text(body.gif.url, 600);
+    const still = body.gif.still ? text(body.gif.still, 600) : '';
+    if (!KLIPY_MEDIA_RE.test(url) || (still && !KLIPY_MEDIA_RE.test(still))) fail(400, 'That GIF can’t be sent.');
+    return { media: Object.assign({ type: 'klipy', url, still: still || undefined, title: text(body.gif.title, 120) || undefined }, dims(body.gif.width, body.gif.height)) };
+  }
+  if (!body.image) return null;
+  limit('chat-picture:' + user.id, 40, HOUR, 'That’s a lot of pictures. Try again in a little while.');
+  const gif = /^data:image\/gif/.test(String(body.image));
+  const picture = readImage(body.image, gif ? CHAT_PICTURE.gif : CHAT_PICTURE.still, { gif: true, maxSide: CHAT_PICTURE.maxSide });
+  // checked as strictly as profile pictures: many people on Budgie are teenagers
+  const review = await checkPicture(picture, 'message');
+  return { picture, review, media: Object.assign({ type: 'image', gif: picture.mime === 'image/gif' || undefined }, dims(body.width, body.height)) };
+}
+/** keeps a message's picture, if it has one, and returns its media as JSON */
+function keepMedia(attached, ownerId) {
+  if (!attached) return '';
+  if (attached.picture) attached.media.id = saveImage(attached.picture, ownerId);
+  return JSON.stringify(attached.media);
+}
+
 function messageOut(row, meId) {
-  return { id: row.id, from: row.from_name, to: row.to_name, kind: row.kind || undefined, body: row.body, createdAt: row.created_at, read: !!row.read_at, mine: row.from_id === meId };
+  return { id: row.id, from: row.from_name, to: row.to_name, kind: row.kind || undefined, body: row.body, media: mediaOut(row.media), createdAt: row.created_at, read: !!row.read_at, mine: row.from_id === meId };
 }
 const MESSAGE_SELECT = `SELECT m.*, uf.name AS from_name, ut.name AS to_name FROM messages m
   JOIN users uf ON uf.id = m.from_id JOIN users ut ON ut.id = m.to_id`;
@@ -370,8 +422,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '0.9.0, 2026-10-28',
-  text: 'Budgie now has group chats and calls, and its Terms and Privacy Policy say how they work: group messages are checked like private ones, calls go straight between devices (Budgie never hears or sees them) and only friends or people in your groups can call you. You can turn calls off in Settings. Read the details in Settings → Privacy and legal.',
+  version: '0.9.5, 2026-10-28',
+  text: 'Budgie 0.9.5 is the last early-access version. Nest owners can now give people roles (moderators who can pin and remove posts and ban people from the nest), and write their nest’s rules. You can send pictures and GIFs in chats, find GIFs with KLIPY, and share your screen on calls. The Terms and Privacy Policy say how: pictures in chats are checked like profile pictures, and GIF searches go to KLIPY. Read the details in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
@@ -424,9 +476,8 @@ function members() {
 
 const nookExists = (id) => STARTERS.has(id) || !!db.get('SELECT 1 AS x FROM nooks WHERE id = ?', id);
 function nookData(id) {
-  if (STARTERS.has(id)) return STARTERS.get(id);
   const row = db.get('SELECT data FROM nooks WHERE id = ?', id);
-  return row ? JSON.parse(row.data) : null;
+  return row ? JSON.parse(row.data) : STARTERS.get(id) || null;
 }
 
 /** what someone posted lately, for the spam rules */
@@ -650,6 +701,8 @@ route('GET', '/api/account/export', ({ user }) => {
     groupMessages: db.all(`${GMESSAGE_SELECT} WHERE m.from_id = ? ORDER BY m.id`, id).map((r) => gmessageOut(r, id)),
     notifications: db.all('SELECT * FROM notes WHERE user_id = ? ORDER BY id', id).map(noteOut),
     reportsMade: db.all('SELECT kind, target, reason, created_at AS createdAt, resolution FROM reports WHERE reporter_id = ?', id),
+    nestRoles: db.all('SELECT nook, role, title, perms, created_at AS since FROM nest_team WHERE user_id = ?', id),
+    nestBans: db.all('SELECT nook, reason, created_at AS since, until FROM nest_bans WHERE user_id = ?', id),
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
   };
 });
@@ -677,8 +730,10 @@ function eraseUser(id) {
     db.run('UPDATE posts SET author_id = NULL WHERE author_id = ?', id);
     db.run('UPDATE comments SET author_id = NULL WHERE author_id = ?', id);
     db.run('UPDATE nooks SET created_by = NULL, rev = ? WHERE created_by = ?', db.bump(), id);
+    for (const t of db.all('SELECT nook FROM nest_team WHERE user_id = ?', id)) touchNest(t.nook);
     db.run('UPDATE reports SET reporter_id = NULL WHERE reporter_id = ?', id);
     // their group messages go; each group they were in carries on without them (or goes, if they were the last)
+    for (const m of db.all("SELECT media FROM messages WHERE to_id = ? AND media != ''", id)) dropMedia(m.media);
     db.run('DELETE FROM group_messages WHERE from_id = ?', id);
     for (const m of db.all('SELECT group_id FROM group_members WHERE user_id = ?', id)) dropMember(m.group_id, id);
     db.run('DELETE FROM users WHERE id = ?', id); // sessions, joins, votes, sparks, poll votes, friends, messages, notes and images go with it
@@ -725,6 +780,12 @@ route('GET', '/api/bootstrap', ({ user }) => {
     groups: myGroups(id),
     gmsg: db.get('SELECT COALESCE(MAX(m.id), 0) AS n FROM group_messages m JOIN group_members gm ON gm.group_id = m.group_id AND gm.user_id = ?', id).n,
     ringing: [...calls.values()].filter((c) => c.ringing.has(id)).map(callOut),
+    // a call this person is still in (the page was reloaded mid-call): the app offers to go back to it
+    call: callOf(id) ? callOut(callOf(id)) : undefined,
+    // nests they can't post in for now
+    bannedFrom: db.all('SELECT nook, reason, until FROM nest_bans WHERE user_id = ? AND (until IS NULL OR until > ?)', id, now()).map((b) => ({ nook: b.nook, reason: b.reason, until: b.until || undefined })),
+    // the KLIPY key for GIF search, once the owner has set one (KLIPY asks for searches to come from the app itself)
+    gifs: db.meta('klipy-key') || undefined,
   };
 });
 
@@ -775,6 +836,7 @@ route('POST', '/api/posts', async ({ user, body }) => {
   const n = text(body.n, 30);
   const nook = nookData(n);
   if (!nook) fail(404, 'That nest doesn’t exist.');
+  notBanned(user, n);
   const type = ['text', 'image', 'link', 'poll'].includes(body.type) ? body.type : 'text';
   const title = text(body.title, 300);
   const postBody = text(body.body, 10000);
@@ -827,6 +889,7 @@ function ownPost(user, id) {
 route('PATCH', '/api/posts/:id', async ({ user, params, body }) => {
   let p = ownPost(user, params.id);
   if (p.author_id !== user.id) fail(403, 'Only the person who wrote a post can edit it.');
+  notBanned(user, p.nook);
   const title = body.title == null ? p.title : text(body.title, 300);
   const postBody = body.body == null ? p.body : text(body.body, 10000);
   if (title.length < 3) fail(400, 'Give your post a title (at least 3 characters).', { field: 'title' });
@@ -841,7 +904,7 @@ route('PATCH', '/api/posts/:id', async ({ user, params, body }) => {
 function removePost(p, reason) {
   db.tx(() => {
     if (p.image) db.run('DELETE FROM images WHERE id = ?', p.image);
-    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
+    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, pinned_at = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
   });
 }
 
@@ -864,6 +927,7 @@ route('POST', '/api/comments', async ({ user, body }) => {
     const parentId = body.parentId ? text(body.parentId, 40) : null;
     const parent = parentId ? db.get(`${COMMENT_SELECT} WHERE c.id = ? AND c.post_id = ?`, parentId, post.id) : null;
     if (parentId && !parent) fail(404, 'The comment you’re replying to is gone.');
+    notBanned(user, post.nook);
     return { post, parentId, parent };
   };
   vet([commentBody], { kind: 'comment', postId: find().post.id, history: history(user.id) });
@@ -897,6 +961,7 @@ function ownComment(user, id) {
 
 route('PATCH', '/api/comments/:id', async ({ user, params, body }) => {
   let c = ownComment(user, params.id);
+  notBanned(user, db.get('SELECT nook FROM posts WHERE id = ?', c.post_id).nook);
   const commentBody = text(body.body, 5000);
   if (!commentBody) fail(400, 'Write something first.');
   vet([commentBody], { kind: 'comment', postId: c.post_id, editing: true });
@@ -990,6 +1055,237 @@ route('POST', '/api/joins', ({ user, body }) => {
   if (body.on) db.run('INSERT OR IGNORE INTO joins (user_id, nook, created_at) VALUES (?, ?, ?)', user.id, nook, now());
   else db.run('DELETE FROM joins WHERE user_id = ? AND nook = ?', user.id, nook);
   return { members: members()[nook] || 0 };
+});
+
+// nest teams, bans, rules and pins ----------------------------------------------------------------------------
+// A nest's owner (whoever made it; for the starter nests, Budgie's admins) can give people who joined it a role:
+// Admin, Moderator, Helper, or one they name themselves. A role is a set of things its holder may do in that nest:
+// pin posts, remove posts and comments, ban people from the nest (which only stops them posting and commenting in
+// it), edit its rules and description, and manage its team. Budgie's own admins can do all of it, in every nest.
+
+const NEST_PERMS = ['pin', 'remove', 'ban', 'rules', 'team'];
+const NEST_ROLES = { admin: ['pin', 'remove', 'ban', 'rules', 'team'], moderator: ['pin', 'remove', 'ban'], helper: ['pin', 'remove'] };
+const ROLE_LABEL = { admin: 'Admin', moderator: 'Moderator', helper: 'Helper' };
+const NEST_TEAM_MAX = 20;
+const PIN_MAX = 3;
+const RULES_MAX = 10;
+
+const ownerOf = (nook) => (db.get('SELECT created_by FROM nooks WHERE id = ?', nook) || {}).created_by || null;
+/** everyone's who can run a nest: its owner and Budgie's admins */
+const nestBoss = (user, nook) => user.role === 'admin' || ownerOf(nook) === user.id;
+/** what someone may do in a nest: everything for its owner and Budgie's admins, their role's share for its team */
+function nestPerms(user, nook) {
+  if (!user) return [];
+  if (nestBoss(user, nook)) return NEST_PERMS;
+  const t = db.get('SELECT perms FROM nest_team WHERE nook = ? AND user_id = ?', nook, user.id);
+  return t ? t.perms.split(',').filter((p) => NEST_PERMS.includes(p)) : [];
+}
+const nestCan = (user, nook, perm, what) => nestPerms(user, nook).includes(perm) || fail(403, `You can’t ${what} in n/${nook}.`);
+function teamOf(nook) {
+  return db
+    .all('SELECT t.role, t.title, t.perms, u.name FROM nest_team t JOIN users u ON u.id = t.user_id WHERE t.nook = ? AND u.banned_at IS NULL ORDER BY t.created_at', nook)
+    .map((r) => ({ name: r.name, role: r.role, title: r.title || undefined, perms: r.perms.split(',').filter(Boolean) }));
+}
+/** a starter nest lives in the app's data file until someone changes it: then it gets a row of its own, which wins */
+function nestRow(nook) {
+  let row = db.get('SELECT * FROM nooks WHERE id = ?', nook);
+  if (!row && STARTERS.has(nook)) {
+    const data = Object.assign({}, STARTERS.get(nook));
+    delete data.id;
+    db.run('INSERT INTO nooks (id, data, created_by, created_at, rev) VALUES (?, ?, NULL, 0, ?)', nook, JSON.stringify(data), db.bump());
+    row = db.get('SELECT * FROM nooks WHERE id = ?', nook);
+  }
+  if (!row) fail(404, 'That nest doesn’t exist.');
+  return row;
+}
+const touchNest = (nook) => db.run('UPDATE nooks SET rev = ? WHERE id = ?', db.bump(), nestRow(nook).id);
+const nestBan = (userId, nook) => db.get('SELECT * FROM nest_bans WHERE nook = ? AND user_id = ? AND (until IS NULL OR until > ?)', nook, userId, now()) || null;
+const shortDate = (t) => new Date(t).toUTCString().slice(5, 16);
+function notBanned(user, nook) {
+  const b = nestBan(user.id, nook);
+  if (b) fail(403, `You’re banned from posting and commenting in n/${nook}${b.until ? ' until ' + shortDate(b.until) : ''}. Reason: ${b.reason}`, { banned: true });
+}
+function nestFrom(params) {
+  const nook = text(params.id, 30);
+  if (!nookExists(nook)) fail(404, 'That nest doesn’t exist.');
+  return nook;
+}
+const someone = (name) => {
+  const u = db.get('SELECT * FROM users WHERE name = ?', text(name, 40));
+  if (!u || u.banned_at) fail(404, 'There’s nobody by that name.');
+  return u;
+};
+
+/** what a nest's team sees on its Manage page: what they may do, who's banned, and reports about the nest */
+route('GET', '/api/nooks/:id/manage', ({ user, params }) => {
+  const nook = nestFrom(params);
+  const perms = nestPerms(user, nook);
+  if (!perms.length) fail(403, 'You’re not on this nest’s team.');
+  const out = { perms, boss: nestBoss(user, nook) };
+  if (perms.includes('ban')) {
+    out.bans = db
+      .all('SELECT b.*, u.name, ub.name AS by_name FROM nest_bans b JOIN users u ON u.id = b.user_id LEFT JOIN users ub ON ub.id = b.by_id WHERE b.nook = ? AND (b.until IS NULL OR b.until > ?) ORDER BY b.created_at DESC', nook, now())
+      .map((b) => ({ name: b.name, reason: b.reason, by: b.by_name || undefined, createdAt: b.created_at, until: b.until || undefined }));
+  }
+  if (perms.includes('remove')) {
+    // reports about posts and comments in this nest (who reported them stays with Budgie's own moderators)
+    out.reports = db
+      .all(
+        `SELECT * FROM reports WHERE resolved_at IS NULL AND ((kind = 'post' AND target IN (SELECT id FROM posts WHERE nook = ? AND removed_at IS NULL))
+          OR (kind = 'comment' AND target IN (SELECT c.id FROM comments c JOIN posts p ON p.id = c.post_id WHERE p.nook = ? AND c.removed_at IS NULL)))
+         ORDER BY created_at DESC LIMIT 100`,
+        nook, nook
+      )
+      .map((r) => ({ id: r.id, kind: r.kind, target: r.target, reason: r.reason.replace(/^Automatic check: /, ''), automatic: !r.reporter_id || undefined, createdAt: r.created_at, item: reportTarget(r) }));
+  }
+  return out;
+});
+
+/** gives someone a role in a nest, or changes it */
+route('PUT', '/api/nooks/:id/team/:name', ({ user, params, body }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'team', 'manage the team');
+  limit('nest-team:' + user.id, 60, HOUR);
+  const boss = nestBoss(user, nook);
+  const mine = nestPerms(user, nook);
+  const who = someone(params.name);
+  if (who.id === user.id) fail(400, 'You can’t change your own role.');
+  if (ownerOf(nook) === who.id) fail(400, `u/${who.name} owns n/${nook}.`);
+  if (!db.get('SELECT 1 AS x FROM joins WHERE user_id = ? AND nook = ?', who.id, nook)) fail(400, `u/${who.name} has to join n/${nook} first.`);
+  if (nestBan(who.id, nook)) fail(400, `u/${who.name} is banned from n/${nook}. Unban them first.`);
+  const had = db.get('SELECT * FROM nest_team WHERE nook = ? AND user_id = ?', nook, who.id);
+  if (had && had.perms.split(',').includes('team') && !boss) fail(403, 'Only the nest’s owner can change the role of someone who manages the team.');
+  const role = NEST_ROLES[body.role] ? body.role : 'custom';
+  const perms = role === 'custom' ? [...new Set((Array.isArray(body.perms) ? body.perms : []).filter((p) => NEST_PERMS.includes(p)))] : NEST_ROLES[role];
+  if (!perms.length) fail(400, 'Pick at least one thing they can do.', { field: 'perms' });
+  if (perms.includes('team') && !boss) fail(403, 'Only the nest’s owner can let someone manage the team.');
+  if (perms.some((p) => !mine.includes(p))) fail(403, 'You can only give the kinds of access you have yourself.');
+  const title = role === 'custom' ? text(body.title, 24) : '';
+  if (role === 'custom' && !title) fail(400, 'Give the role a name.', { field: 'title' });
+  if (title) vet([title], { kind: 'profile' }, { strongNames: true });
+  if (!had && db.get('SELECT COUNT(*) AS n FROM nest_team WHERE nook = ?', nook).n >= NEST_TEAM_MAX) fail(400, `A nest’s team can have up to ${NEST_TEAM_MAX} people.`);
+  // NEST_PERMS order, so the same access always reads the same way
+  const ordered = NEST_PERMS.filter((p) => perms.includes(p)).join(',');
+  db.run(
+    `INSERT INTO nest_team (nook, user_id, role, title, perms, added_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(nook, user_id) DO UPDATE SET role = excluded.role, title = excluded.title, perms = excluded.perms`,
+    nook, who.id, role, title, ordered, user.id, now()
+  );
+  touchNest(nook);
+  if (!had || had.role !== role || had.title !== title || had.perms !== ordered) {
+    notify(who.id, { kind: 'nest', text: `u/${user.name} made you ${title ? `“${title}”` : /^[aeiou]/i.test(ROLE_LABEL[role]) ? 'an ' + ROLE_LABEL[role] : 'a ' + ROLE_LABEL[role]} in n/${nook}`, href: '#/n/' + nook, symbol: 'shield_person', shape: 'gem' });
+  }
+  return { nook: nookOut(nestRow(nook)) };
+});
+
+/** takes someone off a nest's team; anyone on a team can step down */
+route('DELETE', '/api/nooks/:id/team/:name', ({ user, params }) => {
+  const nook = nestFrom(params);
+  const who = someone(params.name);
+  const had = db.get('SELECT * FROM nest_team WHERE nook = ? AND user_id = ?', nook, who.id);
+  if (!had) fail(404, `u/${who.name} isn’t on n/${nook}’s team.`);
+  if (who.id !== user.id) {
+    nestCan(user, nook, 'team', 'manage the team');
+    if (had.perms.split(',').includes('team') && !nestBoss(user, nook)) fail(403, 'Only the nest’s owner can take away the role of someone who manages the team.');
+    notify(who.id, { kind: 'nest', text: `You’re no longer on n/${nook}’s team.`, href: '#/n/' + nook, symbol: 'shield_person', shape: 'gem' });
+  }
+  db.run('DELETE FROM nest_team WHERE nook = ? AND user_id = ?', nook, who.id);
+  touchNest(nook);
+  return { nook: nookOut(nestRow(nook)) };
+});
+
+/** bans someone from posting and commenting in a nest, for some days or for good */
+route('POST', '/api/nooks/:id/bans', ({ user, params, body }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'ban', 'ban people');
+  limit('nest-ban:' + user.id, 60, HOUR);
+  const who = someone(body.name);
+  if (who.id === user.id) fail(400, 'You can’t ban yourself.');
+  if (who.role === 'admin' || ownerOf(nook) === who.id) fail(403, `u/${who.name} can’t be banned from n/${nook}.`);
+  if (db.get('SELECT 1 AS x FROM nest_team WHERE nook = ? AND user_id = ?', nook, who.id)) fail(400, `u/${who.name} is on the team. Take their role away first.`);
+  const reason = text(body.reason, 200) || 'Broke the nest’s rules';
+  vet([reason], { kind: 'comment' });
+  const days = Math.max(0, Math.min(365, Math.round(Number(body.days) || 0)));
+  const until = days ? now() + days * DAY : null;
+  db.run('INSERT OR REPLACE INTO nest_bans (nook, user_id, reason, by_id, created_at, until) VALUES (?, ?, ?, ?, ?, ?)', nook, who.id, reason, user.id, now(), until);
+  notify(who.id, {
+    kind: 'moderation',
+    text: `You can’t post or comment in n/${nook} ${days ? `for ${days === 1 ? 'a day' : days + ' days'}` : 'any more'}. Reason: ${reason}`,
+    href: '#/n/' + nook, symbol: 'block', shape: 'pixelCircle',
+  });
+  return { ok: true };
+});
+
+route('DELETE', '/api/nooks/:id/bans/:name', ({ user, params }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'ban', 'unban people');
+  const who = someone(params.name);
+  if (!db.run('DELETE FROM nest_bans WHERE nook = ? AND user_id = ?', nook, who.id).changes) fail(404, `u/${who.name} isn’t banned from n/${nook}.`);
+  notify(who.id, { kind: 'moderation', text: `You can post and comment in n/${nook} again.`, href: '#/n/' + nook, symbol: 'check_circle', shape: 'pixelCircle' });
+  return { ok: true };
+});
+
+/** a nest's rules, tagline and description */
+route('PATCH', '/api/nooks/:id', async ({ user, params, body }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'rules', 'edit the rules');
+  const read = () => JSON.parse(nestRow(nook).data);
+  const change = {};
+  if (body.rules != null) {
+    const rules = (Array.isArray(body.rules) ? body.rules : []).map((r) => text(r, 120)).filter(Boolean);
+    if (rules.length > RULES_MAX) fail(400, `A nest can have up to ${RULES_MAX} rules.`, { field: 'rules' });
+    change.rules = rules;
+  }
+  if (body.tagline != null) {
+    change.tagline = text(body.tagline, 200);
+    if (!change.tagline) fail(400, 'Say in a line what the nest is about.', { field: 'tagline' });
+  }
+  if (body.description != null) change.description = text(body.description, 500) || change.tagline || read().tagline;
+  const words = [...(change.rules || []), change.tagline, change.description].filter(Boolean);
+  if (!words.length) return { nook: nookOut(nestRow(nook)) };
+  vet(words, { kind: 'nook' }, { strongNames: true, personal: true });
+  await checkText(words, 'nook', { strict: true });
+  nestCan(user, nook, 'rules', 'edit the rules'); // still allowed once the check is done
+  db.run('UPDATE nooks SET data = ?, rev = ? WHERE id = ?', JSON.stringify(Object.assign(read(), change)), db.bump(), nook);
+  return { nook: nookOut(nestRow(nook)) };
+});
+
+/** pins a post to the top of its nest, or unpins it */
+route('POST', '/api/posts/:id/pin', ({ user, params, body }) => {
+  const p = db.get('SELECT * FROM posts WHERE id = ?', text(params.id, 40));
+  if (!p || p.removed_at) fail(404, 'That post is gone.');
+  nestCan(user, p.nook, 'pin', 'pin posts');
+  const on = body.on !== false;
+  if (on && !p.pinned_at && db.get("SELECT COUNT(*) AS n FROM posts WHERE nook = ? AND pinned_at != '' AND removed_at IS NULL", p.nook).n >= PIN_MAX) {
+    fail(400, `A nest can have up to ${PIN_MAX} pinned posts. Unpin one first.`);
+  }
+  db.run('UPDATE posts SET pinned_at = ?, rev = ? WHERE id = ?', on ? String(p.pinned_at || now()) : '', db.bump(), p.id);
+  return { post: postOut(db.get(`${POST_SELECT} WHERE p.id = ?`, p.id)) };
+});
+
+/** a nest's team takes down a post or comment in it; its author is told why, and reports about it close */
+route('POST', '/api/nooks/:id/remove', ({ user, params, body }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'remove', 'remove posts and comments');
+  const kind = body.kind === 'comment' ? 'comment' : 'post';
+  const id = text(body.id, 40);
+  const at = kind === 'post' ? db.get('SELECT nook FROM posts WHERE id = ?', id) : db.get('SELECT p.nook FROM comments c JOIN posts p ON p.id = c.post_id WHERE c.id = ?', id);
+  if (!at || at.nook !== nook) fail(404, 'That isn’t in this nest.');
+  const reason = text(body.reason, 200) || 'Breaks the nest’s rules';
+  if (!takeDown(kind, id, reason, `A moderator of n/${nook}`)) fail(404, 'That’s already gone.');
+  db.run('UPDATE reports SET resolved_at = ?, resolution = ? WHERE kind = ? AND target = ? AND resolved_at IS NULL', now(), `removed in n/${nook}: ${reason}`, kind, id);
+  return { ok: true };
+});
+
+/** a nest's team says a report about something in it needs nothing doing */
+route('POST', '/api/nooks/:id/reports/:rid/dismiss', ({ user, params }) => {
+  const nook = nestFrom(params);
+  nestCan(user, nook, 'remove', 'handle reports');
+  const r = db.get('SELECT * FROM reports WHERE id = ? AND resolved_at IS NULL', Number(params.rid));
+  const at = r && (r.kind === 'post' ? db.get('SELECT nook FROM posts WHERE id = ?', r.target) : r.kind === 'comment' ? db.get('SELECT p.nook FROM comments c JOIN posts p ON p.id = c.post_id WHERE c.id = ?', r.target) : null);
+  if (!at || at.nook !== nook) fail(404, 'That report is gone.');
+  db.run('UPDATE reports SET resolved_at = ?, resolution = ? WHERE kind = ? AND target = ? AND resolved_at IS NULL', now(), `dismissed in n/${nook}`, r.kind, r.target);
+  return { ok: true };
 });
 
 // you ---------------------------------------------------------------------------------------------------------
@@ -1168,18 +1464,20 @@ route('POST', '/api/messages', async ({ user, body }) => {
   const f = friendship(user.id, other.id);
   if (!f || f.status !== 'friends') fail(403, 'You can only message friends.');
   const messageBody = text(body.body, 2000);
-  if (!messageBody) fail(400, 'Write something first.');
+  if (!messageBody && !body.image && !body.gif) fail(400, 'Write something first.');
   const verdict = vet([messageBody], { kind: 'message' });
   // in private messages the model only stops what it's very sure of, and only sexual ones are shown to a moderator
-  const doubt = await checkText([messageBody], 'message');
+  const doubt = messageBody ? await checkText([messageBody], 'message') : null;
+  const attached = await chatMedia(user, body);
   const still = friendship(user.id, other.id);
   if (!still || still.status !== 'friends') fail(403, 'You can only message friends.');
-  const { lastInsertRowid } = db.run('INSERT INTO messages (from_id, to_id, body, created_at) VALUES (?, ?, ?, ?)', user.id, other.id, messageBody, now());
+  const { lastInsertRowid } = db.tx(() => db.run('INSERT INTO messages (from_id, to_id, body, media, created_at) VALUES (?, ?, ?, ?, ?)', user.id, other.id, messageBody, keepMedia(attached, user.id), now()));
   // a warning sign (someone asked to keep secrets, say) isn't blocked, but a moderator gets to see it
   if (verdict.flag) autoReport('message', Number(lastInsertRowid), verdict.flag.why);
+  else if (attached && attached.review === 'review') autoReport('message', Number(lastInsertRowid), 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('message', Number(lastInsertRowid), doubt);
   return { message: messageOut(db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(lastInsertRowid)), user.id) };
-});
+}, { body: 6 * 1024 * 1024 });
 
 route('POST', '/api/messages/read', ({ user, body }) => {
   const other = db.get('SELECT id FROM users WHERE name = ?', text(body.with, 40));
@@ -1198,7 +1496,7 @@ const GMESSAGE_SELECT = 'SELECT m.*, u.name AS from_name FROM group_messages m L
 const membership = (groupId, userId) => db.get('SELECT * FROM group_members WHERE group_id = ? AND user_id = ?', groupId, userId) || null;
 
 function gmessageOut(r, meId) {
-  return { id: r.id, group: r.group_id, from: r.from_name || null, kind: r.kind === 'text' ? undefined : r.kind, body: r.body, createdAt: r.created_at, mine: !!r.from_id && r.from_id === meId };
+  return { id: r.id, group: r.group_id, from: r.from_name || null, kind: r.kind === 'text' ? undefined : r.kind, body: r.body, media: mediaOut(r.media), createdAt: r.created_at, mine: !!r.from_id && r.from_id === meId };
 }
 function groupOut(g, meId) {
   const me = membership(g.id, meId);
@@ -1227,7 +1525,11 @@ function dropMember(groupId, userId) {
   if (!was) return;
   db.run('DELETE FROM group_members WHERE group_id = ? AND user_id = ?', groupId, userId);
   const left = db.all('SELECT * FROM group_members WHERE group_id = ? ORDER BY joined_at, user_id', groupId);
-  if (!left.length) return void db.run('DELETE FROM chat_groups WHERE id = ?', groupId);
+  if (!left.length) {
+    // an empty group goes, with everything said in it
+    for (const m of db.all("SELECT media FROM group_messages WHERE group_id = ? AND media != ''", groupId)) dropMedia(m.media);
+    return void db.run('DELETE FROM chat_groups WHERE id = ?', groupId);
+  }
   if (was.role === 'owner' && !left.some((m) => m.role === 'owner')) {
     db.run("UPDATE group_members SET role = 'owner' WHERE group_id = ? AND user_id = ?", groupId, left[0].user_id);
     groupEvent(groupId, left[0].user_id, 'event', { type: 'owner' });
@@ -1292,16 +1594,18 @@ route('POST', '/api/groups/:id/messages', async ({ user, params, body }) => {
   limit('message:' + user.id, 40, MINUTE, 'You’re sending messages very fast. Slow down a little.');
   const g = groupFor(user, params.id);
   const messageBody = text(body.body, 2000);
-  if (!messageBody) fail(400, 'Write something first.');
+  if (!messageBody && !body.image && !body.gif) fail(400, 'Write something first.');
   const verdict = vet([messageBody], { kind: 'message' });
-  const doubt = await checkText([messageBody], 'message');
-  groupFor(user, g.id); // still in it once the check is done
-  const id = Number(db.run("INSERT INTO group_messages (group_id, from_id, kind, body, created_at) VALUES (?, ?, 'text', ?, ?)", g.id, user.id, messageBody, now()).lastInsertRowid);
+  const doubt = messageBody ? await checkText([messageBody], 'message') : null;
+  const attached = await chatMedia(user, body);
+  groupFor(user, g.id); // still in it once the checks are done
+  const id = db.tx(() => Number(db.run("INSERT INTO group_messages (group_id, from_id, kind, body, media, created_at) VALUES (?, ?, 'text', ?, ?, ?)", g.id, user.id, messageBody, keepMedia(attached, user.id), now()).lastInsertRowid));
   db.run('UPDATE group_members SET read_id = ? WHERE group_id = ? AND user_id = ?', id, g.id, user.id);
   if (verdict.flag) autoReport('gmessage', id, verdict.flag.why);
+  else if (attached && attached.review === 'review') autoReport('gmessage', id, 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('gmessage', id, doubt);
   return { message: gmessageOut(db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, id), user.id) };
-});
+}, { body: 6 * 1024 * 1024 });
 
 route('POST', '/api/groups/:id/read', ({ user, params, body }) => {
   const g = groupFor(user, params.id);
@@ -1375,6 +1679,8 @@ route('PATCH', '/api/groups/:id', ({ user, params, body }) => {
 
 const CALL_MAX = 6; // everyone connects to everyone, which stays smooth up to about six
 const RING_MS = Number(process.env.NOOK_RING_MS) || 35 * 1000; // NOOK_RING_MS shortens it, for the tests
+// a page reloaded mid-call has this long to come back before it counts as having left (NOOK_AWAY_MS, for the tests)
+const AWAY_MS = Number(process.env.NOOK_AWAY_MS) || 30 * 1000;
 const calls = new Map(); // id -> the call
 const streams = new Map(); // user id -> their devices' open event streams
 const queues = new Map(); // user id -> the last two minutes of signals, for a device that polls instead of listening
@@ -1452,7 +1758,8 @@ function callOut(c) {
   return {
     id: c.id, media: c.media, from: nameOf(c.by), with: c.peer ? nameOf(c.peer) : undefined,
     group: c.group ? { id: c.group, name: g ? g.name : 'Group', color: g ? g.color : '#6750a4', shape: g ? g.shape : 'cookie9' } : undefined,
-    joined: [...c.joined].map(nameOf), startedAt: c.started, answeredAt: c.answered || undefined,
+    joined: [...c.joined].map(nameOf), ringing: c.group ? [...c.ringing].map(nameOf) : undefined, away: c.away && c.away.size ? [...c.away.keys()].map(nameOf) : undefined,
+    startedAt: c.started, answeredAt: c.answered || undefined,
   };
 }
 const callOf = (userId) => [...calls.values()].find((c) => c.joined.has(userId)) || null;
@@ -1462,16 +1769,34 @@ function newCall(user, media, { group = null, peer = null, ring }) {
   calls.set(c.id, c);
   const out = callOut(c);
   for (const id of ring) signal(id, 'call-ring', { call: out });
-  c.timer = setTimeout(() => stopRinging(c), RING_MS);
+  c.timer = setTimeout(() => stopRinging(c, ring), RING_MS);
   return c;
 }
 
-/** after 35 seconds whoever hasn't answered stops ringing; if nobody did, the call is over */
-function stopRinging(c) {
+/** someone in a group call rings people in the group again; their phones stop after 35 seconds too */
+function ringAgain(c, ids) {
+  const out = callOut(c);
+  for (const id of ids) {
+    c.ringing.add(id);
+    signal(id, 'call-ring', { call: Object.assign({}, out, { ringing: undefined }), again: true });
+  }
+  const timer = setTimeout(() => stopRinging(c, ids), RING_MS);
+  if (timer.unref) timer.unref();
+}
+
+/** after 35 seconds whoever hasn't answered stops ringing; once nobody has answered and nobody is still ringing, the call is over */
+function stopRinging(c, ids) {
   if (!calls.has(c.id)) return;
-  for (const id of c.ringing) signal(id, 'call-stop', { call: c.id });
-  c.ringing.clear();
-  if (!c.answered) endCall(c, 'no-answer');
+  let stopped = false;
+  for (const id of ids) if (c.ringing.delete(id)) (stopped = true), signal(id, 'call-stop', { call: c.id });
+  if (!c.answered && !c.ringing.size) return endCall(c, 'no-answer');
+  if (stopped) ringsChanged(c);
+}
+/** those in a group call hear who's no longer being rung (declined, or rang out), for its People list */
+function ringsChanged(c) {
+  if (!c.group) return;
+  const out = callOut(c);
+  for (const id of c.joined) signal(id, 'call-update', { call: out });
 }
 
 async function joinCall(c, user) {
@@ -1480,6 +1805,7 @@ async function joinCall(c, user) {
   const other = callOf(user.id);
   if (other && other !== c) fail(409, 'You’re already in another call. Hang up first.');
   if (!c.joined.has(user.id) && c.joined.size >= CALL_MAX) fail(409, `This call is full: up to ${CALL_MAX} people can be in a call.`);
+  back(c, user.id);
   const peers = [...c.joined].filter((id) => id !== user.id);
   c.joined.add(user.id);
   c.ever.add(user.id);
@@ -1492,8 +1818,16 @@ async function joinCall(c, user) {
   return { call: out, ice: await iceConfig(), peers: peers.map(nameOf) };
 }
 
+/** someone who reloaded the page is back (or has gone for good): their timer stops */
+function back(c, userId) {
+  if (!c.away || !c.away.has(userId)) return;
+  clearTimeout(c.away.get(userId));
+  c.away.delete(userId);
+}
+
 /** someone hangs up: a call between two ends then, a group call when its last person goes (or when its caller gives up before anyone answers) */
 function leaveCall(c, userId) {
+  back(c, userId);
   if (!c.joined.delete(userId)) return void c.ringing.delete(userId);
   for (const id of c.joined) signal(id, 'call-left', { call: c.id, user: nameOf(userId) });
   if (!c.answered) return endCall(c, 'cancelled');
@@ -1503,6 +1837,7 @@ function leaveCall(c, userId) {
 function endCall(c, reason) {
   if (!calls.delete(c.id)) return;
   clearTimeout(c.timer);
+  for (const timer of (c.away || new Map()).values()) clearTimeout(timer);
   for (const id of new Set([...c.ever, ...c.ringing, c.by, ...(c.peer ? [c.peer] : [])])) signal(id, 'call-ended', { call: c.id, reason });
   // its line in the chat: how long it went on, or that nobody picked up
   const log = JSON.stringify({ media: c.media, secs: c.answered ? Math.round((now() - c.answered) / 1000) : 0, missed: !c.answered || undefined });
@@ -1572,8 +1907,41 @@ route('POST', '/api/calls/:id/signal', ({ user, params, body }) => {
 
 route('POST', '/api/calls/:id/decline', ({ user, params }) => {
   const c = calls.get(params.id);
-  if (c && c.ringing.delete(user.id) && !c.group) endCall(c, 'declined');
+  if (c && c.ringing.delete(user.id)) {
+    if (!c.group) endCall(c, 'declined');
+    else ringsChanged(c);
+  }
   return { ok: true };
+});
+
+/** a page is closing or reloading mid-call: the others see "reconnecting", and it has a little while to come back */
+route('POST', '/api/calls/:id/away', ({ user, params }) => {
+  const c = calls.get(params.id);
+  if (!c || !c.joined.has(user.id)) return { ok: true };
+  if (!c.away) c.away = new Map();
+  clearTimeout(c.away.get(user.id));
+  const timer = setTimeout(() => {
+    if (c.away) c.away.delete(user.id);
+    if (calls.has(c.id)) leaveCall(c, user.id);
+  }, AWAY_MS);
+  if (timer.unref) timer.unref();
+  c.away.set(user.id, timer);
+  for (const id of c.joined) if (id !== user.id) signal(id, 'call-away', { call: c.id, user: user.name });
+  return { ok: true };
+});
+
+/** rings people in a group call's group again: everyone not in it, or the ones named */
+route('POST', '/api/calls/:id/ring', ({ user, params, body }) => {
+  limit('ring:' + user.id, 30, HOUR, 'That’s a lot of ringing. Wait a little and try again.');
+  const c = calls.get(params.id);
+  if (!c || !c.joined.has(user.id)) fail(404, 'That call has ended.');
+  if (!c.group) fail(400, 'Only a group call can ring people again.');
+  const named = Array.isArray(body.names) && body.names.length ? new Set(body.names.map((n) => String(n).toLowerCase())) : null;
+  const members = db.all('SELECT u.id, u.name, u.calls FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND u.banned_at IS NULL', c.group);
+  const ring = members.filter((m) => !c.joined.has(m.id) && m.calls !== 'off' && (!named || named.has(m.name.toLowerCase())));
+  if (!ring.length) fail(400, named ? 'They can’t be rung right now (they may have calls turned off).' : 'Everyone who can be rung is already in the call.');
+  ringAgain(c, ring.map((m) => m.id));
+  return { rang: ring.map((m) => m.name), call: callOut(c) };
 });
 
 route('POST', '/api/calls/:id/leave', ({ user, params }) => {
@@ -1606,7 +1974,7 @@ setInterval(() => {
 function reportTarget(r) {
   if (r.kind === 'post') {
     const p = db.get(`${POST_SELECT} WHERE p.id = ?`, r.target);
-    return p ? { title: p.title, body: p.body.slice(0, 500), author: p.author_name, removed: !!p.removed_at, href: `#/n/${p.nook}/p/${p.id}` } : null;
+    return p ? { title: p.title, body: p.body.slice(0, 500), picture: imageUrl(p.image), author: p.author_name, removed: !!p.removed_at, href: `#/n/${p.nook}/p/${p.id}` } : null;
   }
   if (r.kind === 'comment') {
     const c = db.get(`${COMMENT_SELECT} WHERE c.id = ?`, r.target);
@@ -1619,12 +1987,12 @@ function reportTarget(r) {
   }
   if (r.kind === 'message') {
     const m = db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(r.target));
-    return m ? { body: m.body.slice(0, 500), author: m.from_name } : null;
+    return m ? { body: m.body.slice(0, 500), picture: (mediaOut(m.media) || {}).url, author: m.from_name } : null;
   }
   if (r.kind === 'gmessage') {
     const m = db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, Number(r.target));
     const g = m && db.get('SELECT name FROM chat_groups WHERE id = ?', m.group_id);
-    return m ? { body: m.body.slice(0, 500), author: m.from_name || '[deleted]', title: g ? `In the group “${g.name}”` : undefined } : null;
+    return m ? { body: m.body.slice(0, 500), picture: (mediaOut(m.media) || {}).url, author: m.from_name || '[deleted]', title: g ? `In the group “${g.name}”` : undefined } : null;
   }
   if (r.kind === 'group') {
     const g = db.get('SELECT * FROM chat_groups WHERE id = ?', r.target);
@@ -1643,28 +2011,32 @@ route('GET', '/api/admin/reports', () => {
 }, { admin: true });
 
 /** an admin takes something down; its author is told what and why */
-function takeDown(kind, id, reason) {
+function takeDown(kind, id, reason, by = 'A moderator') {
   if (kind === 'post') {
     const p = db.get('SELECT * FROM posts WHERE id = ?', id);
     if (!p || p.removed_at) return false;
     removePost(p, reason);
-    if (p.author_id) notify(p.author_id, { kind: 'moderation', text: `A moderator removed your post “${p.title.slice(0, 60)}”. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
+    if (p.author_id) notify(p.author_id, { kind: 'moderation', text: `${by} removed your post “${p.title.slice(0, 60)}”. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   if (kind === 'comment') {
     const c = db.get('SELECT * FROM comments WHERE id = ?', id);
     if (!c || c.removed_at) return false;
     db.run("UPDATE comments SET body = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), c.id);
-    if (c.author_id) notify(c.author_id, { kind: 'moderation', text: `A moderator removed your comment. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
+    if (c.author_id) notify(c.author_id, { kind: 'moderation', text: `${by} removed your comment. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '', symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   if (kind === 'message') {
-    db.run('DELETE FROM messages WHERE id = ?', Number(id));
+    const m = db.get('SELECT * FROM messages WHERE id = ?', Number(id));
+    if (!m) return false;
+    dropMedia(m.media);
+    db.run('DELETE FROM messages WHERE id = ?', m.id);
     return true;
   }
   if (kind === 'gmessage') {
     const m = db.get('SELECT * FROM group_messages WHERE id = ?', Number(id));
     if (!m) return false;
+    dropMedia(m.media);
     db.run('DELETE FROM group_messages WHERE id = ?', m.id);
     touchGroup(m.group_id);
     if (m.from_id) notify(m.from_id, { kind: 'moderation', text: `A moderator removed one of your group messages. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/messages/g/' + m.group_id, symbol: 'gavel', shape: 'pixelCircle' });
@@ -1695,6 +2067,7 @@ function ban(name, reason, on) {
   if (!u) fail(404, 'There’s nobody by that name.');
   if (u.role === 'admin' && on) fail(400, 'Admins can’t be banned. Remove their admin role first.');
   db.run('UPDATE users SET banned_at = ?, ban_reason = ?, rev = ? WHERE id = ?', on ? now() : null, on ? reason : null, db.bump(), u.id);
+  for (const t of db.all('SELECT nook FROM nest_team WHERE user_id = ?', u.id)) touchNest(t.nook);
   if (on) {
     db.run('DELETE FROM sessions WHERE user_id = ?', u.id);
     disconnect(u.id);

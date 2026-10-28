@@ -9,7 +9,7 @@ const DATA = path.join(os.tmpdir(), 'nook-api-test');
 fs.rmSync(DATA, { recursive: true, force: true });
 // the picture and text checks score by markers in test mode ("#explicit" at a picture's end, "#harmful" in text)
 // and the robot check on sign-up asks no one: the answer "pass" passes
-const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test', NOOK_CAPTCHA: 'test', NOOK_RING_MS: '1500', NOOK_TURN: 'test' };
+const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test', NOOK_CAPTCHA: 'test', NOOK_RING_MS: '1500', NOOK_AWAY_MS: '1200', NOOK_TURN: 'test', NOOK_GIFS: 'test' };
 const BASE = 'http://127.0.0.1:8799';
 const cli = (...a) => execFileSync('node', [SERVER + '/cli.js', ...a], { env, encoding: 'utf8' });
 
@@ -525,6 +525,126 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(/straight between devices/.test(cli('turn')), 'the cli says how calls connect');
   ok(/through Cloudflare's TURN relay/.test(cli('turn', 'abcdefabcdefabcdefabcdefabcdef12', 'test-token-test-token-1234')) && /straight between devices/.test(cli('turn', 'off')), 'and sets up (and turns off) Cloudflare’s relay');
 
+  // ringing a group again, and a page reloaded mid-call: the others see it away, and it can come back
+  const regroup = await api(B, 'POST', `/api/calls`, { group: GR.id, media: 'voice' });
+  const RG = regroup.json.call;
+  await api(TF, 'POST', `/api/calls/${RG.id}/decline`, {});
+  const ringAgainStranger = await api(D, 'POST', `/api/calls/${RG.id}/ring`, {});
+  ok(ringAgainStranger.status === 404, 'nobody outside a call can ring people for it');
+  const rungAgain = await api(B, 'POST', `/api/calls/${RG.id}/ring`, { names: ['Teofil'] });
+  ok(rungAgain.status === 200 && rungAgain.json.rang.join() === 'Teofil', 'bob rings Teofil again after he declined', rungAgain.json.error);
+  const tfRings = (await api(TF, 'GET', '/api/signals?after=0')).json.signals.filter((x) => x.type === 'call-ring' && x.data.call.id === RG.id);
+  ok(tfRings.length === 2 && tfRings[1].data.again, 'Teofil’s phone rings a second time');
+  await api(TF, 'POST', `/api/calls/${RG.id}/join`, {});
+  const goneAway = await api(TF, 'POST', `/api/calls/${RG.id}/away`, {});
+  ok(goneAway.status === 200 && (await api(B, 'GET', '/api/signals?after=0')).json.signals.some((x) => x.type === 'call-away' && x.data.user === 'Teofil'), 'Teofil’s page reloads: bob sees him away');
+  const tfBoot = (await api(TF, 'GET', '/api/bootstrap')).json;
+  ok(tfBoot.call && tfBoot.call.id === RG.id && tfBoot.call.away.includes('Teofil'), 'the reloaded page learns it’s still in the call');
+  const cameBack = await api(TF, 'POST', `/api/calls/${RG.id}/join`, {});
+  await sleep(1500);
+  ok(cameBack.status === 200 && cameBack.json.peers.join() === 'bob' && (await api(TF, 'GET', '/api/bootstrap')).json.call, 'it comes back in time and stays in the call');
+  await api(TF, 'POST', `/api/calls/${RG.id}/away`, {});
+  await sleep(1600);
+  ok(!(await api(TF, 'GET', '/api/bootstrap')).json.call, 'a page that doesn’t come back leaves the call by itself');
+  await api(B, 'POST', `/api/calls/${RG.id}/leave`, {});
+  const dmRing = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  ok((await api(A, 'POST', `/api/calls/${dmRing.json.call.id}/ring`, {})).status === 400, 'only group calls ring again');
+  await api(A, 'POST', `/api/calls/${dmRing.json.call.id}/leave`, {});
+
+  // pictures and GIFs in chats: checked as strictly as profile pictures; GIFs from KLIPY are kept as KLIPY's links
+  const picMsg = await api(A, 'POST', '/api/messages', { to: 'bob', image: png, width: 1, height: 1 });
+  ok(picMsg.status === 200 && picMsg.json.message.media.type === 'image' && /^\/api\/images\//.test(picMsg.json.message.media.url) && picMsg.json.message.body === '', 'alice sends bob a picture, no words needed', picMsg.json.error);
+  ok((await fetch(BASE + picMsg.json.message.media.url)).status === 200, 'the picture is there to see');
+  const captioned = await api(A, 'POST', '/api/messages', { to: 'bob', body: 'my sourdough!', image: png });
+  ok(captioned.status === 200 && captioned.json.message.body === 'my sourdough!' && captioned.json.message.media, 'with words too');
+  const racyMsg = await api(A, 'POST', '/api/messages', { to: 'bob', image: marked('#suggestive') });
+  ok(racyMsg.status === 422 && /wasn’t sent/.test(racyMsg.json.error), 'a picture that might be sexual isn’t sent', racyMsg.json.error);
+  const gifOff = await api(A, 'POST', '/api/messages', { to: 'bob', gif: { url: 'https://static.klipy.com/ii/abc/14/af/x.gif', width: 200, height: 150 } });
+  ok(gifOff.status === 400 && /off/.test(gifOff.json.error), 'GIF search is off until the owner sets a key');
+  ok(/GIF search is on/.test(cli('gifs', 'klipy_test_key_123')) && (await api(A, 'GET', '/api/bootstrap')).json.gifs === 'klipy_test_key_123', 'nook gifs turns it on, and the app gets the key');
+  const klipyGif = await api(A, 'POST', `/api/groups/${GR.id}/messages`, { gif: { url: 'https://static.klipy.com/ii/abc/14/af/x.gif', still: 'https://static1.klipy.com/ii/abc/14/af/x.jpg', width: 200, height: 150, title: 'Happy dance' } });
+  ok(klipyGif.status === 404, 'only people in a group can send to it');
+  const gifMsg = await api(B, 'POST', `/api/groups/${GR.id}/messages`, { gif: { url: 'https://static.klipy.com/ii/abc/14/af/x.gif', still: 'https://static1.klipy.com/ii/abc/14/af/x.jpg', width: 200, height: 150, title: 'Happy dance' } });
+  ok(gifMsg.status === 200 && gifMsg.json.message.media.type === 'klipy' && gifMsg.json.message.media.width === 200 && gifMsg.json.message.media.title === 'Happy dance', 'bob sends the group a GIF from KLIPY', gifMsg.json.error);
+  const notKlipy = await api(B, 'POST', `/api/groups/${GR.id}/messages`, { gif: { url: 'https://evil.example/x.gif' } });
+  ok(notKlipy.status === 400, 'only KLIPY’s own links are taken as GIFs');
+  const groupPic = await api(B, 'POST', `/api/groups/${GR.id}/messages`, { image: png });
+  ok(groupPic.status === 200 && groupPic.json.message.media.type === 'image', 'pictures go to groups too');
+  await api(B, 'POST', '/api/reports', { kind: 'message', id: String(picMsg.json.message.id), reason: 'Testing picture reports' });
+  ok((await api(A, 'GET', '/api/admin/reports')).json.reports.some((r) => r.kind === 'message' && r.item && r.item.picture === picMsg.json.message.media.url), 'moderators see a reported picture');
+  await api(A, 'POST', '/api/admin/remove', { kind: 'message', id: String(picMsg.json.message.id), reason: 'Testing' });
+  ok((await fetch(BASE + picMsg.json.message.media.url)).status === 404, 'a removed message’s picture is deleted with it');
+  ok(/GIF search is off/.test(cli('gifs', 'off')), 'and nook gifs off turns GIF search off');
+
+  // nest teams: the owner gives roles; each role can only do its share; bans only stop posting in that nest
+  const dJoin = await api(D, 'POST', '/api/joins', { nook: 'pottery_club', on: true });
+  ok(dJoin.status === 200, 'dora joins n/pottery_club');
+  const notMember = await api(A, 'PUT', '/api/nooks/pottery_club/team/Teofil', { role: 'moderator' });
+  ok(notMember.status === 400 && /join/.test(notMember.json.error), 'only people who joined the nest get a role');
+  const bobMod = await api(A, 'PUT', '/api/nooks/pottery_club/team/bob', { role: 'moderator' });
+  ok(bobMod.status === 200 && bobMod.json.nook.team.some((t) => t.name === 'bob' && t.role === 'moderator' && t.perms.join() === 'pin,remove,ban'), 'alice (the owner) makes bob a moderator', bobMod.json.error);
+  ok((await updates(B)).notes.some((n) => /made you a Moderator in n\/pottery_club/.test(n.text)), 'bob is told');
+  const bobGives = await api(B, 'PUT', '/api/nooks/pottery_club/team/dora', { role: 'helper' });
+  ok(bobGives.status === 403, 'a moderator can’t give roles (no team access)');
+  const customRole = await api(A, 'PUT', '/api/nooks/pottery_club/team/dora', { role: 'custom', title: 'Glaze guru', perms: ['pin'] });
+  ok(customRole.status === 200 && customRole.json.nook.team.find((t) => t.name === 'dora').title === 'Glaze guru', 'alice gives dora a role she names herself, that can only pin');
+  const noPerms = await api(A, 'PUT', '/api/nooks/pottery_club/team/dora', { role: 'custom', title: 'Nothing', perms: [] });
+  ok(noPerms.status === 400, 'a role has to be able to do something');
+  const potPost = await api(D, 'POST', '/api/posts', { n: 'pottery_club', title: 'My first wobbly mug', type: 'text' });
+  const PP = potPost.json.post.id;
+  const doraPins = await api(D, 'POST', `/api/posts/${PP}/pin`, { on: true });
+  ok(doraPins.status === 200 && doraPins.json.post.pinned, 'dora pins a post');
+  const doraRemoves = await api(D, 'POST', '/api/nooks/pottery_club/remove', { kind: 'post', id: PP, reason: 'test' });
+  ok(doraRemoves.status === 403, 'but can’t remove posts');
+  for (const t of ['Glaze tips', 'Kiln day', 'Clay sources']) {
+    const extra = await api(A, 'POST', '/api/posts', { n: 'pottery_club', title: t, type: 'text' });
+    await api(A, 'POST', `/api/posts/${extra.json.post.id}/pin`, { on: true });
+  }
+  const tooMany = (await api(A, 'GET', '/api/bootstrap')).json.posts.filter((p) => p.n === 'pottery_club' && p.pinned).length;
+  ok(tooMany === 3, 'a nest has at most 3 pinned posts', String(tooMany));
+  // (alice and Teofil are Budgie admins, who can run every nest; erin is nobody special)
+  const erinT = (await api(null, 'POST', '/api/login', { name: 'erin', password: 'correct horse' })).json.token;
+  const strangerPin = await api(erinT, 'POST', `/api/posts/${PP}/pin`, { on: false });
+  ok(strangerPin.status === 403, 'people off the team can’t pin');
+  const rules = await api(A, 'PATCH', '/api/nooks/pottery_club', { rules: ['Show your work', 'Be kind about wobbly mugs', ''], tagline: 'Wobbly mugs and kind words.' });
+  ok(rules.status === 200 && rules.json.nook.rules.length === 2 && rules.json.nook.tagline === 'Wobbly mugs and kind words.', 'alice writes the nest’s rules', rules.json.error);
+  const rudeRules = await api(A, 'PATCH', '/api/nooks/pottery_club', { rules: ['kill yourself'] });
+  ok(rudeRules.status === 422, 'rules are checked like everything else');
+  const bobRules = await api(B, 'PATCH', '/api/nooks/pottery_club', { rules: ['Bob rules'] });
+  ok(bobRules.status === 403, 'a moderator can’t edit the rules');
+  await api(erinT, 'POST', '/api/joins', { nook: 'pottery_club', on: true });
+  const erinPost = await api(erinT, 'POST', '/api/posts', { n: 'pottery_club', title: 'Buy cheap clay at my shop', type: 'text' });
+  const erinCom = await api(erinT, 'POST', '/api/comments', { postId: PP, body: 'Nice mug, buy my clay' });
+  await api(D, 'POST', '/api/reports', { kind: 'post', id: erinPost.json.post.id, reason: 'Spam' });
+  const bobManage = await api(B, 'GET', '/api/nooks/pottery_club/manage');
+  ok(bobManage.status === 200 && bobManage.json.perms.join() === 'pin,remove,ban' && bobManage.json.reports.some((r) => r.target === erinPost.json.post.id && !r.reporter), 'bob sees the nest’s reports (not who made them)', JSON.stringify(bobManage.json).slice(0, 200));
+  ok((await api(erinT, 'GET', '/api/nooks/pottery_club/manage')).status === 403, 'people off the team can’t see them');
+  const bobTakes = await api(B, 'POST', '/api/nooks/pottery_club/remove', { kind: 'post', id: erinPost.json.post.id, reason: 'No ads' });
+  ok(bobTakes.status === 200 && (await updates(erinT)).notes.some((n) => /A moderator of n\/pottery_club removed your post/.test(n.text)), 'bob removes erin’s ad, and erin is told by whom', bobTakes.json.error);
+  ok(!(await api(B, 'GET', '/api/nooks/pottery_club/manage')).json.reports.some((r) => r.target === erinPost.json.post.id), 'and the report about it closes');
+  const elsewhere = await api(B, 'POST', '/api/nooks/pottery_club/remove', { kind: 'post', id: P, reason: 'x' });
+  ok(elsewhere.status === 404, 'a nest’s team only removes things in that nest');
+  const banErin = await api(B, 'POST', '/api/nooks/pottery_club/bans', { name: 'erin', reason: 'Selling clay', days: 7 });
+  ok(banErin.status === 200, 'bob bans erin from the nest for a week');
+  const nestBanned = await api(erinT, 'POST', '/api/comments', { postId: PP, body: 'one more thing' });
+  ok(nestBanned.status === 403 && nestBanned.json.banned && /banned from posting/.test(nestBanned.json.error), 'erin can’t comment there now, and is told why and until when', nestBanned.json.error);
+  const elsewherePost = await api(erinT, 'POST', '/api/posts', { n: 'askbudgie', title: 'Any pottery tips?', type: 'text' });
+  ok(elsewherePost.status === 200, 'but can still post in other nests');
+  ok((await api(erinT, 'GET', '/api/bootstrap')).json.bannedFrom.some((b) => b.nook === 'pottery_club' && b.until), 'the app knows she’s banned there');
+  const banOwner = await api(B, 'POST', '/api/nooks/pottery_club/bans', { name: 'alice', reason: 'x' });
+  ok(banOwner.status === 403, 'nobody bans the owner');
+  const banTeam = await api(B, 'POST', '/api/nooks/pottery_club/bans', { name: 'dora', reason: 'x' });
+  ok(banTeam.status === 400, 'or someone on the team');
+  ok((await api(B, 'GET', '/api/nooks/pottery_club/manage')).json.bans.some((b) => b.name === 'erin' && b.by === 'bob'), 'the ban is listed for the team');
+  const unban = await api(B, 'DELETE', '/api/nooks/pottery_club/bans/erin');
+  ok(unban.status === 200 && (await api(erinT, 'POST', '/api/comments', { postId: PP, body: 'Lovely glaze' })).status === 200, 'unbanned, erin can comment again');
+  const stepDown = await api(D, 'DELETE', '/api/nooks/pottery_club/team/dora');
+  ok(stepDown.status === 200 && !(stepDown.json.nook.team || []).some((t) => t.name === 'dora'), 'dora steps down from the team herself');
+  // the starter nests: Budgie's admins run them, and a team or rules there give a starter its own row
+  const starterMod = await api(A, 'PUT', '/api/nooks/askbudgie/team/bob', { role: 'helper' });
+  ok(starterMod.status === 200 && starterMod.json.nook.starter && starterMod.json.nook.title && starterMod.json.nook.team[0].name === 'bob', 'an admin gives bob a role in a starter nest, which keeps its looks', starterMod.json.error);
+  ok((await api(B, 'GET', '/api/bootstrap')).json.nooks.some((n) => n.id === 'askbudgie' && n.starter && n.team), 'the app gets the starter nest with its team');
+
   // password, recovery, ban, export, delete
   const pw = await api(B, 'POST', '/api/account/password', { current: 'battery staple', password: 'new password 1' });
   ok(pw.status === 200, 'bob changes his password');
@@ -541,7 +661,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(bobIn.status === 403 && /Testing bans/.test(bobIn.json.error), 'banned bob can’t sign in', bobIn.json.error);
   await api(A2, 'POST', '/api/admin/ban', { name: 'bob', on: false });
   const exp = await api(A2, 'GET', '/api/account/export');
-  ok(exp.json.profile.name === 'alice' && exp.json.messages.filter((m) => !m.kind).length === 4 && exp.json.messages.some((m) => m.kind === 'call') && exp.json.groups && exp.json.posts.length >= 1, 'export has everything', Object.keys(exp.json).join(',') + ' ' + exp.json.messages.length);
+  ok(exp.json.profile.name === 'alice' && exp.json.messages.filter((m) => !m.kind && !m.media).length === 4 && exp.json.messages.some((m) => m.media) && exp.json.messages.some((m) => m.kind === 'call') && exp.json.groups && exp.json.posts.length >= 1, 'export has everything', Object.keys(exp.json).join(',') + ' ' + exp.json.messages.length);
   const del = await api(A2, 'POST', '/api/account/delete', { password: 'brand new pass' });
   ok(del.status === 200, 'alice deletes her account');
   const bobAfter = await api(null, 'POST', '/api/login', { name: 'bob', password: 'new password 1' });
