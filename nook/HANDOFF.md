@@ -14,8 +14,8 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 ## Versions
 
 - **Name:** the app is **Budgie** and its communities are **nests** (still `n/…`). It was called Nook until 0.2.1. Only what people see was renamed: the code, CSS classes, storage keys, the folder `nook/`, the server's `nook` command, service, user and paths, and the live repository's name all still say nook. The starter nests `nookhq` and `asknook` became `budgiehq` and `askbudgie` (the server moves their posts once; old links redirect).
-- **Live:** 0.3.0 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
-  It has accounts, friends, messages, live updates, reports and a Moderation page. Sign-up is open (no code); `nook signups invite` brings codes back.
+- **Live:** 0.4.0 with the server at https://nook.tailfb59a9.ts.net (the laptop, through Tailscale Funnel), set in `nook/js/config.js`.
+  It has accounts, friends, messages, live updates, reports and a Moderation page. Profiles have a picture and a banner (each a photo or a GIF: the GIF moves on profiles and chats, a still copy shows in feeds and when motion is reduced) and a bio of up to 300 characters with line breaks and formatting. Admins can clear a reported profile from the Moderation page or with `nook clear-profile <name>`. Sign-up is open (no code); `nook signups invite` brings codes back.
 - **Ads:** Google AdSense in-feed ads between posts (home, popular, nest feeds only), in `js/ads.js`, off until `ads.client`, `ads.slot` and `ads.layoutKey` are filled in `js/config.js`. The build then writes `ads.txt`. Non-personalised by default; consent comes from Google's own message (AdSense → Privacy & messaging). Auto ads must stay off in AdSense, so there are no banners.
 - **Earlier:** 0.1.2 was local-only, behind a client-side code gate. It's gone, and its eight codes don't work on the server.
 
@@ -43,4 +43,4 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 
 ## Testing
 
-`node nook/tools/api-test.js` runs about 70 checks against a temporary server; `node nook/tools/moderation-test.js` checks the moderation rules on 112 English and Romanian sentences. Browser tests were written with Playwright during development: sign-up, posting, comments, friends, chat, moderation, every button on every page, CSP violations and phone layouts. Re-create them as needed.
+`node nook/tools/api-test.js` runs about 90 checks against a temporary server; `node nook/tools/moderation-test.js` checks the moderation rules on 129 English and Romanian sentences. Browser tests were written with Playwright during development: sign-up, posting, comments, friends, chat, moderation, every button on every page, CSP violations and phone layouts. Re-create them as needed.

@@ -4096,3 +4096,107 @@ html.framed body {
   display: none !important;
 }
 
+
+/* ---- profile banners, moving pictures and bios ----------------------------------------------- */
+
+.profile-hero.has-banner {
+  padding-top: 0;
+}
+.profile-banner {
+  aspect-ratio: 3 / 1;
+  max-height: 280px;
+  margin: 0 -24px;
+  overflow: hidden;
+  background: var(--m3-surface-container-high);
+}
+.banner-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* the picture sits half over the banner, outlined in the page colour so it reads against any image */
+.profile-hero.has-banner .profile-main {
+  align-items: flex-start;
+}
+.profile-hero.has-banner .profile-main > .avatar {
+  margin-top: -52px;
+  filter: drop-shadow(3px 0 0 var(--m3-surface-container-low)) drop-shadow(-3px 0 0 var(--m3-surface-container-low))
+    drop-shadow(0 3px 0 var(--m3-surface-container-low)) drop-shadow(0 -3px 0 var(--m3-surface-container-low));
+}
+.profile-hero.has-banner .profile-main .who {
+  padding-top: 8px;
+}
+.profile-main .bio {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.profile-main .bio p {
+  margin: 0 0 6px;
+}
+.profile-main .bio > :last-child {
+  margin-bottom: 0;
+}
+
+/* Edit profile: the banner above the preview, like on the profile */
+.ep-top {
+  overflow: hidden;
+  border-radius: var(--m3-r-large);
+}
+.ep-banner {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 3 / 1;
+  overflow: hidden;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--av) 45%, var(--m3-surface-container-high)), var(--m3-surface-container-high));
+}
+.ep-banner,
+.ep-pick {
+  cursor: pointer;
+}
+.ep-banner:hover .banner-img,
+.ep-pick:hover .avatar {
+  filter: brightness(0.92);
+}
+.ep-banner-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-small, 14px);
+}
+.ep-top .nook-preview {
+  border-radius: 0;
+}
+.field-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Moderation: a reported profile's pictures */
+.report-pics {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.rp-banner {
+  width: 210px;
+  max-width: 60%;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+  border-radius: var(--m3-r-small, 8px);
+}
+.rp-photo {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+@media (max-width: 719px) {
+  .profile-hero.has-banner .profile-main > .avatar {
+    margin-top: -44px;
+  }
+}

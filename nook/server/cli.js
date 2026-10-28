@@ -32,6 +32,7 @@ const COMMANDS = {
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
       '  nook rename <name> <new name>    change someone\'s username (for one that breaks the rules)',
+      '  nook clear-profile <name> [reason]   remove someone\'s picture, banner and bio; they\'re told why',
       '  nook ban <name> [reason]         ban an account and sign it out everywhere',
       '  nook unban <name>                lift a ban',
       '  nook reset-password <name>       give someone a temporary password and a new recovery code',
@@ -93,6 +94,12 @@ const COMMANDS = {
     if (db.get('SELECT 1 AS x FROM users WHERE name = ? AND id != ?', to, u.id)) quit(`u/${to} is taken. Pick another name.`);
     db.run('UPDATE users SET name = ?, rev = ? WHERE id = ?', to, db.bump(), u.id);
     out(`u/${u.name} is now u/${to}. Their posts, friends and messages stay with them.`);
+  },
+
+  'clear-profile'(name, ...reason) {
+    const u = userNamed(name);
+    if (!nook.takeDown('user', u.name, reason.join(' ') || 'Breaks Budgie’s rules')) quit(`u/${u.name} has no picture, banner or bio to clear.`);
+    out(`Cleared u/${u.name}'s picture, banner and bio; they've been told why.`);
   },
 
   ban(name, ...reason) {

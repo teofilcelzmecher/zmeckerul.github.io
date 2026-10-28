@@ -320,7 +320,10 @@
 
   api
     .get('/api/health')
-    .then((health) => (signup = health.signup === 'invite' || !health.signup ? 'invite' : 'open'))
+    .then((health) => {
+      signup = health.signup === 'invite' || !health.signup ? 'invite' : 'open';
+      Nook.serverVersion = health.version || '';
+    })
     .catch(() => {});
   start();
 })();

@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.3.0';
+  const VERSION = '0.4.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -68,8 +68,10 @@
     }
   }
 
+  // a profile's pictures, as full addresses on the server
+  const pictures = (u) => ({ photo: api.url(u.photo), photoGif: api.url(u.photoGif), banner: api.url(u.banner), bannerGif: api.url(u.bannerGif) });
   const meFrom = (me) => ({
-    name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', photo: api.url(me.photo), bio: me.bio || '',
+    name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', ...pictures(me),
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member',
   });
 
@@ -122,7 +124,7 @@
   for (const c of DATA.communities) communities.set(c.id, Object.assign({ starter: true }, c));
 
   function ingestUser(u) {
-    users.set(u.name.toLowerCase(), Object.assign({}, u, { photo: api.url(u.photo) }));
+    users.set(u.name.toLowerCase(), Object.assign({}, u, pictures(u)));
   }
   function ingestNook(c) {
     communities.set(c.id, c);
@@ -164,7 +166,7 @@
     if (isMe(name)) return Object.assign({}, state.me, { me: true });
     const known = name && users.get(String(name).toLowerCase());
     if (known) return Object.assign({}, known);
-    return { name: name || '[deleted]', color: '#79747e', shape: 'circle', icon: '', photo: '', bio: '', unknown: true };
+    return { name: name || '[deleted]', color: '#79747e', shape: 'circle', icon: '', photo: '', photoGif: '', banner: '', bannerGif: '', bio: '', unknown: true };
   }
   const people = () => [...users.values()].filter((u) => !u.banned);
 
@@ -562,12 +564,12 @@
     return want;
   }
 
-  /** your profile: name, bio, colour, shape, icon, photo (a data: URL to change it, '' to remove it) */
+  /** your profile: name, bio, colour, shape, icon, and photo or banner (data: URLs, with photoGif or bannerGif for a GIF, to change them; '' to remove) */
   async function updateProfile(fields) {
     const old = state.me.name;
     const { me } = await api.patch('/api/me', fields);
     state.me = meFrom(me);
-    ingestUser(Object.assign({}, me, { photo: me.photo }));
+    ingestUser(me);
     if (old !== me.name) {
       users.delete(old.toLowerCase());
       for (const p of posts.values()) if (p.author === old) p.author = me.name;

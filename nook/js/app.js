@@ -1640,77 +1640,108 @@
 
   function editProfile() {
     const me = store.state.me;
-    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '' };
-    const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo });
+    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '' };
+    const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
+    const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
+    // banners, moving GIFs and longer bios need the server from Budgie 0.4.0 on; an older one gets the old editor
+    const [major, minor] = (Nook.serverVersion || '0.0').split('.').map(Number);
+    const media = major > 0 || minor >= 4;
+    const BIO_MAX = media ? 300 : 160;
+    let saving = false;
     ui.sheet({
       headline: 'Edit profile',
       symbol: 'face',
       shape: me.shape,
       html:
-        `<div class="nook-preview"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span>` +
-        `<div class="np-text"><b class="m3-title" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div>` +
+        `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
+        `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
+        `<div class="np-text"><b class="m3-title" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div></div>` +
         `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
-        `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="2" maxlength="160" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea></div>` +
+        `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
+        `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
         '<div class="field"><span class="field-label">Picture</span>' +
         `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
         ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span class="m3-icon">${s}</span></button>`).join('') +
         '</div>' +
         `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
         `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
-        '<span class="error" id="ep-photo-err"></span><small class="muted">Everyone on Budgie can see your photo.</small></div>' +
+        `<span class="error" id="ep-photo-err"></span><small class="muted">${media ? 'A photo from your gallery, or a GIF up to 2 MB that moves on your profile.' : 'A photo from your gallery.'} Everyone on Budgie can see it.</small></div>` +
+        (media
+          ? '<div class="field"><span class="field-label">Banner</span>' +
+            `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_photo_alternate')}<span id="ep-banner-label">${model.banner ? 'Change banner' : 'Upload a banner'}</span><input type="file" id="ep-banner-file" accept="image/*"></label>` +
+            `<button type="button" class="m3-btn text small" id="ep-banner-remove"${model.banner ? '' : ' hidden'}>${icon('delete')}Remove banner</button></div>` +
+            '<span class="error" id="ep-banner-err"></span><small class="muted">A wide picture across the top of your profile (3:1 fits best), or a GIF up to 4 MB. Everyone on Budgie can see it.</small></div>'
+          : '') +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>`,
       setup(body) {
-        const av = body.querySelector('#ep-avatar');
-        const shape = body.querySelector('#ep-shape');
-        const input = body.querySelector('#ep-input');
-        const faceEl = body.querySelector('#ep-face');
+        const $$ = (sel) => body.querySelector(sel);
+        const av = $$('#ep-avatar');
+        const shape = $$('#ep-shape');
+        const input = $$('#ep-input');
+        const faceEl = $$('#ep-face');
+        const bio = $$('#ep-bio');
         const paint = () => (faceEl.innerHTML = face(input.value || '?'));
+        const count = () => {
+          $$('#ep-bio-count').textContent = `${bio.value.length}/${BIO_MAX}`;
+        };
+        count();
+        bio.addEventListener('input', count);
         input.addEventListener('input', () => {
           input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
-          body.querySelector('#ep-name').textContent = input.value || '…';
-          body.querySelector('#ep-err').textContent = '';
+          $$('#ep-name').textContent = input.value || '…';
+          $$('#ep-err').textContent = '';
           paint();
         });
         const faces = body.querySelector('.face-grid');
         const pressFace = (value) => faces.querySelectorAll('[data-face]').forEach((b) => b.setAttribute('aria-pressed', String(!model.photo && b.dataset.face === value)));
+        const setPhoto = (still, gif) => {
+          model.photo = still;
+          model.photoGif = gif;
+          $$('#ep-photo-remove').hidden = !still;
+          $$('#ep-photo-label').textContent = still ? 'Change photo' : 'Upload a photo';
+          pressFace(still ? null : model.icon);
+          paint();
+        };
+        const setBanner = (still, gif) => {
+          model.banner = still;
+          model.bannerGif = gif;
+          $$('#ep-banner-remove').hidden = !still;
+          $$('#ep-banner-label').textContent = still ? 'Change banner' : 'Upload a banner';
+          $$('#ep-banner').innerHTML = bannerPreview();
+        };
         faces.querySelectorAll('[data-face]').forEach((b) =>
           b.addEventListener('click', () => {
             model.icon = b.dataset.face;
-            model.photo = '';
-            body.querySelector('#ep-photo-remove').hidden = true;
-            body.querySelector('#ep-photo-label').textContent = 'Upload a photo';
-            pressFace(model.icon);
-            paint();
+            setPhoto('', '');
             fx.pop(faceEl, 0.6);
           })
         );
-        body.querySelector('#ep-photo').addEventListener('change', async (e) => {
-          const err = body.querySelector('#ep-photo-err');
-          err.textContent = '';
-          try {
-            model.photo = await ui.photoFrom(e.target.files[0]);
-            body.querySelector('#ep-photo-remove').hidden = false;
-            body.querySelector('#ep-photo-label').textContent = 'Change photo';
-            pressFace(null);
-            paint();
-            fx.pop(faceEl, 0.6);
-          } catch (error) {
-            err.textContent = error.message;
-          }
-          e.target.value = '';
-        });
-        body.querySelector('#ep-photo-remove').addEventListener('click', (e) => {
-          model.photo = '';
-          e.currentTarget.hidden = true;
-          body.querySelector('#ep-photo-label').textContent = 'Upload a photo';
-          pressFace(model.icon);
-          paint();
-        });
+        // a picked picture or banner: stills are cut to size here; a GIF is kept as it is so it moves
+        const picker = (sel, kind, errSel, apply, popEl) =>
+          $$(sel).addEventListener('change', async (e) => {
+            const err = $$(errSel);
+            err.textContent = '';
+            try {
+              const picture = await ui.pictureFrom(e.target.files[0], kind);
+              apply(picture.still, media ? picture.gif : '');
+              fx.pop(popEl(), 0.6);
+            } catch (error) {
+              err.textContent = error.message;
+            }
+            e.target.value = '';
+          });
+        picker('#ep-photo', 'photo', '#ep-photo-err', setPhoto, () => faceEl);
+        $$('#ep-photo-remove').addEventListener('click', () => setPhoto('', ''));
+        if (media) {
+          picker('#ep-banner-file', 'banner', '#ep-banner-err', setBanner, () => $$('#ep-banner'));
+          $$('#ep-banner-remove').addEventListener('click', () => setBanner('', ''));
+        }
         wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
           model.color = seed;
           av.style.setProperty('--av', seed);
           av.style.setProperty('--av-ink', ui.ink(seed));
+          $$('#ep-top').style.setProperty('--av', seed);
         });
         wireGrid(body.querySelector('.shape-grid'), 'shape', (name) => {
           model.shape = name;
@@ -1724,6 +1755,7 @@
           label: 'Save',
           variant: 'filled',
           run(close, body) {
+            if (saving) return false;
             const name = body.querySelector('#ep-input').value.trim();
             const err = body.querySelector('#ep-err');
             if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) {
@@ -1741,8 +1773,12 @@
               return false;
             }
             const fields = { name, bio, color: model.color, shape: model.shape, icon: model.icon };
-            // the photo only travels when it changed: a new one as data, a removed one as ''
-            if (model.photo !== (me.photo || '')) fields.photo = model.photo;
+            // pictures only travel when they changed: a new one as data (with its GIF), a removed one as ''
+            if (model.photo !== (me.photo || '')) Object.assign(fields, { photo: model.photo, photoGif: model.photoGif });
+            if (model.banner !== (me.banner || '')) Object.assign(fields, { banner: model.banner, bannerGif: model.bannerGif });
+            const uploading = fields.photoGif || fields.bannerGif || fields.photo || fields.banner;
+            saving = true;
+            err.textContent = uploading ? 'Uploading…' : '';
             store
               .updateProfile(fields)
               .then((updated) => {
@@ -1752,7 +1788,10 @@
                 else render();
                 M3.toast('Profile updated', { symbol: 'face', shape: model.shape });
               })
-              .catch((error) => (err.textContent = error.message));
+              .catch((error) => {
+                saving = false;
+                err.textContent = error.message;
+              });
             return false;
           },
         },

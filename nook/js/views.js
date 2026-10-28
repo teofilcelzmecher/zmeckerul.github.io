@@ -273,7 +273,7 @@
     if (!mods.length) return '';
     return (
       `<section class="card"><h3 class="card-title">${icon('shield_person')}<span>Moderators</span></h3><div class="list">` +
-      mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(u.bio || '')}</small></span></a>`).join('') +
+      mods.map((u) => `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 32)}<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(plain(u.bio || '', 90))}</small></span></a>`).join('') +
       '</div></section>'
     );
   }
@@ -712,14 +712,17 @@
           return `<div class="badge-tile${got ? '' : ' locked'}" data-tooltip="${esc(b.desc)}"><m3-shape-icon shape="${b.shape}" symbol="${got ? b.symbol : 'lock'}" size="52" icon-size="24"></m3-shape-icon><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`;
         }).join('')}</div></section>`
       : '';
+    const banner = ui.bannerImage(u);
     return {
       title: `u/${u.name}`,
       brand: u.shape,
       html:
         '<div class="page"><div class="col">' +
-        `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">` +
-        `<div class="profile-main">${avatar(u, 96)}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
-        (u.bio ? `<p style="margin-top:6px">${esc(clean(u.bio))}</p>` : me ? '<p class="muted" style="margin-top:6px">No bio yet. Tell people what you’re into!</p>' : '') +
+        (banner
+          ? `<section class="profile-hero has-banner"><div class="profile-banner">${banner}</div>`
+          : `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">`) +
+        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
+        (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
         '</div>' +
         (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
         '</div><div class="stats">' +
@@ -798,7 +801,7 @@
     const nookRow = (c) =>
       `<div class="row-link" data-href="#/n/${c.id}" tabindex="0" role="link" aria-label="n/${esc(c.id)}" data-m3-ripple data-m3-hover-root>${nookIcon(c, 44, 22)}<span class="row-text"><b>${highlight(c.title, q)} · n/${highlight(c.id, q)}</b><small>${highlight(c.tagline, q)}</small></span>${joinButton(c)}</div>`;
     const personRow = (u) =>
-      `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple>${avatar(u, 44)}<span class="row-text"><b>u/${highlight(u.name, q)}</b><small>${highlight(u.bio || '', q)}</small></span></a>`;
+      `<a class="row-link" href="#/u/${esc(u.name)}" data-m3-ripple>${avatar(u, 44)}<span class="row-text"><b>u/${highlight(u.name, q)}</b><small>${highlight(plain(u.bio || '', 90), q)}</small></span></a>`;
     return {
       title: q ? `“${q}”` : 'Search',
       brand: 'ghostish',
@@ -1144,7 +1147,7 @@
       html:
         '<div class="page single chat-page"><div class="col">' +
         `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40)}<span><b>${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b>${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
         `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
         '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
         (friends
@@ -1179,7 +1182,7 @@
           const t = store.thread(u.name);
           const all = t.messages.concat(pending);
           const wasNear = nearEnd();
-          list.innerHTML = all.length ? chatHTML(all, u) : `<div class="chat-empty">${avatar(u, 72)}<b>u/${esc(u.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`;
+          list.innerHTML = all.length ? chatHTML(all, u) : `<div class="chat-empty">${avatar(u, 72, { moving: true })}<b>u/${esc(u.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`;
           more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
           const fresh = [];
           for (const el of list.querySelectorAll('[data-message]')) {
@@ -1310,6 +1313,12 @@
 
   // ---- moderation, for admins -------------------------------------------------------------------------------
 
+  // a reported profile's picture and banner, small, so an admin can see what was reported
+  function reportPictures(item) {
+    const pic = (url, cls, label) => (url ? `<img class="${cls}" src="${esc(Nook.api.url(url))}" alt="${label}">` : '');
+    return item.photo || item.banner ? `<div class="report-pics">${pic(item.banner, 'rp-banner', 'Banner')}${pic(item.photo, 'rp-photo', 'Profile picture')}</div>` : '';
+  }
+
   function adminPage() {
     if (!store.isAdmin()) return notFound('Only Budgie’s moderators can see this page.');
     return {
@@ -1337,12 +1346,14 @@
                   const item = r.item;
                   const what = !item
                     ? '<p class="muted">Already gone.</p>'
-                    : `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
+                    : `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
                   return (
                     `<article class="card report" data-report="${r.id}"><div class="report-head">${icon('flag')}<b>${esc(r.reason)}</b><span class="muted">a ${esc(r.kind)} · reported by u/${esc(r.reporter)} · ${ago(r.createdAt)}</span></div>${what}` +
                     '<div class="toolbar">' +
                     (item && item.href ? `<a class="m3-btn text small" href="${esc(item.href)}">${icon('open_in_new')}Open</a>` : '') +
-                    (r.kind === 'user' ? `<button class="m3-btn filled small" data-resolve="ban">${icon('block')}Ban</button>` : `<button class="m3-btn filled small" data-resolve="remove">${icon('gavel')}Remove</button>`) +
+                    (r.kind === 'user'
+                      ? `<button class="m3-btn tonal small" data-resolve="remove">${icon('hide_image')}Clear profile</button><button class="m3-btn filled small" data-resolve="ban">${icon('block')}Ban</button>`
+                      : `<button class="m3-btn filled small" data-resolve="remove">${icon('gavel')}Remove</button>`) +
                     `<button class="m3-btn tonal small" data-resolve="dismiss">${icon('done')}Dismiss</button></div></article>`
                   );
                 })
@@ -1355,7 +1366,8 @@
               btn.disabled = true;
               try {
                 await store.resolveReport(r.id, btn.dataset.resolve, r.reason);
-                M3.toast(btn.dataset.resolve === 'dismiss' ? 'Report dismissed' : btn.dataset.resolve === 'ban' ? 'Account banned' : 'Removed, and its author told why', { symbol: 'gavel', shape: 'pixelCircle' });
+                const done = { dismiss: 'Report dismissed', ban: 'Account banned', remove: r.kind === 'user' ? 'Profile cleared, and its owner told why' : 'Removed, and its author told why' };
+                M3.toast(done[btn.dataset.resolve], { symbol: 'gavel', shape: 'pixelCircle' });
                 paint();
               } catch (error) {
                 btn.disabled = false;

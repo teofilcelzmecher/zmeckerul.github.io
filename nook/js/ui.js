@@ -131,22 +131,35 @@
     return masks.get(shape);
   }
 
-  /** what sits on an avatar's shape: a photo, an icon or the first letter */
-  function avatarFace(u) {
-    // a photo picked here (data:) or one the server keeps (https://…/api/images/…)
-    if (u.photo && (/^data:image\/(jpeg|png|webp);/.test(u.photo) || /^https?:\/\/[^"'<>\s]+\/api\/images\/[\w-]+$/.test(u.photo))) {
+  // a picture picked here (data:) or one the server keeps (https://…/api/images/…)
+  const PICTURE = /^(?:data:image\/(?:jpeg|png|webp|gif);|https?:\/\/[^"'<>\s]+\/api\/images\/[\w-]+$)/;
+  const motionOff = () => document.documentElement.hasAttribute('data-m3-reduce-motion') || matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /**
+   * what sits on an avatar's shape: a photo, an icon or the first letter. A GIF picture moves only
+   * where it's asked to (moving: profiles and chats), and never when motion is reduced.
+   */
+  function avatarFace(u, { moving = false } = {}) {
+    const photo = moving && u.photoGif && !motionOff() ? u.photoGif : u.photo;
+    if (photo && PICTURE.test(photo)) {
       const mask = shapeMask(u.shape);
-      return `<img src="${esc(u.photo)}" alt="" style="-webkit-mask-image:${mask};mask-image:${mask}">`;
+      return `<img src="${esc(photo)}" alt="" style="-webkit-mask-image:${mask};mask-image:${mask}">`;
     }
     if (u.icon) return `<span class="m3-icon">${esc(u.icon)}</span>`;
     return `<b>${esc((u.name || '?')[0].toUpperCase())}</b>`;
   }
 
-  function avatar(u, size = 32) {
+  function avatar(u, size = 32, options) {
     return (
       `<span class="avatar" style="--av:${esc(u.color)};--av-ink:${ink(u.color)};--s:${size}px" aria-hidden="true">` +
-      `<m3-shape shape="${esc(u.shape)}"></m3-shape>${avatarFace(u)}</span>`
+      `<m3-shape shape="${esc(u.shape)}"></m3-shape>${avatarFace(u, options)}</span>`
     );
+  }
+
+  /** a profile's banner picture (its GIF moves unless motion is reduced), or '' */
+  function bannerImage(u) {
+    const src = u.bannerGif && !motionOff() ? u.bannerGif : u.banner;
+    return src && PICTURE.test(src) ? `<img class="banner-img" src="${esc(src)}" alt="">` : '';
   }
 
   const PROFILE_ICONS = [
@@ -155,24 +168,45 @@
     'coffee', 'icecream', 'sunny', 'nightlight', 'sailing', 'skateboarding', 'sports_soccer', 'code',
   ];
 
-  /** a picked photo, centre-cropped to a small square JPEG that fits in storage */
-  function photoFrom(file, size = 192) {
+  // the sizes profile pictures and banners are kept at (the server checks the same limits)
+  const PICTURE_SIZES = {
+    photo: { width: 320, height: 320, gifMax: 2 * 1024 * 1024, maxSide: 1024 },
+    banner: { width: 1500, height: 500, gifMax: 4 * 1024 * 1024, maxSide: 2048 },
+  };
+
+  /**
+   * a picked picture for a profile (kind: 'photo' or 'banner'): { still, gif }. The still is
+   * centre-cropped to size as a JPEG (this also drops any location the photo carried); a GIF is
+   * kept as it is too, so it can move, and the still (its first frame) shows in feeds.
+   */
+  function pictureFrom(file, kind) {
+    const { width, height, gifMax, maxSide } = PICTURE_SIZES[kind];
     return new Promise((resolve, reject) => {
       if (!file || !/^image\//.test(file.type)) return reject(new Error('That file isn’t an image.'));
+      const gif = file.type === 'image/gif';
+      if (gif && file.size > gifMax) return reject(new Error(`That GIF is too big. Try one under ${gifMax / 1024 / 1024} MB.`));
       if (file.size > 20 * 1024 * 1024) return reject(new Error('That image is too big. Try one under 20 MB.'));
       const url = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
-        const side = Math.min(img.naturalWidth, img.naturalHeight);
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = size;
-        canvas.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+        const w = img.naturalWidth, h = img.naturalHeight;
         URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
+        if (gif && (w > maxSide || h > maxSide)) return reject(new Error(`That GIF is too large. Try one at most ${maxSide}×${maxSide} pixels.`));
+        const scale = Math.max(width / w, height / h);
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, (w - width / scale) / 2, (h - height / scale) / 2, width / scale, height / scale, 0, 0, width, height);
+        const still = canvas.toDataURL('image/jpeg', 0.85);
+        if (!gif) return resolve({ still, gif: '' });
+        const reader = new FileReader();
+        reader.onload = () => resolve({ still, gif: String(reader.result) });
+        reader.onerror = () => reject(new Error('Couldn’t read that GIF.'));
+        reader.readAsDataURL(file);
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
-        reject(new Error('Couldn’t read that image. Try a JPEG or PNG.'));
+        reject(new Error('Couldn’t read that image. Try a JPEG, PNG or GIF.'));
       };
       img.src = url;
     });
@@ -483,7 +517,7 @@
   ];
 
   Nook.ui = {
-    esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, PROFILE_ICONS, photoFrom, nookIcon, icon, theme, sheet,
+    esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, nookIcon, icon, theme, sheet,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

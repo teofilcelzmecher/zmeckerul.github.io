@@ -26,8 +26,11 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   return { status: res.status, json, headers: res.headers };
 }
 
+let proc; // the test server, stopped however the tests end
+process.on('exit', () => proc && proc.kill('SIGTERM'));
+
 (async () => {
-  const proc = spawn('node', [SERVER + '/server.js'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
+  proc = spawn('node', [SERVER + '/server.js'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   proc.stderr.on('data', (d) => process.stderr.write('[server] ' + d));
   await new Promise((r) => proc.stdout.once('data', r));
 
@@ -145,6 +148,33 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(meAgain.json.me.photo === me.json.me.photo, 'sending the same photo back keeps it');
   const bioPhone = await api(A, 'PATCH', '/api/me', { bio: 'call me on +40 712 345 678' });
   ok(bioPhone.status === 422, 'phone number in a bio refused', bioPhone.json.error);
+
+  // GIF pictures and banners: each comes with a still for feeds; GIFs are checked
+  const GIF = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+  const gifBytes = Buffer.from(GIF.split(',')[1], 'base64');
+  const gifMe = await api(A, 'PATCH', '/api/me', { photo: png, photoGif: GIF, banner: png, bannerGif: GIF, bio: 'Line one\n\n\n\nLine two **bold**' });
+  const m = gifMe.json.me || {};
+  ok(gifMe.status === 200 && [m.photo, m.photoGif, m.banner, m.bannerGif].every((u) => /^\/api\/images\//.test(u)), 'a GIF picture and a GIF banner, each with a still', gifMe.json.error);
+  ok(m.bio === 'Line one\n\nLine two **bold**', 'a bio keeps its line breaks, but not piles of them', JSON.stringify(m.bio));
+  const gifServed = await fetch(BASE + m.bannerGif);
+  ok(gifServed.headers.get('content-type') === 'image/gif', 'the GIF is served as a GIF', gifServed.headers.get('content-type'));
+  const gifAsStill = await api(A, 'PATCH', '/api/me', { banner: GIF });
+  ok(gifAsStill.status === 400, 'a GIF can’t stand in for the still', gifAsStill.json.error);
+  const fakeGif = await api(A, 'PATCH', '/api/me', { photo: png, photoGif: 'data:image/gif;base64,' + Buffer.from('<svg onload=alert(1)>').toString('base64') });
+  ok(fakeGif.status === 400, 'a fake GIF is refused', fakeGif.json.error);
+  const hugeBytes = Buffer.from(gifBytes);
+  hugeBytes.writeUInt16LE(5000, 6);
+  const hugeGif = await api(A, 'PATCH', '/api/me', { photo: png, photoGif: 'data:image/gif;base64,' + hugeBytes.toString('base64') });
+  ok(hugeGif.status === 413, 'a GIF too large in pixels is refused', hugeGif.json.error);
+  ok((await fetch(BASE + m.photoGif)).status === 200, 'a refused change keeps the old picture');
+  const heavy = Buffer.concat([gifBytes, Buffer.alloc(4.2 * 1024 * 1024)]).toString('base64');
+  const heavyGif = await api(A, 'PATCH', '/api/me', { banner: png, bannerGif: 'data:image/gif;base64,' + heavy });
+  ok(heavyGif.status === 413, 'a GIF banner over 4 MB is refused', heavyGif.json.error);
+  const longBio = await api(A, 'PATCH', '/api/me', { bio: 'I bake sourdough on weekends and read on trains. '.repeat(9) });
+  ok(longBio.status === 200 && longBio.json.me.bio.length <= 300, 'bios stop at 300 characters', longBio.json.error || longBio.json.me.bio.length);
+  const noBanner = await api(A, 'PATCH', '/api/me', { banner: '' });
+  ok(noBanner.json.me.banner === '' && noBanner.json.me.bannerGif === '' && /^\/api\/images\//.test(noBanner.json.me.photoGif), 'removing the banner removes its GIF, and leaves the picture');
+  ok((await fetch(BASE + m.bannerGif)).status === 404, 'and the old banner is deleted from the server');
   const prefs = await api(A, 'PUT', '/api/prefs', { prefs: { settings: { mode: 'dark' }, saved: [P] } });
   ok(prefs.status === 200, 'prefs saved');
   const boot2 = await api(A, 'GET', '/api/bootstrap');
@@ -183,6 +213,20 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   ok(!after.json.posts.some((p) => p.id === P), 'removed post is gone from the feed');
   const statement = await api(A, 'GET', '/api/updates?rev=0&note=0&msg=0');
   ok(statement.json.notes.some((n) => /removed your post.*Testing removal/.test(n.text)), 'author gets a statement of reasons');
+
+  // a reported profile can be cleared: picture, banner and bio go, and its owner is told why
+  await api(B, 'PATCH', '/api/me', { bio: 'look at my banner', photo: png, banner: png, bannerGif: GIF });
+  await api(A, 'POST', '/api/reports', { kind: 'user', id: 'bob', reason: 'Offensive picture' });
+  const userReports = (await api(A, 'GET', '/api/admin/reports')).json.reports;
+  const ur = userReports.find((r) => r.kind === 'user');
+  ok(ur && /^\/api\/images\//.test(ur.item.photo) && /^\/api\/images\//.test(ur.item.banner), 'the admin sees the reported picture and banner');
+  const cleared = await api(A, 'POST', '/api/admin/resolve', { id: ur.id, action: 'remove', reason: 'Testing profiles' });
+  const bobNow = (await api(A, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'bob');
+  ok(cleared.status === 200 && bobNow && !bobNow.photo && !bobNow.banner && !bobNow.bannerGif && !bobNow.bio, 'clearing a profile removes its picture, banner and bio');
+  const bobNotes = await api(B, 'GET', '/api/updates?rev=0&note=0&msg=0');
+  ok(bobNotes.json.notes.some((n) => /cleared your profile.*Testing profiles/.test(n.text)), 'and tells its owner why');
+  await api(B, 'PATCH', '/api/me', { bio: 'back again' });
+  ok(/Cleared u\/bob/.test(cli('clear-profile', 'bob', 'Testing the command')), 'the cli clears a profile too');
 
   // password, recovery, ban, export, delete
   const pw = await api(B, 'POST', '/api/account/password', { current: 'battery staple', password: 'new password 1' });

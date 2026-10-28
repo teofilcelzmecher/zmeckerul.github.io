@@ -25,8 +25,8 @@ const { promisify } = require('node:util');
 const { open } = require('./db');
 const mod = require('../js/moderation.js');
 
-const VERSION = '0.3.0';
-const TERMS = '2026-10-27';
+const VERSION = '0.4.0';
+const TERMS = '2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -147,29 +147,47 @@ setInterval(() => {
   for (const [key, b] of buckets) if (b.reset < t) buckets.delete(key);
 }, 10 * MINUTE).unref();
 
-// ---- images: JPEG, PNG or WebP only, checked by their first bytes --------------------------------------
+// ---- images: JPEG, PNG or WebP (and GIF, where it's allowed), checked by their first bytes --------------
 
-function storeImage(dataUrl, ownerId, maxBytes) {
-  const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
-  if (!m) fail(400, 'Images must be JPEG, PNG or WebP.');
+const size = (bytes) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(0)} MB` : `${Math.round(bytes / 1024)} KB`);
+
+/** gif: false (stills only), true (stills or GIFs) or 'only' (a GIF and nothing else) */
+function storeImage(dataUrl, ownerId, maxBytes, { gif = false, maxSide = 2048 } = {}) {
+  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) fail(400, gif ? 'Pictures must be JPEG, PNG, WebP or GIF.' : 'Images must be JPEG, PNG or WebP.');
   const bytes = Buffer.from(m[2], 'base64');
-  if (bytes.length > maxBytes) fail(413, `That image is too big (the limit is ${Math.round(maxBytes / 1024)} KB).`);
+  if (bytes.length > maxBytes) fail(413, `That ${gif === 'only' ? 'GIF' : 'image'} is too big (the limit is ${size(maxBytes)}).`);
   const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
   const isWebp = bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP';
-  const mime = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : isWebp ? 'image/webp' : null;
+  const isGif = /^GIF8[79]a$/.test(bytes.subarray(0, 6).toString('latin1'));
+  if (isGif) {
+    if (!gif) fail(400, 'GIFs can’t go here.');
+    // a GIF's size is in its header; a huge one would be slow for everyone who sees it
+    const width = bytes.length >= 10 ? bytes.readUInt16LE(6) : 0, height = bytes.length >= 10 ? bytes.readUInt16LE(8) : 0;
+    if (!width || !height) fail(400, 'That GIF looks broken.');
+    if (width > maxSide || height > maxSide) fail(413, `That GIF is too large (at most ${maxSide}×${maxSide} pixels).`);
+  } else if (gif === 'only') fail(400, 'That isn’t a GIF.');
+  const mime = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : isWebp ? 'image/webp' : isGif ? 'image/gif' : null;
   if (!mime) fail(400, 'That doesn’t look like a real image.');
   const id = crypto.randomBytes(16).toString('base64url');
   db.run('INSERT INTO images (id, owner_id, mime, data, created_at) VALUES (?, ?, ?, ?, ?)', id, ownerId, mime, bytes, now());
   return id;
 }
 const imageUrl = (id) => (id ? '/api/images/' + id : '');
+// profile pictures and banners: a still (shown in feeds, and when motion is reduced) and, for a GIF, the moving one
+const MEDIA = {
+  photo: { still: 400 * 1024, gif: 2 * 1024 * 1024, maxSide: 1024 },
+  banner: { still: 700 * 1024, gif: 4 * 1024 * 1024, maxSide: 2048 },
+};
+const BIO_MAX = 300;
 
 // ---- shaping rows for the app ------------------------------------------------------------------------
 
 function publicUser(u) {
   return {
-    name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), bio: u.bio,
+    name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
+    banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
 }
@@ -763,7 +781,7 @@ route('POST', '/api/joins', ({ user, body }) => {
 // you ---------------------------------------------------------------------------------------------------------
 
 route('PATCH', '/api/me', ({ user, body }) => {
-  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo };
+  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif };
   if (body.name != null && body.name !== user.name) {
     limit('rename:' + user.id, 5, DAY, 'You can change your username up to 5 times a day.');
     const name = text(body.name, 40);
@@ -774,18 +792,25 @@ route('PATCH', '/api/me', ({ user, body }) => {
     next.name = name;
   }
   if (body.bio != null) {
-    next.bio = text(body.bio, 160);
+    // line breaks are kept (at most eight lines, and no more than one empty line in a row)
+    next.bio = text(String(body.bio).replace(/\r/g, ''), BIO_MAX).replace(/\n{3,}/g, '\n\n').split('\n').slice(0, 8).join('\n').trim();
     vet([next.bio], { kind: 'profile' }, { personal: true });
   }
   if (body.color != null) next.color = HEX_RE.test(body.color) ? body.color : user.color;
   if (body.shape != null) next.shape = WORD_RE.test(body.shape) ? body.shape : user.shape;
   if (body.icon != null) next.icon = body.icon === '' || WORD_RE.test(body.icon) ? body.icon : user.icon;
+  // a new picture or banner arrives as data (a still, plus the GIF when it moves); '' removes it; its old URL keeps it
+  const changing = ['photo', 'banner'].filter((k) => body[k] != null && !String(body[k]).includes('/api/images/'));
+  if (changing.some((k) => body[k])) limit('media:' + user.id, 20, DAY, 'You can change your picture or banner up to 20 times a day.');
   db.tx(() => {
-    if (body.photo != null && !String(body.photo).includes('/api/images/')) {
-      if (user.photo) db.run('DELETE FROM images WHERE id = ?', user.photo);
-      next.photo = body.photo ? storeImage(body.photo, user.id, 400 * 1024) : '';
+    for (const k of changing) {
+      for (const old of [user[k], user[k + '_gif']]) if (old) db.run('DELETE FROM images WHERE id = ?', old);
+      const rules = MEDIA[k], gifData = body[k + 'Gif'];
+      next[k] = body[k] ? storeImage(body[k], user.id, rules.still) : '';
+      next[k + '_gif'] = body[k] && gifData ? storeImage(gifData, user.id, rules.gif, { gif: 'only', maxSide: rules.maxSide }) : '';
     }
-    db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, rev = ? WHERE id = ?', next.name, next.color, next.shape, next.icon, next.bio, next.photo, db.bump(), user.id);
+    db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, rev = ? WHERE id = ?',
+      next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, db.bump(), user.id);
     // posts and comments show the new name, so they're stamped for everyone
     if (next.name !== user.name) {
       for (const p of db.all('SELECT id FROM posts WHERE author_id = ?', user.id)) db.run('UPDATE posts SET rev = ? WHERE id = ?', db.bump(), p.id);
@@ -793,7 +818,7 @@ route('PATCH', '/api/me', ({ user, body }) => {
     }
   });
   return { me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
-}, { body: 700 * 1024 });
+}, { body: 10 * 1024 * 1024 });
 
 // your own settings, saved posts, collections, streak and badges travel between your devices
 route('PUT', '/api/prefs', ({ user, body }) => {
@@ -899,7 +924,7 @@ function reportTarget(r) {
   }
   if (r.kind === 'user') {
     const u = db.get('SELECT * FROM users WHERE name = ?', r.target);
-    return u ? { author: u.name, body: u.bio, banned: !!u.banned_at, href: '#/u/' + u.name } : null;
+    return u ? { author: u.name, body: u.bio, photo: imageUrl(u.photo), banner: imageUrl(u.banner), banned: !!u.banned_at, href: '#/u/' + u.name } : null;
   }
   if (r.kind === 'message') {
     const m = db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(r.target));
@@ -933,6 +958,15 @@ function takeDown(kind, id, reason) {
   }
   if (kind === 'message') {
     db.run('DELETE FROM messages WHERE id = ?', Number(id));
+    return true;
+  }
+  if (kind === 'user') {
+    // a profile is "taken down" by clearing its picture, banner and bio
+    const u = db.get('SELECT * FROM users WHERE name = ?', id);
+    if (!u || !(u.photo || u.banner || u.bio)) return false;
+    for (const img of [u.photo, u.photo_gif, u.banner, u.banner_gif]) if (img) db.run('DELETE FROM images WHERE id = ?', img);
+    db.run("UPDATE users SET photo = '', photo_gif = '', banner = '', banner_gif = '', bio = '', rev = ? WHERE id = ?", db.bump(), u.id);
+    notify(u.id, { kind: 'moderation', text: `A moderator cleared your profile picture, banner and bio. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   return false;
