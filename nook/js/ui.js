@@ -516,8 +516,19 @@
     'coffee', 'park', 'sailing', 'castle', 'icecream', 'theater_comedy',
   ];
 
+  // the fonts someone can pick for their name: [id, what it's called]. The files (fonts/name-*.woff2) only have
+  // the characters a username can, and a browser only fetches the ones on screen
+  const NAME_FONTS = [
+    ['', 'Budgie'], ['rounded', 'Rounded'], ['hand', 'Handwritten'], ['serif', 'Fancy'], ['pixel', 'Pixel'],
+    ['mono', 'Typewriter'], ['sign', 'Sign'], ['script', 'Script'], ['comic', 'Comic'],
+  ];
+  const FONT_IDS = new Set(NAME_FONTS.map(([id]) => id).filter(Boolean));
+  /** the class that draws someone's name in the font they picked (' name-font-pixel'), or '' */
+  const nameFont = (u) => (u && FONT_IDS.has(u.font) ? ' name-font-' + u.font : '');
+
   Nook.ui = {
     esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, nookIcon, icon, theme, sheet,
+    NAME_FONTS, nameFont,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

@@ -199,6 +199,17 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const boot2 = await api(A, 'GET', '/api/bootstrap');
   ok(boot2.json.prefs.settings.mode === 'dark' && boot2.json.prefs.saved[0] === P, 'prefs come back');
 
+  // a font for your name: one of Budgie's, seen by everyone, and back to the usual one with ''
+  const fontMe = await api(A, 'PATCH', '/api/me', { font: 'pixel' });
+  ok(fontMe.status === 200 && fontMe.json.me.font === 'pixel', 'a name font is saved', fontMe.json.error);
+  const badFont = await api(A, 'PATCH', '/api/me', { font: 'comic-sans"><script>' });
+  ok(badFont.status === 400 && badFont.json.field === 'font', 'only Budgie’s own name fonts', badFont.json.error);
+  ok((await api(B, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'alice').font === 'pixel', 'everyone sees the name font');
+  const keepFont = await api(A, 'PATCH', '/api/me', { bio: 'Bread enthusiast!' });
+  ok(keepFont.json.me.font === 'pixel', 'other changes leave the font alone');
+  const noFont = await api(A, 'PATCH', '/api/me', { font: '' });
+  ok(noFont.status === 200 && !noFont.json.me.font, 'and it goes back to Budgie’s own font');
+
   // friends + messages
   const notFriends = await api(A, 'POST', '/api/messages', { to: 'bob', body: 'hi' });
   ok(notFriends.status === 403, 'only friends can message', notFriends.json.error);

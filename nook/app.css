@@ -1984,6 +1984,136 @@ input[type='color'].color-input::-moz-color-swatch {
   height: 100%;
   color: var(--m3-primary);
 }
+/* the fonts people pick for their names: OFL fonts cut down to the characters a username has (fonts/),
+   each at one weight, so the browser mustn't make up a bolder one. size-adjust evens out how big
+   they look. "Name fonts" off in Settings puts every name back in Budgie's own font */
+@font-face {
+  font-family: 'Budgie Name Rounded';
+  src: url('fonts/name-rounded.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 100%;
+}
+@font-face {
+  font-family: 'Budgie Name Handwritten';
+  src: url('fonts/name-hand.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 118%;
+}
+@font-face {
+  font-family: 'Budgie Name Fancy';
+  src: url('fonts/name-serif.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 100%;
+}
+@font-face {
+  font-family: 'Budgie Name Pixel';
+  src: url('fonts/name-pixel.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 82%;
+}
+@font-face {
+  font-family: 'Budgie Name Typewriter';
+  src: url('fonts/name-mono.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 92%;
+}
+@font-face {
+  font-family: 'Budgie Name Sign';
+  src: url('fonts/name-sign.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 84%;
+}
+@font-face {
+  font-family: 'Budgie Name Script';
+  src: url('fonts/name-script.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 92%;
+}
+@font-face {
+  font-family: 'Budgie Name Comic';
+  src: url('fonts/name-comic.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 100%;
+}
+.name-font-rounded,
+.name-font-hand,
+.name-font-serif,
+.name-font-pixel,
+.name-font-mono,
+.name-font-sign,
+.name-font-script,
+.name-font-comic {
+  font-synthesis: none;
+}
+.name-font-rounded {
+  font-family: 'Budgie Name Rounded', var(--m3-font);
+}
+.name-font-hand {
+  font-family: 'Budgie Name Handwritten', var(--m3-font);
+}
+.name-font-serif {
+  font-family: 'Budgie Name Fancy', var(--m3-font);
+}
+.name-font-pixel {
+  font-family: 'Budgie Name Pixel', var(--m3-font);
+}
+.name-font-mono {
+  font-family: 'Budgie Name Typewriter', var(--m3-font);
+}
+.name-font-sign {
+  font-family: 'Budgie Name Sign', var(--m3-font);
+}
+.name-font-script {
+  font-family: 'Budgie Name Script', var(--m3-font);
+}
+.name-font-comic {
+  font-family: 'Budgie Name Comic', var(--m3-font);
+}
+body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .name-font-pixel, .name-font-mono, .name-font-sign, .name-font-script, .name-font-comic):not(.font-sample) {
+  font-family: var(--m3-font);
+  font-synthesis: initial;
+}
+.font-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 6px;
+}
+.font-grid button {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  min-width: 0;
+  padding: 10px 8px 8px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: var(--m3-r-medium);
+  background: transparent;
+  color: var(--m3-on-surface);
+  cursor: pointer;
+  transition: background-color var(--m3-motion-element-move-fast);
+}
+.font-grid button:hover {
+  background: var(--m3-layer1-hover);
+}
+.font-grid button[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.font-sample {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 1.15rem;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.font-grid small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.font-grid button[aria-pressed='true'] small {
+  color: inherit;
+}
 .symbol-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));

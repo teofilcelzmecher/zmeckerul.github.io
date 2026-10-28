@@ -190,7 +190,7 @@ function open(dir) {
   db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 4000; PRAGMA synchronous = NORMAL;');
   db.exec(SCHEMA);
   // columns added since the first release, for databases made before them
-  const LATER_COLUMNS = [['users', 'photo_gif'], ['users', 'banner'], ['users', 'banner_gif']];
+  const LATER_COLUMNS = [['users', 'photo_gif'], ['users', 'banner'], ['users', 'banner_gif'], ['users', 'name_font']];
   for (const [table, column] of LATER_COLUMNS) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   }

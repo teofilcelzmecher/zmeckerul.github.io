@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.5.2';
-const TERMS = '0.5.2, 2026-10-28';
+const VERSION = '0.6.0';
+const TERMS = '0.6.0, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -243,13 +243,15 @@ const MEDIA = {
   banner: { still: 700 * 1024, gif: 4 * 1024 * 1024, maxSide: 2048 },
 };
 const BIO_MAX = 300;
+// the fonts someone can pick for their name (the app has the font files, in fonts/)
+const NAME_FONTS = ['rounded', 'hand', 'serif', 'pixel', 'mono', 'sign', 'script', 'comic'];
 
 // ---- shaping rows for the app ------------------------------------------------------------------------
 
 function publicUser(u) {
   return {
     name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
-    banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio,
+    banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio, font: u.name_font || undefined,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
 }
@@ -919,7 +921,7 @@ route('POST', '/api/joins', ({ user, body }) => {
 // you ---------------------------------------------------------------------------------------------------------
 
 route('PATCH', '/api/me', async ({ user, body }) => {
-  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif };
+  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif, name_font: user.name_font };
   if (body.name != null && body.name !== user.name) {
     limit('rename:' + user.id, 5, DAY, 'You can change your username up to 5 times a day.');
     const name = text(body.name, 40);
@@ -935,6 +937,10 @@ route('PATCH', '/api/me', async ({ user, body }) => {
     vet([next.bio], { kind: 'profile' }, { personal: true });
   }
   const bioDoubt = next.bio !== user.bio ? await checkText([next.bio], 'profile') : null;
+  if (body.font != null) {
+    if (body.font !== '' && !NAME_FONTS.includes(body.font)) fail(400, 'That isn’t one of Budgie’s name fonts.', { field: 'font' });
+    next.name_font = body.font;
+  }
   if (body.color != null) next.color = HEX_RE.test(body.color) ? body.color : user.color;
   if (body.shape != null) next.shape = WORD_RE.test(body.shape) ? body.shape : user.shape;
   if (body.icon != null) next.icon = body.icon === '' || WORD_RE.test(body.icon) ? body.icon : user.icon;
@@ -957,8 +963,8 @@ route('PATCH', '/api/me', async ({ user, body }) => {
       next[k] = incoming[k] ? saveImage(incoming[k], user.id) : '';
       next[k + '_gif'] = incoming[k] && incoming[k + '_gif'] ? saveImage(incoming[k + '_gif'], user.id) : '';
     }
-    db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, rev = ? WHERE id = ?',
-      next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, db.bump(), user.id);
+    db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, name_font = ?, rev = ? WHERE id = ?',
+      next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, next.name_font, db.bump(), user.id);
     // posts and comments show the new name, so they're stamped for everyone
     if (next.name !== user.name) {
       for (const p of db.all('SELECT id FROM posts WHERE author_id = ?', user.id)) db.run('UPDATE posts SET rev = ? WHERE id = ?', db.bump(), p.id);

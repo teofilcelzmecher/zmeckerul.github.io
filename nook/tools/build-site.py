@@ -2,7 +2,7 @@
 
 Usage: python3 nook/tools/build-site.py <source repo root> <output folder, e.g. a nook-early-access-website clone>
 It rewrites ../m3/ paths to m3/, refreshes the pages' script fingerprints, writes ads.txt when AdSense is
-set up in js/config.js, and copies the app, legal pages, m3, fonts, server (with its vendor folder), LICENSE and SECURITY.md.
+set up in js/config.js, and copies the app, legal pages, m3, fonts (the design system's and the name fonts), server (with its vendor folder), LICENSE and SECURITY.md.
 """
 import os, re, shutil, sys
 sys.dont_write_bytecode = True  # no __pycache__ left behind in the repository
@@ -17,6 +17,10 @@ for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html']:
     open(f'{out}/{page}', 'w').write(html)
 for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
     shutil.copy(f'{src}/nook/{f}', f'{out}/{f}')
+# the fonts people can pick for their names, with their licences
+os.makedirs(f'{out}/fonts', exist_ok=True)
+for f in os.listdir(f'{src}/nook/fonts'):
+    shutil.copy(f'{src}/nook/fonts/{f}', f'{out}/fonts/{f}')
 for f in os.listdir(f'{src}/nook/js'):
     open(f'{out}/js/{f}', 'w').write(fix(open(f'{src}/nook/js/{f}').read()))
 for f in ['m3.css', 'm3.js', 'm3-shapes.js', 'index.html', 'LICENSE-shapes.txt', 'LICENSE', 'README.md']:

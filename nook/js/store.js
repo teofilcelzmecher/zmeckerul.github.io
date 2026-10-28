@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.5.2';
+  const VERSION = '0.6.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -71,7 +71,7 @@
   // a profile's pictures, as full addresses on the server
   const pictures = (u) => ({ photo: api.url(u.photo), photoGif: api.url(u.photoGif), banner: api.url(u.banner), bannerGif: api.url(u.bannerGif) });
   const meFrom = (me) => ({
-    name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', ...pictures(me),
+    name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member',
   });
 

@@ -12,7 +12,7 @@
   const Nook = window.Nook;
   const store = Nook.store;
   const ui = Nook.ui;
-  const { esc, md, plain, ago, num, plural, icon, avatar, nookIcon, highlight } = ui;
+  const { esc, md, plain, ago, num, plural, icon, avatar, nookIcon, highlight, nameFont } = ui;
   const settings = () => store.state.settings;
   const app = () => Nook.app;
 
@@ -129,8 +129,8 @@
     const head =
       '<header class="post-head">' +
       (inNook
-        ? `${avatar(u, 24)}<a class="author" href="#/u/${esc(name)}">u/${esc(name)}</a>`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author" href="#/u/${esc(name)}">u/${esc(name)}</a>`) +
+        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>`
+        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>`) +
       `<span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time>` +
       (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
       (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '') +
@@ -331,7 +331,7 @@
       `<div class="c-side">${avatar(removed ? ghost : u, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
       '<div class="c-main">' +
       '<div class="c-head">' +
-      (removed ? '<span>[deleted]</span>' : `<a class="author" href="#/u/${esc(name)}">${esc(name)}</a>`) +
+      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>`) +
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
@@ -721,7 +721,7 @@
         (banner
           ? `<section class="profile-hero has-banner"><div class="profile-banner">${banner}</div>`
           : `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">`) +
-        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
+        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${nameFont(u)}">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
         '</div>' +
         (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
@@ -857,6 +857,7 @@
         sw('set-tintPosts', 'Tint posts by their nest', 'In mixed feeds, each card takes its nest’s colours.', s.tintPosts) +
         sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
         sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
+        sw('set-nameFonts', 'Name fonts', 'Show names in the fonts people picked for them. Off, every name is in Budgie’s own font.', s.nameFonts !== false) +
         (ui.theme.offline ? '<p class="muted">Couldn’t load the colour library (offline?), so only the built-in scheme is available right now.</p>' : '') +
         '</div></section>' +
         `<section>${header('cookie9', 'dynamic_feed', 'Feed')}<div class="card setting-card">` +
@@ -918,7 +919,7 @@
         };
         root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pickSeed(b.dataset.seed, b)));
         $('#set-color').addEventListener('change', (e) => pickSeed(e.target.value, e.target));
-        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics', 'filterLanguage']) {
+        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics', 'filterLanguage', 'nameFonts']) {
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();
@@ -997,7 +998,7 @@
 
   const personRowHTML = (u, actions) =>
     `<div class="row-link person-row" data-href="#/u/${encodeURIComponent(u.name)}" tabindex="0" role="link" aria-label="u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 44)}` +
-    `<span class="row-text"><b>u/${esc(u.name)}</b><small>${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
+    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}</b><small>${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
 
   function friendsPage() {
     const incoming = store.friends('incoming');
@@ -1147,7 +1148,7 @@
       html:
         '<div class="page single chat-page"><div class="col">' +
         `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b>${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
         `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
         '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
         (friends

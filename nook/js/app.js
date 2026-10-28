@@ -440,6 +440,7 @@
     const s = S();
     document.body.classList.toggle('calm', !!s.calm);
     document.body.classList.toggle('compact', !!s.compact);
+    document.body.classList.toggle('plain-names', s.nameFonts === false);
     $$('[data-act="compact"]').forEach((b) => b.setAttribute('aria-pressed', String(!!s.compact)));
     $('#theme-btn .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
     ui.favicon(brandShape.showing, viewNook && s.themeNooks ? viewNook.color : s.seed);
@@ -1640,12 +1641,14 @@
 
   function editProfile() {
     const me = store.state.me;
-    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '' };
+    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '', font: me.font || '' };
     const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
     const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
     // banners, moving GIFs and longer bios need the server from Budgie 0.4.0 on; an older one gets the old editor
     const [major, minor] = (Nook.serverVersion || '0.0').split('.').map(Number);
     const media = major > 0 || minor >= 4;
+    // and a font for your name needs it from 0.6.0 on
+    const fonts = major > 0 || minor >= 6;
     const BIO_MAX = media ? 300 : 160;
     let saving = false;
     ui.sheet({
@@ -1655,8 +1658,13 @@
       html:
         `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
         `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
-        `<div class="np-text"><b class="m3-title" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div></div>` +
+        `<div class="np-text"><b class="m3-title${fonts ? ui.nameFont(model) : ''}" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div></div>` +
         `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
+        (fonts
+          ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
+            ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
+            '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small></div>'
+          : '') +
         `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
         `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
         '<div class="field"><span class="field-label">Picture</span>' +
@@ -1690,9 +1698,21 @@
         input.addEventListener('input', () => {
           input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
           $$('#ep-name').textContent = input.value || '…';
+          body.querySelectorAll('.font-sample').forEach((el) => (el.textContent = input.value || '…'));
           $$('#ep-err').textContent = '';
           paint();
         });
+        const fontGrid = body.querySelector('.font-grid');
+        if (fontGrid) {
+          fontGrid.querySelectorAll('[data-font]').forEach((b) =>
+            b.addEventListener('click', () => {
+              model.font = b.dataset.font;
+              fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
+              $$('#ep-name').className = 'm3-title' + ui.nameFont(model);
+              fx.pop($$('#ep-name'), 0.4);
+            })
+          );
+        }
         const faces = body.querySelector('.face-grid');
         const pressFace = (value) => faces.querySelectorAll('[data-face]').forEach((b) => b.setAttribute('aria-pressed', String(!model.photo && b.dataset.face === value)));
         const setPhoto = (still, gif) => {
@@ -1773,6 +1793,7 @@
               return false;
             }
             const fields = { name, bio, color: model.color, shape: model.shape, icon: model.icon };
+            if (fonts) fields.font = model.font;
             // pictures only travel when they changed: a new one as data (with its GIF), a removed one as ''
             if (model.photo !== (me.photo || '')) Object.assign(fields, { photo: model.photo, photoGif: model.photoGif });
             if (model.banner !== (me.banner || '')) Object.assign(fields, { banner: model.banner, bannerGif: model.bannerGif });
