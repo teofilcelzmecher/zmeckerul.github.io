@@ -281,7 +281,9 @@
     const shape = landing.querySelector('#landing-shape');
     const symbol = landing.querySelector('#landing-symbol');
     const name = landing.querySelector('#landing-name');
+    const peekBox = landing.querySelector('#nest-peek');
     let wearing = 0;
+    let paused = false;
     // a nest's colour becomes the whole page's, as it does in the app
     async function wear(seed) {
       const mine = ++wearing;
@@ -300,7 +302,29 @@
       symbol.textContent = nest.symbol;
       name.textContent = 'n/' + nest.nest;
       if (!still()) symbol.animate([{ scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1 }], { duration: 420, easing: 'cubic-bezier(.2,1.4,.4,1)' });
+      peek(nest);
       wear(nest.color);
+    }
+    // the panel under the nests: the nest's own description, and an example of a first post there
+    function peek(nest) {
+      if (!peekBox) return;
+      const set = (id, text) => (peekBox.querySelector(id).textContent = text);
+      set('#peek-title', nest.title);
+      set('#peek-id', 'n/' + nest.nest);
+      set('#peek-where', 'n/' + nest.nest);
+      set('#peek-tag', nest.tagline);
+      set('#peek-example', nest.example);
+      const icon = peekBox.querySelector('#peek-icon');
+      icon.setAttribute('shape', nest.shape);
+      icon.setAttribute('symbol', nest.symbol);
+      icon.style.setProperty('--m3-shape-icon-color', nest.color);
+      if (!still()) peekBox.querySelector('.peek-post').animate([{ opacity: 0.3, translate: '0 8px' }, { opacity: 1, translate: '0 0' }], { duration: 360, easing: 'cubic-bezier(.2,1,.4,1)' });
+    }
+    // reading the panel holds the slideshow still
+    if (peekBox) {
+      const hold = (on) => () => (paused = on);
+      ['pointerenter', 'focusin'].forEach((e) => peekBox.addEventListener(e, hold(true)));
+      ['pointerleave', 'focusout'].forEach((e) => peekBox.addEventListener(e, hold(false)));
     }
     chips.forEach((chip) =>
       chip.addEventListener('click', () => {
@@ -311,10 +335,10 @@
     // on its own it shows off a nest every few seconds, until someone picks one
     if (!still()) {
       cycle = setInterval(() => {
-        if (document.hidden) return;
+        if (document.hidden || paused) return;
         const now = chips.findIndex((c) => c.getAttribute('aria-pressed') === 'true');
         pick(chips[(now + 1) % chips.length]);
-      }, 3200);
+      }, 4500);
     }
   }
 
