@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.5.0';
-const TERMS = '0.5.0, 2026-10-28';
+const VERSION = '0.5.1';
+const TERMS = '0.5.1, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -348,17 +348,15 @@ function notify(userId, note) {
   db.run('DELETE FROM notes WHERE user_id = ? AND id NOT IN (SELECT id FROM notes WHERE user_id = ? ORDER BY id DESC LIMIT 200)', userId, userId);
 }
 
-// when the Terms or Privacy Policy change in a way that matters, everyone already here is told once
-if (db.meta('terms-told') !== TERMS) {
-  for (const u of db.all('SELECT id FROM users')) {
-    notify(u.id, {
-      kind: 'system',
-      text: 'Budgie’s Terms and Privacy Policy have changed: posts, comments, messages and pictures are now also checked by small AI models that run on Budgie’s own server, and a moderator may see a private message the checks flag. Read them in Settings → Privacy and legal.',
-      symbol: 'gavel',
-      shape: 'pixelCircle',
-    });
-  }
-  db.meta('terms-told', TERMS);
+// the last change to the Terms or Privacy Policy that matters to people already here: they're told once
+// (0.5.1's robot check on sign-up only concerns new accounts, so it isn't one)
+const NOTICE = {
+  version: '0.5.0, 2026-10-28',
+  text: 'Budgie’s Terms and Privacy Policy have changed: posts, comments, messages and pictures are now also checked by small AI models that run on Budgie’s own server, and a moderator may see a private message the checks flag. Read them in Settings → Privacy and legal.',
+};
+if (db.meta('terms-told') !== NOTICE.version) {
+  for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
+  db.meta('terms-told', NOTICE.version);
 }
 
 function members() {
@@ -431,7 +429,48 @@ function route(method, pattern, handler, { auth = true, admin = false, body = 64
 // anyone can join, unless the owner turned invite codes back on with `nook signups invite`
 const signupMode = () => (db.meta('signup') === 'invite' ? 'invite' : 'open');
 
-route('GET', '/api/health', () => ({ ok: true, version: VERSION, signup: signupMode() }), { auth: false });
+// ---- the "I'm not a robot" check when someone signs up: Google reCAPTCHA, once the owner sets it up ------
+// with `nook captcha <site key> <secret key>`. NOOK_CAPTCHA=test asks no one and takes the answer "pass",
+// for the tests.
+
+const CAPTCHA_MODE = process.env.NOOK_CAPTCHA || 'on';
+const captchaKey = () => db.meta('captcha-site') || '';
+// the check only counts when it was passed on Budgie's own site
+const SITE_HOSTS = new Set(CONFIG.origins.map((o) => o.replace(/^https?:\/\//, '').replace(/:.*$/, '')));
+
+/** asks Google about the answer the sign-up form got from reCAPTCHA (each answer works once, for 2 minutes) */
+async function checkCaptcha(answer) {
+  if (!captchaKey()) return;
+  // the site key comes along, for a sign-up form opened before the check was turned on
+  if (typeof answer !== 'string' || !answer || answer.length > 4000) fail(400, 'Tick “I’m not a robot” first.', { field: 'captcha', captcha: captchaKey() });
+  if (CAPTCHA_MODE === 'test') {
+    if (answer !== 'pass') fail(400, 'The robot check didn’t work, or it ran out of time. Try it again.', { field: 'captcha' });
+    return;
+  }
+  let result;
+  try {
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      body: new URLSearchParams({ secret: db.meta('captcha-secret') || '', response: answer }),
+      signal: AbortSignal.timeout(10000),
+    });
+    result = await res.json();
+  } catch (error) {
+    console.error('reCAPTCHA check failed:', error.message);
+    fail(503, 'Google’s robot check isn’t answering right now, so new accounts can’t be made. Try again in a minute.');
+  }
+  if (!result.success) {
+    // a refused secret key is the owner's to fix, so the logs say so, and trying again won't help
+    if ((result['error-codes'] || []).some((code) => /secret/.test(code))) {
+      console.error('reCAPTCHA refused the secret key. Set it again with: nook captcha <site key> <secret key>');
+      fail(503, 'The robot check isn’t set up right on Budgie’s side, so new accounts can’t be made just now. Try again later.');
+    }
+    fail(400, 'The robot check didn’t work, or it ran out of time. Try it again.', { field: 'captcha' });
+  }
+  if (result.hostname && !SITE_HOSTS.has(result.hostname)) fail(400, 'That robot check was passed on another website. Try it again here.', { field: 'captcha' });
+}
+
+route('GET', '/api/health', () => ({ ok: true, version: VERSION, signup: signupMode(), captcha: captchaKey() || undefined }), { auth: false });
 
 // accounts ------------------------------------------------------------------------------------------
 
@@ -457,6 +496,8 @@ route('POST', '/api/signup', async ({ body, ip }) => {
   if (password.length < 8) fail(400, 'Use at least 8 characters for your password.', { field: 'password' });
   if (password.length > 200) fail(400, 'That password is too long.', { field: 'password' });
   if (password.toLowerCase() === name.toLowerCase()) fail(400, 'Your password can’t be your username.', { field: 'password' });
+  // last of all, so a taken name or a short password doesn't use up the answer
+  await checkCaptcha(body.captcha);
 
   const pass = await hashPassword(password);
   const recovery = recoveryCode();

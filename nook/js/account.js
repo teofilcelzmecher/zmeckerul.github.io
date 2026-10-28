@@ -1,8 +1,8 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * The way in: the welcome page for someone who isn't signed in, then sign in,
- * create an account (with an invite code, if the server asks for one), or get
- * back in with a recovery code. Once signed in, it fetches everything the app needs
+ * create an account (with an invite code, and an "I'm not a robot" check, if the
+ * server asks for them), or get back in with a recovery code. Once signed in, it fetches everything the app needs
  * from the server and only then starts the app's own scripts.
  */
 (function () {
@@ -18,6 +18,8 @@
   const landing = document.getElementById('landing');
   // open to everyone unless the server says it's invite-only (asked as soon as the page opens)
   let signup = 'open';
+  // the reCAPTCHA site key, when the server wants an "I'm not a robot" check before making an account
+  let captcha = '';
 
   function frame() {
     if (gate) return gate;
@@ -61,6 +63,7 @@
       passwordField('g-pass', 'Password (at least 8 characters)', 'new-password') +
       '<label class="gate-check"><input type="checkbox" id="g-age"><span>I’m at least 13. Where my country requires it, a parent or guardian has said yes.</span></label>' +
       '<label class="gate-check"><input type="checkbox" id="g-terms"><span>I agree to the <a href="terms.html" target="_blank">Terms of Use</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</span></label>' +
+      '<div class="gate-captcha" id="g-captcha" hidden><div class="gate-captcha-box"></div><small class="gate-error" data-for="g-captcha"></small></div>' +
       '<p class="gate-msg" role="status"></p>' +
       `<button class="m3-btn filled gate-go" type="submit">${icon('person_add')}Create account</button>` +
       '<p class="gate-links"><button type="button" class="link" data-go="signin">Already have an account? Sign in</button></p></form>',
@@ -113,6 +116,7 @@
     const retry = root.querySelector('[data-retry]');
     if (retry) retry.addEventListener('click', start);
     if (name === 'signup' && signup === 'invite') wireCode(root);
+    if (name === 'signup') placeCaptcha(form);
     if (name === 'recovery') wireRecovery(root, options);
     if (form && name !== 'recovery') form.addEventListener('submit', (e) => (e.preventDefault(), submit(name, form)));
     const first = root.querySelector('input:not([type=checkbox])');
@@ -158,6 +162,65 @@
     });
   }
 
+  // ---- "I'm not a robot" (Google reCAPTCHA) -----------------------------------------------------------
+  // Google's script is only loaded once someone opens the sign-up form, and only when the server asks for it
+
+  let recaptcha = null;
+  function loadRecaptcha() {
+    if (!recaptcha) {
+      recaptcha = new Promise((resolve, reject) => {
+        window.nookRecaptchaReady = () => resolve(window.grecaptcha);
+        const script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js?onload=nookRecaptchaReady&render=explicit&hl=en';
+        script.async = true;
+        script.onerror = () => {
+          recaptcha = null;
+          reject(new Error('blocked'));
+        };
+        document.head.appendChild(script);
+      });
+    }
+    return recaptcha;
+  }
+
+  const CAPTCHA_BLOCKED = 'The “I’m not a robot” check couldn’t load. If something blocks google.com here (an ad blocker, say), allow it on Budgie, or try another browser.';
+
+  async function placeCaptcha(form) {
+    const box = form && form.querySelector('#g-captcha');
+    if (!box || !captcha || box.dataset.widget) return;
+    box.hidden = false;
+    box.dataset.widget = 'loading';
+    const error = box.querySelector('.gate-error');
+    try {
+      const grecaptcha = await loadRecaptcha();
+      if (!box.isConnected) return;
+      const slot = box.querySelector('.gate-captcha-box');
+      box.dataset.widget = String(
+        grecaptcha.render(slot, {
+          sitekey: captcha,
+          theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+          // the box is 304 pixels wide; a narrow phone gets the tall, compact one
+          size: slot.clientWidth && slot.clientWidth < 304 ? 'compact' : 'normal',
+          callback: () => (error.textContent = ''),
+        })
+      );
+    } catch (_) {
+      box.dataset.widget = 'failed';
+      error.textContent = CAPTCHA_BLOCKED;
+    }
+  }
+
+  /** the answer reCAPTCHA gave once the box was ticked, or '' */
+  function captchaAnswer(form) {
+    const id = form.querySelector('#g-captcha').dataset.widget;
+    return window.grecaptcha && /^\d+$/.test(id || '') ? window.grecaptcha.getResponse(Number(id)) : '';
+  }
+
+  function resetCaptcha(form) {
+    const id = form.querySelector('#g-captcha').dataset.widget;
+    if (window.grecaptcha && /^\d+$/.test(id || '')) window.grecaptcha.reset(Number(id));
+  }
+
   function shake(form) {
     if (!still()) form.animate([{ translate: '0' }, { translate: '-10px' }, { translate: '9px' }, { translate: '-5px' }, { translate: '0' }], { duration: 380, easing: 'ease-out' });
   }
@@ -186,6 +249,7 @@
       if (!/^[A-Za-z0-9_]{3,20}$/.test(value('g-name'))) return problem('g-name', 'Use 3–20 letters, numbers or underscores.');
       if (password.length < 8) return problem('g-pass', 'Use at least 8 characters.');
       if (!$('#g-age').checked || !$('#g-terms').checked) return problem('', 'Please tick both boxes to continue.');
+      if (captcha && !captchaAnswer(form)) return problem('g-captcha', $('#g-captcha').dataset.widget === 'failed' ? CAPTCHA_BLOCKED : 'Tick “I’m not a robot” first.');
     } else {
       if (!value('g-name')) return problem('g-name', 'Enter your username.');
       if (name === 'forgot' && !value('g-recovery')) return problem('g-recovery', 'Enter your recovery code.');
@@ -197,7 +261,7 @@
     try {
       let result;
       if (name === 'signin') result = await api.post('/api/login', { name: value('g-name'), password });
-      if (name === 'signup') result = await api.post('/api/signup', { invite: value('g-invite'), name: value('g-name'), password, age: true, terms: true });
+      if (name === 'signup') result = await api.post('/api/signup', { invite: value('g-invite'), name: value('g-name'), password, age: true, terms: true, captcha: captcha ? captchaAnswer(form) : undefined });
       if (name === 'forgot') result = await api.post('/api/recover', { name: value('g-name'), recovery: value('g-recovery'), password });
       api.setToken(result.token);
       busy = false;
@@ -211,7 +275,14 @@
         signup = 'invite';
         return show('signup', { message: error.message });
       }
-      const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass' };
+      if (error.field === 'captcha') {
+        // the check was turned on after this page opened, or the answer ran out: a fresh box
+        if (error.captcha && !captcha) {
+          captcha = error.captcha;
+          placeCaptcha(form);
+        } else resetCaptcha(form);
+      }
+      const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass', captcha: 'g-captcha' };
       problem(map[error.field] || '', error.message);
     }
   }
@@ -347,6 +418,8 @@
     .then((health) => {
       signup = health.signup === 'invite' || !health.signup ? 'invite' : 'open';
       Nook.serverVersion = health.version || '';
+      captcha = health.captcha || '';
+      if (gate) placeCaptcha(gate.querySelector('form'));
     })
     .catch(() => {});
   start();

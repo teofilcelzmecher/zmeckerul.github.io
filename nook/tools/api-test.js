@@ -8,7 +8,8 @@ const SERVER = path.join(__dirname, '..', 'server');
 const DATA = path.join(os.tmpdir(), 'nook-api-test');
 fs.rmSync(DATA, { recursive: true, force: true });
 // the picture and text checks score by markers in test mode ("#explicit" at a picture's end, "#harmful" in text)
-const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test' };
+// and the robot check on sign-up asks no one: the answer "pass" passes
+const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test', NOOK_CAPTCHA: 'test' };
 const BASE = 'http://127.0.0.1:8799';
 const cli = (...a) => execFileSync('node', [SERVER + '/cli.js', ...a], { env, encoding: 'utf8' });
 
@@ -73,6 +74,21 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const A = a.json.token;
   const B = b.json.token;
 
+  // the "I'm not a robot" check: off until the owner sets it up, then needed for every new account
+  ok(!health.json.captcha && /is off/.test(cli('captcha')), 'the robot check is off at first');
+  ok(/on: new accounts need/.test(cli('captcha', '6LeTestSiteKey_000000000000000000000000', '6LeTestSecretKey_00000000000000000000000')), 'the cli turns it on');
+  ok((await api(null, 'GET', '/api/health')).json.captcha === '6LeTestSiteKey_000000000000000000000000', 'health hands the app the site key (and nothing secret)');
+  const robot = await api(null, 'POST', '/api/signup', { name: 'robotron', password: 'correct horse', age: true, terms: true });
+  ok(robot.status === 400 && robot.json.field === 'captcha' && robot.json.captcha === '6LeTestSiteKey_000000000000000000000000', 'without the check, no account (and the form is told the site key)', robot.json.error);
+  const failed = await api(null, 'POST', '/api/signup', { name: 'robotron', password: 'correct horse', age: true, terms: true, captcha: 'nope' });
+  ok(failed.status === 400 && failed.json.field === 'captcha', 'a failed check, no account', failed.json.error);
+  const takenFirst = await api(null, 'POST', '/api/signup', { name: 'alice', password: 'correct horse', age: true, terms: true, captcha: 'nope' });
+  ok(takenFirst.status === 409, 'a taken name is said first, before the check is used up', takenFirst.json.error);
+  const human = await api(null, 'POST', '/api/signup', { name: 'human_one', password: 'correct horse', age: true, terms: true, captcha: 'pass' });
+  ok(human.status === 200 && human.json.token, 'a passed check makes the account');
+  ok(/is off/.test(cli('captcha', 'off')) && !(await api(null, 'GET', '/api/health')).json.captcha, 'the cli turns it off again');
+  ok(/Usage/.test((() => { try { return cli('captcha', 'short', 'x'); } catch (e) { return String(e.stderr); } })()), 'the cli refuses keys that can’t be keys');
+
   // login
   const wrong = await api(null, 'POST', '/api/login', { name: 'alice', password: 'nope nope' });
   ok(wrong.status === 401, 'wrong password', wrong.json.error);
@@ -83,7 +99,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
 
   // bootstrap
   const boot = await api(A, 'GET', '/api/bootstrap');
-  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 3, 'bootstrap (alice, bob and dora)', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
+  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 4, 'bootstrap (alice, bob, dora and human_one)', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
 
   // posts, moderation
   const kys = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'kys everyone', type: 'text' });
@@ -292,7 +308,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const bobAfter = await api(null, 'POST', '/api/login', { name: 'bob', password: 'new password 1' });
   const B2 = bobAfter.json.token;
   const world = await api(B2, 'GET', '/api/bootstrap');
-  ok(world.json.users.length === 2 && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
+  ok(world.json.users.length === 3 && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
   ok(world.json.comments.every((c) => c.author !== 'alice'), 'her comments are wiped');
   ok(world.json.nooks[0].mods.length === 0, 'her nook stays, without her');
 

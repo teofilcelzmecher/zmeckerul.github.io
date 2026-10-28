@@ -3738,6 +3738,22 @@ html.visitor .landing {
   margin: 1px 0 0;
   accent-color: var(--m3-primary);
 }
+/* Google's "I'm not a robot" box keeps its own size and look; it sits centred, with room saved while it loads */
+.gate-captcha {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.gate-captcha[hidden] {
+  display: none;
+}
+.gate-captcha-box {
+  width: 100%;
+  min-height: 78px;
+  display: grid;
+  justify-content: center;
+}
 .gate-check a,
 .gate-links .link {
   color: var(--m3-primary);

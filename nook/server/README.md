@@ -66,6 +66,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | Command | What it does |
 |---|---|
 | `sudo nook signups open` / `invite` | Anyone can join, or only with an invite code |
+| `sudo nook captcha SITE_KEY SECRET_KEY` / `captcha off` | Turns the "I'm not a robot" check on sign-up on or off |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
@@ -80,6 +81,35 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook scan-images` / `scan-text` | Checks everything posted before; doubtful things go to the Moderation page |
 | `sudo nook update` | Gets the latest version from GitHub, updates the service's settings and restarts |
 | `sudo nook status` / `logs` / `restart` | Is it running? What is it saying? Restart it |
+
+## The "I'm not a robot" check on sign-up
+
+Sign-up can ask people to tick Google reCAPTCHA's "I'm not a robot" box, which stops most bots from
+making accounts. It's off until you give the server a key. Keys come from Google Cloud (free up to
+10,000 checks a month, far more than Budgie needs). Google Cloud is meant for adults, so you may need a
+parent to do steps 1–3 with their Google account.
+
+1. Open the Google Cloud console at https://console.cloud.google.com and search for **reCAPTCHA**
+   (Google also calls it **Fraud Defense**). The first time, it makes a project for you.
+2. On the **Keys** tab, click **Create key**. Name it Budgie, pick **Web** as the application type, and
+   add the domains `budgiesocial.com`, `www.budgiesocial.com` and `teofilcelzmecher.github.io`. Click
+   **Next step**, turn on **Will you use challenges?** (that's the "I'm not a robot" box), pick
+   **Easy** for the challenge security, and click **Create key**.
+3. The **Key ID** at the top of the key's page is the site key. On its **Integration** tab,
+   **Use legacy key** shows the secret key.
+4. On the laptop:
+
+   ```sh
+   sudo nook captcha SITE_KEY SECRET_KEY
+   ```
+
+   It works straight away (no restart, no website update). Google only says whether the secret key
+   is right once someone ticks the box, so make a test account on budgiesocial.com afterwards; if
+   it fails, `sudo nook logs` says why. `sudo nook captcha` says whether the check is on;
+   `sudo nook captcha off` turns it off.
+
+If Google can't be reached, nobody can sign up until it's back (people already signed in aren't
+affected). The secret key is kept in the database, so treat backups like the database itself.
 
 ## Automatic checks
 
