@@ -1984,6 +1984,140 @@ input[type='color'].color-input::-moz-color-swatch {
   height: 100%;
   color: var(--m3-primary);
 }
+/* a pride flag after a name: drawn as an SVG (js/ui.js), sized with the text it follows */
+.pride-flag {
+  display: inline-block;
+  flex: none;
+  width: 1.3em;
+  height: 0.86em;
+  margin-inline-start: 0.4em;
+  overflow: hidden;
+  border-radius: 0.2em;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--m3-outline) 35%, transparent);
+  vertical-align: -0.08em;
+}
+.pride-flag svg,
+.flag-big svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* in a big name it's a touch smaller than the letters, so the name leads */
+h1 .pride-flag,
+.np-text .pride-flag {
+  width: 0.95em;
+  height: 0.63em;
+  vertical-align: 0.04em;
+}
+.flag-grid,
+.scheme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 6px;
+}
+.flag-grid button,
+.scheme-grid button {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 4px 8px;
+  border: 0;
+  border-radius: var(--m3-r-normal);
+  background: transparent;
+  color: var(--m3-on-surface-variant);
+  cursor: pointer;
+  transition: background-color var(--m3-motion-element-move-fast), scale var(--m3-motion-bounce);
+}
+.flag-grid button:hover,
+.scheme-grid button:hover {
+  background: var(--m3-layer1-hover);
+}
+.flag-grid button:active,
+.scheme-grid button:active {
+  scale: 0.95;
+}
+.flag-grid button[aria-pressed='true'],
+.scheme-grid button[aria-pressed='true'] {
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.flag-grid small,
+.scheme-grid small {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--m3-fs-smallest);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flag-big,
+.flag-none {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: var(--m3-r-very-small);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--m3-outline) 35%, transparent);
+}
+.flag-none {
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+  color: var(--m3-on-surface-variant);
+}
+/* four dots of a style's palette: primary, secondary, tertiary and the primary container */
+.scheme-dots {
+  display: grid;
+  grid-template-columns: repeat(2, 14px);
+  gap: 3px;
+  padding: 5px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-high);
+}
+.scheme-dots i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--m3-outline-variant);
+  transition: background-color var(--m3-motion-element-move);
+}
+.sticker-grid .m3-icon {
+  --m3-icon-size: 22px;
+}
+.ep-section {
+  margin-top: 8px;
+}
+.ep-section .m3-title {
+  font-size: var(--m3-fs-large);
+}
+/* chips that wrap onto more lines, and chips that only say something */
+.chips.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.chip.static {
+  cursor: default;
+}
+.chip.static:hover {
+  background: transparent;
+}
+.chip.static:active {
+  scale: 1;
+}
+.chip.static .m3-icon {
+  color: var(--m3-primary);
+}
+.profile-main .interests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.pronouns {
+  color: var(--m3-on-surface);
+  font-weight: 600;
+}
+
 /* the fonts people pick for their names: OFL fonts cut down to the characters a username has (fonts/),
    each at one weight, so the browser mustn't make up a bolder one. size-adjust evens out how big
    they look. "Name fonts" off in Settings puts every name back in Budgie's own font */
@@ -2085,7 +2219,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   min-width: 0;
   padding: 10px 8px 8px;
   border: 1px solid var(--m3-outline-variant);
-  border-radius: var(--m3-r-medium);
+  border-radius: var(--m3-r-normal);
   background: transparent;
   color: var(--m3-on-surface);
   cursor: pointer;
@@ -2248,10 +2382,16 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   flex: 1;
   gap: 2px;
   min-width: 180px;
+  container-type: inline-size;
 }
+/* a name eases down (to a floor) where its column is narrow, so it and its flag share a line */
 .profile-main h1 {
-  font-size: var(--m3-fs-headline);
+  --flag-room: 0;
+  font-size: clamp(var(--m3-fs-huge), calc(100cqi / (var(--name-len, 10) * 0.6 + var(--flag-room))), var(--m3-fs-headline));
   overflow-wrap: anywhere;
+}
+.profile-main h1.has-flag {
+  --flag-room: 1.4;
 }
 .stats {
   display: flex;

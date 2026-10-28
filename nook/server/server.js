@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.6.0';
-const TERMS = '0.6.0, 2026-10-28';
+const VERSION = '0.7.0';
+const TERMS = '0.7.0, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -245,6 +245,19 @@ const MEDIA = {
 const BIO_MAX = 300;
 // the fonts someone can pick for their name (the app has the font files, in fonts/)
 const NAME_FONTS = ['rounded', 'hand', 'serif', 'pixel', 'mono', 'sign', 'script', 'comic'];
+// the rest of what makes a profile someone's own; the app draws the flags and knows the names (js/ui.js)
+const PRIDE_FLAGS = [
+  'rainbow', 'philly', 'trans', 'bi', 'pan', 'lesbian', 'gay', 'nonbinary', 'ace', 'aro',
+  'aroace', 'genderfluid', 'genderqueer', 'agender', 'demisexual', 'intersex', 'polysexual', 'omnisexual', 'demigirl', 'demiboy',
+];
+const INTERESTS = [
+  'gaming', 'music', 'art', 'drawing', 'photography', 'books', 'writing', 'movies', 'anime', 'science', 'space', 'coding',
+  'sports', 'fitness', 'cooking', 'baking', 'plants', 'animals', 'travel', 'nature', 'fashion', 'dance', 'theatre', 'languages',
+];
+const INTERESTS_MAX = 6;
+// the colour styles Material 3 makes a scheme in, for someone's profile page
+const PROFILE_SCHEMES = ['tonalSpot', 'vibrant', 'expressive', 'fidelity', 'content', 'rainbow', 'fruitSalad', 'neutral', 'monochrome'];
+const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 
 // ---- shaping rows for the app ------------------------------------------------------------------------
 
@@ -252,6 +265,8 @@ function publicUser(u) {
   return {
     name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
     banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio, font: u.name_font || undefined,
+    pronouns: u.pronouns || undefined, flag: u.pride_flag || undefined, interests: u.interests ? u.interests.split(',') : undefined,
+    scheme: u.profile_scheme || undefined, sticker: u.sticker_shape || undefined,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
 }
@@ -921,7 +936,8 @@ route('POST', '/api/joins', ({ user, body }) => {
 // you ---------------------------------------------------------------------------------------------------------
 
 route('PATCH', '/api/me', async ({ user, body }) => {
-  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif, name_font: user.name_font };
+  const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif, name_font: user.name_font,
+    pronouns: user.pronouns, pride_flag: user.pride_flag, interests: user.interests, profile_scheme: user.profile_scheme, sticker_shape: user.sticker_shape };
   if (body.name != null && body.name !== user.name) {
     limit('rename:' + user.id, 5, DAY, 'You can change your username up to 5 times a day.');
     const name = text(body.name, 40);
@@ -940,6 +956,30 @@ route('PATCH', '/api/me', async ({ user, body }) => {
   if (body.font != null) {
     if (body.font !== '' && !NAME_FONTS.includes(body.font)) fail(400, 'That isn’t one of Budgie’s name fonts.', { field: 'font' });
     next.name_font = body.font;
+  }
+  if (body.pronouns != null) {
+    const pronouns = text(String(body.pronouns), 40).replace(/\s+/g, ' ');
+    if (pronouns && !PRONOUNS_RE.test(pronouns)) fail(400, 'Pronouns are up to 24 letters, with / or spaces between them (like she/they).', { field: 'pronouns' });
+    if (pronouns) vet([pronouns], { kind: 'profile' }, { strongNames: true });
+    next.pronouns = pronouns;
+  }
+  if (body.flag != null) {
+    if (body.flag !== '' && !PRIDE_FLAGS.includes(body.flag)) fail(400, 'That isn’t one of Budgie’s pride flags.', { field: 'flag' });
+    next.pride_flag = body.flag;
+  }
+  if (body.interests != null) {
+    const list = Array.isArray(body.interests) ? [...new Set(body.interests)] : [];
+    if (list.length > INTERESTS_MAX || list.some((i) => !INTERESTS.includes(i))) fail(400, `Pick up to ${INTERESTS_MAX} of Budgie’s interests.`, { field: 'interests' });
+    next.interests = list.join(',');
+  }
+  if (body.scheme != null) {
+    if (body.scheme !== '' && !PROFILE_SCHEMES.includes(body.scheme)) fail(400, 'That isn’t one of the colour styles.', { field: 'scheme' });
+    next.profile_scheme = body.scheme;
+  }
+  if (body.sticker != null) {
+    // a shape's name (the app knows which exist), 'none', or '' for a mix
+    if (body.sticker !== '' && !WORD_RE.test(body.sticker)) fail(400, 'That isn’t a shape.', { field: 'sticker' });
+    next.sticker_shape = body.sticker;
   }
   if (body.color != null) next.color = HEX_RE.test(body.color) ? body.color : user.color;
   if (body.shape != null) next.shape = WORD_RE.test(body.shape) ? body.shape : user.shape;
@@ -963,8 +1003,12 @@ route('PATCH', '/api/me', async ({ user, body }) => {
       next[k] = incoming[k] ? saveImage(incoming[k], user.id) : '';
       next[k + '_gif'] = incoming[k] && incoming[k + '_gif'] ? saveImage(incoming[k + '_gif'], user.id) : '';
     }
-    db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, name_font = ?, rev = ? WHERE id = ?',
-      next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, next.name_font, db.bump(), user.id);
+    db.run(
+      `UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, name_font = ?,
+         pronouns = ?, pride_flag = ?, interests = ?, profile_scheme = ?, sticker_shape = ?, rev = ? WHERE id = ?`,
+      next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, next.name_font,
+      next.pronouns, next.pride_flag, next.interests, next.profile_scheme, next.sticker_shape, db.bump(), user.id
+    );
     // posts and comments show the new name, so they're stamped for everyone
     if (next.name !== user.name) {
       for (const p of db.all('SELECT id FROM posts WHERE author_id = ?', user.id)) db.run('UPDATE posts SET rev = ? WHERE id = ?', db.bump(), p.id);
@@ -1125,12 +1169,12 @@ function takeDown(kind, id, reason) {
     return true;
   }
   if (kind === 'user') {
-    // a profile is "taken down" by clearing its picture, banner and bio
+    // a profile is "taken down" by clearing its picture, banner, bio and pronouns (what someone writes or uploads)
     const u = db.get('SELECT * FROM users WHERE name = ?', id);
-    if (!u || !(u.photo || u.banner || u.bio)) return false;
+    if (!u || !(u.photo || u.banner || u.bio || u.pronouns)) return false;
     for (const img of [u.photo, u.photo_gif, u.banner, u.banner_gif]) if (img) db.run('DELETE FROM images WHERE id = ?', img);
-    db.run("UPDATE users SET photo = '', photo_gif = '', banner = '', banner_gif = '', bio = '', rev = ? WHERE id = ?", db.bump(), u.id);
-    notify(u.id, { kind: 'moderation', text: `A moderator cleared your profile picture, banner and bio. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
+    db.run("UPDATE users SET photo = '', photo_gif = '', banner = '', banner_gif = '', bio = '', pronouns = '', rev = ? WHERE id = ?", db.bump(), u.id);
+    notify(u.id, { kind: 'moderation', text: `A moderator cleared your profile picture, banner, bio and pronouns. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   return false;

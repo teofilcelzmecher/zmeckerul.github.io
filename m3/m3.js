@@ -4230,8 +4230,10 @@
   const retoners = new WeakMap();
 
   /** each sticker's place, size, shape, tone and turn, from the key alone */
-  function stickerLayout(key, count, min, max) {
+  function stickerLayout(key, count, min, max, only) {
     const next = util.rng(util.hash(key));
+    // `only`: the shapes to pick from, when not every one
+    const pool = only && only.length ? only : STICKER_SHAPES;
     const list = [];
     for (let index = 0; index < count; index++) {
       // a slot each across the width, jittered within it
@@ -4239,7 +4241,7 @@
         x: (index + 0.15 + 0.7 * next()) / count,
         y: -0.15 + 1.25 * next(),
         size: min + (max - min) * next(),
-        shape: STICKER_SHAPES[Math.floor(next() * STICKER_SHAPES.length)],
+        shape: pool[Math.floor(next() * pool.length)],
         tone: Math.floor(next() * 3),
         angle: next() * 360,
         // degrees per radian of the spin, either way round
@@ -4293,7 +4295,8 @@
     if (look.position === 'static') container.style.position = 'relative';
     if (look.isolation === 'auto') container.style.isolation = 'isolate';
 
-    const specs = stickerLayout(String(o.key), count, min, max);
+    const only = (Array.isArray(o.shapes) ? o.shapes : String(o.shapes || '').split(/[\s,]+/)).filter((name) => global.M3Shapes && global.M3Shapes.names.includes(name));
+    const specs = stickerLayout(String(o.key), count, min, max, only);
     const shapes = specs.map((spec) => {
       const el = make('m3-shape', '', layer);
       el.setAttribute('shape', spec.shape);
@@ -4361,6 +4364,7 @@
       max: number(data.max, 200),
       strength: number(data.strength, 1),
       clipRadius: number(data.clipRadius, -1),
+      shapes: data.shapes || '',
     });
   });
 

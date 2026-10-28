@@ -33,7 +33,7 @@ const COMMANDS = {
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
       '  nook rename <name> <new name>    change someone\'s username (for one that breaks the rules)',
-      '  nook clear-profile <name> [reason]   remove someone\'s picture, banner and bio; they\'re told why',
+      '  nook clear-profile <name> [reason]   remove someone\'s picture, banner, bio and pronouns; they\'re told why',
       '  nook scan-images                 check every picture already posted for nudity; doubtful ones go to the Moderation page',
       '  nook text-check [text]           get the text model ready (downloads it the first time), and see what it makes of some text',
       '  nook scan-text                   read every post and comment already there with the text model; doubtful ones go to the Moderation page',
@@ -132,7 +132,7 @@ const COMMANDS = {
   'clear-profile'(name, ...reason) {
     const u = userNamed(name);
     if (!nook.takeDown('user', u.name, reason.join(' ') || 'Breaks Budgie’s rules')) quit(`u/${u.name} has no picture, banner or bio to clear.`);
-    out(`Cleared u/${u.name}'s picture, banner and bio; they've been told why.`);
+    out(`Cleared u/${u.name}'s picture, banner, bio and pronouns; they've been told why.`);
   },
 
   async 'scan-images'() {

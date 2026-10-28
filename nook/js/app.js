@@ -80,6 +80,9 @@
   let feedShown = () => 0;
   let route = null;
   let viewNook = null;
+  // the colours the page wears: its nest's, or a profile's in the style its owner picked ({ color, style })
+  let viewWear = null;
+  const wearing = () => (viewWear && S().themeNooks ? viewWear : null);
   let navigating = false; // drawing a page inside a view transition
   let pendingShare = null; // what was tapped, to carry over into the next page
   const scrolls = new Map();
@@ -204,6 +207,7 @@
       view = views.notFound('Something went wrong drawing this page.');
     }
     viewNook = view.nook || null;
+    viewWear = view.wear || (viewNook ? { color: viewNook.color } : null);
     // the last page's live hooks go with it
     main._rerenderComments = main._onMessages = main._onFriends = null;
     main.innerHTML = view.html;
@@ -211,12 +215,12 @@
     if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
     document.title = `${view.title} · Budgie`;
 
-    // the app wears the nook it is in, and the brand takes its shape
-    const wear = viewNook && S().themeNooks ? viewNook.color : null;
-    ui.theme.setRoot(wear);
+    // the app wears the nook (or the profile) it is in, and the brand takes its shape
+    const wear = wearing();
+    ui.theme.setRoot(wear && wear.color, wear && wear.style);
     const shape = view.brand || 'cookie9';
     if (brandShape.showing !== shape) brandShape.transitionTo(shape, { spring: true });
-    ui.favicon(shape, wear || S().seed);
+    ui.favicon(shape, (wear && wear.color) || S().seed);
 
     const navKey = NAV_FOR[route.view] || '';
     $$('[data-nav]').forEach((el) => (el.dataset.nav === navKey ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current')));
@@ -443,9 +447,10 @@
     document.body.classList.toggle('plain-names', s.nameFonts === false);
     $$('[data-act="compact"]').forEach((b) => b.setAttribute('aria-pressed', String(!!s.compact)));
     $('#theme-btn .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
-    ui.favicon(brandShape.showing, viewNook && s.themeNooks ? viewNook.color : s.seed);
+    const wear = wearing();
+    ui.favicon(brandShape.showing, (wear && wear.color) || s.seed);
     scheduleBreak();
-    return ui.theme.setRoot(viewNook && s.themeNooks ? viewNook.color : null).then(() => ui.theme.tintAll(document));
+    return ui.theme.setRoot(wear && wear.color, wear && wear.style).then(() => ui.theme.tintAll(document));
   }
   app.applySettings = applySettings;
   ui.systemDark.addEventListener('change', () => S().mode === 'system' && applySettings());
@@ -1641,14 +1646,21 @@
 
   function editProfile() {
     const me = store.state.me;
-    const model = { color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '', font: me.font || '' };
+    const model = {
+      color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '',
+      font: me.font || '', flag: me.flag || '', interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
+    };
     const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
     const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
     // banners, moving GIFs and longer bios need the server from Budgie 0.4.0 on; an older one gets the old editor
     const [major, minor] = (Nook.serverVersion || '0.0').split('.').map(Number);
     const media = major > 0 || minor >= 4;
-    // and a font for your name needs it from 0.6.0 on
+    // and a font for your name needs it from 0.6.0 on; pronouns, a flag, interests, colours and shapes from 0.7.0
     const fonts = major > 0 || minor >= 6;
+    const more = major > 0 || minor >= 7;
+    const PRONOUN_PICKS = ['she/her', 'he/him', 'they/them', 'she/they', 'he/they', 'any pronouns', 'ask me'];
+    const section = (shape, symbol, title) =>
+      `<header class="m3-section-header ep-section"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="30" icon-size="16"></m3-shape-icon><h3 class="m3-title">${title}</h3><m3-wavy-line></m3-wavy-line></header>`;
     const BIO_MAX = media ? 300 : 160;
     let saving = false;
     ui.sheet({
@@ -1658,8 +1670,18 @@
       html:
         `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
         `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
-        `<div class="np-text"><b class="m3-title${fonts ? ui.nameFont(model) : ''}" id="ep-name">${esc(me.name)}</b><span class="muted">Your shape and colour follow you everywhere</span></div></div></div>` +
+        `<div class="np-text"><b class="m3-title"><span class="${fonts ? ui.nameFont(model).trim() : ''}" id="ep-name">${esc(me.name)}</span><span id="ep-flag">${more ? ui.prideFlag(model) : ''}</span></b>` +
+        `<span class="muted" id="ep-sub">${more && me.pronouns ? esc(me.pronouns) : 'Your shape and colour follow you everywhere'}</span></div></div></div>` +
+        (more ? section('cookie9', 'person', 'You') : '') +
         `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
+        (more
+          ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
+            `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>` +
+            '<div class="field"><span class="field-label">Pride flag</span><div class="flag-grid" role="group" aria-label="Pride flag">' +
+            `<button type="button" data-flag="" aria-pressed="${!model.flag}"><span class="flag-none">${icon('block')}</span><small>None</small></button>` +
+            ui.PRIDE_FLAGS.map(([id, label]) => `<button type="button" data-flag="${id}" aria-pressed="${id === model.flag}"><span class="flag-big">${ui.flagSVG(id)}</span><small>${label}</small></button>`).join('') +
+            '</div><small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
+          : '') +
         (fonts
           ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
             ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
@@ -1667,6 +1689,7 @@
           : '') +
         `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
         `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
+        (more ? section('flower', 'palette', 'Look') : '') +
         '<div class="field"><span class="field-label">Picture</span>' +
         `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
         ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span class="m3-icon">${s}</span></button>`).join('') +
@@ -1681,7 +1704,21 @@
             '<span class="error" id="ep-banner-err"></span><small class="muted">A wide picture across the top of your profile (3:1 fits best), or a GIF up to 4 MB. Everyone on Budgie can see it.</small></div>'
           : '') +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
-        `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>`,
+        `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>` +
+        (more
+          ? '<div class="field"><span class="field-label">Profile colours</span><div class="scheme-grid" role="group" aria-label="Profile colours">' +
+            ui.PROFILE_SCHEMES.map(([id, label]) => `<button type="button" data-scheme="${id}" aria-pressed="${id === model.scheme}"><span class="scheme-dots" data-dots="${id}"><i></i><i></i><i></i><i></i></span><small>${label}</small></button>`).join('') +
+            '</div><small class="muted">Your profile page wears your colour, worked into a whole Material palette in this style.</small></div>' +
+            '<div class="field"><span class="field-label">Background shapes</span><div class="shape-grid sticker-grid" role="group" aria-label="Background shapes">' +
+            `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span class="m3-icon">auto_awesome</span></button>` +
+            `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span class="m3-icon">block</span></button>` +
+            M3Shapes.names.filter((n) => n !== 'softCookie').map((n) => `<button type="button" data-sticker="${n}" aria-pressed="${n === model.sticker}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('') +
+            '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>' +
+            section('heart', 'interests', 'Interests') +
+            `<div class="field"><span class="field-label">What you’re into <small class="muted" id="ep-int-count">${model.interests.length}/${ui.INTERESTS_MAX}</small></span>` +
+            `<div class="chips wrap" role="group" aria-label="Interests">${ui.INTERESTS.map(([id, label, symbol]) => `<button type="button" class="chip" data-interest="${id}" aria-pressed="${model.interests.includes(id)}">${icon(symbol)}${label}</button>`).join('')}</div>` +
+            '<span class="error" id="ep-int-err"></span></div>'
+          : ''),
       setup(body) {
         const $$ = (sel) => body.querySelector(sel);
         const av = $$('#ep-avatar');
@@ -1708,8 +1745,65 @@
             b.addEventListener('click', () => {
               model.font = b.dataset.font;
               fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
-              $$('#ep-name').className = 'm3-title' + ui.nameFont(model);
+              $$('#ep-name').className = ui.nameFont(model).trim();
               fx.pop($$('#ep-name'), 0.4);
+            })
+          );
+        }
+        // pronouns, a flag, colours, shapes and interests (from 0.7.0)
+        let paintDots = () => {};
+        let previewScheme = () => {};
+        if (more) {
+          const pronouns = $$('#ep-pronouns');
+          const showPronouns = () => {
+            $$('#ep-sub').textContent = pronouns.value.trim() || 'Your shape and colour follow you everywhere';
+            $$('#ep-pronouns-err').textContent = '';
+          };
+          pronouns.addEventListener('input', showPronouns);
+          body.querySelectorAll('[data-pronouns]').forEach((chip) =>
+            chip.addEventListener('click', () => {
+              pronouns.value = chip.dataset.pronouns;
+              showPronouns();
+              fx.pop($$('#ep-sub'), 0.4);
+            })
+          );
+          wireGrid(body.querySelector('.flag-grid'), 'flag', (id) => {
+            model.flag = id;
+            $$('#ep-flag').innerHTML = ui.prideFlag(model);
+            fx.pop($$('#ep-flag'), 0.6);
+          });
+          // each style's colours, from your colour, as four dots; the preview at the top wears the one picked
+          paintDots = () =>
+            body.querySelectorAll('[data-dots]').forEach((dots) =>
+              ui.theme.scheme(model.color.toLowerCase(), dots.dataset.dots).then(
+                (colors) => [colors.primary, colors.secondary, colors.tertiary, colors.primaryContainer].forEach((c, i) => (dots.children[i].style.background = M3.color.css(c))),
+                () => {}
+              )
+            );
+          previewScheme = () =>
+            ui.theme.scheme(model.color.toLowerCase(), model.scheme).then(
+              (colors) => $$('#ep-top').isConnected && M3.color.apply(colors, $$('#ep-top')),
+              () => {}
+            );
+          paintDots();
+          previewScheme();
+          wireGrid(body.querySelector('.scheme-grid'), 'scheme', (id) => {
+            model.scheme = id;
+            previewScheme();
+          });
+          wireGrid(body.querySelector('.sticker-grid'), 'sticker', (id) => (model.sticker = id));
+          body.querySelectorAll('[data-interest]').forEach((chip) =>
+            chip.addEventListener('click', () => {
+              const id = chip.dataset.interest;
+              const err = $$('#ep-int-err');
+              err.textContent = '';
+              if (model.interests.includes(id)) model.interests = model.interests.filter((x) => x !== id);
+              else if (model.interests.length >= ui.INTERESTS_MAX) {
+                err.textContent = `Up to ${ui.INTERESTS_MAX}: take one off to add another.`;
+                return;
+              } else model.interests.push(id);
+              chip.setAttribute('aria-pressed', String(model.interests.includes(id)));
+              $$('#ep-int-count').textContent = `${model.interests.length}/${ui.INTERESTS_MAX}`;
             })
           );
         }
@@ -1762,6 +1856,8 @@
           av.style.setProperty('--av', seed);
           av.style.setProperty('--av-ink', ui.ink(seed));
           $$('#ep-top').style.setProperty('--av', seed);
+          paintDots();
+          previewScheme();
         });
         wireGrid(body.querySelector('.shape-grid'), 'shape', (name) => {
           model.shape = name;
@@ -1794,6 +1890,19 @@
             }
             const fields = { name, bio, color: model.color, shape: model.shape, icon: model.icon };
             if (fonts) fields.font = model.font;
+            if (more) {
+              const pronouns = body.querySelector('#ep-pronouns').value.trim().replace(/\s+/g, ' ');
+              const pronounsErr = body.querySelector('#ep-pronouns-err');
+              if (pronouns && !/^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u.test(pronouns)) {
+                pronounsErr.textContent = 'Up to 24 letters, with / or spaces between them (like she/they).';
+                return false;
+              }
+              if (pronouns && (Nook.mod.check([pronouns], { kind: 'profile' }).block || Nook.mod.check([pronouns], { kind: 'profile' }).strong)) {
+                pronounsErr.textContent = 'Keep those to pronouns.';
+                return false;
+              }
+              Object.assign(fields, { pronouns, flag: model.flag, interests: model.interests, scheme: model.scheme, sticker: model.sticker });
+            }
             // pictures only travel when they changed: a new one as data (with its GIF), a removed one as ''
             if (model.photo !== (me.photo || '')) Object.assign(fields, { photo: model.photo, photoGif: model.photoGif });
             if (model.banner !== (me.banner || '')) Object.assign(fields, { banner: model.banner, bannerGif: model.bannerGif });
@@ -2019,6 +2128,7 @@
       $('#f-flairs', root).innerHTML = (c.flairs || []).map((f) => `<button type="button" class="chip" data-flair="${esc(f)}" aria-pressed="${f === model.flair}">${esc(f)}</button>`).join('') || '<span class="muted">This nest has no flairs.</span>';
       $('#submit-rail', root).innerHTML = views.submitRail(c);
       viewNook = c;
+      viewWear = { color: c.color };
       ui.theme.setRoot(S().themeNooks ? c.color : null);
       if (brandShape.showing !== c.shape) brandShape.transitionTo(c.shape, { spring: true });
       renderDrawerNooks();

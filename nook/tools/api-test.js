@@ -210,6 +210,28 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const noFont = await api(A, 'PATCH', '/api/me', { font: '' });
   ok(noFont.status === 200 && !noFont.json.me.font, 'and it goes back to Budgie’s own font');
 
+  // pronouns, a pride flag, interests, a profile colour style and background shapes
+  const styled = await api(A, 'PATCH', '/api/me', { pronouns: 'she/they', flag: 'trans', interests: ['music', 'plants', 'space'], scheme: 'vibrant', sticker: 'heart' });
+  const sm = styled.json.me || {};
+  ok(styled.status === 200 && sm.pronouns === 'she/they' && sm.flag === 'trans' && sm.interests.join() === 'music,plants,space' && sm.scheme === 'vibrant' && sm.sticker === 'heart', 'pronouns, a flag, interests, a colour style and shapes are saved', styled.json.error || JSON.stringify(sm));
+  ok((await api(B, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'alice').flag === 'trans', 'everyone sees them');
+  const refusedField = async (body, field, label) => {
+    const r = await api(A, 'PATCH', '/api/me', body);
+    ok(r.status >= 400 && r.json.field === field, label, r.json.error);
+  };
+  await refusedField({ pronouns: '<img src=x>' }, 'pronouns', 'pronouns must be letters (no markup)');
+  await refusedField({ pronouns: 'a'.repeat(30) }, 'pronouns', 'pronouns stay short');
+  const swearing = await api(A, 'PATCH', '/api/me', { pronouns: 'fuck/off' });
+  ok(swearing.status === 422, 'no swearing in pronouns', swearing.json.error);
+  await refusedField({ flag: 'pirate' }, 'flag', 'only Budgie’s pride flags');
+  await refusedField({ interests: ['music', 'art', 'books', 'space', 'plants', 'anime', 'dance'] }, 'interests', 'up to 6 interests');
+  await refusedField({ interests: ['music', 'crime'] }, 'interests', 'only Budgie’s interests');
+  await refusedField({ scheme: 'rgb' }, 'scheme', 'only Material’s colour styles');
+  await refusedField({ sticker: 'a b' }, 'sticker', 'shapes are shape names');
+  const plainAgain = await api(A, 'PATCH', '/api/me', { pronouns: '', flag: '', interests: [], scheme: '', sticker: 'none' });
+  const pm = plainAgain.json.me || {};
+  ok(plainAgain.status === 200 && !pm.pronouns && !pm.flag && !pm.interests && !pm.scheme && pm.sticker === 'none', 'each can be taken off again', JSON.stringify(pm));
+
   // friends + messages
   const notFriends = await api(A, 'POST', '/api/messages', { to: 'bob', body: 'hi' });
   ok(notFriends.status === 403, 'only friends can message', notFriends.json.error);
@@ -286,14 +308,15 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(statement.json.notes.some((n) => /removed your post.*Testing removal/.test(n.text)), 'author gets a statement of reasons');
 
   // a reported profile can be cleared: picture, banner and bio go, and its owner is told why
-  await api(B, 'PATCH', '/api/me', { bio: 'look at my banner', photo: png, banner: png, bannerGif: GIF });
+  await api(B, 'PATCH', '/api/me', { bio: 'look at my banner', photo: png, banner: png, bannerGif: GIF, pronouns: 'he/him', flag: 'bi' });
   await api(A, 'POST', '/api/reports', { kind: 'user', id: 'bob', reason: 'Offensive picture' });
   const userReports = (await api(A, 'GET', '/api/admin/reports')).json.reports;
   const ur = userReports.find((r) => r.kind === 'user');
   ok(ur && /^\/api\/images\//.test(ur.item.photo) && /^\/api\/images\//.test(ur.item.banner), 'the admin sees the reported picture and banner');
   const cleared = await api(A, 'POST', '/api/admin/resolve', { id: ur.id, action: 'remove', reason: 'Testing profiles' });
   const bobNow = (await api(A, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'bob');
-  ok(cleared.status === 200 && bobNow && !bobNow.photo && !bobNow.banner && !bobNow.bannerGif && !bobNow.bio, 'clearing a profile removes its picture, banner and bio');
+  ok(cleared.status === 200 && bobNow && !bobNow.photo && !bobNow.banner && !bobNow.bannerGif && !bobNow.bio && !bobNow.pronouns, 'clearing a profile removes its picture, banner, bio and pronouns');
+  ok(bobNow && bobNow.flag === 'bi', 'but not a pride flag (it isn’t anything they wrote)');
   const bobNotes = await api(B, 'GET', '/api/updates?rev=0&note=0&msg=0');
   ok(bobNotes.json.notes.some((n) => /cleared your profile.*Testing profiles/.test(n.text)), 'and tells its owner why');
   await api(B, 'PATCH', '/api/me', { bio: 'back again' });

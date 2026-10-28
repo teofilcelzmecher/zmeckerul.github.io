@@ -243,8 +243,7 @@
       return mode === 'dark' || (mode === 'system' && systemDark.matches);
     },
 
-    scheme(seed) {
-      const { variant } = store.state.settings;
+    scheme(seed, variant = store.state.settings.variant) {
       const key = `${seed}|${this.isDark()}|${variant}`;
       if (!this.cache.has(key)) {
         const promise = M3.color.scheme({ seed, dark: this.isDark(), variant });
@@ -257,23 +256,24 @@
       return this.cache.get(key);
     },
 
-    /** the whole app in one seed's colours (the default seed is baked into m3.css) */
-    async setRoot(seed) {
+    /** the whole app in one seed's colours (the default seed is baked into m3.css), in a style when given */
+    async setRoot(seed, style) {
       const settings = store.state.settings;
       const root = document.documentElement;
       if (settings.mode === 'system') root.removeAttribute('data-m3-theme');
       else root.setAttribute('data-m3-theme', settings.mode);
       root.toggleAttribute('data-m3-reduce-motion', !!settings.reduceMotion);
       const want = (seed || settings.seed).toLowerCase();
+      const variant = (seed && style) || settings.variant;
       const token = ++this.token;
       this.current = want;
-      if (want === DEFAULT_SEED && settings.variant === 'tonalSpot') {
+      if (want === DEFAULT_SEED && variant === 'tonalSpot') {
         clearVars(root);
         this.afterRoot();
         return;
       }
       try {
-        const colors = await this.scheme(want);
+        const colors = await this.scheme(want, variant);
         if (token !== this.token) return;
         M3.color.apply(colors, root);
         this.afterRoot();
@@ -526,9 +526,81 @@
   /** the class that draws someone's name in the font they picked (' name-font-pixel'), or '' */
   const nameFont = (u) => (u && FONT_IDS.has(u.font) ? ' name-font-' + u.font : '');
 
+  // pride flags someone can wear next to their name: [id, name, stripes from the top (a colour, or
+  // [colour, share]), what's drawn over them]. Drawn here as tiny SVGs, so they're sharp at any size.
+  // (No Progress flag: its designer licenses it for non-commercial use only, and Budgie has ads.)
+  const RAINBOW = ['#e40303', '#ff8c00', '#ffed00', '#008026', '#24408e', '#732982'];
+  const PRIDE_FLAGS = [
+    ['rainbow', 'Rainbow', RAINBOW],
+    ['philly', 'Philadelphia', ['#000000', '#784f17', ...RAINBOW]],
+    ['trans', 'Transgender', ['#5bcefa', '#f5a9b8', '#ffffff', '#f5a9b8', '#5bcefa']],
+    ['bi', 'Bisexual', [['#d60270', 2], ['#9b4f96', 1], ['#0038a8', 2]]],
+    ['pan', 'Pansexual', ['#ff218c', '#ffd800', '#21b1ff']],
+    ['lesbian', 'Lesbian', ['#d52d00', '#ff9a56', '#ffffff', '#d362a4', '#a30262']],
+    ['gay', 'Gay', ['#078d70', '#26ceaa', '#98e8c1', '#ffffff', '#7bade2', '#5049cc', '#3d1a78']],
+    ['nonbinary', 'Non-binary', ['#fcf434', '#ffffff', '#9c59d1', '#2c2c2c']],
+    ['ace', 'Asexual', ['#000000', '#a3a3a3', '#ffffff', '#800080']],
+    ['aro', 'Aromantic', ['#3da542', '#a7d379', '#ffffff', '#a9a9a9', '#000000']],
+    ['aroace', 'Aroace', ['#e28c00', '#eccd00', '#ffffff', '#62aedc', '#203856']],
+    ['genderfluid', 'Genderfluid', ['#ff76a4', '#ffffff', '#c011d7', '#000000', '#2f3cbe']],
+    ['genderqueer', 'Genderqueer', ['#b57edc', '#ffffff', '#4a8123']],
+    ['agender', 'Agender', ['#000000', '#bcc4c7', '#ffffff', '#b7f684', '#ffffff', '#bcc4c7', '#000000']],
+    ['demisexual', 'Demisexual', [['#ffffff', 5], ['#6e0070', 2], ['#d2d2d2', 5]], 'demi'],
+    ['intersex', 'Intersex', ['#ffd800'], 'intersex'],
+    ['polysexual', 'Polysexual', ['#f61cb9', '#07d569', '#1c92f6']],
+    ['omnisexual', 'Omnisexual', ['#fe9ace', '#ff53bf', '#200044', '#6760fe', '#8ea6ff']],
+    ['demigirl', 'Demigirl', ['#7f7f7f', '#c4c4c4', '#fdadc8', '#ffffff', '#fdadc8', '#c4c4c4', '#7f7f7f']],
+    ['demiboy', 'Demiboy', ['#7f7f7f', '#c4c4c4', '#9dd7ea', '#ffffff', '#9dd7ea', '#c4c4c4', '#7f7f7f']],
+  ];
+  const FLAGS = new Map(PRIDE_FLAGS.map((f) => [f[0], f]));
+  const flagSVGs = new Map();
+  /** a flag drawn 30 × 20: its stripes, then a triangle or ring where it has one */
+  function flagSVG(id) {
+    if (flagSVGs.has(id)) return flagSVGs.get(id);
+    const [, , stripes, extra] = FLAGS.get(id);
+    const parts = stripes.map((s) => (Array.isArray(s) ? s : [s, 1]));
+    const total = parts.reduce((sum, [, share]) => sum + share, 0);
+    const n = (x) => +x.toFixed(2);
+    let y = 0;
+    let svg = '';
+    for (const [color, share] of parts) {
+      const h = (20 * share) / total;
+      svg += `<rect y="${n(y)}" width="30" height="${n(h + 0.1)}" fill="${color}"/>`;
+      y += h;
+    }
+    if (extra === 'demi') svg += '<polygon points="0,0 11,10 0,20" fill="#000000"/>';
+    if (extra === 'intersex') svg += '<circle cx="15" cy="10" r="4.6" fill="none" stroke="#7902aa" stroke-width="1.9"/>';
+    const out = `<svg viewBox="0 0 30 20" preserveAspectRatio="none" aria-hidden="true" focusable="false">${svg}</svg>`;
+    flagSVGs.set(id, out);
+    return out;
+  }
+  /** someone's pride flag, small, after their name; '' without one */
+  function prideFlag(u) {
+    const flag = u && FLAGS.get(u.flag);
+    if (!flag) return '';
+    return `<span class="pride-flag" role="img" aria-label="${flag[1]} flag" title="${flag[1]} flag">${flagSVG(flag[0])}</span>`;
+  }
+
+  // what someone can say they're into, on their profile: [id, label, symbol]
+  const INTERESTS = [
+    ['gaming', 'Gaming', 'sports_esports'], ['music', 'Music', 'music_note'], ['art', 'Art', 'palette'], ['drawing', 'Drawing', 'draw'],
+    ['photography', 'Photography', 'photo_camera'], ['books', 'Books', 'menu_book'], ['writing', 'Writing', 'edit_note'], ['movies', 'Movies', 'movie'],
+    ['anime', 'Anime', 'animation'], ['science', 'Science', 'science'], ['space', 'Space', 'rocket_launch'], ['coding', 'Coding', 'code'],
+    ['sports', 'Sports', 'sports_soccer'], ['fitness', 'Fitness', 'fitness_center'], ['cooking', 'Cooking', 'restaurant'], ['baking', 'Baking', 'bakery_dining'],
+    ['plants', 'Plants', 'potted_plant'], ['animals', 'Animals', 'pets'], ['travel', 'Travel', 'flight'], ['nature', 'Nature', 'forest'],
+    ['fashion', 'Fashion', 'checkroom'], ['dance', 'Dance', 'nightlife'], ['theatre', 'Theatre', 'theater_comedy'], ['languages', 'Languages', 'translate'],
+  ];
+  const INTERESTS_MAX = 6;
+
+  // the colour styles Material 3 builds a scheme in, for someone's profile page: [id, name]
+  const PROFILE_SCHEMES = [
+    ['tonalSpot', 'Tonal spot'], ['vibrant', 'Vibrant'], ['expressive', 'Expressive'], ['fidelity', 'Fidelity'], ['content', 'Content'],
+    ['rainbow', 'Rainbow'], ['fruitSalad', 'Fruit salad'], ['neutral', 'Neutral'], ['monochrome', 'Monochrome'],
+  ];
+
   Nook.ui = {
     esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, nookIcon, icon, theme, sheet,
-    NAME_FONTS, nameFont,
+    NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

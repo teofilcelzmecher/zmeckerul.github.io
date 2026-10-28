@@ -12,7 +12,7 @@
   const Nook = window.Nook;
   const store = Nook.store;
   const ui = Nook.ui;
-  const { esc, md, plain, ago, num, plural, icon, avatar, nookIcon, highlight, nameFont } = ui;
+  const { esc, md, plain, ago, num, plural, icon, avatar, nookIcon, highlight, nameFont, prideFlag } = ui;
   const settings = () => store.state.settings;
   const app = () => Nook.app;
 
@@ -129,8 +129,8 @@
     const head =
       '<header class="post-head">' +
       (inNook
-        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>`) +
+        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}`
+        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}`) +
       `<span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time>` +
       (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
       (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '') +
@@ -331,7 +331,7 @@
       `<div class="c-side">${avatar(removed ? ghost : u, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
       '<div class="c-main">' +
       '<div class="c-head">' +
-      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>`) +
+      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>${prideFlag(u)}`) +
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
@@ -713,16 +713,24 @@
         }).join('')}</div></section>`
       : '';
     const banner = ui.bannerImage(u);
+    const who = me ? Object.assign({}, u, s.me) : u;
+    // the shapes floating behind it: a mix, the owner's favourite, or none
+    const stickers = who.sticker === 'none' ? '' : ` data-m3-stickers="u-${esc(u.name)}" data-count="${who.sticker ? 5 : 4}" data-clip-radius="30"${who.sticker ? ` data-shapes="${esc(who.sticker)}"` : ''}`;
+    const interests = ui.INTERESTS.filter(([id]) => (who.interests || []).includes(id));
     return {
       title: `u/${u.name}`,
       brand: u.shape,
+      // the page wears its owner's colour, in the style they picked
+      wear: { color: who.color, style: who.scheme || '' },
       html:
         '<div class="page"><div class="col">' +
         (banner
           ? `<section class="profile-hero has-banner"><div class="profile-banner">${banner}</div>`
-          : `<section class="profile-hero" data-m3-stickers="u-${esc(u.name)}" data-count="4" data-clip-radius="30">`) +
-        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${nameFont(u)}">${esc(u.name)}</h1><span class="muted">u/${esc(u.name)} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
+          : `<section class="profile-hero"${stickers}>`) +
+        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
+        `<span class="muted">u/${esc(u.name)}${who.pronouns ? ` · <span class="pronouns">${esc(who.pronouns)}</span>` : ''} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
+        (interests.length ? `<div class="interests" aria-label="Into">${interests.map(([, label, symbol]) => `<span class="chip static">${icon(symbol)}${label}</span>`).join('')}</div>` : '') +
         '</div>' +
         (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
         '</div><div class="stats">' +
@@ -853,7 +861,7 @@
           (seed, i) => `<button class="swatch" data-seed="${seed}" aria-pressed="${seed === s.seed}" aria-label="Colour ${seed}" data-tooltip="${seed}"><m3-shape shape="${ui.SEED_SHAPES[i]}" style="color:${seed}"></m3-shape></button>`
         ).join('')}<input type="color" class="color-input" id="set-color" value="${s.seed}" aria-label="Pick any colour" data-tooltip="Pick any colour"></div></div>` +
         `<div class="setting-row"><span class="label">Scheme style</span>${segmented('set-variant', [['tonalSpot', 'Tonal spot'], ['expressive', 'Expressive'], ['vibrant', 'Vibrant'], ['fidelity', 'Fidelity'], ['neutral', 'Neutral']], s.variant, 'Scheme style')}</div>` +
-        sw('set-themeNooks', 'Wear each nest’s colours', 'The whole app re-themes itself when you visit a nest.', s.themeNooks) +
+        sw('set-themeNooks', 'Wear nests’ and profiles’ colours', 'The whole app re-themes itself when you visit a nest, or someone’s profile in the colours they picked.', s.themeNooks) +
         sw('set-tintPosts', 'Tint posts by their nest', 'In mixed feeds, each card takes its nest’s colours.', s.tintPosts) +
         sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
         sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
@@ -998,7 +1006,7 @@
 
   const personRowHTML = (u, actions) =>
     `<div class="row-link person-row" data-href="#/u/${encodeURIComponent(u.name)}" tabindex="0" role="link" aria-label="u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 44)}` +
-    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}</b><small>${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
+    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}${prideFlag(u)}</b><small>${u.pronouns ? esc(u.pronouns) + ' · ' : ''}${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
 
   function friendsPage() {
     const incoming = store.friends('incoming');
@@ -1148,7 +1156,7 @@
       html:
         '<div class="page single chat-page"><div class="col">' +
         `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b><small>${friends ? 'Friends' : 'u/' + esc(u.name)}</small></span></a>` +
+        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
         `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
         '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
         (friends

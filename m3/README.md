@@ -65,7 +65,7 @@ Runtime theming loads Google's `material-color-utilities` from `vendor/`, beside
 | `.m3-media-card[data-title][data-art]` | Leans toward the pointer; wavy edge on hover |
 | `.m3-empty[data-symbol][data-title]` | Empty state with a badge that springs in |
 | `M3.burst(el, 'play'|'hearts'|'pin'|'playlist')` or `data-burst="…"` | Burst of shapes |
-| `M3.stickers(el, { key })` or `data-m3-stickers="key"` | Faint seeded shapes behind a surface |
+| `M3.stickers(el, { key, count, shapes })` or `data-m3-stickers="key"` (+ `data-count`, `data-shapes="heart gem"`) | Faint seeded shapes behind a surface; `shapes` limits which ones |
 | `M3.rollText(el, text)` | Old text slides out, new text slides in |
 
 ### Motion

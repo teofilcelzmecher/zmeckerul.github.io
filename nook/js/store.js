@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.6.0';
+  const VERSION = '0.7.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -72,6 +72,7 @@
   const pictures = (u) => ({ photo: api.url(u.photo), photoGif: api.url(u.photoGif), banner: api.url(u.banner), bannerGif: api.url(u.bannerGif) });
   const meFrom = (me) => ({
     name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
+    pronouns: me.pronouns || '', flag: me.flag || '', interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member',
   });
 
