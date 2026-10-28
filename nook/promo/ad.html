@@ -7,7 +7,7 @@
 <!--
   Copyright (C) 2026 teofilcelzmecher. All rights reserved. See ../LICENSE.
   A 19-second vertical video ad (1080×1920) for TikTok, Reels and Shorts, cut to a 120 BPM beat.
-  Open it in a browser to watch it (silent); render.js turns it into an MP4 with the music.
+  Open it in a browser to watch it (silent); render.js turns it into an MP4 with music from music.js.
   Every frame is drawn from the time alone (renderAt), so the video is exact.
 -->
 <link rel="stylesheet" href="../../m3/fonts/fonts.css">
@@ -85,7 +85,7 @@ function spring(t, k = 320, z = 0.55) {
   return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t));
 }
 const b = (n) => n * BEAT; // beat n, in seconds
-// the music's plan, for music.js (beats count from 0; risers, rolls and cuts are in seconds)
+// the music's plan, for music.js (beats count from 0; rolls and cuts are in seconds)
 const SONG = {
   bpm: BPM,
   chords: [[0, 'Am'], [4, 'C'], [8, 'G'], [12, 'Am'], [16, 'F'], [20, 'C'], [24, 'G'], [28, 'F'], [29, 'G'], [30, 'Am'], [32, 'F'], [34, 'G'], [36, 'C']],
@@ -94,7 +94,6 @@ const SONG = {
   fills: [15, 23], // a snare fill instead of the kick, into the next scene
   stabs: [28, 29, 30], // "Free." "No email." "No phone number."
   end: 36, // the last chord, under the address
-  risers: [[1, 2], [13, 14], [15, 16]],
   rolls: [[1, 2], [13, 14], [15.25, 16]],
   cuts: [5, 8, 10, 12],
 };
@@ -224,9 +223,6 @@ function stepAt(list, t) {
   return { value: list[i][1], prev: i ? list[i - 1][1] : list[i][1], since: t - list[i][0], index: i };
 }
 
-// sound cues for render.js
-const EVENTS = [];
-const cue = (t, kind, note = 0) => EVENTS.push({ t, kind, note });
 
 // ================================================================ the background (a glow that pulses with the kick)
 const bg = el('div', 'layer');
@@ -260,7 +256,6 @@ const aL1 = el('div', 'line', aBox, { top: '660px', fontSize: '150px', fontWeigh
 const aL2 = el('div', 'line', aBox, { top: '830px', fontSize: '150px', fontWeight: 280, color: '#8e8a95', letterSpacing: '-0.02em' }, 'got boring.');
 const aL3 = el('div', 'line', aBox, { top: '660px', fontSize: '150px', fontWeight: 850, color: '#fff' }, 'So I made');
 const aL4 = el('div', 'line', aBox, { top: '830px', fontSize: '176px', fontWeight: 900, color: '#d0bcff' }, 'my own.');
-cue(0, 'pluck', 0); cue(b(1), 'pluck', 2); cue(b(2), 'pluck', 4); cue(b(3), 'pluck', 7);
 
 function sceneA(t) {
   const on = t < 2.12;
@@ -300,7 +295,6 @@ const bNest = bCap2.querySelector('span');
 const namePill = el('div', 'pill abs', sB, { top: '1150px', left: '0', height: '112px', padding: '0 48px', fontSize: '62px', fontWeight: 760 });
 const tagline = el('div', 'abs', sB, { top: '1300px', left: '120px', width: '840px', textAlign: 'center', fontSize: '50px', lineHeight: '1.25', color: '#cac4d0', fontWeight: 500 });
 const B_NESTS = [[b(6), 'nightsky'], [b(7), 'cozygames'], [b(8), 'houseplants'], [b(9), 'synthwave']];
-cue(2, 'crash');
 
 function sceneB(t) {
   const on = t >= 2 && t < 5.05;
@@ -418,13 +412,6 @@ const MAKE = [
   { at: 7.0, name: 'cats', seed: 5, shape: 3, symbol: 'pets' },
 ];
 const CREATE_TAP = 7.5;
-MAKE.forEach((m) => {
-  [...m.name].forEach((_, i) => cue(m.at + 0.06 + i * 0.07, 'key'));
-  cue(m.at + 0.5, 'tap');
-  cue(m.at + 0.75, 'tap');
-});
-cue(CREATE_TAP, 'tap');
-cue(CREATE_TAP + 0.12, 'badge');
 function makeState(t) {
   let i = 0;
   while (i + 1 < MAKE.length && t >= MAKE[i + 1].at) i++;
@@ -466,7 +453,6 @@ const picker = el('div', 'abs pill', vD, { left: '60px', top: '900px', height: '
   SPARKS.map(([s, i, c]) => markHTML(108, s, c, i, 52, '#1d1b20')).join(''));
 el('div', 'layer', vD, { top: 'auto', height: '160px' }, navHTML('Home'));
 const SPARK_TAP = 8.5, FIRE_TAP = 9.0, VOTE_TAP = 9.5;
-cue(SPARK_TAP, 'tap'); cue(SPARK_TAP + 0.05, 'pop', 3); cue(FIRE_TAP, 'tap'); cue(FIRE_TAP + 0.02, 'burst'); cue(VOTE_TAP, 'tap'); cue(VOTE_TAP + 0.03, 'pop', 6);
 // the Spark burst flies out of the phone
 const burst = Array.from({ length: 22 }, (_, i) => {
   const shape = ['softBurst', 'cookie9', 'sunny', 'heart', 'burst', 'flower'][i % 6];
@@ -499,7 +485,6 @@ const avatarE = el('div', 'abs', vE, { left: '24px', top: '742px' }, `<span clas
 el('div', 'abs pill', vE, { left: '28px', top: '1060px', width: SW - 56 + 'px', height: '112px', boxSizing: 'border-box', padding: '0 36px', justifyContent: 'space-between', background: 'var(--surface-container-high)', fontSize: '38px' }, '<span class="muted">Message u/bestie</span><span class="icon o" style="font-size:48px;color:var(--on-surface-variant)">send</span>');
 el('div', 'layer', vE, { top: 'auto', height: '160px' }, navHTML('Chats'));
 const CHAT = { mine1: 10.0, mine2: 10.25, seen: 10.62, typing: 10.75, reply: 11.0, jumbo: 11.5 };
-cue(CHAT.mine1, 'send'); cue(CHAT.mine2, 'send'); cue(CHAT.reply, 'recv'); cue(CHAT.jumbo, 'recv');
 
 const tapD = el('div', 'abs', screen, { left: 0, top: 0, width: '130px', height: '130px', borderRadius: '50%', background: '#fff', zIndex: 6 });
 // a finger's tap: a soft circle that grows and fades
@@ -655,7 +640,6 @@ const fCap1 = el('div', 'line', sF, { top: '220px', fontSize: '112px', fontWeigh
 const fCap2 = el('div', 'line', sF, { top: '340px', fontSize: '112px', fontWeight: 850, color: '#fff' }, 'as you <span style="color:#d0bcff">go.</span>');
 const toasts = BADGES.map(([name, shape, symbol], i) =>
   el('div', 'toast', sF, { top: 600 + i * 190 + 'px' }, markHTML(104, shape, ['#6750a4', '#c2185b', '#00a6a6', '#ff8a3d'][i], symbol, 52) + `<span>Badge unlocked: <b>${name}</b></span>`));
-BADGES.forEach((_, i) => cue(12 + i * BEAT, 'badge'));
 
 function sceneF(t) {
   const on = t >= 11.9 && t < 14;
@@ -716,7 +700,6 @@ const hWord = el('div', 'line', sH, { top: '1090px', fontSize: '150px', fontWeig
 const hUrl = el('div', 'abs pill', sH, { left: 0, top: '1300px', height: '150px', padding: '0 64px 0 44px', gap: '20px', background: '#d0bcff', color: '#381e72', fontSize: '76px', fontWeight: 800 }, '<span class="icon" style="font-size:76px">language</span>budgiesocial.com');
 const hFine = el('div', 'line', sH, { top: '1490px', fontSize: '48px', fontWeight: 560, color: '#cac4d0', letterSpacing: '-0.01em' }, 'Free · Works right in your browser');
 const H_SHAPES = [[15.5, 'cookie9'], [16.5, 'heart'], [17, 'flower'], [17.5, 'cookie9']];
-cue(16, 'crash');
 
 function sceneH(t) {
   const on = t >= 15.5;
@@ -779,7 +762,7 @@ async function ready() {
   renderAt(0);
 }
 
-window.AD = { W, H, DURATION, EVENTS, SONG, renderAt, ready: ready() };
+window.AD = { W, H, DURATION, SONG, renderAt, ready: ready() };
 
 // watching in a browser: fit it to the window and play it on a loop
 if (!new URLSearchParams(location.search).has('render')) {

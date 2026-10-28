@@ -1,444 +1,313 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See ../LICENSE.
 /*
- * The ad's music, made from scratch (oscillators, filters and noise), so there's no licence to worry about.
- * A 120 BPM pop beat in C major: a supersaw chord pad that pumps with the kick, a bassline, and a bright
- * pluck-and-bell hook in a 3-3-2 rhythm, with risers, snare rolls and impacts timed to the video's cuts.
+ * The ad's music. It's written here as notes (a MIDI file), played by FluidSynth with the
+ * FluidR3 General MIDI instruments (real recorded instruments, MIT licence), then mastered
+ * with ffmpeg to -14 LUFS, the level TikTok, Reels and Shorts play at.
  *
- * soundtrack(song, events, seconds) → a 48 kHz stereo WAV file (Buffer). `song` comes from ad.html (SONG),
- * `events` are the animation's cues (taps, pops, badges) that get small sounds of their own.
+ * Three styles share one song, timed to the video (see SONG in ad.html):
+ *   sunny     strummed guitar, glockenspiel and marimba, bass, strings, claps and tambourine
+ *   tropical  offbeat piano, steel drums and marimba, synth bass, four-on-the-floor, shaker
+ *   lofi      Rhodes with jazzy chords, vibraphone, upright bass, a laid-back half-time beat
+ *
+ * soundtrack(song, style, seconds, wavFile) writes the finished WAV.
+ * Needs fluidsynth and the FluidR3_GM soundfont (Debian/Ubuntu: fluidsynth fluid-soundfont-gm;
+ * Arch: fluidsynth soundfont-fluid), or set BUDGIE_SOUNDFONT to another General MIDI .sf2.
  */
 'use strict';
 
-const RATE = 48000;
-const TAU = Math.PI * 2;
-const hz = (midi) => 440 * Math.pow(2, (midi - 69) / 12);
+const fs = require('node:fs');
+const { spawnSync } = require('node:child_process');
 
-// chord voicings that move smoothly from one to the next, and the bass roots under them
-const VOICINGS = { C: [60, 64, 67, 72], G: [59, 62, 67, 71], Am: [57, 60, 64, 69], F: [57, 60, 65, 69] };
-const ROOTS = { C: 36, G: 43, Am: 45, F: 41 };
-// the hook, one bar per chord: [16th, note, length in 16ths], in a 3-3-2 rhythm
+const SOUNDFONT = process.env.BUDGIE_SOUNDFONT ||
+  ['/usr/share/sounds/sf2/FluidR3_GM.sf2', '/usr/share/soundfonts/FluidR3_GM.sf2', '/usr/share/soundfonts/default.sf2'].find((f) => fs.existsSync(f));
+const PPQ = 480;
+const REVERSE_CYMBAL_PEAK = 1.33; // seconds from the start of FluidR3's reverse cymbal to its loudest point
+
+// ---------------------------------------------------------------- the notes
+const UPPER = { C: [60, 64, 67, 72], G: [59, 62, 67, 71], Am: [57, 60, 64, 69], F: [57, 60, 65, 69] };
+const LOW = { C: [48, 55, 64], G: [47, 55, 62], Am: [45, 52, 60], F: [45, 53, 60] };
+const JAZZY = { C: [52, 55, 59, 62], G: [53, 57, 59, 64], Am: [55, 59, 60, 64], F: [52, 55, 57, 60] };
+const ROOT = { C: 36, G: 31, Am: 33, F: 29 };
+// the hook, one bar per chord: [16th, note, length in 16ths] ("sol-mi-sol-la-sol", like a playground chant)
 const HOOK = {
-  C: [[0, 79, 2], [3, 76, 2], [6, 79, 2], [8, 81, 2], [10, 79, 2], [12, 76, 4]],
-  G: [[0, 79, 2], [3, 74, 2], [6, 79, 2], [8, 81, 2], [10, 83, 2], [12, 74, 4]],
-  Am: [[0, 76, 2], [3, 72, 2], [6, 76, 2], [8, 79, 2], [10, 81, 2], [12, 76, 4]],
-  F: [[0, 84, 2], [3, 81, 2], [6, 77, 2], [8, 79, 2], [10, 81, 2], [12, 79, 4]],
+  C: [[0, 79, 2], [2, 76, 2], [4, 79, 2], [7, 81, 3], [10, 79, 6]],
+  G: [[0, 79, 2], [2, 74, 2], [4, 79, 2], [7, 81, 3], [10, 83, 6]],
+  Am: [[0, 84, 2], [2, 81, 2], [4, 76, 2], [7, 79, 3], [10, 81, 6]],
+  F: [[0, 81, 2], [2, 84, 2], [4, 81, 2], [7, 79, 3], [10, 77, 2], [12, 76, 2], [14, 74, 2]],
 };
-// the last bar: half a bar of F, half of G, climbing up to the final C
-const CADENCE = [[0, 84, 2], [3, 81, 2], [6, 77, 2], [8, 79, 2], [11, 83, 2], [14, 86, 2]];
-// the bassline: [16th, octave up?, length in 16ths]
-const BASS = [[0, 0, 2], [3, 0, 2], [6, 12, 1], [8, 0, 2], [11, 0, 1], [12, 12, 2], [14, 0, 2]];
+// the last bar, half F and half G, climbing up to the final C
+const CADENCE = [[0, 81, 2], [2, 84, 2], [4, 81, 2], [6, 79, 2], [8, 79, 2], [10, 83, 2], [12, 86, 4]];
 
-// ---------------------------------------------------------------- building blocks
-// a state-variable filter (Zavalishin's TPT form): stable even when the cutoff moves every sample
-class Filter {
-  constructor() {
-    this.a = 0;
-    this.b = 0;
-  }
-  run(x, cutoff, q) {
-    const g = Math.tan((Math.PI * Math.min(cutoff, RATE * 0.45)) / RATE);
-    const k = 1 / q;
-    const a1 = 1 / (1 + g * (g + k)), a2 = g * a1, a3 = g * a2;
-    const v3 = x - this.b;
-    const v1 = a1 * this.a + a2 * v3;
-    const v2 = this.b + a2 * this.a + a3 * v3;
-    this.a = 2 * v1 - this.a;
-    this.b = 2 * v2 - this.b;
-    this.lp = v2;
-    this.bp = v1;
-    this.hp = x - k * v1 - v2;
-    return v2;
-  }
-}
-// a sawtooth without aliasing (PolyBLEP)
-const blep = (t, dt) => (t < dt ? ((t /= dt), t + t - t * t - 1) : t > 1 - dt ? ((t = (t - 1) / dt), t * t + t + t + 1) : 0);
-class Saw {
-  constructor(freq, phase) {
-    this.dt = freq / RATE;
-    this.p = phase;
-  }
-  next() {
-    const v = 2 * this.p - 1 - blep(this.p, this.dt);
-    this.p += this.dt;
-    if (this.p >= 1) this.p -= 1;
-    return v;
-  }
-}
-const pan = (p) => [Math.cos(((p + 1) * Math.PI) / 4), Math.sin(((p + 1) * Math.PI) / 4)];
+// General MIDI drum keys
+const KICK = 36, SNARE = 38, CLAP = 39, HAT = 42, OPEN_HAT = 46, CRASH = 49, CRASH2 = 57, TAMB = 54, SHAKER = 70;
+const TOMS = [50, 48, 47, 45];
 
-// Freeverb (eight damped combs and four all-passes per side), for a soft room around everything
-function reverb(inL, inR, n, { room = 0.83, damp = 0.4 } = {}) {
-  const k = RATE / 44100;
-  const side = (spread) => {
-    const combs = [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617].map((d) => ({ buf: new Float32Array(Math.round((d + spread) * k)), i: 0, z: 0 }));
-    const passes = [556, 441, 341, 225].map((d) => ({ buf: new Float32Array(Math.round((d + spread) * k)), i: 0 }));
-    const out = new Float32Array(n);
-    for (let j = 0; j < n; j++) {
-      const x = (inL[j] + inR[j]) * 0.5 * 0.015;
-      let s = 0;
-      for (const c of combs) {
-        const y = c.buf[c.i];
-        c.z = y * (1 - damp) + c.z * damp;
-        c.buf[c.i] = x + c.z * room;
-        if (++c.i === c.buf.length) c.i = 0;
-        s += y;
-      }
-      for (const a of passes) {
-        const b = a.buf[a.i];
-        a.buf[a.i] = s + b * 0.5;
-        if (++a.i === a.buf.length) a.i = 0;
-        s = b - s;
-      }
-      out[j] = s * 3;
+// ---------------------------------------------------------------- a small MIDI writer
+class Score {
+  constructor(bpm) {
+    this.bpm = bpm;
+    this.events = [];
+    this.seed = 5;
+  }
+  rnd() {
+    this.seed = (this.seed * 16807) % 2147483647;
+    return this.seed / 2147483647 - 0.5;
+  }
+  at(beat) {
+    return Math.max(0, Math.round(beat * PPQ));
+  }
+  channel(ch, program, { volume = 100, pan = 64, reverb = 40, chorus = 0 } = {}) {
+    this.events.push([0, 1, [0xb0 | ch, 0, 0]], [0, 1, [0xc0 | ch, program]], [0, 1, [0xb0 | ch, 7, volume]],
+      [0, 1, [0xb0 | ch, 10, pan]], [0, 1, [0xb0 | ch, 91, reverb]], [0, 1, [0xb0 | ch, 93, chorus]]);
+  }
+  // a note, a touch loose in timing and velocity like a person playing it (drums stay tight)
+  note(ch, beat, length, key, velocity) {
+    const b = beat + (ch === 9 ? 0 : this.rnd() * 0.01);
+    const v = Math.max(1, Math.min(127, Math.round(velocity + this.rnd() * 8)));
+    this.events.push([this.at(b), 2, [0x90 | ch, key, v]], [this.at(b + Math.max(0.03, length)), 0, [0x80 | ch, key, 0]]);
+  }
+  drum(beat, key, velocity, length = 0.2) {
+    this.note(9, beat, length, key, velocity);
+  }
+  chord(ch, beat, length, keys, velocity) {
+    keys.forEach((k) => this.note(ch, beat, length, k, velocity));
+  }
+  // a strummed chord: one string just after the other, down (low to high) or up
+  strum(ch, beat, length, keys, velocity, up = false) {
+    (up ? [...keys].reverse() : keys).forEach((k, i) => this.note(ch, beat + i * 0.03, length - i * 0.03, k, velocity - i * 4));
+  }
+  write(file) {
+    // at the same moment: note-offs first, then settings, then note-ons
+    const events = this.events.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const vlq = (n) => {
+      const out = [n & 0x7f];
+      while ((n >>= 7)) out.unshift((n & 0x7f) | 0x80);
+      return out;
+    };
+    const tempo = Math.round(60e6 / this.bpm);
+    const bytes = [0, 0xff, 0x51, 3, (tempo >> 16) & 255, (tempo >> 8) & 255, tempo & 255];
+    let last = 0;
+    for (const [tick, , data] of events) {
+      bytes.push(...vlq(tick - last), ...data);
+      last = tick;
     }
-    return out;
+    bytes.push(0, 0xff, 0x2f, 0);
+    const len = bytes.length;
+    fs.writeFileSync(file, Buffer.concat([
+      Buffer.from([0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, PPQ >> 8, PPQ & 255]),
+      Buffer.from('MTrk'), Buffer.from([(len >>> 24) & 255, (len >>> 16) & 255, (len >>> 8) & 255, len & 255]), Buffer.from(bytes),
+    ]));
+  }
+}
+
+// a held chord for a bar (or two halves, when the chord changes halfway)
+function holdBar(s, ch, b, chordAt, voicing, velocity) {
+  if (chordAt(b) === chordAt(b + 2)) s.chord(ch, b, 3.96, voicing[chordAt(b)], velocity);
+  else [0, 2].forEach((h) => s.chord(ch, b + h, 1.96, voicing[chordAt(b + h)], velocity));
+}
+
+// ---------------------------------------------------------------- the three styles
+// channels: 0 rhythm, 1 bass, 2 lead, 3 lead double, 4 pad, 5 reverse cymbal, 6 intro, 9 drums
+// drums(s, n) plays beat n of the song; n % 4 is where it falls in its bar
+const STYLES = {
+  sunny: {
+    setup(s) {
+      s.channel(0, 24, { volume: 77, pan: 44, reverb: 45, chorus: 30 }); // nylon guitar
+      s.channel(1, 33, { volume: 104, reverb: 10 }); // finger bass
+      s.channel(2, 9, { volume: 88, pan: 80, reverb: 70 }); // glockenspiel
+      s.channel(3, 12, { volume: 96, pan: 52, reverb: 50 }); // marimba
+      s.channel(4, 48, { volume: 62, reverb: 80, chorus: 40 }); // strings
+      s.channel(6, 0, { volume: 90, reverb: 60 }); // piano
+    },
+    bar(s, b, chordAt) {
+      // the island strum: down, down-up, up-down-up
+      const strums = [[0, 0, 98], [4, 0, 84], [6, 1, 68], [10, 1, 72], [12, 0, 90], [14, 1, 66]];
+      strums.forEach(([st, up, v], i) => {
+        const next = i + 1 < strums.length ? strums[i + 1][0] : 16;
+        s.strum(0, b + st / 4, (next - st) / 4 - 0.02, UPPER[chordAt(b + st / 4)], v, !!up);
+      });
+      [[0, 0, 0.9], [6, 0, 0.4], [8, 0, 0.9], [12, 12, 0.4], [14, 7, 0.4]].forEach(([st, up, len]) => s.note(1, b + st / 4, len, ROOT[chordAt(b + st / 4)] + up, 100));
+      holdBar(s, 4, b, chordAt, LOW, 58);
+    },
+    drums(s, n) {
+      if (n % 2 === 0) s.drum(n, KICK, 112);
+      if (n % 4 === 2) s.drum(n + 0.5, KICK, 80);
+      if (n % 2 === 1) (s.drum(n, SNARE, 84), s.drum(n, CLAP, 96));
+      s.drum(n, TAMB, 46);
+      s.drum(n + 0.5, TAMB, 78);
+      [0.25, 0.75].forEach((x) => s.drum(n + x, HAT, 34));
+    },
+    lead(s, beat, key, length, v) {
+      s.note(2, beat, length, key, v);
+      s.note(3, beat, length, key - 12, v - 8);
+    },
+    hit(s, beat, name, length) {
+      s.strum(0, beat, length, UPPER[name], 118);
+      s.chord(4, beat, length + 0.3, LOW[name], 92);
+      s.chord(6, beat, length, UPPER[name].map((k) => k + 12), 96);
+      s.note(1, beat, length, ROOT[name], 112);
+    },
+  },
+
+  tropical: {
+    setup(s) {
+      s.channel(0, 0, { volume: 92, pan: 56, reverb: 50 }); // piano
+      s.channel(1, 38, { volume: 92, reverb: 12 }); // synth bass
+      s.channel(2, 114, { volume: 86, pan: 72, reverb: 55 }); // steel drums
+      s.channel(3, 12, { volume: 92, pan: 50, reverb: 45 }); // marimba
+      s.channel(4, 89, { volume: 58, reverb: 70, chorus: 50 }); // warm pad
+      s.channel(6, 0, { volume: 90, reverb: 60 }); // piano
+    },
+    bar(s, b, chordAt) {
+      [2, 6, 10, 14].forEach((st) => s.chord(0, b + st / 4, 0.32, UPPER[chordAt(b + st / 4)], 84));
+      [[0, 0], [3, 0], [6, 12], [8, 0], [11, 0], [14, 12]].forEach(([st, up]) => s.note(1, b + st / 4, 0.36, ROOT[chordAt(b + st / 4)] + 12 + up, 98));
+      holdBar(s, 4, b, chordAt, LOW, 54);
+    },
+    drums(s, n) {
+      s.drum(n, KICK, 114);
+      if (n % 2 === 1) s.drum(n, CLAP, 100);
+      s.drum(n + 0.5, OPEN_HAT, 62);
+      [0, 0.25, 0.5, 0.75].forEach((x, i) => s.drum(n + x, SHAKER, i % 2 ? 58 : 38));
+    },
+    lead(s, beat, key, length, v) {
+      s.note(2, beat, length, key - 12, v);
+      s.note(3, beat, length, key, v - 14);
+    },
+    hit(s, beat, name, length) {
+      s.chord(0, beat, length, UPPER[name], 118);
+      s.chord(0, beat, length, UPPER[name].map((k) => k - 12), 100);
+      s.chord(4, beat, length + 0.3, LOW[name], 90);
+      s.note(1, beat, length, ROOT[name] + 12, 110);
+    },
+  },
+
+  lofi: {
+    setup(s) {
+      s.channel(0, 4, { volume: 82, pan: 58, reverb: 55, chorus: 60 }); // Rhodes
+      s.channel(1, 32, { volume: 108, reverb: 15 }); // upright bass
+      s.channel(2, 11, { volume: 118, pan: 72, reverb: 65 }); // vibraphone
+      s.channel(3, 10, { volume: 70, pan: 44, reverb: 70 }); // music box
+      s.channel(4, 49, { volume: 62, reverb: 80 }); // slow strings
+      s.channel(6, 4, { volume: 92, reverb: 60, chorus: 60 }); // Rhodes
+    },
+    bar(s, b, chordAt) {
+      [[0, 1.45, 72], [6, 0.4, 52], [10, 1.45, 64]].forEach(([st, len, v]) => s.strum(0, b + st / 4, len, JAZZY[chordAt(b + st / 4)], v));
+      [[0, 0, 1.4], [7, 0, 0.35], [10, 7, 0.9]].forEach(([st, up, len]) => s.note(1, b + st / 4, len, ROOT[chordAt(b + st / 4)] + 12 + up, 96));
+      holdBar(s, 4, b, chordAt, LOW, 46);
+    },
+    drums(s, n) {
+      // half-time: kick on 1 and the "and" of 3, snare on 3, lazy swung hats
+      if (n % 4 === 0) s.drum(n, KICK, 100);
+      if (n % 4 === 2) (s.drum(n, SNARE, 86), s.drum(n + 0.5, KICK, 84));
+      s.drum(n, HAT, 58);
+      s.drum(n + 0.58, HAT, 38);
+    },
+    lead(s, beat, key, length, v) {
+      s.note(2, beat, length, key - 12, v - 10);
+      s.note(3, beat, length, key, v - 30);
+    },
+    hit(s, beat, name, length) {
+      s.strum(0, beat, length, JAZZY[name], 110);
+      s.chord(4, beat, length + 0.3, LOW[name], 80);
+      s.note(1, beat, length, ROOT[name] + 12, 112);
+    },
+  },
+};
+
+// ---------------------------------------------------------------- the arrangement, timed to the video
+function compose(song, styleName) {
+  const style = STYLES[styleName];
+  if (!style) throw new Error(`No music style "${styleName}". Try: ${Object.keys(STYLES).join(', ')}`);
+  const s = new Score(song.bpm);
+  style.setup(s);
+  s.channel(5, 119, { volume: 82, reverb: 40 }); // reverse cymbal
+  s.channel(9, 0, { volume: styleName === 'lofi' ? 122 : 112, reverb: 22 });
+  const perSecond = song.bpm / 60;
+  const chordAt = (b) => song.chords.reduce((c, [at, name]) => (b >= at - 1e-9 ? name : c), song.chords[0][1]);
+  // a reverse cymbal that peaks right on beat b
+  const swell = (b, v = 92) => s.note(5, b - REVERSE_CYMBAL_PEAK * perSecond, REVERSE_CYMBAL_PEAK * perSecond, 60, v);
+  // snare hits that speed up into a drop (eighths, sixteenths, then thirty-seconds)
+  const roll = (a, z) => {
+    for (let b = a; b < z - 1e-6;) {
+      const p = (b - a) / (z - a);
+      s.drum(b, SNARE, 50 + 60 * p);
+      b += p < 0.5 ? 0.5 : p < 0.8 ? 0.25 : 0.125;
+    }
   };
-  return [side(0), side(23)];
-}
 
-// a ping-pong echo on dotted eighths, darker with every repeat
-function echo(inL, inR, n, delay, feedback = 0.38) {
-  const d = Math.round(delay * RATE);
-  const L = new Float32Array(n), R = new Float32Array(n);
-  let lpL = 0, lpR = 0;
-  for (let j = 0; j < n; j++) {
-    const back = j >= d;
-    const into = back ? (inL[j - d] + inR[j - d]) * 0.5 : 0;
-    lpL += 0.45 * ((back ? into + feedback * R[j - d] : 0) - lpL);
-    lpR += 0.45 * ((back ? feedback * L[j - d] : 0) - lpR);
-    L[j] = lpL;
-    R[j] = lpR;
-  }
-  return [L, R];
-}
-
-// ---------------------------------------------------------------- the song
-function soundtrack(song, events, seconds) {
-  const N = Math.ceil(seconds * RATE);
-  const beat = 60 / song.bpm, step = beat / 4;
-  const bus = () => ({ L: new Float32Array(N), R: new Float32Array(N) });
-  const drums = bus(), music = bus(), lead = bus(), fx = bus(), verb = bus(), delay = bus();
-  let seed = 7;
-  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const noise = () => rnd() * 2 - 1;
-
-  // add a sound; fn(t) returns [left, right]; part of it can also go to the reverb and the echo
-  function play(target, start, length, fn, { room = 0, echoes = 0 } = {}) {
-    const s0 = Math.round(start * RATE), len = Math.round(length * RATE);
-    for (let i = 0; i < len; i++) {
-      const j = s0 + i;
-      if (j < 0 || j >= N) continue;
-      const [l, r] = fn(i / RATE);
-      target.L[j] += l;
-      target.R[j] += r;
-      if (room) (verb.L[j] += l * room), (verb.R[j] += r * room);
-      if (echoes) (delay.L[j] += l * echoes), (delay.R[j] += r * echoes);
-    }
-  }
-
-  // --- drums
-  const kicks = [];
-  function kick(t0, gain = 1) {
-    kicks.push(t0);
-    let ph = 0;
-    const f = new Filter();
-    play(drums, t0, 0.42, (t) => {
-      ph += (TAU * (50 + 120 * Math.exp(-t * 32) + 260 * Math.exp(-t * 400))) / RATE;
-      const click = f.run(noise(), 3500, 0.7) * Math.exp(-t * 700) * 0.6;
-      const v = gain * Math.tanh(1.5 * (Math.sin(ph) * Math.exp(-t * 8) + click));
-      return [v, v];
-    });
-  }
-  function clap(t0, gain = 1) {
-    const fl = new Filter(), fr = new Filter();
-    play(drums, t0, 0.4, (t) => {
-      const bursts = [0, 0.009, 0.018].reduce((s, d) => s + (t >= d ? Math.exp(-(t - d) / 0.004) : 0), 0);
-      const env = bursts * 0.7 + Math.exp(-t / 0.09);
-      const body = Math.sin(TAU * 190 * t) * Math.exp(-t * 32) * 0.35;
-      fl.run(noise(), 1500, 0.9);
-      fr.run(noise(), 1650, 0.9);
-      return [gain * (fl.bp * 2.4 * env + body), gain * (fr.bp * 2.4 * env + body)];
-    }, { room: 0.2 });
-  }
-  function snare(t0, gain) {
-    const fl = new Filter(), fr = new Filter();
-    play(drums, t0, 0.2, (t) => {
-      const env = Math.exp(-t / 0.05);
-      const body = Math.sin(TAU * 210 * t) * Math.exp(-t * 40) * 0.5;
-      fl.run(noise(), 2200, 0.8);
-      fr.run(noise(), 2400, 0.8);
-      return [gain * (fl.bp * 2 + body) * env, gain * (fr.bp * 2 + body) * env];
-    }, { room: 0.15 });
-  }
-  function hat(t0, gain, open = false, side = 0) {
-    const f = new Filter(), [gl, gr] = pan(side), decay = open ? 0.1 : 0.022;
-    play(drums, t0, decay * 6, (t) => {
-      f.run(noise(), 8000, 0.75);
-      const v = gain * f.hp * Math.exp(-t / decay);
-      return [v * gl, v * gr];
-    }, { room: open ? 0.06 : 0 });
-  }
-  function crash(t0, gain, length = 2.4) {
-    const fl = new Filter(), fr = new Filter();
-    play(drums, t0, length, (t) => {
-      const e = gain * Math.min(1, t / 0.002) * Math.exp(-t / 0.6);
-      fl.run(noise(), 5000, 0.6);
-      fr.run(noise(), 5300, 0.6);
-      return [fl.hp * e, fr.hp * e];
-    }, { room: 0.3 });
-  }
-  // a cymbal played backwards, swelling into a hit
-  function swell(tEnd, length, gain) {
-    const fl = new Filter(), fr = new Filter();
-    play(fx, tEnd - length, length, (t) => {
-      const e = gain * Math.pow(t / length, 3);
-      fl.run(noise(), 4000, 0.6);
-      fr.run(noise(), 4300, 0.6);
-      return [fl.hp * e, fr.hp * e];
-    });
-  }
-  // a deep boom and a crash, for the drops
-  function impact(t0, gain) {
-    let ph = 0;
-    play(fx, t0, 1.6, (t) => {
-      ph += (TAU * (34 + 46 * Math.exp(-t * 7))) / RATE;
-      const v = gain * Math.min(1, t / 0.003) * Math.sin(ph) * Math.exp(-t * 2.8);
-      return [v, v];
-    });
-    crash(t0, gain * 0.5);
-  }
-  // noise and a saw sweeping up, for the build-ups
-  function riser(t0, t1, gain) {
-    const fl = new Filter(), fr = new Filter(), sf = new Filter(), saw = new Saw(180, 0), length = t1 - t0;
-    play(fx, t0, length, (t) => {
-      const p = t / length, cut = 300 * Math.pow(30, p);
-      fl.run(noise(), cut, 2.2);
-      fr.run(noise(), cut * 1.06, 2.2);
-      saw.dt = (180 * Math.pow(6, p)) / RATE;
-      const s = sf.run(saw.next(), 1500 + 4000 * p, 0.9) * 0.12;
-      const e = gain * Math.pow(p, 1.8);
-      return [(fl.bp * 1.6 + s) * e, (fr.bp * 1.6 + s) * e];
-    }, { room: 0.25 });
-  }
-  // a quick sweep up into a cut
-  function whoosh(tEnd, gain) {
-    const fl = new Filter(), fr = new Filter(), length = 0.42;
-    play(fx, tEnd - length, length + 0.06, (t) => {
-      const p = Math.min(1, t / length), cut = 600 * Math.pow(12, p);
-      fl.run(noise(), cut, 1.6);
-      fr.run(noise(), cut * 1.1, 1.6);
-      const e = gain * p * p * (t > length ? Math.exp(-(t - length) * 60) : 1);
-      return [fl.bp * e, fr.bp * e];
-    }, { room: 0.35 });
-  }
-  // snare hits that speed up: eighths, then sixteenths, then thirty-seconds
-  function roll(t0, t1, gain) {
-    for (let t = t0; t < t1 - 1e-6;) {
-      const p = (t - t0) / (t1 - t0);
-      snare(t, gain * (0.25 + 0.75 * p));
-      t += p < 0.5 ? step * 2 : p < 0.75 ? step : step / 2;
-    }
-  }
-
-  // --- instruments
-  // seven-ish detuned saws per note, spread across the stereo field, through a low-pass filter
-  function pad(t0, length, notes, gain, { cutoff = () => 2600, attack = 0.03, release = 0.3, room = 0.3 } = {}) {
-    const voices = [];
-    for (const m of notes)
-      for (const [cents, side] of [[-17, -0.75], [-8, -0.35], [0, 0], [8, 0.35], [17, 0.75]])
-        voices.push({ osc: new Saw(hz(m) * Math.pow(2, cents / 1200), rnd()), g: pan(side) });
-    const fl = new Filter(), fr = new Filter(), norm = gain / Math.sqrt(voices.length);
-    play(music, t0, length + release * 5, (t) => {
-      let l = 0, r = 0;
-      for (const v of voices) {
-        const s = v.osc.next();
-        l += s * v.g[0];
-        r += s * v.g[1];
-      }
-      const env = Math.min(1, t / attack) * (t < length ? 1 : Math.exp(-(t - length) / release));
-      const c = cutoff(t0 + t);
-      return [fl.run(l, c, 0.8) * env * norm, fr.run(r, c, 0.8) * env * norm];
-    }, { room });
-  }
-  // a sine for the weight, a filtered saw for the bite (so phone speakers can hear it)
-  function bass(t0, length, m, gain) {
-    const saw = new Saw(hz(m), 0), f = new Filter(), w = (TAU * hz(m)) / RATE;
-    let ph = 0;
-    play(music, t0, length + 0.04, (t) => {
-      ph += w;
-      const env = Math.min(1, t / 0.003) * (t < length ? 1 : Math.exp(-(t - length) / 0.012));
-      const bite = f.run(saw.next(), 260 + 1500 * Math.exp(-t * 18), 1.1);
-      const v = gain * env * Math.tanh(1.3 * (Math.sin(ph) * 0.9 + bite * 0.7));
-      return [v, v];
-    });
-  }
-  // the hook: a plucked pair of saws with a bell on top
-  function pluck(t0, length, m, gain) {
-    const a = new Saw(hz(m) * 1.004, rnd()), b = new Saw(hz(m) * 0.996, rnd()), fl = new Filter(), fr = new Filter();
-    const wc = (TAU * hz(m)) / RATE, wm = wc * 3.5;
-    let pc = 0, pm = 0;
-    play(lead, t0, length + 0.7, (t) => {
-      const env = Math.min(1, t / 0.002) * (0.3 + 0.7 * Math.exp(-t / 0.11)) * (t < length ? 1 : Math.exp(-(t - length) / 0.07));
-      const cut = 900 + 5500 * Math.exp(-t * 15);
-      const l = fl.run(a.next(), cut, 1.3), r = fr.run(b.next(), cut, 1.3);
-      pc += wc;
-      pm += wm;
-      const ding = Math.sin(pc + 2.3 * Math.exp(-t * 7) * Math.sin(pm)) * Math.exp(-t * 2.8) * 0.6;
-      return [gain * (l * env * 0.75 + ding), gain * (r * env * 0.75 + ding)];
-    }, { room: 0.22, echoes: 0.26 });
-  }
-  // an FM bell, for the intro and the little sounds
-  function bell(target, t0, m, gain, side = 0) {
-    const wc = (TAU * hz(m)) / RATE, wm = wc * 3.5, [gl, gr] = pan(side);
-    let pc = 0, pm = 0;
-    play(target, t0, 1.8, (t) => {
-      pc += wc;
-      pm += wm;
-      const v = gain * Math.min(1, t / 0.002) * Math.sin(pc + 2.2 * Math.exp(-t * 5) * Math.sin(pm)) * Math.exp(-t * 2.3);
-      return [v * gl, v * gr];
-    }, { room: 0.35, echoes: 0.18 });
-  }
-
-  // ---------------------------------------------------------------- the arrangement
-  const chordAt = (bt) => song.chords.reduce((c, [at, name]) => (bt >= at - 1e-9 ? name : c), song.chords[0][1]);
-  const grooving = (bt) => song.groove.some(([a, z]) => bt >= a && bt < z);
-  const at = (bt) => bt * beat;
-
-  // the intro: a muffled chord that opens up, a bell under each line of the hook, and a build into the drop
-  pad(0, at(4) - 0.05, VOICINGS.Am, 0.22, { cutoff: (t) => 300 * Math.pow(12, Math.min(1, t / at(4))), release: 0.12 });
-  impact(0, 0.35);
-  for (const [a, z] of song.rolls) roll(a, z, 0.42);
-  for (const [a, z] of song.risers) riser(a, z, 0.3);
-  for (const d of song.drops) {
-    swell(at(d), at(2), 0.3);
-    impact(at(d), 0.6);
-  }
-  for (const t of song.cuts) {
-    whoosh(t, 0.3);
-    crash(t, 0.1);
-  }
-
-  // drums: four on the floor, claps on 2 and 4, swung sixteenth hats with an open hat on every "and"
-  const lastBeat = Math.round(seconds / beat);
-  for (let bt = 0; bt < lastBeat; bt++) {
-    if (!grooving(bt)) continue;
-    const t = at(bt);
-    if (song.fills.includes(bt)) {
-      [0, 1, 2, 3].forEach((s) => snare(t + s * step, 0.3 + s * 0.1));
-      continue;
-    }
-    kick(t);
-    if (bt % 2 === 1) clap(t, 0.5);
-    [0.26, 0.12, 0, 0.16].forEach((g, s) => {
-      const ts = t + s * step + (s % 2 ? 0.014 : 0);
-      if (s === 2) hat(ts, 0.24, true, 0.2);
-      else hat(ts, g, false, s % 2 ? -0.3 : 0.1);
-    });
-  }
-
-  // chords, held for each chord and pumped by the kick (see the sidechain below)
-  song.chords.forEach(([a, name], i) => {
-    const next = i + 1 < song.chords.length ? song.chords[i + 1][0] : a + 1;
-    if (grooving(a)) pad(at(a), at(next - a) - 0.02, VOICINGS[name], 0.32);
+  // the intro: two flat, low thuds ("Social media / got boring."), then two bright notes ("So I made / my own.")
+  [[0, 112], [1, 96]].forEach(([b, v]) => {
+    s.chord(6, b, 0.6, [36, 48, 55], v);
+    s.drum(b, KICK, v);
   });
+  style.lead(s, 2, 79, 0.9, 96);
+  style.lead(s, 3, 84, 0.9, 104);
+  for (const [a, z] of song.rolls) roll(a * perSecond, z * perSecond);
 
-  // bass and hook, bar by bar
-  const bars = [];
-  for (const [a, z] of song.groove) for (let bar = a; bar < z; bar += 4) bars.push(bar);
-  for (const bar of bars) {
-    for (const [s, up, len] of BASS) {
-      const bt = bar + s / 4;
-      if (grooving(Math.floor(bt))) bass(at(bt), len * step - 0.02, ROOTS[chordAt(bt)] + up, 0.5);
+  // the drops: a cymbal swell into a crash; a crash on each cut; swells into the scenes after the fills
+  for (const d of song.drops) {
+    swell(d);
+    s.drum(d, CRASH, 112, 1);
+  }
+  for (const c of song.cuts) s.drum(c * perSecond, CRASH2, 72, 1);
+  for (const f of song.fills) swell(f + 1, 70);
+  swell(song.stabs[0], 84);
+
+  // the groove, bar by bar and beat by beat; the fills are a run down the toms
+  for (const [a, z] of song.groove) {
+    for (let b = a; b < z; b += 4) {
+      style.bar(s, b, chordAt);
+      const line = b === song.groove[song.groove.length - 1][0] ? CADENCE : HOOK[chordAt(b)];
+      for (const [st, key, len] of line) style.lead(s, b + st / 4, key, len / 4 - 0.02, 100);
     }
-    const line = bar === song.groove[song.groove.length - 1][0] ? CADENCE : HOOK[chordAt(bar)];
-    for (const [s, m, len] of line) pluck(at(bar + s / 4), len * step - 0.01, m, 0.42);
+    for (let n = a; n < z; n++) {
+      if (song.fills.includes(n)) TOMS.forEach((t, i) => s.drum(n + i / 4, t, 92 + i * 6));
+      else style.drums(s, n);
+    }
   }
 
-  // the three stops ("Free." "No email." "No phone number."): everything hits at once, then the room rings
-  for (const bt of song.stabs) {
-    const t = at(bt), name = chordAt(bt);
-    kick(t, 1);
-    clap(t, 0.55);
-    crash(t, 0.2);
-    pad(t, 0.24, VOICINGS[name], 0.65, { cutoff: () => 5000, release: 0.3, room: 0.5 });
-    bass(t, 0.3, ROOTS[name], 0.5);
-    bell(lead, t, VOICINGS[name][3] + 12, 0.16);
+  // "Free." "No email." "No phone number.": one big hit each, then silence until the roll
+  for (const b of song.stabs) {
+    style.hit(s, b, chordAt(b), 0.42);
+    s.drum(b, KICK, 120);
+    s.drum(b, CLAP, 104);
+    s.drum(b, CRASH, 100, 1);
   }
 
-  // the end: one big C chord that rings out under the address
-  const end = at(song.end);
-  kick(end, 1);
-  impact(end, 0.55);
-  pad(end, seconds - end - 0.5, VOICINGS.C.concat([76]), 0.55, { release: 0.5, room: 0.5 });
-  bass(end, 0.9, 36, 0.5);
-  [72, 76, 79, 84].forEach((m, i) => bell(lead, end + i * 0.07, m, 0.18, (i - 1.5) * 0.3));
-
-  // little sounds on the animation's cues
-  const PLUCKS = { 0: 69, 2: 72, 4: 76, 7: 81 };
-  for (const e of events) {
-    if (e.kind === 'pluck') bell(fx, e.t, PLUCKS[e.note] || 69, 0.32);
-    else if (e.kind === 'tap') hat(e.t, 0.1, false, 0.3);
-    else if (e.kind === 'key') hat(e.t, 0.05, false, -0.3);
-    else if (e.kind === 'pop' || e.kind === 'send') bell(fx, e.t, 88, 0.07, 0.3);
-    else if (e.kind === 'recv') bell(fx, e.t, 91, 0.07, -0.3);
-    else if (e.kind === 'badge') (bell(fx, e.t, 84, 0.08, -0.2), bell(fx, e.t + 0.07, 91, 0.07, 0.2));
-    else if (e.kind === 'burst') [84, 88, 91, 96].forEach((m, i) => bell(fx, e.t + i * 0.03, m, 0.05, (i - 1.5) * 0.4));
-  }
-
-  // ---------------------------------------------------------------- mixing
-  // sidechain: the chords and bass duck under every kick, which is what makes it pump
-  kicks.sort((a, b) => a - b);
-  const [verbL, verbR] = reverb(verb.L, verb.R, N);
-  const [echoL, echoR] = echo(delay.L, delay.R, N, beat * 0.75);
-  const L = new Float32Array(N), R = new Float32Array(N);
-  let k = 0;
-  for (let j = 0; j < N; j++) {
-    const t = j / RATE;
-    while (k + 1 < kicks.length && kicks[k + 1] <= t) k++;
-    const since = kicks.length && kicks[k] <= t ? t - kicks[k] : 9;
-    const duck = 1 - 0.65 * Math.exp(-since / 0.1);
-    const duckLead = 1 - 0.2 * Math.exp(-since / 0.08);
-    L[j] = drums.L[j] + music.L[j] * duck + lead.L[j] * duckLead + fx.L[j] + verbL[j] * 0.9 + echoL[j] * 0.8;
-    R[j] = drums.R[j] + music.R[j] * duck + lead.R[j] * duckLead + fx.R[j] + verbR[j] * 0.9 + echoR[j] * 0.8;
-  }
-  // glue: a gentle compressor, then a soft limiter
-  let peak = 0;
-  for (let j = 0; j < N; j++) peak = Math.max(peak, Math.abs(L[j]), Math.abs(R[j]));
-  const attack = Math.exp(-1 / (0.005 * RATE)), releaseC = Math.exp(-1 / (0.15 * RATE));
-  let env = 0;
-  for (let j = 0; j < N; j++) {
-    const x = Math.max(Math.abs(L[j]), Math.abs(R[j])) / peak;
-    env = x > env ? attack * env + (1 - attack) * x : releaseC * env + (1 - releaseC) * x;
-    const over = 20 * Math.log10(env + 1e-9) + 10;
-    const g = over > 0 ? Math.pow(10, (-over * (1 - 1 / 2)) / 20) : 1;
-    L[j] = (L[j] / peak) * g;
-    R[j] = (R[j] / peak) * g;
-  }
-  peak = 0;
-  for (let j = 0; j < N; j++) peak = Math.max(peak, Math.abs(L[j]), Math.abs(R[j]));
-  const DRIVE = 1.2, LEVEL = 0.69;
-  const shape = (v) => (LEVEL * Math.tanh((DRIVE * v) / peak)) / Math.tanh(DRIVE);
-  const fade = RATE * 0.35;
-  const pcm = Buffer.alloc(N * 4);
-  for (let j = 0; j < N; j++) {
-    const f = Math.min(1, (N - j) / fade);
-    pcm.writeInt16LE(Math.round(Math.max(-1, Math.min(1, shape(L[j]) * f)) * 32767), j * 4);
-    pcm.writeInt16LE(Math.round(Math.max(-1, Math.min(1, shape(R[j]) * f)) * 32767), j * 4 + 2);
-  }
-  const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
-  header.writeUInt32LE(36 + pcm.length, 4);
-  header.write('WAVEfmt ', 8);
-  header.writeUInt32LE(16, 16);
-  header.writeUInt16LE(1, 20);
-  header.writeUInt16LE(2, 22);
-  header.writeUInt32LE(RATE, 24);
-  header.writeUInt32LE(RATE * 4, 28);
-  header.writeUInt16LE(4, 32);
-  header.writeUInt16LE(16, 34);
-  header.write('data', 36);
-  header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
+  // the end: one big C chord with a little run on top, ringing out under the address
+  style.hit(s, song.end, 'C', 2.4);
+  s.drum(song.end, KICK, 120);
+  s.drum(song.end, CRASH, 112, 2);
+  [72, 76, 79, 84].forEach((k, i) => style.lead(s, song.end + i * 0.12, k, 1.6 - i * 0.12, 92));
+  return s;
 }
 
-module.exports = { soundtrack };
+// ---------------------------------------------------------------- playing and mastering
+function run(cmd, args) {
+  const r = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (r.error) throw new Error(`${cmd} isn't installed (${r.error.message}).`);
+  if (r.status !== 0) throw new Error(`${cmd} failed: ${(r.stderr || '').slice(-600)}`);
+  return r;
+}
+
+function soundtrack(song, styleName, seconds, wavFile) {
+  if (!SOUNDFONT) throw new Error('No General MIDI soundfont found. Install fluid-soundfont-gm (or soundfont-fluid), or set BUDGIE_SOUNDFONT.');
+  const base = wavFile.replace(/\.wav$/i, '');
+  const mid = base + '.mid', raw = base + '.raw.wav';
+  compose(song, styleName).write(mid);
+  run('fluidsynth', ['-ni', '-q', '-r', '48000', '-g', '0.45', '-o', 'audio.file.format=float',
+    '-o', 'synth.reverb.room-size=0.55', '-o', 'synth.reverb.damp=0.35', '-o', 'synth.reverb.width=0.9', '-o', 'synth.reverb.level=0.75',
+    '-F', raw, SOUNDFONT, mid]);
+  // glue it a little (gentle compression, a limiter), then set the loudness to -14 LUFS
+  const glue = `atrim=0:${seconds},highpass=f=30,acompressor=threshold=0.1:ratio=2:attack=12:release=160:makeup=1.4,alimiter=limit=0.7:level=0`;
+  const measured = run('ffmpeg', ['-hide_banner', '-i', raw, '-af', `${glue},ebur128`, '-f', 'null', '-']).stderr;
+  const loudness = Number((measured.match(/I:\s+(-?[\d.]+) LUFS\s*\n\s*Threshold/) || [])[1]);
+  const gain = Number.isFinite(loudness) ? -14 - loudness : 0;
+  run('ffmpeg', ['-y', '-v', 'error', '-i', raw, '-af', `${glue},volume=${gain.toFixed(2)}dB,alimiter=limit=0.84:level=0,afade=t=out:st=${seconds - 0.5}:d=0.5`,
+    '-ar', '48000', '-c:a', 'pcm_s16le', wavFile]);
+  fs.rmSync(raw, { force: true });
+  fs.rmSync(mid, { force: true });
+  return wavFile;
+}
+
+module.exports = { soundtrack, compose, STYLES: Object.keys(STYLES) };
