@@ -31,6 +31,7 @@ Read this first when picking Budgie up again (a new chat, or after a long break)
 - `store.js` holds the server snapshot and polls `/api/updates?rev&note&msg` every 15 s. Writes are optimistic and undone if the server refuses.
 - `server/server.js` is plain Node ≥ 22.5 with `node:sqlite` and no npm packages. `db.js` holds the schema, with revision stamps for deltas. `cli.js` has the admin commands; `install.sh` sets up the systemd service, backups and lid handling.
 - `js/moderation.js` holds rule-based moderation (no AI). The browser and the server both load the same file.
+- `promo/ad.html` is a 16-second vertical video ad (open it in a browser to watch it); `node nook/promo/render.js` renders it to `nook/promo/budgie-ad.mp4` (1080×1920, 60 fps, with a soundtrack made from sine waves, so no music licence), and `--stills 1,5,9` saves single frames for quick checks. Nothing in `promo/` goes to the live site.
 
 ## Rules to keep
 
