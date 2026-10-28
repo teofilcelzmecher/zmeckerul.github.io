@@ -884,6 +884,12 @@
         `<section>${header('heart', 'self_improvement', 'Wellbeing')}<div class="card setting-card">` +
         `<div class="setting-row"><span class="label">Remind me to take a break after</span><div class="slider-row"><m3-slider id="set-break" min="0" max="120" step="15" value="${s.breakMinutes}" value-tip show-stop label="Break reminder"></m3-slider><output id="set-break-out">${s.breakMinutes ? s.breakMinutes + ' min' : 'Off'}</output></div></div>` +
         '</div></section>' +
+        (chatsPlus()
+          ? `<section>${header('clover8', 'call', 'Calls')}<div class="card setting-card">` +
+            sw('set-calls', 'Let friends call me', 'Voice and video calls from your friends and the groups you’re in. Off, nobody can ring you, but you can still call them.', store.state.me.calls !== 'off') +
+            '<p class="muted">Calls go straight between devices, encrypted, and are never recorded. As with any direct call, the people in a call can see your device’s internet (IP) address, unless it goes through Budgie’s relay. Only call people you trust.</p>' +
+            '</div></section>'
+          : '') +
         `<section>${header('pixelCircle', 'manage_accounts', 'Account')}<div class="card setting-card">` +
         `<div class="about-app">${avatar(store.user(store.ME), 48)}<div><b class="m3-title">u/${esc(store.state.me.name)}</b><span class="muted">Signed in${store.isAdmin() ? ' · Admin' : ''}</span></div></div>` +
         `<div class="toolbar"><button class="m3-btn tonal" data-act="change-password">${icon('password')}Change password</button><button class="m3-btn tonal" data-act="new-recovery">${icon('key')}New recovery code</button><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button></div>` +
@@ -939,6 +945,18 @@
             s[key] = e.target.checked;
             apply();
           });
+        }
+        const calls = $('#set-calls');
+        if (calls) {
+          calls.addEventListener('change', () =>
+            store.setCalls(calls.checked).then(
+              (now) => M3.snackbar(now === 'off' ? 'Nobody can ring you now.' : 'Your friends can call you.'),
+              (error) => {
+                calls.checked = !calls.checked;
+                app().showError(error);
+              }
+            )
+          );
         }
         const slider = $('#set-break');
         slider.format = (value) => (value ? Math.round(value) + ' min' : 'Off');
@@ -1059,44 +1077,61 @@
 
   function messagesPage() {
     const convos = store.state.conversations;
+    const groups = store.state.groups || [];
     const talking = new Set(convos.map((c) => c.with.toLowerCase()));
     const quiet = store.friends('friends').filter((f) => !talking.has(f.name.toLowerCase()));
+    const meta = (last, unread) =>
+      `<span class="convo-meta"><small>${last ? ago(last.createdAt) : ''}</small>${unread ? `<span class="badge-dot">${unread > 9 ? '9+' : unread}</span>` : ''}</span>`;
     const row = (c) => {
       const u = store.user(c.with);
-      const last = c.last ? (c.last.mine ? 'You: ' : '') + plain(clean(c.last.body), 80) : '';
       return (
         `<a class="row-link convo${c.unread ? ' unread' : ''}" href="#/messages/${encodeURIComponent(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 48)}` +
-        `<span class="row-text"><b>${esc(u.name)}</b><small>${esc(last)}</small></span>` +
-        `<span class="convo-meta"><small>${c.last ? ago(c.last.createdAt) : ''}</small>${c.unread ? `<span class="badge-dot">${c.unread > 9 ? '9+' : c.unread}</span>` : ''}</span></a>`
+        `<span class="row-text"><b>${esc(u.name)}</b><small>${esc(preview(c.last))}</small></span>${meta(c.last, c.unread)}</a>`
       );
     };
+    const groupRow = (g) =>
+      `<a class="row-link convo group-convo${g.unread ? ' unread' : ''}" href="#/messages/g/${encodeURIComponent(g.id)}" data-m3-ripple data-m3-hover-root>${groupIcon(g, 48)}` +
+      `<span class="row-text"><b>${esc(g.name)}</b><small>${esc(preview(g.last, true) || plural(g.members.length, 'member'))}</small></span>${meta(g.last, g.unread)}</a>`;
+    // chats with one friend and group chats, newest news first
+    const chats = [
+      ...convos.map((c) => ({ at: c.last ? c.last.createdAt : 0, html: () => row(c) })),
+      ...groups.map((g) => ({ at: g.last ? g.last.createdAt : g.createdAt || 0, html: () => groupRow(g) })),
+    ].sort((a, b) => b.at - a.at);
+    const newGroup = chatsPlus() && store.friends('friends').length ? `<button class="m3-btn tonal small" type="button" data-act="new-group">${icon('group_add')}New group</button>` : '';
     return {
       title: 'Messages',
       brand: 'clover4',
       html:
         '<div class="page single"><div class="col">' +
-        `<div class="page-head"><m3-shape-icon shape="clover4" symbol="chat" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Messages</h1><span class="muted">Private chats with your friends.</span></div><span class="spacer"></span><a class="m3-btn tonal small" href="#/friends">${icon('group')}Friends</a></div>` +
-        (convos.length ? `<div class="card"><div class="list">${convos.map(row).join('')}</div></div>` : '') +
+        `<div class="page-head"><m3-shape-icon shape="clover4" symbol="chat" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Messages</h1><span class="muted">${chatsPlus() ? 'Private chats and calls with your friends.' : 'Private chats with your friends.'}</span></div><span class="spacer"></span>${newGroup}<a class="m3-btn tonal small" href="#/friends">${icon('group')}Friends</a></div>` +
+        (chats.length ? `<div class="card"><div class="list">${chats.map((c) => c.html()).join('')}</div></div>` : '') +
         (quiet.length
           ? `<section class="section"><header class="m3-section-header"><m3-shape-icon shape="heart" symbol="waving_hand" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Say hi</h2><m3-wavy-line></m3-wavy-line></header><div class="card"><div class="list">${quiet
               .map((f) => personRowHTML(store.user(f.name), `<a class="m3-btn tonal small" href="#/messages/${encodeURIComponent(f.name)}">${icon('chat')}Message</a>`))
               .join('')}</div></div></section>`
           : '') +
-        (!convos.length && !quiet.length ? empty('forum', 'No messages yet', 'Add friends, and once they accept you can chat here.', `<a class="m3-btn filled" href="#/friends">${icon('person_add')}Find friends</a>`, 'clover4') : '') +
+        (!chats.length && !quiet.length ? empty('forum', 'No messages yet', 'Add friends, and once they accept you can chat here.', `<a class="m3-btn filled" href="#/friends">${icon('person_add')}Find friends</a>`, 'clover4') : '') +
         '</div></div>',
       mount(root) {
         root._onMessages = () => app().rerender();
         root._onFriends = () => app().rerender();
+        root._onGroups = () => app().rerender();
       },
     };
   }
 
   // ---- chat --------------------------------------------------------------------------------------------
 
-  const GROUP_GAP = 5 * 60000; // messages closer together than this, from the same person, share one group
+  const GROUP_GAP = 5 * 60000; // messages closer together than this, from the same person, share one run
   // only one to three emoji: shown big, without a bubble
   const JUMBO = /^(?:\p{Extended_Pictographic}[\p{Emoji_Modifier}\p{Variation_Selector}\p{Join_Control}\p{Extended_Pictographic}]*\s*){1,3}$/u;
   const clock = (t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // group chats and calls came with the server's 0.9.0
+  const chatsPlus = () => {
+    const [major, minor] = String(Nook.serverVersion || '0.0').split('.').map(Number);
+    return major > 0 || minor >= 9;
+  };
+  const groupIcon = (g, size = 40, iconSize = Math.round(size * 0.5)) => nookIcon({ shape: g.shape, symbol: 'groups', color: g.color }, size, iconSize);
 
   function dayLabel(t) {
     const d = new Date(t);
@@ -1108,15 +1143,60 @@
     return d.toLocaleDateString([], { day: 'numeric', month: 'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
   }
 
-  /** a conversation as days, and in each day groups of bubbles from one side */
-  function chatHTML(messages, them) {
+  const lineData = (m) => {
+    try {
+      return JSON.parse(m.body) || {};
+    } catch (_) {
+      return {};
+    }
+  };
+  const duration = (secs) => (secs < 60 ? `${Math.max(1, secs)} s` : secs < 3600 ? `${Math.round(secs / 60)} min` : `${Math.floor(secs / 3600)} h ${Math.round((secs % 3600) / 60)} min`);
+
+  /** a call's line in a chat, or a group's news (who joined, left or renamed it), in words */
+  function lineText(m, inGroup = false) {
+    const d = lineData(m);
+    const who = m.mine ? 'You' : m.from ? 'u/' + m.from : 'Someone';
+    if (m.kind === 'call') {
+      const kind = d.media === 'video' ? 'video call' : 'voice call';
+      if (inGroup) return `${who} started a ${kind} · ${d.missed ? 'nobody joined' : duration(d.secs)}`;
+      if (d.missed) return m.mine ? `${kind[0].toUpperCase() + kind.slice(1)} · no answer` : `Missed ${kind}`;
+      return `${kind[0].toUpperCase() + kind.slice(1)} · ${duration(d.secs)}`;
+    }
+    const names = (d.names || []).map((n) => 'u/' + n).join(', ');
+    switch (d.type) {
+      case 'created':
+        return `${who} made the group${names ? ' with ' + names : ''}`;
+      case 'added':
+        return `${who} added ${names}`;
+      case 'removed':
+        return `${who} removed ${names}`;
+      case 'left':
+        return `${who} left the group`;
+      case 'renamed':
+        return d.moderator ? `A moderator renamed the group “${d.name}”` : `${who} renamed the group “${d.name}”`;
+      case 'owner':
+        return `${who} ${m.mine ? 'are' : 'is'} now the group’s owner`;
+      default:
+        return m.body;
+    }
+  }
+  function lineIcon(m) {
+    const d = lineData(m);
+    if (m.kind === 'call') return d.missed && !m.mine ? (d.media === 'video' ? 'missed_video_call' : 'call_missed') : d.media === 'video' ? 'videocam' : 'call';
+    return { created: 'groups', added: 'person_add', removed: 'person_remove', left: 'logout', renamed: 'edit', owner: 'shield_person' }[d.type] || 'info';
+  }
+  /** the last message, for a list of chats */
+  const preview = (m, inGroup) => (!m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + plain(clean(m.body), 80));
+
+  /** a conversation as days, in each day runs of bubbles from one person, with calls and group news as lines between */
+  function chatHTML(messages, them, inGroup = false) {
     let html = '';
     let day = '';
-    let group = null;
-    const lastMine = [...messages].reverse().find((m) => m.mine && !m.pending && !m.failed);
+    let run = null;
+    const lastMine = [...messages].reverse().find((m) => m.mine && !m.kind && !m.pending && !m.failed);
     const close = () => {
-      if (group) html += groupHTML(group, them, lastMine);
-      group = null;
+      if (run) html += runHTML(run, them, lastMine, inGroup);
+      run = null;
     };
     for (const m of messages) {
       const d = new Date(m.createdAt).toDateString();
@@ -1125,16 +1205,30 @@
         day = d;
         html += `<div class="chat-day" role="separator"><span>${esc(dayLabel(m.createdAt))}</span></div>`;
       }
-      const prev = group && group.items[group.items.length - 1];
-      if (group && (group.mine !== !!m.mine || m.createdAt - prev.createdAt > GROUP_GAP)) close();
-      if (!group) group = { mine: !!m.mine, items: [] };
-      group.items.push(m);
+      if (m.kind) {
+        close();
+        html += chatLine(m, them, inGroup);
+        continue;
+      }
+      const who = m.mine ? '' : m.from;
+      const prev = run && run.items[run.items.length - 1];
+      if (run && (run.who !== who || m.createdAt - prev.createdAt > GROUP_GAP)) close();
+      if (!run) run = { mine: !!m.mine, who, items: [] };
+      run.items.push(m);
     }
     close();
     return html;
   }
 
-  function groupHTML(g, them, lastMine) {
+  function chatLine(m, them, inGroup) {
+    const d = lineData(m);
+    const missed = m.kind === 'call' && d.missed && !m.mine;
+    // a missed call from a friend can be returned from right there
+    const back = missed && !inGroup && them ? `<button type="button" class="m3-btn text small" data-act="call" data-user="${esc(them.name)}" data-media="${d.media === 'video' ? 'video' : 'voice'}">Call back</button>` : '';
+    return `<div class="chat-line${missed ? ' missed' : ''}" data-message="${esc(String(m.id))}">${icon(lineIcon(m))}<span>${esc(lineText(m, inGroup))}</span><small>${esc(clock(m.createdAt))}</small>${back}</div>`;
+  }
+
+  function runHTML(g, them, lastMine, inGroup) {
     const n = g.items.length;
     const bubbles = g.items
       .map((m, i) => {
@@ -1148,181 +1242,326 @@
     let meta = esc(clock(last.createdAt));
     if (g.items.some((m) => m.failed)) meta = `<button type="button" class="chat-retry">${icon('error')}Not sent. Tap to try again</button>`;
     else if (g.items.some((m) => m.pending)) meta = 'Sending…';
-    else if (last === lastMine) meta += last.read ? ` · <span class="seen">${icon('done_all')}Seen</span>` : ` · ${icon('check')}Sent`;
-    const face = g.mine ? '' : `<a class="msg-avatar" href="#/u/${encodeURIComponent(them.name)}" aria-label="u/${esc(them.name)}">${avatar(them, 28)}</a>`;
-    return `<div class="msg-group ${g.mine ? 'mine' : 'them'}">${face}<div class="msg-stack">${bubbles}<small class="msg-meta">${meta}</small></div></div>`;
+    else if (!inGroup && last === lastMine) meta += last.read ? ` · <span class="seen">${icon('done_all')}Seen</span>` : ` · ${icon('check')}Sent`;
+    // in a group, each run says who it's from
+    const sender = g.mine ? null : inGroup ? store.user(g.who) : them;
+    const face = sender ? `<a class="msg-avatar" href="#/u/${encodeURIComponent(sender.name)}" aria-label="u/${esc(sender.name)}">${avatar(sender, 28)}</a>` : '';
+    const name = inGroup && sender ? `<a class="msg-name${nameFont(sender)}" href="#/u/${encodeURIComponent(sender.name)}">${esc(sender.name)}</a>` : '';
+    return `<div class="msg-group ${g.mine ? 'mine' : 'them'}">${face}<div class="msg-stack">${name}${bubbles}<small class="msg-meta">${meta}</small></div></div>`;
+  }
+
+  /** a chat page around a conversation: its header, the messages, and the box to write in (or why you can't) */
+  function chatPage(head, { placeholder, locked = '' } = {}) {
+    return (
+      '<div class="page single chat-page"><div class="col">' +
+      head +
+      '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
+      (locked ||
+        `<button type="button" class="chat-jump" id="chat-jump" hidden>${icon('arrow_downward')}<span>New messages</span></button>` +
+          `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="${esc(placeholder)}" aria-label="Message" enterkeyhint="send"></textarea>` +
+          `<button class="m3-icon-btn filled chat-send" type="submit" aria-label="Send" disabled>${icon('send')}</button></form>`) +
+      '</div></div>'
+    );
+  }
+
+  /** voice and video call buttons for a chat's header */
+  const callButtons = (attr, who) =>
+    chatsPlus()
+      ? `<button class="m3-icon-btn chat-call" data-act="call" ${attr} data-media="voice" aria-label="Voice call ${esc(who)}" data-tooltip="Voice call">${icon('call')}</button>` +
+        `<button class="m3-icon-btn chat-call" data-act="call" ${attr} data-media="video" aria-label="Video call ${esc(who)}" data-tooltip="Video call">${icon('videocam')}</button>`
+      : '';
+
+  /**
+   * a conversation's life on screen: loading it, painting it as news comes in, older messages on request, and
+   * sending (a message is on screen at once, and can be tried again if it fails). `c` is the conversation:
+   * thread(), load({ older }), send(body), read(), render(messages) and empty().
+   */
+  function mountChat(root, c) {
+    const list = root.querySelector('#chat-list');
+    const more = root.querySelector('#chat-more');
+    const jump = root.querySelector('#chat-jump');
+    const pending = []; // sent from here, not yet confirmed by the server
+    let sending = 0; // while one is on its way, its own reply repaints, not the store's news
+    const shown = new Set(); // ids already on screen: anything else is new and springs in
+    let first = true;
+
+    const end = () => document.documentElement.scrollHeight - innerHeight;
+    const nearEnd = () => scrollY >= end() - 140;
+    const toEnd = (smooth) => scrollTo({ top: end(), behavior: smooth && !Nook.fx.reduced() ? 'smooth' : 'auto' });
+
+    function arrive(el) {
+      const mine = !!el.closest('.mine');
+      el.style.transformOrigin = mine ? '100% 100%' : '0 100%';
+      Nook.fx.play(el, [{ opacity: 0, scale: 0.5, translate: `${mine ? 12 : -12}px 16px` }, { opacity: 1, scale: 1, translate: '0 0' }], {
+        duration: Nook.fx.lively.duration,
+        easing: Nook.fx.lively.easing,
+      });
+    }
+
+    function paint({ follow = false } = {}) {
+      const t = c.thread();
+      const all = t.messages.concat(pending);
+      const wasNear = nearEnd();
+      list.innerHTML = all.length ? c.render(all) : c.empty();
+      more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
+      const fresh = [];
+      for (const el of list.querySelectorAll('[data-message]')) {
+        if (!first && !shown.has(el.dataset.message)) fresh.push(el);
+        shown.add(el.dataset.message);
+      }
+      fresh.forEach(arrive);
+      const theirs = fresh.some((el) => el.closest('.them'));
+      if (first || follow || wasNear) {
+        const smooth = !first;
+        requestAnimationFrame(() => toEnd(smooth));
+        if (jump) jump.hidden = true;
+      } else if (theirs && jump) {
+        jump.hidden = false;
+        Nook.fx.pop(jump, 0.6);
+      }
+      first = false;
+    }
+
+    more.addEventListener('click', async (e) => {
+      if (!e.target.closest('button')) return;
+      const from = document.documentElement.scrollHeight - scrollY;
+      await c.load({ older: true });
+      paint();
+      scrollTo({ top: document.documentElement.scrollHeight - from });
+    });
+
+    if (c.thread().loaded) paint();
+    c.load()
+      .then(() => {
+        paint();
+        c.read();
+      })
+      .catch((error) => (list.innerHTML = `<p class="muted chat-empty">${esc(error.message)}</p>`));
+    root._onMessages = () => {
+      if (sending || !c.thread().loaded) return;
+      paint();
+      c.read();
+    };
+
+    // while a chat is open it listens a little harder
+    const quick = setInterval(() => document.visibilityState === 'visible' && store.sync(), 4000);
+    const onScroll = () => jump && !jump.hidden && nearEnd() && (jump.hidden = true);
+    addEventListener('scroll', onScroll, { passive: true });
+    app().onLeave(() => {
+      clearInterval(quick);
+      removeEventListener('scroll', onScroll);
+    });
+
+    const form = root.querySelector('#chat-box');
+    if (!form) return;
+    const input = form.querySelector('#chat-input');
+    const send = form.querySelector('.chat-send');
+    jump.addEventListener('click', () => {
+      toEnd(true);
+      jump.hidden = true;
+    });
+    const grow = () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    };
+    const ready = () => {
+      const on = !!input.value.trim();
+      if (send.disabled === !on) return;
+      send.disabled = !on;
+      if (on) Nook.fx.pop(send, 0.7);
+    };
+    input.addEventListener('input', () => {
+      grow();
+      ready();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(hover: hover)').matches) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+    // the keyboard opening shouldn't leave the newest messages hidden underneath it
+    input.addEventListener('focus', () => setTimeout(() => nearEnd() || toEnd(true), 350));
+
+    async function deliver(m) {
+      m.pending = true;
+      m.failed = false;
+      paint({ follow: true });
+      sending++;
+      try {
+        const real = await c.send(m.body);
+        pending.splice(pending.indexOf(m), 1);
+        // the confirmed message takes the place of the one already on screen, without springing in again
+        shown.add(String(real.id));
+      } catch (error) {
+        m.pending = false;
+        m.failed = true;
+        app().showError(error);
+      } finally {
+        sending--;
+      }
+      paint({ follow: !m.failed });
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      const verdict = Nook.mod.check([text], { kind: 'message' });
+      if (verdict.block) return app().showError({ rule: verdict.block.rule, message: verdict.block.why });
+      // it's on screen at once, and you can keep typing while it goes
+      input.value = '';
+      grow();
+      ready();
+      const m = { id: store.uid('local'), body: text, createdAt: Date.now(), mine: true };
+      pending.push(m);
+      deliver(m);
+      Nook.fx.haptic(8);
+      input.focus({ preventScroll: true });
+    });
+    list.addEventListener('click', (e) => {
+      if (!e.target.closest('.chat-retry')) return;
+      pending.filter((m) => m.failed).forEach(deliver);
+    });
+    wireMessageMenu(list, c);
+    // on a computer the box is ready to type in; on a phone the keyboard waits for a tap
+    if (matchMedia('(hover: hover)').matches) input.focus({ preventScroll: true });
+  }
+
+  /** a long press (or a right click) on a message: copy it, or report someone else's to the moderators */
+  function wireMessageMenu(list, c) {
+    let timer = 0;
+    let openedAt = 0;
+    const open = (bubble) => {
+      // a phone that sends both a long press and a context menu only gets one
+      if (performance.now() - openedAt < 800) return;
+      openedAt = performance.now();
+      const m = c.thread().messages.find((x) => String(x.id) === bubble.dataset.message);
+      if (!m) return;
+      Nook.fx.haptic(10);
+      ui.sheet({
+        html:
+          `<div class="msg-menu-quote">${esc(plain(clean(m.body), 160))}</div><div class="list">` +
+          `<button type="button" class="row-link" data-do="copy" data-m3-ripple>${icon('content_copy')}<span class="row-text"><b>Copy text</b></span></button>` +
+          (m.mine ? '' : `<button type="button" class="row-link" data-do="report" data-m3-ripple>${icon('flag')}<span class="row-text"><b>Report message</b><small>Moderators will see it, and who sent it</small></span></button>`) +
+          '</div>',
+        setup(body, close) {
+          body.addEventListener('click', (e) => {
+            const act = e.target.closest('[data-do]');
+            if (!act) return;
+            close(null);
+            if (act.dataset.do === 'copy') navigator.clipboard.writeText(m.body).then(() => M3.snackbar('Copied'), () => M3.snackbar('Couldn’t copy that.'));
+            else app().report(c.reportKind, { id: m.id });
+          });
+        },
+      });
+    };
+    list.addEventListener('contextmenu', (e) => {
+      const bubble = e.target.closest('.bubble:not(.pending):not(.failed)');
+      if (!bubble) return;
+      e.preventDefault();
+      open(bubble);
+    });
+    // phones without a context menu on a long press (iPhones) get one this way
+    let start = null;
+    list.addEventListener('pointerdown', (e) => {
+      const bubble = e.pointerType !== 'mouse' && e.target.closest('.bubble:not(.pending):not(.failed)');
+      if (!bubble) return;
+      start = [e.clientX, e.clientY];
+      clearTimeout(timer);
+      timer = setTimeout(() => open(bubble), 550);
+    });
+    list.addEventListener('pointermove', (e) => start && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 10 && clearTimeout(timer));
+    for (const type of ['pointerup', 'pointercancel']) list.addEventListener(type, () => clearTimeout(timer));
   }
 
   function thread(params) {
     const u = store.user(params.user);
     if (u.unknown || store.isMe(params.user)) return notFound(`We couldn’t find u/${params.user}.`);
     const friends = store.friendStatus(u.name) === 'friends';
+    const head =
+      `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
+      `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
+      (friends ? callButtons(`data-user="${esc(u.name)}"`, 'u/' + u.name) : '') +
+      `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`;
     return {
       title: `Chat with u/${u.name}`,
       brand: u.shape,
-      html:
-        '<div class="page single chat-page"><div class="col">' +
-        `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-        `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
-        `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>` +
-        '<div class="chat" id="chat"><div class="chat-more" id="chat-more"></div><div class="chat-list" id="chat-list" aria-live="polite"><m3-loading aria-label="Loading messages"></m3-loading></div></div>' +
-        (friends
-          ? `<button type="button" class="chat-jump" id="chat-jump" hidden>${icon('arrow_downward')}<span>New messages</span></button>` +
-            `<form class="chat-box" id="chat-box"><textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="Message u/${esc(u.name)}" aria-label="Message" enterkeyhint="send"></textarea>` +
-            `<button class="m3-icon-btn filled chat-send" type="submit" aria-label="Send" disabled>${icon('send')}</button></form>`
-          : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`) +
-        '</div></div>',
+      html: chatPage(head, {
+        placeholder: `Message u/${u.name}`,
+        locked: friends ? '' : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`,
+      }),
       mount(root) {
-        const list = root.querySelector('#chat-list');
-        const more = root.querySelector('#chat-more');
-        const jump = root.querySelector('#chat-jump');
-        const pending = []; // sent from here, not yet confirmed by the server
-        let sending = 0; // while one is on its way, its own reply repaints, not the store's news
-        const shown = new Set(); // ids already on screen: anything else is new and springs in
-        let first = true;
-
-        const end = () => document.documentElement.scrollHeight - innerHeight;
-        const nearEnd = () => scrollY >= end() - 140;
-        const toEnd = (smooth) => scrollTo({ top: end(), behavior: smooth && !Nook.fx.reduced() ? 'smooth' : 'auto' });
-
-        function arrive(el) {
-          const mine = !!el.closest('.mine');
-          el.style.transformOrigin = mine ? '100% 100%' : '0 100%';
-          Nook.fx.play(el, [{ opacity: 0, scale: 0.5, translate: `${mine ? 12 : -12}px 16px` }, { opacity: 1, scale: 1, translate: '0 0' }], {
-            duration: Nook.fx.lively.duration,
-            easing: Nook.fx.lively.easing,
-          });
-        }
-
-        function paint({ follow = false } = {}) {
-          const t = store.thread(u.name);
-          const all = t.messages.concat(pending);
-          const wasNear = nearEnd();
-          list.innerHTML = all.length ? chatHTML(all, u) : `<div class="chat-empty">${avatar(u, 72, { moving: true })}<b>u/${esc(u.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`;
-          more.innerHTML = t.more ? `<button class="m3-btn text small" type="button">${icon('history')}Older messages</button>` : '';
-          const fresh = [];
-          for (const el of list.querySelectorAll('[data-message]')) {
-            if (!first && !shown.has(el.dataset.message)) fresh.push(el);
-            shown.add(el.dataset.message);
-          }
-          fresh.forEach(arrive);
-          const theirs = fresh.some((el) => el.closest('.them'));
-          if (first || follow || wasNear) {
-            const smooth = !first;
-            requestAnimationFrame(() => toEnd(smooth));
-            if (jump) jump.hidden = true;
-          } else if (theirs && jump) {
-            jump.hidden = false;
-            Nook.fx.pop(jump, 0.6);
-          }
-          first = false;
-        }
-
-        more.addEventListener('click', async (e) => {
-          if (!e.target.closest('button')) return;
-          const from = document.documentElement.scrollHeight - scrollY;
-          await store.loadThread(u.name, { older: true });
-          paint();
-          scrollTo({ top: document.documentElement.scrollHeight - from });
+        mountChat(root, {
+          thread: () => store.thread(u.name),
+          load: (options) => store.loadThread(u.name, options),
+          send: (body) => store.sendMessage(u.name, body),
+          read: () => store.markThreadRead(u.name),
+          reportKind: 'message',
+          render: (all) => chatHTML(all, u),
+          empty: () => `<div class="chat-empty">${avatar(u, 72, { moving: true })}<b>u/${esc(u.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`,
         });
-
-        if (store.thread(u.name).loaded) paint();
-        store
-          .loadThread(u.name)
-          .then(() => {
-            paint();
-            store.markThreadRead(u.name);
-          })
-          .catch((error) => (list.innerHTML = `<p class="muted chat-empty">${esc(error.message)}</p>`));
-        root._onMessages = () => {
-          if (sending || !store.thread(u.name).loaded) return;
-          paint();
-          store.markThreadRead(u.name);
-        };
         root._onFriends = () => app().rerender();
+      },
+    };
+  }
 
-        // while a chat is open it listens a little harder
-        const quick = setInterval(() => document.visibilityState === 'visible' && store.sync(), 4000);
-        const onScroll = () => jump && !jump.hidden && nearEnd() && (jump.hidden = true);
-        addEventListener('scroll', onScroll, { passive: true });
+  function groupThread(params) {
+    const g = store.group(params.id);
+    if (!g) return notFound('That group isn’t there any more, or you’re not in it.');
+    const id = g.id;
+    const sub = () => plural(store.group(id).members.length, 'member');
+    const head =
+      `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
+      `<button type="button" class="chat-who" data-act="group-info" data-group="${esc(id)}" aria-label="About ${esc(g.name)}"><span class="group-icon">${groupIcon(g, 40)}</span><span><b class="group-name">${esc(g.name)}</b><small class="group-sub">${sub()}</small></span></button>` +
+      callButtons(`data-group="${esc(id)}"`, g.name) +
+      `<button class="m3-icon-btn" data-act="group-info" data-group="${esc(id)}" aria-label="Group info" data-tooltip="Group info">${icon('info')}</button></div>`;
+    return {
+      title: g.name,
+      brand: g.shape,
+      html: chatPage(head, { placeholder: `Message ${g.name}` }),
+      mount(root) {
+        g.reading = true;
+        mountChat(root, {
+          thread: () => store.groupThread(id),
+          load: (options) => store.loadGroupThread(id, options),
+          send: (body) => store.sendGroupMessage(id, body),
+          read: () => store.markGroupRead(id),
+          reportKind: 'gmessage',
+          render: (all) => chatHTML(all, null, true),
+          empty: () => `<div class="chat-empty">${groupIcon(g, 72)}<b>${esc(g.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`,
+        });
+        // the header keeps up with renames and new members; a group you've left sends you back to your chats
+        root._onGroups = () => {
+          const now = store.group(id);
+          if (!now) {
+            M3.snackbar('You’re no longer in that group.');
+            return app().go('#/messages', { replace: true });
+          }
+          root.querySelector('.group-name').textContent = now.name;
+          root.querySelector('.group-sub').textContent = sub();
+          root.querySelector('.group-icon').innerHTML = groupIcon(now, 40);
+        };
+        // a call going on in the group: a banner to join it
+        const banner = () => {
+          const c = Nook.calls && Nook.calls.groupCall(id);
+          let el = root.querySelector('.call-banner');
+          if (!c || Nook.calls.inCall()) return el && el.remove();
+          if (!el) {
+            el = document.createElement('div');
+            el.className = 'call-banner';
+            root.querySelector('.chat-head').after(el);
+            Nook.fx.pop(el, 0.8);
+          }
+          el.innerHTML = `${icon(c.media === 'video' ? 'videocam' : 'call')}<span>${c.media === 'video' ? 'A video call' : 'A voice call'} is going on</span><button type="button" class="m3-btn filled small" data-act="call" data-group="${esc(id)}" data-media="${c.media}">Join</button>`;
+        };
+        banner();
+        document.addEventListener('nook-calls', banner);
         app().onLeave(() => {
-          clearInterval(quick);
-          removeEventListener('scroll', onScroll);
+          document.removeEventListener('nook-calls', banner);
+          const now = store.group(id);
+          if (now) now.reading = false;
         });
-
-        const form = root.querySelector('#chat-box');
-        if (!form) return;
-        const input = form.querySelector('#chat-input');
-        const send = form.querySelector('.chat-send');
-        jump.addEventListener('click', () => {
-          toEnd(true);
-          jump.hidden = true;
-        });
-        const grow = () => {
-          input.style.height = 'auto';
-          input.style.height = Math.min(input.scrollHeight, 160) + 'px';
-        };
-        const ready = () => {
-          const on = !!input.value.trim();
-          if (send.disabled === !on) return;
-          send.disabled = !on;
-          if (on) Nook.fx.pop(send, 0.7);
-        };
-        input.addEventListener('input', () => {
-          grow();
-          ready();
-        });
-        input.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(hover: hover)').matches) {
-            e.preventDefault();
-            form.requestSubmit();
-          }
-        });
-        // the keyboard opening shouldn't leave the newest messages hidden underneath it
-        input.addEventListener('focus', () => setTimeout(() => nearEnd() || toEnd(true), 350));
-
-        async function deliver(m) {
-          m.pending = true;
-          m.failed = false;
-          paint({ follow: true });
-          sending++;
-          try {
-            const real = await store.sendMessage(u.name, m.body);
-            pending.splice(pending.indexOf(m), 1);
-            // the confirmed message takes the place of the one already on screen, without springing in again
-            shown.add(String(real.id));
-          } catch (error) {
-            m.pending = false;
-            m.failed = true;
-            app().showError(error);
-          } finally {
-            sending--;
-          }
-          paint({ follow: !m.failed });
-        }
-
-        form.addEventListener('submit', (e) => {
-          e.preventDefault();
-          const text = input.value.trim();
-          if (!text) return;
-          const verdict = Nook.mod.check([text], { kind: 'message' });
-          if (verdict.block) return app().showError({ rule: verdict.block.rule, message: verdict.block.why });
-          // it's on screen at once, and you can keep typing while it goes
-          input.value = '';
-          grow();
-          ready();
-          const m = { id: store.uid('local'), body: text, createdAt: Date.now(), mine: true };
-          pending.push(m);
-          deliver(m);
-          Nook.fx.haptic(8);
-          input.focus({ preventScroll: true });
-        });
-        list.addEventListener('click', (e) => {
-          if (!e.target.closest('.chat-retry')) return;
-          pending.filter((m) => m.failed).forEach(deliver);
-        });
-        // on a computer the box is ready to type in; on a phone the keyboard waits for a tap
-        if (matchMedia('(hover: hover)').matches) input.focus({ preventScroll: true });
       },
     };
   }
@@ -1419,7 +1658,7 @@
 
   Nook.views = {
     home, popular, community, postPage, explore, saved, collection, profile, inbox, searchPage, settingsPage, submit, notFound,
-    friendsPage, messagesPage, thread, adminPage, friendButtons,
+    friendsPage, messagesPage, thread, groupThread, adminPage, friendButtons, lineText, groupIcon, chatsPlus,
     postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
     submitRail, empty, mountFeed,
   };

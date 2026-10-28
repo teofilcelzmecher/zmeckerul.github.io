@@ -4234,15 +4234,26 @@ html.visitor .landing {
   border-bottom: 1px solid transparent;
   background: var(--m3-background);
 }
-.chat-report {
-  margin-left: auto;
-}
 .chat-who {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
+  /* whatever follows (calls, report, info) sits at the far end */
+  margin-right: auto;
   color: inherit;
+}
+button.chat-who {
+  padding: 4px 8px 4px 0;
+  border: 0;
+  border-radius: var(--m3-r-normal);
+  background: none;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.chat-head .m3-icon-btn {
+  flex: none;
 }
 .chat-who span {
   display: grid;
@@ -4406,6 +4417,116 @@ html.visitor .landing {
   font-weight: 600;
   cursor: pointer;
 }
+/* a call, or news about a group (who joined, left or renamed it), between the messages */
+.chat-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 8px;
+  margin: 14px auto 2px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  text-align: center;
+}
+.chat-line .m3-icon {
+  color: var(--m3-primary);
+  font-size: 18px;
+}
+.chat-line small {
+  opacity: 0.8;
+}
+.chat-line.missed {
+  background: var(--m3-error-container);
+  color: var(--m3-on-error-container);
+}
+.chat-line.missed .m3-icon {
+  color: inherit;
+}
+.chat-line .m3-btn {
+  min-height: 32px;
+}
+.msg-name {
+  padding: 0 14px;
+  overflow: hidden;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.msg-name:hover {
+  color: var(--m3-primary);
+}
+.msg-menu-quote {
+  display: -webkit-box;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--m3-surface-container-high);
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.chat-list .bubble {
+  /* a long press opens Budgie's menu, not the phone's */
+  -webkit-touch-callout: none;
+}
+
+/* groups: their preview, the friends to pick, the people in one */
+.group-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.group-preview b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pick-list {
+  display: grid;
+  gap: 2px;
+  max-height: min(300px, 40dvh);
+  overflow-y: auto;
+  border-radius: var(--m3-r-normal);
+  background: var(--m3-surface-container-low);
+  padding: 4px;
+}
+.pick-row {
+  min-height: 52px;
+  padding: 4px 8px;
+  border-radius: var(--m3-r-normal);
+}
+.pick-row:hover {
+  background: var(--m3-layer1-hover);
+}
+.group-members {
+  display: grid;
+  gap: 2px;
+}
+.group-member {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.group-member .row-link {
+  flex: 1;
+  min-width: 0;
+}
+.group-tools {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+.sheet-note {
+  margin: 12px 0 0;
+  font-size: var(--m3-fs-smaller);
+}
+
 .chat-empty {
   display: grid;
   justify-items: center;
@@ -4647,4 +4768,563 @@ html.framed body {
   .profile-hero.has-banner .profile-main > .avatar {
     margin-top: -44px;
   }
+}
+
+/* ---- calls ------------------------------------------------------------------------------------------------------ */
+
+/* the call screens are always dark: Material 3's dark baseline until the caller's own colours arrive */
+.call-ring,
+.call-screen,
+.call-pill {
+  --m3-primary: #d0bcff;
+  --m3-on-primary: #381e72;
+  --m3-primary-container: #4f378b;
+  --m3-on-primary-container: #eaddff;
+  --m3-secondary-container: #4a4458;
+  --m3-on-secondary-container: #e8def8;
+  --m3-error: #f2b8b5;
+  --m3-on-error: #601410;
+  --m3-surface-container-lowest: #0f0d13;
+  --m3-surface-container-low: #1d1b20;
+  --m3-surface-container: #211f26;
+  --m3-surface-container-high: #2b2930;
+  --m3-surface-container-highest: #36343b;
+  --m3-on-surface: #e6e0e9;
+  --m3-on-surface-variant: #cac4d0;
+  --m3-outline-variant: #49454f;
+  color-scheme: dark;
+}
+
+.call-btn {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 0;
+  border-radius: 32px;
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface);
+  cursor: pointer;
+  transition: border-radius var(--m3-motion-click-bounce), background-color 200ms, color 200ms, scale var(--m3-motion-click-bounce), box-shadow 90ms linear;
+  -webkit-tap-highlight-color: transparent;
+}
+.call-btn .m3-icon {
+  font-size: 28px;
+  font-variation-settings: 'FILL' 1;
+}
+.call-btn:hover {
+  filter: brightness(1.12);
+}
+.call-btn:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 3px;
+}
+/* pressed, a round button squares up a little: Material 3 Expressive's shape change */
+.call-btn:active {
+  border-radius: 20px;
+  scale: 0.94;
+}
+.call-btn.off {
+  border-radius: 20px;
+  background: var(--m3-on-surface);
+  color: var(--m3-surface-container-lowest);
+}
+.call-btn.hang {
+  background: #dc362e;
+  color: #fff;
+}
+.call-btn.wide {
+  width: 96px;
+}
+.call-btn.answer {
+  background: #1e8e3e;
+  color: #fff;
+}
+.call-btn.answer .m3-icon {
+  animation: call-wiggle 1.8s var(--m3-ease-standard) infinite;
+}
+.call-btn[data-call='mic']:not(.off) {
+  /* your own voice: a glow that grows as you speak */
+  box-shadow: 0 0 0 calc(var(--level, 0) * 9px) color-mix(in srgb, var(--m3-primary) 45%, transparent);
+}
+.call-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@keyframes call-wiggle {
+  0%,
+  55%,
+  100% {
+    rotate: 0deg;
+  }
+  65% {
+    rotate: -16deg;
+  }
+  75% {
+    rotate: 14deg;
+  }
+  85% {
+    rotate: -8deg;
+  }
+}
+
+/* the face being rung, inside a shape that keeps turning and changing */
+.ring-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 210px;
+  height: 210px;
+}
+.ring-face.big {
+  width: 250px;
+  height: 250px;
+}
+.ring-halo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-primary-container);
+  animation: call-spin 14s linear infinite;
+}
+.ring-halo.two {
+  top: 12%;
+  left: 12%;
+  width: 76%;
+  height: 76%;
+  color: var(--m3-primary);
+  opacity: 0.32;
+  animation-duration: 9s;
+  animation-direction: reverse;
+}
+.ring-pic {
+  position: relative;
+  animation: call-breathe 2.6s var(--m3-ease-standard) infinite;
+}
+@keyframes call-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+@keyframes call-breathe {
+  50% {
+    scale: 1.05;
+  }
+}
+html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon, .pill-dot) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon, .pill-dot) {
+    animation: none;
+  }
+}
+
+/* someone's calling: the whole screen on a phone, a card in the corner on a computer */
+.call-ring {
+  position: fixed;
+  inset: 0;
+  z-index: 935;
+  display: flex;
+  background: var(--m3-surface-container-lowest);
+  color: var(--m3-on-surface);
+}
+.ring-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: calc(32px + env(safe-area-inset-top, 0px)) 24px calc(48px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+}
+.ring-card h2 {
+  max-width: 100%;
+  margin: 18px 0 0;
+  overflow: hidden;
+  font-size: 34px;
+  font-weight: 760;
+  font-stretch: 110%;
+  font-variation-settings: 'ROND' 100;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ring-what {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-large, 18px);
+}
+.ring-what .m3-icon {
+  color: var(--m3-primary);
+}
+.ring-actions,
+.ring-labels {
+  display: flex;
+  justify-content: center;
+  gap: 88px;
+}
+.ring-actions {
+  margin-top: auto;
+  padding-top: 40px;
+}
+.ring-actions .call-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 38px;
+}
+.ring-actions .call-btn:active {
+  border-radius: 24px;
+}
+.ring-labels span {
+  width: 76px;
+  color: var(--m3-on-surface-variant);
+  font-weight: 600;
+}
+@media (min-width: 720px) {
+  .call-ring {
+    inset: auto 24px 24px auto;
+    width: 380px;
+    overflow: hidden;
+    border-radius: 36px;
+    box-shadow: 0 16px 48px rgb(0 0 0 / 0.4);
+  }
+  .ring-card {
+    padding: 28px 24px 24px;
+  }
+  .ring-card .ring-face {
+    width: 170px;
+    height: 170px;
+  }
+  .ring-card h2 {
+    margin-top: 8px;
+    font-size: 26px;
+  }
+  .ring-actions {
+    padding-top: 20px;
+  }
+}
+
+/* on a call */
+.call-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 930;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: var(--m3-surface-container-lowest);
+  color: var(--m3-on-surface);
+}
+.call-screen[hidden] {
+  display: none;
+}
+.call-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 4px;
+}
+.call-top .m3-icon-btn {
+  color: var(--m3-on-surface);
+}
+.call-title {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+.call-title b {
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 720;
+  font-stretch: 108%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-status {
+  color: var(--m3-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+.call-lock {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  color: var(--m3-on-surface-variant);
+}
+.call-lock .m3-icon {
+  font-size: 20px;
+}
+.call-stage {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  justify-content: center;
+  gap: 16px 12px;
+  min-height: 0;
+  padding: 12px;
+  overflow: hidden;
+  transition: opacity 300ms, filter 300ms;
+}
+.call-screen.ended .call-stage {
+  opacity: 0.45;
+  filter: saturate(0.4);
+}
+.call-waiting {
+  display: grid;
+  place-items: center;
+}
+.call-tile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  width: 150px;
+}
+.tile-face {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 136px;
+  height: 136px;
+}
+/* their shape swells as they speak */
+.tile-halo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-surface-container-high);
+  scale: calc(0.82 + var(--level, 0) * 0.3);
+  transition: scale 80ms linear, color 200ms;
+}
+.call-tile.speaking .tile-halo {
+  color: var(--m3-primary-container);
+}
+.tile-pic {
+  position: relative;
+  transition: opacity 200ms;
+}
+.call-tile[data-state='wait'] .tile-pic,
+.call-tile[data-state='failed'] .tile-pic {
+  opacity: 0.55;
+}
+.tile-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 4px;
+  max-width: 100%;
+  font-weight: 680;
+}
+.tile-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tile-muted {
+  display: inline-grid;
+}
+.tile-muted[hidden] {
+  display: none;
+}
+.tile-muted .m3-icon {
+  color: var(--m3-error);
+  font-size: 18px;
+}
+.tile-state {
+  flex-basis: 100%;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 500;
+}
+.tile-state:empty {
+  display: none;
+}
+.call-tile audio,
+.call-tile video {
+  display: none;
+}
+
+/* video: everyone in rounded tiles, as many to a row as fits */
+.call-screen[data-media='video'] .call-stage {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px;
+}
+.call-screen[data-media='video'] .call-stage:is([data-count='3'], [data-count='4'], [data-count='5']) {
+  grid-template-columns: 1fr 1fr;
+}
+@media (min-aspect-ratio: 1/1) {
+  .call-screen[data-media='video'] .call-stage[data-count='2'] {
+    grid-template-columns: 1fr 1fr;
+  }
+  .call-screen[data-media='video'] .call-stage[data-count='5'] {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+.call-screen[data-media='video'] .call-tile {
+  width: auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--m3-surface-container);
+  transition: box-shadow 150ms;
+}
+.call-screen[data-media='video'] .call-tile video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 300ms;
+}
+.call-screen[data-media='video'] .call-tile.has-video video {
+  opacity: 1;
+}
+.call-screen[data-media='video'] .call-tile.has-video .tile-face {
+  visibility: hidden;
+}
+.call-screen[data-media='video'] .call-tile.speaking {
+  box-shadow: inset 0 0 0 3px var(--m3-primary);
+}
+.call-screen[data-media='video'] .call-tile .tile-name {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  justify-content: flex-start;
+  max-width: calc(100% - 24px);
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.5);
+  color: #fff;
+}
+.call-screen[data-media='video'] .call-tile .tile-state {
+  color: rgb(255 255 255 / 0.8);
+}
+.call-self {
+  position: absolute;
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  z-index: 2;
+  width: 108px;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 20px;
+  background: #000;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.45);
+}
+.call-self.mirror {
+  transform: scaleX(-1);
+}
+.call-self[hidden] {
+  display: none;
+}
+@media (min-width: 720px) {
+  .call-self {
+    width: 220px;
+    aspect-ratio: 16 / 10;
+  }
+}
+.call-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  margin: 6px auto 18px;
+  padding: 12px;
+  border-radius: 44px;
+  background: var(--m3-surface-container-high);
+}
+.call-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+}
+
+/* a call carrying on while you look at something else */
+.call-pill {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 925;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  height: 44px;
+  padding: 0 16px 0 14px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.3);
+  font: inherit;
+  font-weight: 650;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+.call-pill > span:not(.pill-dot) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.call-pill .m3-icon {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1;
+}
+.call-pill b {
+  flex: none;
+  padding-left: 10px;
+  border-left: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+}
+.pill-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6dd58c;
+  animation: call-blink 1.6s ease-in-out infinite;
+}
+@keyframes call-blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* a group's call going on, in its chat */
+.call-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+  padding: 8px 8px 8px 16px;
+  border-radius: 24px;
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  font-weight: 650;
+}
+.call-banner span {
+  flex: 1;
+}
+.call-banner .m3-icon {
+  font-variation-settings: 'FILL' 1;
 }

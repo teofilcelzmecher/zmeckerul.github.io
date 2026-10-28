@@ -9,7 +9,7 @@ const DATA = path.join(os.tmpdir(), 'nook-api-test');
 fs.rmSync(DATA, { recursive: true, force: true });
 // the picture and text checks score by markers in test mode ("#explicit" at a picture's end, "#harmful" in text)
 // and the robot check on sign-up asks no one: the answer "pass" passes
-const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test', NOOK_CAPTCHA: 'test' };
+const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8799', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'test', NOOK_TEXT_CHECK: 'test', NOOK_CAPTCHA: 'test', NOOK_RING_MS: '1500', NOOK_TURN: 'test' };
 const BASE = 'http://127.0.0.1:8799';
 const cli = (...a) => execFileSync('node', [SERVER + '/cli.js', ...a], { env, encoding: 'utf8' });
 
@@ -26,6 +26,50 @@ async function api(token, method, path, body, origin = 'http://localhost:8790') 
   });
   const json = await res.json().catch(() => ({}));
   return { status: res.status, json, headers: res.headers };
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** a device's live event stream (Server-Sent Events, read the way the app reads it: fetch with a token) */
+function listen(token) {
+  const events = [];
+  const stop = new AbortController();
+  fetch(BASE + '/api/live', { headers: { Authorization: 'Bearer ' + token, Origin: 'http://localhost:8790' }, signal: stop.signal })
+    .then(async (res) => {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        let end;
+        while ((end = buffer.indexOf('\n\n')) >= 0) {
+          const block = buffer.slice(0, end);
+          buffer = buffer.slice(end + 2);
+          let type = 'message';
+          let data = '';
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event: ')) type = line.slice(7);
+            else if (line.startsWith('data: ')) data += line.slice(6);
+          }
+          if (data) events.push({ type, data: JSON.parse(data) });
+        }
+      }
+    })
+    .catch(() => {});
+  return {
+    events,
+    close: () => stop.abort(),
+    async wait(type, test = () => true, ms = 3000) {
+      for (let t = 0; t < ms; t += 50) {
+        const e = events.find((x) => x.type === type && test(x.data));
+        if (e) return e;
+        await sleep(50);
+      }
+      return null;
+    },
+  };
 }
 
 let proc; // the test server, stopped however the tests end
@@ -366,6 +410,121 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
     console.log(JSON.stringify(out));`], { env, encoding: 'utf8' }));
   ok(late.status === 200 && v1.alice.includes('early') && !v1.erin.includes('early'), 'after 1.0, new accounts aren’t Early Birds; earlier ones keep it', JSON.stringify(v1));
 
+  // group chats: friends only, the owner's powers, new members see the chat from when they joined, checked like DMs
+  const D = open.json.token;
+  const TF = teofil.json.token;
+  const updates = (token) => api(token, 'GET', '/api/updates?rev=0&note=0&msg=0&gmsg=0').then((r) => r.json);
+  const notYet = await api(A, 'POST', '/api/groups', { name: 'Bakers', members: ['bob', 'dora'] });
+  ok(notYet.status === 403 && /isn’t one yet/.test(notYet.json.error), 'only friends can be put in a group', notYet.json.error);
+  await api(A, 'POST', '/api/friends', { name: 'dora' });
+  await api(D, 'POST', '/api/friends', { name: 'alice' });
+  const noName = await api(A, 'POST', '/api/groups', { name: '  ', members: ['bob'] });
+  ok(noName.status === 400 && noName.json.field === 'name', 'a group needs a name');
+  const rudeName = await api(A, 'POST', '/api/groups', { name: 'fuck off', members: ['bob'] });
+  ok(rudeName.status === 422, 'a group’s name is checked like a username', rudeName.json.error);
+  const made = await api(A, 'POST', '/api/groups', { name: 'Bakers', members: ['bob', 'dora'] });
+  const GR = made.json.group;
+  ok(made.status === 200 && GR.members.length === 3 && GR.role === 'owner' && GR.members.find((m) => m.name === 'alice').role === 'owner', 'alice makes a group with bob and dora', made.json.error);
+  const doraUp = await updates(D);
+  ok(doraUp.groups.some((g) => g.id === GR.id) && doraUp.groupIds.includes(GR.id) && doraUp.notes.some((n) => /u\/alice added you to the group “Bakers”/.test(n.text)), 'dora gets the group, and is told who added her');
+  const said = await api(B, 'POST', `/api/groups/${GR.id}/messages`, { body: 'Rye this Saturday?' });
+  ok(said.status === 200 && said.json.message.mine && said.json.message.group === GR.id, 'bob writes in the group');
+  const groupThreat = await api(B, 'POST', `/api/groups/${GR.id}/messages`, { body: 'kill yourself' });
+  ok(groupThreat.status === 422, 'group messages are checked like private ones', groupThreat.json.error);
+  const aliceUp = await updates(A);
+  const aliceGroup = aliceUp.groups.find((g) => g.id === GR.id);
+  ok(aliceUp.gmessages.some((m) => m.body === 'Rye this Saturday?' && m.from === 'bob') && aliceGroup.unread === 1, 'alice gets it, unread', aliceGroup && aliceGroup.unread);
+  await api(A, 'POST', `/api/groups/${GR.id}/read`, {});
+  ok((await api(A, 'GET', '/api/bootstrap')).json.groups.find((g) => g.id === GR.id).unread === 0, 'and reads it');
+  const bobRenames = await api(B, 'PATCH', `/api/groups/${GR.id}`, { name: 'Bread heads' });
+  ok(bobRenames.status === 403, 'only the owner changes the group');
+  const renamed = await api(A, 'PATCH', `/api/groups/${GR.id}`, { name: 'Bread heads', color: '#3f8f4f', shape: 'flower' });
+  ok(renamed.status === 200 && renamed.json.group.name === 'Bread heads' && renamed.json.group.shape === 'flower' && renamed.json.group.color === '#3f8f4f', 'alice renames it and picks its colour and shape');
+  const strangerAdd = await api(B, 'POST', `/api/groups/${GR.id}/members`, { names: ['erin'] });
+  ok(strangerAdd.status === 403, 'bob can’t add someone who isn’t his friend');
+  await api(A, 'POST', '/api/friends', { name: 'Teofil' });
+  await api(TF, 'POST', '/api/friends', { name: 'alice' });
+  const added = await api(A, 'POST', `/api/groups/${GR.id}/members`, { names: ['Teofil'] });
+  ok(added.status === 200 && added.json.group.members.length === 4, 'alice adds Teofil, a friend of hers');
+  const twice = await api(A, 'POST', `/api/groups/${GR.id}/members`, { names: ['Teofil'] });
+  ok(twice.status === 409, 'no one is added twice');
+  const newcomer = (await api(TF, 'GET', `/api/groups/${GR.id}/messages`)).json.messages;
+  ok(newcomer.length === 1 && newcomer[0].kind === 'event' && JSON.parse(newcomer[0].body).type === 'added', 'Teofil sees the chat from being added on, not what was said before', JSON.stringify(newcomer.map((m) => m.kind)));
+  const bobRemoves = await api(B, 'DELETE', `/api/groups/${GR.id}/members/dora`);
+  ok(bobRemoves.status === 403, 'only the owner removes people');
+  const removedDora = await api(A, 'DELETE', `/api/groups/${GR.id}/members/dora`);
+  ok(removedDora.status === 200 && !removedDora.json.group.members.some((m) => m.name === 'dora'), 'alice removes dora');
+  const doraAfter = await updates(D);
+  ok((await api(D, 'GET', `/api/groups/${GR.id}/messages`)).status === 404 && !doraAfter.groupIds.includes(GR.id) && doraAfter.notes.some((n) => /removed from the group/.test(n.text)), 'dora can’t read it any more, and is told');
+  const reportedG = await api(TF, 'POST', '/api/reports', { kind: 'gmessage', id: String(said.json.message.id), reason: 'Testing group reports' });
+  ok(reportedG.status === 200, 'a group message can be reported');
+  const groupReports = (await api(A, 'GET', '/api/admin/reports')).json.reports.filter((r) => r.kind === 'gmessage');
+  ok(groupReports.some((r) => r.item && r.item.body === 'Rye this Saturday?' && /Bread heads/.test(r.item.title)), 'moderators see the reported group message, and where it was said');
+
+  // calls: friends or the same group only; a live stream rings; offers pass between the two; a line in the chat after
+  const bobLive = listen(B);
+  ok(await bobLive.wait('hello'), 'a device opens a live event stream');
+  const strangerCall = await api(A, 'POST', '/api/calls', { to: 'erin', media: 'voice' });
+  ok(strangerCall.status === 403, 'only friends can be called', strangerCall.json.error);
+  const ringing = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'video' });
+  const CALL = ringing.json.call;
+  ok(ringing.status === 200 && CALL.media === 'video' && CALL.with === 'bob' && ringing.json.ice.iceServers[0].urls[0] === 'stun:stun.cloudflare.com:3478' && !ringing.json.ice.relay, 'alice video-calls bob, with Cloudflare’s STUN server to find a way', ringing.json.error);
+  const rang = await bobLive.wait('call-ring', (d) => d.call.id === CALL.id);
+  ok(rang && rang.data.call.from === 'alice', 'bob’s device rings straight away');
+  ok((await api(B, 'GET', '/api/signals?after=0')).json.signals.some((x) => x.type === 'call-ring'), 'the ring waits for a device that polls instead');
+  ok((await updates(B)).ringing.some((c) => c.id === CALL.id), 'and shows in updates too');
+  const busy = await api(D, 'POST', '/api/calls', { to: 'alice', media: 'voice' });
+  ok(busy.status === 409, 'someone already on a call is busy', busy.json.error);
+  const answered = await api(B, 'POST', `/api/calls/${CALL.id}/join`, {});
+  ok(answered.status === 200 && answered.json.peers.join() === 'alice', 'bob answers: alice is there to connect to');
+  const aliceSignals = async () => (await api(A, 'GET', '/api/signals?after=0')).json.signals;
+  ok((await aliceSignals()).some((x) => x.type === 'call-joined' && x.data.user === 'bob'), 'alice is told bob is there');
+  const offered = await api(B, 'POST', `/api/calls/${CALL.id}/signal`, { to: 'alice', type: 'offer', data: { sdp: 'v=0 test' } });
+  ok(offered.status === 200 && (await aliceSignals()).some((x) => x.type === 'call-signal' && x.data.type === 'offer' && x.data.data.sdp === 'v=0 test' && x.data.from === 'bob'), 'bob’s offer reaches alice');
+  const intruder = await api(D, 'POST', `/api/calls/${CALL.id}/signal`, { to: 'alice', type: 'offer', data: {} });
+  ok(intruder.status === 404, 'nobody outside the call can signal into it');
+  await sleep(1100);
+  await api(A, 'POST', `/api/calls/${CALL.id}/leave`, {});
+  const hungUp = await bobLive.wait('call-ended', (d) => d.call === CALL.id);
+  ok(hungUp && hungUp.data.reason === 'ended', 'alice hangs up: the call ends for bob too');
+  const callLine = (await api(B, 'GET', '/api/messages?with=alice')).json.messages.pop();
+  const callInfo = JSON.parse(callLine.body);
+  ok(callLine.kind === 'call' && callInfo.media === 'video' && callInfo.secs >= 1 && !callInfo.missed, 'the chat gets a line: a video call, and how long it was', callLine.body);
+  const declined = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  await api(B, 'POST', `/api/calls/${declined.json.call.id}/decline`, {});
+  const bobConvo = (await updates(B)).conversations.find((c) => c.with === 'alice');
+  ok(bobConvo.last.kind === 'call' && JSON.parse(bobConvo.last.body).missed && bobConvo.unread >= 1, 'a declined call shows as missed, unread for bob');
+  const unanswered = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  await sleep(2000);
+  ok((await aliceSignals()).some((x) => x.type === 'call-ended' && x.data.call === unanswered.json.call.id && x.data.reason === 'no-answer'), 'a call nobody answers stops ringing and ends');
+  await api(B, 'POST', '/api/settings/calls', { on: false });
+  const callsOff = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  ok(callsOff.status === 403 && /isn’t taking calls/.test(callsOff.json.error), 'bob turns calls off: nobody can ring him');
+  ok((await api(B, 'GET', '/api/bootstrap')).json.me.calls === 'off', 'and the setting is kept');
+  await api(B, 'POST', '/api/settings/calls', { on: true });
+  const groupCall = await api(A, 'POST', '/api/calls', { group: GR.id, media: 'voice' });
+  const GC = groupCall.json.call;
+  ok(groupCall.status === 200 && GC.group.name === 'Bread heads', 'alice starts a call in the group');
+  const rangIn = async (token) => (await api(token, 'GET', '/api/signals?after=0')).json.signals.some((x) => x.type === 'call-ring' && x.data.call.id === GC.id);
+  ok((await rangIn(B)) && (await rangIn(TF)) && !(await rangIn(D)), 'bob and Teofil ring, dora (no longer in the group) doesn’t');
+  const joinGoing = await api(TF, 'POST', '/api/calls', { group: GR.id, media: 'voice' });
+  ok(joinGoing.status === 200 && joinGoing.json.call.id === GC.id && joinGoing.json.peers.join() === 'alice', 'Teofil pressing call joins the call already going');
+  ok((await api(D, 'POST', `/api/calls/${GC.id}/join`, {})).status === 403, 'dora can’t join the group’s call');
+  await api(B, 'POST', `/api/calls/${GC.id}/join`, {});
+  await api(A, 'POST', `/api/calls/${GC.id}/leave`, {});
+  const bobGroupSignals = (await api(B, 'GET', '/api/signals?after=0')).json.signals;
+  ok(bobGroupSignals.some((x) => x.type === 'call-left' && x.data.user === 'alice') && !bobGroupSignals.some((x) => x.type === 'call-ended' && x.data.call === GC.id), 'alice leaves: the group call goes on for the others');
+  await api(B, 'POST', `/api/calls/${GC.id}/leave`, {});
+  await api(TF, 'POST', `/api/calls/${GC.id}/leave`, {});
+  const groupCallLine = (await api(B, 'GET', `/api/groups/${GR.id}/messages`)).json.messages.pop();
+  ok(groupCallLine.kind === 'call' && !JSON.parse(groupCallLine.body).missed, 'when the last one leaves, the group chat gets the call’s line');
+  await api(A, 'POST', `/api/groups/${GR.id}/leave`, {});
+  const handedOver = (await api(B, 'GET', '/api/bootstrap')).json.groups.find((g) => g.id === GR.id);
+  ok(handedOver && !handedOver.members.some((m) => m.name === 'alice') && handedOver.members.find((m) => m.role === 'owner'), 'when the owner leaves, whoever has been there longest takes over', JSON.stringify(handedOver && handedOver.members));
+  bobLive.close();
+  ok(/straight between devices/.test(cli('turn')), 'the cli says how calls connect');
+  ok(/through Cloudflare's TURN relay/.test(cli('turn', 'abcdefabcdefabcdefabcdefabcdef12', 'test-token-test-token-1234')) && /straight between devices/.test(cli('turn', 'off')), 'and sets up (and turns off) Cloudflare’s relay');
+
   // password, recovery, ban, export, delete
   const pw = await api(B, 'POST', '/api/account/password', { current: 'battery staple', password: 'new password 1' });
   ok(pw.status === 200, 'bob changes his password');
@@ -382,7 +541,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(bobIn.status === 403 && /Testing bans/.test(bobIn.json.error), 'banned bob can’t sign in', bobIn.json.error);
   await api(A2, 'POST', '/api/admin/ban', { name: 'bob', on: false });
   const exp = await api(A2, 'GET', '/api/account/export');
-  ok(exp.json.profile.name === 'alice' && exp.json.messages.length === 4 && exp.json.posts.length >= 1, 'export has everything', Object.keys(exp.json).join(',') + ' ' + exp.json.messages.length);
+  ok(exp.json.profile.name === 'alice' && exp.json.messages.filter((m) => !m.kind).length === 4 && exp.json.messages.some((m) => m.kind === 'call') && exp.json.groups && exp.json.posts.length >= 1, 'export has everything', Object.keys(exp.json).join(',') + ' ' + exp.json.messages.length);
   const del = await api(A2, 'POST', '/api/account/delete', { password: 'brand new pass' });
   ok(del.status === 200, 'alice deletes her account');
   const bobAfter = await api(null, 'POST', '/api/login', { name: 'bob', password: 'new password 1' });

@@ -29,6 +29,7 @@ const COMMANDS = {
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
       '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
+      '  nook turn <key id> <api token>   send calls through Cloudflare\'s TURN relay (they always connect, and nobody sees another\'s IP); nook turn off goes back to direct calls',
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
@@ -85,6 +86,40 @@ const COMMANDS = {
     db.meta('turnstile-site', site);
     db.meta('turnstile-secret', secret);
     out('The robot check is on: new accounts go through Cloudflare Turnstile first. No restart needed.', 'If it ever causes trouble: nook captcha off');
+  },
+
+  async turn(key, token) {
+    if (key === 'off') {
+      db.meta('turn-key', '');
+      db.meta('turn-token', '');
+      return out('Calls go straight between devices now, with Cloudflare\'s free STUN server helping them find each other.', 'To use the relay again: nook turn <key id> <api token>');
+    }
+    if (!key) {
+      return out(
+        db.meta('turn-key')
+          ? `Calls go through Cloudflare's TURN relay (key ${db.meta('turn-key')}): they connect on any network, and nobody in a call sees another's IP address. Go back to direct calls with: nook turn off`
+          : 'Calls go straight between devices, with Cloudflare\'s free STUN server helping them find each other. Some networks block that, and people in a call can see each other\'s IP address. For calls that always connect: nook turn <key id> <api token>'
+      );
+    }
+    if (!/^[A-Za-z0-9_-]{16,100}$/.test(key) || !/^[A-Za-z0-9_.-]{20,300}$/.test(token || '')) quit('Usage: nook turn <TURN key id> <API token>   (both from Realtime → TURN in the Cloudflare dashboard)');
+    // Cloudflare is asked for a minute-long credential, so a wrong key or token shows up now rather than in a call
+    if (process.env.NOOK_TURN !== 'test') {
+      let res;
+      try {
+        res = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(key)}/credentials/generate-ice-servers`, {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ttl: 60 }),
+          signal: AbortSignal.timeout(15000),
+        });
+      } catch (error) {
+        quit(`Couldn't reach Cloudflare to check the key (${error.message}). Is the laptop online?`);
+      }
+      if (!res.ok) quit(`Cloudflare didn't accept that key id and API token (it answered ${res.status}). Copy both again from Realtime → TURN in the Cloudflare dashboard.`);
+    }
+    db.meta('turn-key', key);
+    db.meta('turn-token', token);
+    out('Calls now go through Cloudflare\'s TURN relay: they connect on any network, and nobody in a call sees another\'s IP address. The first 1,000 GB a month are free. No restart needed.', 'To go back to direct calls: nook turn off');
   },
 
   invite(count = '1', ...note) {
@@ -278,6 +313,7 @@ const COMMANDS = {
       `  posts:     ${count('SELECT COUNT(*) AS n FROM posts WHERE removed_at IS NULL')}`,
       `  comments:  ${count('SELECT COUNT(*) AS n FROM comments WHERE removed_at IS NULL')}`,
       `  messages:  ${count('SELECT COUNT(*) AS n FROM messages')}`,
+      `  groups:    ${count('SELECT COUNT(*) AS n FROM chat_groups')}, with ${count('SELECT COUNT(*) AS n FROM group_messages')} messages`,
       `  images:    ${count('SELECT COUNT(*) AS n FROM images')}`,
       `  open reports: ${count('SELECT COUNT(*) AS n FROM reports WHERE resolved_at IS NULL')}`,
       `  unused invites: ${count('SELECT COUNT(*) AS n FROM invites WHERE used_at IS NULL')}`

@@ -89,5 +89,10 @@
     put: (path, body, options) => request('PUT', path, body || {}, options),
     patch: (path, body) => request('PATCH', path, body || {}),
     del: (path) => request('DELETE', path),
+    /** an answer that keeps coming (the live event stream), read as it arrives */
+    stream: (path, signal) =>
+      base
+        ? fetch(base + path, { headers: Object.assign({ Accept: 'text/event-stream' }, token ? { Authorization: 'Bearer ' + token } : {}), cache: 'no-store', signal })
+        : Promise.reject(new ApiError(0, { error: 'Budgie’s server isn’t set up yet.', offline: true })),
   };
 })();

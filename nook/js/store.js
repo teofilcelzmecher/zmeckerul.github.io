@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.8.0';
+  const VERSION = '0.9.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -73,7 +73,7 @@
   const meFrom = (me) => ({
     name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
     pronouns: me.pronouns || '', flag: me.flag || '', interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
-    joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [],
+    joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [], calls: me.calls || 'on',
   });
 
   const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});
@@ -93,6 +93,8 @@
     notes: BOOT.notes || [],
     friends: BOOT.friends || [],
     conversations: BOOT.conversations || [],
+    // group chats (from 0.9.0): `seen` is the newest message already counted, so none is counted twice
+    groups: (BOOT.groups || []).map((g) => Object.assign(g, { seen: g.last ? g.last.id : 0 })),
     following: [],
   });
   for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
@@ -621,6 +623,95 @@
     emit('friends');
   }
 
+  // ---- group chats -----------------------------------------------------------------------------------------------
+
+  const groupThreads = new Map();
+  const group = (id) => state.groups.find((g) => g.id === id) || null;
+  const groupThread = (id) => groupThreads.get(id) || { messages: [], loaded: false, more: false };
+
+  function putGroup(g) {
+    const had = group(g.id);
+    const seen = Math.max(had ? had.seen || 0 : 0, g.last ? g.last.id : 0);
+    if (had) Object.assign(had, g, { seen });
+    else state.groups.push(Object.assign(g, { seen }));
+    const now = group(g.id);
+    // a chat open right now stays read
+    if (now.reading) now.unread = 0;
+    return now;
+  }
+
+  function appendGroupMessage(m) {
+    const t = groupThreads.get(m.group);
+    if (t && !t.messages.some((x) => x.id === m.id)) t.messages.push(m);
+    const g = group(m.group);
+    if (!g) return;
+    if (!g.last || g.last.id <= m.id) g.last = m;
+    if (!m.mine && m.id > (g.seen || 0) && !g.reading) g.unread = (g.unread || 0) + 1;
+    g.seen = Math.max(g.seen || 0, m.id);
+  }
+
+  async function createGroup(name, members, look = {}) {
+    const { group: g } = await api.post('/api/groups', Object.assign({ name, members }, look));
+    putGroup(g);
+    emit('groups');
+    return group(g.id);
+  }
+
+  async function loadGroupThread(id, { older = false } = {}) {
+    const t = groupThreads.get(id) || { messages: [], loaded: false, more: false };
+    const before = older && t.messages.length ? `?before=${t.messages[0].id}` : '';
+    const r = await api.get(`/api/groups/${encodeURIComponent(id)}/messages${before}`);
+    t.messages = older ? [...r.messages, ...t.messages] : r.messages;
+    t.loaded = true;
+    t.more = r.more;
+    groupThreads.set(id, t);
+    return t;
+  }
+
+  async function sendGroupMessage(id, body) {
+    const { message } = await api.post(`/api/groups/${encodeURIComponent(id)}/messages`, { body });
+    appendGroupMessage(message);
+    emit('messages');
+    return message;
+  }
+
+  function markGroupRead(id) {
+    const g = group(id);
+    if (!g) return;
+    // while a group is open its news never counts as unread here, so the server still needs telling
+    const upTo = g.last && !g.last.mine ? g.last.id : 0;
+    if (!g.unread && upTo <= (g.readTo || 0)) return;
+    g.readTo = Math.max(g.readTo || 0, upTo);
+    g.unread = 0;
+    emit('messages');
+    api.post(`/api/groups/${encodeURIComponent(id)}/read`, {}).catch((error) => emit('error', error));
+  }
+
+  /** a change to a group: the group as it is now, and the chat line saying so comes with the next sync */
+  async function changedGroup(request) {
+    const { group: g } = await request;
+    putGroup(g);
+    emit('groups');
+    sync();
+    return group(g.id);
+  }
+  const renameGroup = (id, fields) => changedGroup(api.patch(`/api/groups/${encodeURIComponent(id)}`, fields));
+  const addToGroup = (id, names) => changedGroup(api.post(`/api/groups/${encodeURIComponent(id)}/members`, { names }));
+  const removeFromGroup = (id, name) => changedGroup(api.del(`/api/groups/${encodeURIComponent(id)}/members/${encodeURIComponent(name)}`));
+  async function leaveGroup(id) {
+    await api.post(`/api/groups/${encodeURIComponent(id)}/leave`, {});
+    state.groups = state.groups.filter((g) => g.id !== id);
+    groupThreads.delete(id);
+    emit('groups');
+  }
+
+  /** whether friends can call you */
+  async function setCalls(on) {
+    const r = await api.post('/api/settings/calls', { on });
+    state.me.calls = r.calls;
+    return r.calls;
+  }
+
   /** a developer gives someone the Tester badge, or takes it away */
   async function giveBadge(name, badge, on) {
     const { user: u } = await api.post('/api/badges', { name, badge, on });
@@ -629,7 +720,7 @@
 
   const thread = (name) => threads.get(String(name).toLowerCase()) || { messages: [], loaded: false, more: false };
   const conversation = (name) => state.conversations.find((c) => c.with.toLowerCase() === String(name).toLowerCase()) || null;
-  const unreadMessages = () => state.conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
+  const unreadMessages = () => state.conversations.reduce((sum, c) => sum + (c.unread || 0), 0) + state.groups.reduce((sum, g) => sum + (g.unread || 0), 0);
 
   function appendMessage(m) {
     const other = m.mine ? m.to : m.from;
@@ -688,15 +779,15 @@
 
   // ---- keeping up: what changed on the server since we last asked ------------------------------------------------
 
-  let cursor = { rev: BOOT.rev, note: BOOT.note, msg: BOOT.msg };
+  let cursor = { rev: BOOT.rev, note: BOOT.note, msg: BOOT.msg, gmsg: BOOT.gmsg || 0 };
   let syncing = null;
 
   function sync() {
     if (syncing) return syncing;
     syncing = api
-      .get(`/api/updates?rev=${cursor.rev}&note=${cursor.note}&msg=${cursor.msg}`)
+      .get(`/api/updates?rev=${cursor.rev}&note=${cursor.note}&msg=${cursor.msg}&gmsg=${cursor.gmsg}`)
       .then((d) => {
-        cursor = { rev: d.rev, note: d.note, msg: d.msg };
+        cursor = { rev: d.rev, note: d.note, msg: d.msg, gmsg: d.gmsg || cursor.gmsg };
         const news = { posts: [], comments: [], removed: [], changed: [], touched: [] };
         for (const u of d.users) ingestUser(u);
         for (const c of d.nooks) ingestNook(c);
@@ -746,6 +837,17 @@
           }
         }
         if (d.messages.length || seen) emit('messages', d.messages.filter((m) => !m.mine));
+        // group chats: what was said, groups that changed, and any you're no longer in
+        if (d.groupIds) {
+          const before = state.groups.length;
+          for (const g of d.groups || []) putGroup(g);
+          for (const m of d.gmessages || []) appendGroupMessage(m);
+          state.groups = state.groups.filter((g) => d.groupIds.includes(g.id));
+          if ((d.groups || []).length || state.groups.length !== before) emit('groups');
+          if ((d.gmessages || []).length) emit('gmessages', d.gmessages.filter((m) => !m.mine));
+        }
+        // calls ringing for you, for when the live connection can't say so itself
+        if ((d.ringing || []).length) emit('ringing', d.ringing);
         emit('synced', news);
       })
       .catch((error) => emit('sync-failed', error))
@@ -758,7 +860,8 @@
 
   Nook.store = {
     ME, VERSION, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
-    isMe, isAdmin, isDev, giveBadge, userName, user, people, community, allCommunities, post, visiblePosts, comments, commentsById,
+    isMe, isAdmin, isDev, giveBadge, setCalls, userName, user, people,
+    group, groupThread, createGroup, loadGroupThread, sendGroupMessage, markGroupRead, renameGroup, addToGroup, removeFromGroup, leaveGroup, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
     userStats, history, search, membersOf, activity, notifications, isRead, unread, notify, touchStreak, checkBadges, award,
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,

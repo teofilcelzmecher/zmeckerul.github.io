@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.8.0';
-const TERMS = '0.8.0, 2026-10-28';
+const VERSION = '0.9.0';
+const TERMS = '0.9.0, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -204,11 +204,12 @@ async function checkPicture(img, where) {
 }
 
 /** a report from the automatic checks, for a moderator to look at (one open one per thing) */
+const KIND_LABEL = { gmessage: 'group message', group: 'group' };
 function autoReport(kind, target, why) {
   if (db.get('SELECT 1 AS x FROM reports WHERE kind = ? AND target = ? AND reporter_id IS NULL AND resolved_at IS NULL', kind, String(target))) return false;
   db.run('INSERT INTO reports (reporter_id, kind, target, reason, created_at) VALUES (NULL, ?, ?, ?, ?)', kind, String(target), 'Automatic check: ' + why, now());
   for (const admin of db.all("SELECT id FROM users WHERE role = 'admin'")) {
-    notify(admin.id, { kind: 'report', text: `The automatic check flagged a ${kind} for a look`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
+    notify(admin.id, { kind: 'report', text: `The automatic check flagged a ${KIND_LABEL[kind] || kind} for a look`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
   }
   return true;
 }
@@ -272,7 +273,7 @@ function publicUser(u) {
   };
 }
 function meOut(u) {
-  return Object.assign(publicUser(u), { role: u.role, joinedAt: u.created_at });
+  return Object.assign(publicUser(u), { role: u.role, joinedAt: u.created_at, calls: u.calls === 'off' ? 'off' : 'on' });
 }
 
 function nookOut(row) {
@@ -331,7 +332,7 @@ function friendship(aId, bId) {
 }
 
 function messageOut(row, meId) {
-  return { id: row.id, from: row.from_name, to: row.to_name, body: row.body, createdAt: row.created_at, read: !!row.read_at, mine: row.from_id === meId };
+  return { id: row.id, from: row.from_name, to: row.to_name, kind: row.kind || undefined, body: row.body, createdAt: row.created_at, read: !!row.read_at, mine: row.from_id === meId };
 }
 const MESSAGE_SELECT = `SELECT m.*, uf.name AS from_name, ut.name AS to_name FROM messages m
   JOIN users uf ON uf.id = m.from_id JOIN users ut ON ut.id = m.to_id`;
@@ -369,8 +370,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '0.5.0, 2026-10-28',
-  text: 'Budgie’s Terms and Privacy Policy have changed: posts, comments, messages and pictures are now also checked by small AI models that run on Budgie’s own server, and a moderator may see a private message the checks flag. Read them in Settings → Privacy and legal.',
+  version: '0.9.0, 2026-10-28',
+  text: 'Budgie now has group chats and calls, and its Terms and Privacy Policy say how they work: group messages are checked like private ones, calls go straight between devices (Budgie never hears or sees them) and only friends or people in your groups can call you. You can turn calls off in Settings. Read the details in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
@@ -476,10 +477,10 @@ function authenticate(req) {
 // ---- the routes -------------------------------------------------------------------------------------
 
 const routes = [];
-function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024 } = {}) {
+function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024, stream = false } = {}) {
   const keys = [];
   const re = new RegExp('^' + pattern.replace(/:(\w+)/g, (_, key) => (keys.push(key), '([^/]+)')) + '$');
-  routes.push({ method, re, keys, handler, auth, admin, body });
+  routes.push({ method, re, keys, handler, auth, admin, body, stream });
 }
 
 // anyone can join, unless the owner turned invite codes back on with `nook signups invite`
@@ -645,6 +646,8 @@ route('GET', '/api/account/export', ({ user }) => {
     pollVotes: db.all('SELECT post_id AS post, option FROM poll_votes WHERE user_id = ?', id),
     friends: friendsOf(id),
     messages: db.all(`${MESSAGE_SELECT} WHERE m.from_id = ? OR m.to_id = ? ORDER BY m.id`, id, id).map((r) => messageOut(r, id)),
+    groups: db.all('SELECT g.* FROM chat_groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = ?', id).map((g) => ({ name: g.name, members: groupOut(g, id).members, createdAt: g.created_at })),
+    groupMessages: db.all(`${GMESSAGE_SELECT} WHERE m.from_id = ? ORDER BY m.id`, id).map((r) => gmessageOut(r, id)),
     notifications: db.all('SELECT * FROM notes WHERE user_id = ? ORDER BY id', id).map(noteOut),
     reportsMade: db.all('SELECT kind, target, reason, created_at AS createdAt, resolution FROM reports WHERE reporter_id = ?', id),
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
@@ -675,8 +678,12 @@ function eraseUser(id) {
     db.run('UPDATE comments SET author_id = NULL WHERE author_id = ?', id);
     db.run('UPDATE nooks SET created_by = NULL, rev = ? WHERE created_by = ?', db.bump(), id);
     db.run('UPDATE reports SET reporter_id = NULL WHERE reporter_id = ?', id);
+    // their group messages go; each group they were in carries on without them (or goes, if they were the last)
+    db.run('DELETE FROM group_messages WHERE from_id = ?', id);
+    for (const m of db.all('SELECT group_id FROM group_members WHERE user_id = ?', id)) dropMember(m.group_id, id);
     db.run('DELETE FROM users WHERE id = ?', id); // sessions, joins, votes, sparks, poll votes, friends, messages, notes and images go with it
   });
+  disconnect(id);
 }
 
 route('POST', '/api/account/delete', async ({ user, body }) => {
@@ -715,6 +722,9 @@ route('GET', '/api/bootstrap', ({ user }) => {
     notes: db.all('SELECT * FROM notes WHERE user_id = ? ORDER BY id DESC LIMIT 100', id).map(noteOut),
     friends: friendsOf(id),
     conversations: conversations(id),
+    groups: myGroups(id),
+    gmsg: db.get('SELECT COALESCE(MAX(m.id), 0) AS n FROM group_messages m JOIN group_members gm ON gm.group_id = m.group_id AND gm.user_id = ?', id).n,
+    ringing: [...calls.values()].filter((c) => c.ringing.has(id)).map(callOut),
   };
 });
 
@@ -724,14 +734,17 @@ route('GET', '/api/updates', ({ user, query }) => {
   const since = Math.max(0, Number(query.rev) || 0);
   const noteSince = Math.max(0, Number(query.note) || 0);
   const msgSince = Math.max(0, Number(query.msg) || 0);
+  const gmsgSince = Math.max(0, Number(query.gmsg) || 0);
   const posts = db.all(`${POST_SELECT} WHERE p.rev > ? ORDER BY p.rev LIMIT 500`, since);
   const comments = db.all(`${COMMENT_SELECT} WHERE c.rev > ? ORDER BY c.rev LIMIT 1000`, since);
   const messages = db.all(`${MESSAGE_SELECT} WHERE m.id > ? AND (m.from_id = ? OR m.to_id = ?) ORDER BY m.id LIMIT 200`, msgSince, id, id);
   const notes = db.all('SELECT * FROM notes WHERE user_id = ? AND id > ? ORDER BY id LIMIT 100', id, noteSince);
+  const gmessages = db.all(`${GMESSAGE_SELECT} JOIN group_members gm ON gm.group_id = m.group_id AND gm.user_id = ? WHERE m.id > ? AND m.id > gm.since_id ORDER BY m.id LIMIT 300`, id, gmsgSince);
   return {
     rev: db.rev(),
     note: notes.length ? notes[notes.length - 1].id : noteSince,
     msg: messages.length ? messages[messages.length - 1].id : msgSince,
+    gmsg: gmessages.length ? gmessages[gmessages.length - 1].id : gmsgSince,
     posts: posts.map(postOut),
     comments: comments.map(commentOut),
     users: db.all('SELECT * FROM users WHERE rev > ?', since).map(publicUser),
@@ -746,6 +759,12 @@ route('GET', '/api/updates', ({ user, query }) => {
       db.all('SELECT u.name, MAX(m.id) AS id FROM messages m JOIN users u ON u.id = m.to_id WHERE m.from_id = ? AND m.read_at IS NOT NULL GROUP BY m.to_id', id).map((r) => [r.name, r.id])
     ),
     me: user.rev > since ? meOut(user) : undefined,
+    // groups: the ones that changed, the ids of all of them (so one you've left goes), and what was said
+    groups: myGroups(id, since),
+    groupIds: db.all('SELECT group_id FROM group_members WHERE user_id = ?', id).map((r) => r.group_id),
+    gmessages: gmessages.map((r) => gmessageOut(r, id)),
+    // calls ringing for you, for a device that couldn't keep its event stream open
+    ringing: [...calls.values()].filter((c) => c.ringing.has(id)).map(callOut),
   };
 });
 
@@ -1091,13 +1110,13 @@ route('POST', '/api/notes/read', ({ user, body }) => {
 
 route('POST', '/api/reports', ({ user, body }) => {
   limit('report:' + user.id, 30, DAY);
-  const kind = ['post', 'comment', 'user', 'message'].includes(body.kind) ? body.kind : null;
-  if (!kind) fail(400, 'Report a post, a comment, a person or a message.');
+  const kind = ['post', 'comment', 'user', 'message', 'gmessage', 'group'].includes(body.kind) ? body.kind : null;
+  if (!kind) fail(400, 'Report a post, a comment, a person, a message or a group.');
   const target = text(body.id, 60);
   const reason = text(body.reason, 300) || 'No reason given';
   db.run('INSERT INTO reports (reporter_id, kind, target, reason, created_at) VALUES (?, ?, ?, ?, ?)', user.id, kind, target, reason, now());
   for (const admin of db.all("SELECT id FROM users WHERE role = 'admin'")) {
-    notify(admin.id, { kind: 'report', text: `New report: a ${kind} for “${reason}”`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
+    notify(admin.id, { kind: 'report', text: `New report: a ${KIND_LABEL[kind] || kind} for “${reason}”`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
   }
   return { ok: true };
 });
@@ -1168,6 +1187,420 @@ route('POST', '/api/messages/read', ({ user, body }) => {
   return { ok: true };
 });
 
+// group chats ---------------------------------------------------------------------------------------------------
+// Friends make groups of up to 32 people. Anyone in a group can add their own friends; its owner (who made it)
+// can rename it and remove people; anyone can leave. Someone added later sees the chat from when they joined.
+// Messages are checked like private messages.
+
+const GROUP_MAX = 32;
+const GROUP_SHAPES = ['cookie9', 'heart', 'sunny', 'clover4', 'clover8', 'flower', 'puffy', 'gem', 'softBurst', 'cookie6', 'ghostish', 'pixelCircle'];
+const GMESSAGE_SELECT = 'SELECT m.*, u.name AS from_name FROM group_messages m LEFT JOIN users u ON u.id = m.from_id';
+const membership = (groupId, userId) => db.get('SELECT * FROM group_members WHERE group_id = ? AND user_id = ?', groupId, userId) || null;
+
+function gmessageOut(r, meId) {
+  return { id: r.id, group: r.group_id, from: r.from_name || null, kind: r.kind === 'text' ? undefined : r.kind, body: r.body, createdAt: r.created_at, mine: !!r.from_id && r.from_id === meId };
+}
+function groupOut(g, meId) {
+  const me = membership(g.id, meId);
+  const seen = me ? Math.max(me.read_id, me.since_id) : 0;
+  const last = me && db.get(`${GMESSAGE_SELECT} WHERE m.group_id = ? AND m.id > ? ORDER BY m.id DESC LIMIT 1`, g.id, me.since_id);
+  return {
+    id: g.id, name: g.name, color: g.color, shape: g.shape, createdAt: g.created_at,
+    members: db.all('SELECT u.name, gm.role FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? ORDER BY gm.joined_at, u.name', g.id),
+    role: me ? me.role : null,
+    unread: me ? db.get('SELECT COUNT(*) AS n FROM group_messages WHERE group_id = ? AND id > ? AND (from_id IS NULL OR from_id != ?)', g.id, seen, meId).n : 0,
+    last: last ? gmessageOut(last, meId) : null,
+  };
+}
+const myGroups = (userId, since = -1) =>
+  db.all('SELECT g.* FROM chat_groups g JOIN group_members gm ON gm.group_id = g.id WHERE gm.user_id = ? AND g.rev > ?', userId, since).map((g) => groupOut(g, userId));
+/** a line in a group's chat about the group itself (who joined, left or renamed it) or a call; returns its id */
+function groupEvent(groupId, fromId, kind, data) {
+  return Number(db.run('INSERT INTO group_messages (group_id, from_id, kind, body, created_at) VALUES (?, ?, ?, ?, ?)', groupId, fromId, kind, JSON.stringify(data), now()).lastInsertRowid);
+}
+const touchGroup = (groupId) => db.run('UPDATE chat_groups SET rev = ? WHERE id = ?', db.bump(), groupId);
+const lastGroupMessage = (groupId) => db.get('SELECT COALESCE(MAX(id), 0) AS n FROM group_messages WHERE group_id = ?', groupId).n;
+
+/** someone leaves a group (or is removed, or deletes their account): an owner hands over to whoever has been there longest, and an empty group goes */
+function dropMember(groupId, userId) {
+  const was = membership(groupId, userId);
+  if (!was) return;
+  db.run('DELETE FROM group_members WHERE group_id = ? AND user_id = ?', groupId, userId);
+  const left = db.all('SELECT * FROM group_members WHERE group_id = ? ORDER BY joined_at, user_id', groupId);
+  if (!left.length) return void db.run('DELETE FROM chat_groups WHERE id = ?', groupId);
+  if (was.role === 'owner' && !left.some((m) => m.role === 'owner')) {
+    db.run("UPDATE group_members SET role = 'owner' WHERE group_id = ? AND user_id = ?", groupId, left[0].user_id);
+    groupEvent(groupId, left[0].user_id, 'event', { type: 'owner' });
+  }
+  touchGroup(groupId);
+}
+
+function groupFor(user, id) {
+  const g = db.get('SELECT * FROM chat_groups WHERE id = ?', text(id, 40));
+  if (!g || !membership(g.id, user.id)) fail(404, 'That group isn’t there any more, or you’re not in it.');
+  return g;
+}
+const ownerOnly = (g, user, what) => membership(g.id, user.id).role === 'owner' || fail(403, `Only the group’s owner can ${what}.`);
+
+/** the people being added: each has to be a friend of whoever adds them */
+function friendsToAdd(user, names, groupId) {
+  const list = Array.isArray(names) ? [...new Set(names.map((n) => text(n, 40)).filter(Boolean))] : [];
+  return list.map((n) => {
+    const u = db.get('SELECT * FROM users WHERE name = ?', n);
+    if (!u || u.banned_at || u.id === user.id) fail(400, `There’s no friend called ${n}.`, { field: 'members' });
+    const f = friendship(user.id, u.id);
+    if (!f || f.status !== 'friends') fail(403, `You can only add your friends, and u/${u.name} isn’t one yet.`, { field: 'members' });
+    if (groupId && membership(groupId, u.id)) fail(409, `u/${u.name} is already in the group.`, { field: 'members' });
+    return u;
+  });
+}
+const addedNote = (who, by, g) => notify(who.id, { kind: 'group', text: `u/${by.name} added you to the group “${g.name}”`, href: '#/messages/g/' + g.id, symbol: 'groups', shape: g.shape });
+const groupNamed = (id, userId) => groupOut(db.get('SELECT * FROM chat_groups WHERE id = ?', id), userId);
+
+route('POST', '/api/groups', ({ user, body }) => {
+  limit('group-new:' + user.id, 20, DAY, 'That’s a lot of new groups for one day. Try again tomorrow.');
+  const name = text(body.name, 40);
+  if (!name) fail(400, 'Give your group a name.', { field: 'name' });
+  vet([name], { kind: 'profile' }, { strongNames: true });
+  const members = friendsToAdd(user, body.members);
+  if (!members.length) fail(400, 'Add at least one friend.', { field: 'members' });
+  if (members.length + 1 > GROUP_MAX) fail(400, `A group can have up to ${GROUP_MAX} people.`, { field: 'members' });
+  const id = randomId('g', 9);
+  const color = HEX_RE.test(body.color || '') ? body.color.toLowerCase() : COLORS[crypto.randomInt(COLORS.length)];
+  const shape = GROUP_SHAPES.includes(body.shape) ? body.shape : GROUP_SHAPES[crypto.randomInt(GROUP_SHAPES.length)];
+  const t = now();
+  db.tx(() => {
+    db.run('INSERT INTO chat_groups (id, name, color, shape, created_by, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?)', id, name, color, shape, user.id, t, db.bump());
+    db.run("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'owner', ?)", id, user.id, t);
+    for (const m of members) db.run("INSERT INTO group_members (group_id, user_id, role, joined_at) VALUES (?, ?, 'member', ?)", id, m.id, t);
+    groupEvent(id, user.id, 'event', { type: 'created', name, names: members.map((m) => m.name) });
+  });
+  const g = db.get('SELECT * FROM chat_groups WHERE id = ?', id);
+  for (const m of members) addedNote(m, user, g);
+  return { group: groupOut(g, user.id) };
+});
+
+route('GET', '/api/groups/:id/messages', ({ user, params, query }) => {
+  const g = groupFor(user, params.id);
+  const me = membership(g.id, user.id);
+  const before = Number(query.before) || Number.MAX_SAFE_INTEGER;
+  const rows = db.all(`${GMESSAGE_SELECT} WHERE m.group_id = ? AND m.id > ? AND m.id < ? ORDER BY m.id DESC LIMIT 50`, g.id, me.since_id, before);
+  return { messages: rows.reverse().map((r) => gmessageOut(r, user.id)), more: rows.length === 50 };
+});
+
+route('POST', '/api/groups/:id/messages', async ({ user, params, body }) => {
+  limit('message:' + user.id, 40, MINUTE, 'You’re sending messages very fast. Slow down a little.');
+  const g = groupFor(user, params.id);
+  const messageBody = text(body.body, 2000);
+  if (!messageBody) fail(400, 'Write something first.');
+  const verdict = vet([messageBody], { kind: 'message' });
+  const doubt = await checkText([messageBody], 'message');
+  groupFor(user, g.id); // still in it once the check is done
+  const id = Number(db.run("INSERT INTO group_messages (group_id, from_id, kind, body, created_at) VALUES (?, ?, 'text', ?, ?)", g.id, user.id, messageBody, now()).lastInsertRowid);
+  db.run('UPDATE group_members SET read_id = ? WHERE group_id = ? AND user_id = ?', id, g.id, user.id);
+  if (verdict.flag) autoReport('gmessage', id, verdict.flag.why);
+  else if (doubt) autoReport('gmessage', id, doubt);
+  return { message: gmessageOut(db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, id), user.id) };
+});
+
+route('POST', '/api/groups/:id/read', ({ user, params, body }) => {
+  const g = groupFor(user, params.id);
+  const upTo = Math.min(Math.max(0, Number(body.upTo) || 0) || Number.MAX_SAFE_INTEGER, lastGroupMessage(g.id));
+  db.run('UPDATE group_members SET read_id = MAX(read_id, ?) WHERE group_id = ? AND user_id = ?', upTo, g.id, user.id);
+  return { ok: true };
+});
+
+route('POST', '/api/groups/:id/members', ({ user, params, body }) => {
+  limit('group-add:' + user.id, 60, HOUR);
+  const g = groupFor(user, params.id);
+  const added = friendsToAdd(user, body.names, g.id);
+  if (!added.length) fail(400, 'Pick at least one friend to add.', { field: 'members' });
+  if (db.get('SELECT COUNT(*) AS n FROM group_members WHERE group_id = ?', g.id).n + added.length > GROUP_MAX) fail(400, `A group can have up to ${GROUP_MAX} people.`, { field: 'members' });
+  db.tx(() => {
+    // they see the chat from here on, starting with the line that says they were added
+    const since = lastGroupMessage(g.id);
+    for (const m of added) db.run("INSERT INTO group_members (group_id, user_id, role, joined_at, since_id, read_id) VALUES (?, ?, 'member', ?, ?, ?)", g.id, m.id, now(), since, since);
+    groupEvent(g.id, user.id, 'event', { type: 'added', names: added.map((m) => m.name) });
+    touchGroup(g.id);
+  });
+  for (const m of added) addedNote(m, user, g);
+  return { group: groupNamed(g.id, user.id) };
+});
+
+route('DELETE', '/api/groups/:id/members/:name', ({ user, params }) => {
+  const g = groupFor(user, params.id);
+  ownerOnly(g, user, 'remove people');
+  const u = db.get('SELECT * FROM users WHERE name = ?', decodeURIComponent(params.name));
+  if (!u || !membership(g.id, u.id)) fail(404, 'They’re not in this group.');
+  if (u.id === user.id) fail(400, 'To leave the group, use Leave group.');
+  db.tx(() => {
+    groupEvent(g.id, user.id, 'event', { type: 'removed', names: [u.name] });
+    dropMember(g.id, u.id);
+  });
+  hangUpGroupCall(g.id, u.id);
+  notify(u.id, { kind: 'group', text: `You were removed from the group “${g.name}”`, href: '#/messages', symbol: 'group_remove', shape: g.shape });
+  return { group: groupNamed(g.id, user.id) };
+});
+
+route('POST', '/api/groups/:id/leave', ({ user, params }) => {
+  const g = groupFor(user, params.id);
+  db.tx(() => {
+    groupEvent(g.id, user.id, 'event', { type: 'left' });
+    dropMember(g.id, user.id);
+  });
+  hangUpGroupCall(g.id, user.id);
+  return { ok: true };
+});
+
+route('PATCH', '/api/groups/:id', ({ user, params, body }) => {
+  const g = groupFor(user, params.id);
+  ownerOnly(g, user, 'change the group');
+  const name = body.name != null ? text(body.name, 40) : g.name;
+  if (!name) fail(400, 'Give your group a name.', { field: 'name' });
+  if (name !== g.name) vet([name], { kind: 'profile' }, { strongNames: true });
+  const color = body.color != null ? (HEX_RE.test(body.color) ? body.color.toLowerCase() : fail(400, 'Pick a colour.')) : g.color;
+  const shape = body.shape != null ? (GROUP_SHAPES.includes(body.shape) ? body.shape : fail(400, 'Pick one of the shapes.')) : g.shape;
+  db.tx(() => {
+    db.run('UPDATE chat_groups SET name = ?, color = ?, shape = ?, rev = ? WHERE id = ?', name, color, shape, db.bump(), g.id);
+    if (name !== g.name) groupEvent(g.id, user.id, 'event', { type: 'renamed', name });
+  });
+  return { group: groupNamed(g.id, user.id) };
+});
+
+// calls ------------------------------------------------------------------------------------------------------------
+// Budgie's server only introduces the devices: it rings people, and passes on the offers, answers and network
+// candidates WebRTC needs to connect them. The call itself goes between the devices, always encrypted, or through
+// Cloudflare's relay (TURN) once that's set up with `nook turn`. Nothing about a call is kept but a line in the chat
+// saying who called, and how long it lasted or that it was missed. Calls are between friends, or within a group.
+
+const CALL_MAX = 6; // everyone connects to everyone, which stays smooth up to about six
+const RING_MS = Number(process.env.NOOK_RING_MS) || 35 * 1000; // NOOK_RING_MS shortens it, for the tests
+const calls = new Map(); // id -> the call
+const streams = new Map(); // user id -> their devices' open event streams
+const queues = new Map(); // user id -> the last two minutes of signals, for a device that polls instead of listening
+const lastSeen = new Map(); // user id -> when one of their devices was last in touch
+
+const nameOf = (id) => (db.get('SELECT name FROM users WHERE id = ?', id) || { name: '[deleted]' }).name;
+const writeEvent = (res, item) => res.write(`id: ${item.id}\nevent: ${item.type}\ndata: ${JSON.stringify(item.data)}\n\n`);
+
+/** something for one person's devices, now if they're listening, or when they next ask */
+function signal(userId, type, data) {
+  let q = queues.get(userId);
+  if (!q) queues.set(userId, (q = { next: 1, items: [] }));
+  const item = { id: q.next++, type, data, at: now() };
+  q.items.push(item);
+  while (q.items.length > 300 || q.items[0].at < now() - 2 * MINUTE) q.items.shift();
+  for (const res of streams.get(userId) || []) writeEvent(res, item);
+}
+
+/** a device listens for signals: an event stream (Server-Sent Events) that stays open */
+route('GET', '/api/live', ({ user, query, req, res }) => {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
+  res.write('retry: 3000\n\n');
+  let open = streams.get(user.id);
+  if (!open) streams.set(user.id, (open = new Set()));
+  open.add(res);
+  lastSeen.set(user.id, now());
+  // what it missed while it was reconnecting, then where things stand
+  const q = queues.get(user.id);
+  const after = Number(query.after) || 0;
+  if (q && after) for (const item of q.items) if (item.id > after) writeEvent(res, item);
+  res.write(`event: hello\ndata: ${JSON.stringify({ next: q ? q.next - 1 : 0 })}\n\n`);
+  req.on('close', () => {
+    open.delete(res);
+    lastSeen.set(user.id, now());
+  });
+}, { stream: true });
+
+/** the same signals, for a device that can't keep a stream open */
+route('GET', '/api/signals', ({ user, query }) => {
+  const q = queues.get(user.id);
+  const after = Number(query.after) || 0;
+  return { signals: q ? q.items.filter((i) => i.id > after).map(({ id, type, data }) => ({ id, type, data })) : [], next: q ? q.next - 1 : 0 };
+});
+
+// how devices find a way to each other: Cloudflare's free STUN server, and its TURN relay when the owner has set one up
+// (calls then always go through it, so they connect on any network and nobody in a call sees another's IP address)
+let turnCache = null;
+async function iceConfig() {
+  const stun = { iceServers: [{ urls: ['stun:stun.cloudflare.com:3478'] }], relay: false };
+  const key = db.meta('turn-key');
+  const token = db.meta('turn-token');
+  if (!key || !token) return stun;
+  if (turnCache && turnCache.key === key && turnCache.until > now()) return turnCache.value;
+  try {
+    const res = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(key)}/credentials/generate-ice-servers`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ttl: 86400 }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error('Cloudflare answered ' + res.status);
+    const { iceServers } = await res.json();
+    // browsers block port 53, which would only slow a call down
+    const servers = iceServers.map((s) => Object.assign({}, s, { urls: [].concat(s.urls).filter((u) => !/:53(\?|$)/.test(u)) }));
+    turnCache = { key, until: now() + 12 * HOUR, value: { iceServers: servers, relay: true } };
+    return turnCache.value;
+  } catch (error) {
+    console.error('Couldn’t get TURN credentials from Cloudflare, so calls go direct:', error.message);
+    return stun;
+  }
+}
+
+function callOut(c) {
+  const g = c.group && db.get('SELECT name, color, shape FROM chat_groups WHERE id = ?', c.group);
+  return {
+    id: c.id, media: c.media, from: nameOf(c.by), with: c.peer ? nameOf(c.peer) : undefined,
+    group: c.group ? { id: c.group, name: g ? g.name : 'Group', color: g ? g.color : '#6750a4', shape: g ? g.shape : 'cookie9' } : undefined,
+    joined: [...c.joined].map(nameOf), startedAt: c.started, answeredAt: c.answered || undefined,
+  };
+}
+const callOf = (userId) => [...calls.values()].find((c) => c.joined.has(userId)) || null;
+
+function newCall(user, media, { group = null, peer = null, ring }) {
+  const c = { id: randomId('c', 9), media, group, peer, by: user.id, ringing: new Set(ring), joined: new Set([user.id]), ever: new Set([user.id]), started: now(), answered: 0 };
+  calls.set(c.id, c);
+  const out = callOut(c);
+  for (const id of ring) signal(id, 'call-ring', { call: out });
+  c.timer = setTimeout(() => stopRinging(c), RING_MS);
+  return c;
+}
+
+/** after 35 seconds whoever hasn't answered stops ringing; if nobody did, the call is over */
+function stopRinging(c) {
+  if (!calls.has(c.id)) return;
+  for (const id of c.ringing) signal(id, 'call-stop', { call: c.id });
+  c.ringing.clear();
+  if (!c.answered) endCall(c, 'no-answer');
+}
+
+async function joinCall(c, user) {
+  const allowed = c.group ? !!membership(c.group, user.id) : user.id === c.peer || user.id === c.by;
+  if (!allowed) fail(403, 'You’re not in this call.');
+  const other = callOf(user.id);
+  if (other && other !== c) fail(409, 'You’re already in another call. Hang up first.');
+  if (!c.joined.has(user.id) && c.joined.size >= CALL_MAX) fail(409, `This call is full: up to ${CALL_MAX} people can be in a call.`);
+  const peers = [...c.joined].filter((id) => id !== user.id);
+  c.joined.add(user.id);
+  c.ever.add(user.id);
+  c.ringing.delete(user.id);
+  if (!c.answered && c.joined.size > 1) c.answered = now();
+  const out = callOut(c);
+  for (const id of peers) signal(id, 'call-joined', { call: out, user: user.name });
+  // the person's other devices stop ringing
+  signal(user.id, 'call-stop', { call: c.id, answered: true });
+  return { call: out, ice: await iceConfig(), peers: peers.map(nameOf) };
+}
+
+/** someone hangs up: a call between two ends then, a group call when its last person goes (or when its caller gives up before anyone answers) */
+function leaveCall(c, userId) {
+  if (!c.joined.delete(userId)) return void c.ringing.delete(userId);
+  for (const id of c.joined) signal(id, 'call-left', { call: c.id, user: nameOf(userId) });
+  if (!c.answered) return endCall(c, 'cancelled');
+  if (c.group ? c.joined.size === 0 : c.joined.size < 2) endCall(c, 'ended');
+}
+
+function endCall(c, reason) {
+  if (!calls.delete(c.id)) return;
+  clearTimeout(c.timer);
+  for (const id of new Set([...c.ever, ...c.ringing, c.by, ...(c.peer ? [c.peer] : [])])) signal(id, 'call-ended', { call: c.id, reason });
+  // its line in the chat: how long it went on, or that nobody picked up
+  const log = JSON.stringify({ media: c.media, secs: c.answered ? Math.round((now() - c.answered) / 1000) : 0, missed: !c.answered || undefined });
+  try {
+    if (c.group) {
+      if (db.get('SELECT 1 AS x FROM chat_groups WHERE id = ?', c.group)) db.run("INSERT INTO group_messages (group_id, from_id, kind, body, created_at) VALUES (?, ?, 'call', ?, ?)", c.group, c.by, log, now());
+    } else {
+      // a missed call is unread until the person who missed it opens the chat
+      db.run("INSERT INTO messages (from_id, to_id, kind, body, created_at, read_at) VALUES (?, ?, 'call', ?, ?, ?)", c.by, c.peer, log, now(), c.answered ? now() : null);
+    }
+  } catch (error) {
+    console.error('Couldn’t note a call in its chat:', error.message);
+  }
+}
+
+/** someone leaving a group leaves its call too */
+function hangUpGroupCall(groupId, userId) {
+  for (const c of [...calls.values()]) if (c.group === groupId) leaveCall(c, userId);
+}
+
+/** someone signed out everywhere (banned, deleted): their streams close and they leave any call */
+function disconnect(userId) {
+  for (const res of streams.get(userId) || []) res.end();
+  streams.delete(userId);
+  for (const c of [...calls.values()]) leaveCall(c, userId);
+}
+
+route('POST', '/api/calls', async ({ user, body }) => {
+  limit('call:' + user.id, 30, HOUR, 'That’s a lot of calls. Wait a little and try again.');
+  const media = body.media === 'video' ? 'video' : 'voice';
+  if (callOf(user.id)) fail(409, 'You’re already in a call. Hang up first.');
+  if (body.group) {
+    const g = groupFor(user, body.group);
+    // a call already going on in the group: you join it
+    const going = [...calls.values()].find((c) => c.group === g.id);
+    if (going) return joinCall(going, user);
+    const others = db.all('SELECT u.id, u.calls FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND u.id != ? AND u.banned_at IS NULL', g.id, user.id);
+    const c = newCall(user, media, { group: g.id, ring: others.filter((u) => u.calls !== 'off').map((u) => u.id) });
+    return { call: callOut(c), ice: await iceConfig(), peers: [] };
+  }
+  const other = db.get('SELECT * FROM users WHERE name = ?', text(body.to, 40));
+  if (!other || other.banned_at || other.id === user.id) fail(404, 'There’s nobody by that name.');
+  const f = friendship(user.id, other.id);
+  if (!f || f.status !== 'friends') fail(403, 'You can only call friends.');
+  if (other.calls === 'off') fail(403, `u/${other.name} isn’t taking calls.`);
+  if (callOf(other.id)) fail(409, `u/${other.name} is on another call. Try again in a bit.`);
+  const c = newCall(user, media, { peer: other.id, ring: [other.id] });
+  return { call: callOut(c), ice: await iceConfig(), peers: [] };
+});
+
+route('POST', '/api/calls/:id/join', ({ user, params }) => {
+  const c = calls.get(params.id);
+  if (!c) fail(404, 'That call has ended.');
+  return joinCall(c, user);
+});
+
+route('POST', '/api/calls/:id/signal', ({ user, params, body }) => {
+  limit('signal:' + user.id, 900, MINUTE);
+  const c = calls.get(params.id);
+  if (!c || !c.joined.has(user.id)) fail(404, 'That call has ended.');
+  const to = db.get('SELECT id FROM users WHERE name = ?', text(body.to, 40));
+  if (!to || !c.joined.has(to.id)) fail(404, 'They’re not in the call any more.');
+  if (!['offer', 'answer', 'candidate', 'media'].includes(body.type)) fail(400, 'That isn’t a call signal.');
+  signal(to.id, 'call-signal', { call: c.id, from: user.name, type: body.type, data: body.data });
+  return { ok: true };
+}, { body: 64 * 1024 });
+
+route('POST', '/api/calls/:id/decline', ({ user, params }) => {
+  const c = calls.get(params.id);
+  if (c && c.ringing.delete(user.id) && !c.group) endCall(c, 'declined');
+  return { ok: true };
+});
+
+route('POST', '/api/calls/:id/leave', ({ user, params }) => {
+  const c = calls.get(params.id);
+  if (c) leaveCall(c, user.id);
+  return { ok: true };
+});
+
+/** whether friends can call you */
+route('POST', '/api/settings/calls', ({ user, body }) => {
+  db.run('UPDATE users SET calls = ? WHERE id = ?', body.on === false ? 'off' : '', user.id);
+  return { calls: body.on === false ? 'off' : 'on' };
+});
+
+// a device that's gone quiet for 45 seconds has left its call; old signal queues go
+setInterval(() => {
+  const t = now();
+  for (const [id, open] of streams) if (open.size) lastSeen.set(id, t);
+  for (const c of [...calls.values()]) for (const id of [...c.joined]) if ((lastSeen.get(id) || 0) < t - 45000) leaveCall(c, id);
+  // (a queue keeps counting even when empty, so a device that's caught up never waits for a number already used)
+  for (const q of queues.values()) while (q.items.length && q.items[0].at < t - 2 * MINUTE) q.items.shift();
+}, 10000).unref();
+// keeps quiet streams open through the tunnel
+setInterval(() => {
+  for (const open of streams.values()) for (const res of open) res.write(': ping\n\n');
+}, 20000).unref();
+
 // moderation for admins ------------------------------------------------------------------------------------
 
 function reportTarget(r) {
@@ -1187,6 +1620,16 @@ function reportTarget(r) {
   if (r.kind === 'message') {
     const m = db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(r.target));
     return m ? { body: m.body.slice(0, 500), author: m.from_name } : null;
+  }
+  if (r.kind === 'gmessage') {
+    const m = db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, Number(r.target));
+    const g = m && db.get('SELECT name FROM chat_groups WHERE id = ?', m.group_id);
+    return m ? { body: m.body.slice(0, 500), author: m.from_name || '[deleted]', title: g ? `In the group “${g.name}”` : undefined } : null;
+  }
+  if (r.kind === 'group') {
+    const g = db.get('SELECT * FROM chat_groups WHERE id = ?', r.target);
+    const owner = g && db.get("SELECT u.name FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND gm.role = 'owner'", g.id);
+    return g ? { title: g.name, author: owner ? owner.name : '[deleted]' } : null;
   }
   return null;
 }
@@ -1219,6 +1662,22 @@ function takeDown(kind, id, reason) {
     db.run('DELETE FROM messages WHERE id = ?', Number(id));
     return true;
   }
+  if (kind === 'gmessage') {
+    const m = db.get('SELECT * FROM group_messages WHERE id = ?', Number(id));
+    if (!m) return false;
+    db.run('DELETE FROM group_messages WHERE id = ?', m.id);
+    touchGroup(m.group_id);
+    if (m.from_id) notify(m.from_id, { kind: 'moderation', text: `A moderator removed one of your group messages. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/messages/g/' + m.group_id, symbol: 'gavel', shape: 'pixelCircle' });
+    return true;
+  }
+  if (kind === 'group') {
+    // a group's name breaking the rules is put back to a plain one
+    const g = db.get('SELECT * FROM chat_groups WHERE id = ?', id);
+    if (!g || g.name === 'Group chat') return false;
+    db.run("UPDATE chat_groups SET name = 'Group chat', rev = ? WHERE id = ?", db.bump(), g.id);
+    groupEvent(g.id, null, 'event', { type: 'renamed', name: 'Group chat', moderator: true });
+    return true;
+  }
   if (kind === 'user') {
     // a profile is "taken down" by clearing its picture, banner, bio and pronouns (what someone writes or uploads)
     const u = db.get('SELECT * FROM users WHERE name = ?', id);
@@ -1236,7 +1695,10 @@ function ban(name, reason, on) {
   if (!u) fail(404, 'There’s nobody by that name.');
   if (u.role === 'admin' && on) fail(400, 'Admins can’t be banned. Remove their admin role first.');
   db.run('UPDATE users SET banned_at = ?, ban_reason = ?, rev = ? WHERE id = ?', on ? now() : null, on ? reason : null, db.bump(), u.id);
-  if (on) db.run('DELETE FROM sessions WHERE user_id = ?', u.id);
+  if (on) {
+    db.run('DELETE FROM sessions WHERE user_id = ?', u.id);
+    disconnect(u.id);
+  }
   return true;
 }
 
@@ -1372,7 +1834,11 @@ async function handle(req, res) {
       ctx.session = who.session;
       if (req.method === 'GET') limit('read:' + who.user.id, 240, MINUTE, 'Too many requests. Slow down a little.');
       if (r.admin && who.user.role !== 'admin') fail(403, 'Only admins can do that.');
+      // any request means one of their devices is still there (for calls)
+      lastSeen.set(who.user.id, now());
     }
+    // a stream writes its own answer, and keeps writing
+    if (r.stream) return r.handler(Object.assign(ctx, { req, res }));
     return send(res, 200, await r.handler(ctx));
   }
   fail(404, 'There’s nothing here.');

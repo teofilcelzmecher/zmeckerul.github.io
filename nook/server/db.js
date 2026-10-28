@@ -149,6 +149,38 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE INDEX IF NOT EXISTS messages_to ON messages(to_id, id);
 CREATE INDEX IF NOT EXISTS messages_from ON messages(from_id, id);
 
+-- group chats: a group, who is in it (and since which message they can see), and what's said there
+CREATE TABLE IF NOT EXISTS chat_groups (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  color TEXT NOT NULL,
+  shape TEXT NOT NULL,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  created_at INTEGER NOT NULL,
+  rev INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id TEXT NOT NULL REFERENCES chat_groups(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL DEFAULT 'member',
+  joined_at INTEGER NOT NULL,
+  since_id INTEGER NOT NULL DEFAULT 0,
+  read_id INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (group_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS group_members_user ON group_members(user_id);
+
+CREATE TABLE IF NOT EXISTS group_messages (
+  id INTEGER PRIMARY KEY,
+  group_id TEXT NOT NULL REFERENCES chat_groups(id) ON DELETE CASCADE,
+  from_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL DEFAULT 'text',
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS group_messages_group ON group_messages(group_id, id);
+
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -182,7 +214,7 @@ CREATE TABLE IF NOT EXISTS images (
 );
 `;
 
-const REV_TABLES = ['users', 'nooks', 'posts', 'comments', 'friends'];
+const REV_TABLES = ['users', 'nooks', 'posts', 'comments', 'friends', 'chat_groups'];
 
 function open(dir) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o750 });
@@ -191,7 +223,9 @@ function open(dir) {
   db.exec(SCHEMA);
   // columns added since the first release, for databases made before them
   const LATER_COLUMNS = [['users', 'photo_gif'], ['users', 'banner'], ['users', 'banner_gif'], ['users', 'name_font'],
-    ['users', 'pronouns'], ['users', 'pride_flag'], ['users', 'interests'], ['users', 'profile_scheme'], ['users', 'sticker_shape'], ['users', 'badges']];
+    ['users', 'pronouns'], ['users', 'pride_flag'], ['users', 'interests'], ['users', 'profile_scheme'], ['users', 'sticker_shape'], ['users', 'badges'],
+    // a private message's kind ('' for words, 'call' for a call's line), and whether friends can call you ('' yes, 'off' no)
+    ['messages', 'kind'], ['users', 'calls']];
   for (const [table, column] of LATER_COLUMNS) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   }

@@ -56,6 +56,7 @@
       case 'friends':
         return at('friendsPage');
       case 'messages':
+        if (parts[1] === 'g' && parts[2]) return at('groupThread', { id: parts[2] });
         return parts[1] ? at('thread', { user: parts[1] }) : at('messagesPage');
       case 'admin':
         return at('adminPage');
@@ -70,7 +71,7 @@
     }
   }
 
-  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings', friendsPage: 'friends', messagesPage: 'messages', thread: 'messages', adminPage: 'admin' };
+  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings', friendsPage: 'friends', messagesPage: 'messages', thread: 'messages', groupThread: 'messages', adminPage: 'admin' };
 
   let leaving = [];
   let current = location.hash || '#/';
@@ -967,7 +968,7 @@
   }
 
   async function report(kind, thing) {
-    const reason = await pickReason(`Report this ${kind}`, 'flag', 'Reports go to Budgie’s moderators, who will take a look. Thanks for keeping Budgie kind.', 'Report');
+    const reason = await pickReason(`Report this ${{ gmessage: 'message' }[kind] || kind}`, 'flag', 'Reports go to Budgie’s moderators, who will take a look. Thanks for keeping Budgie kind.', 'Report');
     if (!reason) return;
     try {
       await store.report(kind, kind === 'user' ? thing.name : thing.id, reason);
@@ -1579,6 +1580,286 @@
     closeDrawer();
     newNook();
   };
+
+  // ---- group chats ----------------------------------------------------------------------------------------
+
+  // the shapes a group can wear (the server takes these)
+  const GROUP_SHAPES = ['cookie9', 'heart', 'sunny', 'clover4', 'clover8', 'flower', 'puffy', 'gem', 'softBurst', 'cookie6', 'ghostish', 'pixelCircle'];
+  const GROUP_MAX = 32;
+  const groupShapesHTML = (selected) =>
+    `<div class="shape-grid" role="group" aria-label="Shape">${GROUP_SHAPES.map((n) => `<button type="button" data-shape="${n}" aria-pressed="${n === selected}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('')}</div>`;
+  // friends to choose from, each with a switch
+  const friendPicks = (names) =>
+    `<div class="pick-list">${names
+      .map((n) => {
+        const u = store.user(n);
+        return `<label class="switch-row pick-row">${avatar(u, 36)}<span class="switch-text"><span>${esc(u.name)}</span>${u.pronouns ? `<small>${esc(u.pronouns)}</small>` : ''}</span><input type="checkbox" class="m3-switch" role="switch" data-pick="${esc(u.name)}"></label>`;
+      })
+      .join('')}</div>`;
+  const pickedIn = (body) => $$('[data-pick]', body).filter((i) => i.checked).map((i) => i.dataset.pick);
+  const friendNames = () => store.friends('friends').map((f) => store.user(f.name).name);
+  const groupNameProblem = (name) => {
+    if (!name) return 'Give your group a name.';
+    const verdict = Nook.mod.check([name], { kind: 'profile' });
+    const problem = verdict.block || (verdict.strong && { why: 'Keep swearing out of a group’s name: everyone in it sees it.' }) || verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+    return problem ? problem.why : '';
+  };
+
+  function newGroup() {
+    const friends = friendNames();
+    if (!friends.length) return M3.snackbar('Add some friends first, then you can make a group with them.', { action: { label: 'Friends', onClick: () => go('#/friends') } });
+    const model = { color: ui.SEEDS[Math.floor(Math.random() * ui.SEEDS.length)], shape: GROUP_SHAPES[Math.floor(Math.random() * GROUP_SHAPES.length)] };
+    ui.sheet({
+      headline: 'New group',
+      symbol: 'group_add',
+      shape: 'clover4',
+      className: 'wide',
+      html:
+        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name">Your group</b><small class="muted" id="gp-count">Just you so far</small></span></div>` +
+        '<div class="field"><label for="ng-name">Name</label><input class="m3-field" id="ng-name" maxlength="40" placeholder="Weekend plans" autocomplete="off"><span class="error" id="ng-err"></span></div>' +
+        `<div class="field"><span class="field-label">Friends to add</span>${friendPicks(friends)}</div>` +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'group')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${groupShapesHTML(model.shape)}</div>` +
+        '<p class="muted sheet-note">Only the people in a group can read it. Anyone in it can add their own friends, and leave whenever they like.</p>',
+      setup(body) {
+        const nameInput = body.querySelector('#ng-name');
+        const err = body.querySelector('#ng-err');
+        const redraw = () => (body.querySelector('#gp-icon').innerHTML = views.groupIcon(model, 64));
+        const count = () => {
+          const n = pickedIn(body).length;
+          body.querySelector('#gp-count').textContent = n ? `You and ${plural(n, 'friend')}` : 'Just you so far';
+          err.textContent = '';
+        };
+        nameInput.addEventListener('input', () => {
+          body.querySelector('#gp-name').textContent = nameInput.value.trim() || 'Your group';
+          err.textContent = '';
+        });
+        body.querySelector('.pick-list').addEventListener('change', count);
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          redraw();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (shape) => {
+          model.shape = shape;
+          redraw();
+        });
+        if (matchMedia('(hover: hover)').matches) setTimeout(() => nameInput.focus(), 60);
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Create group',
+          variant: 'filled',
+          symbol: 'group_add',
+          run(close, body) {
+            const name = body.querySelector('#ng-name').value.trim();
+            const members = pickedIn(body);
+            const err = body.querySelector('#ng-err');
+            const problem = groupNameProblem(name) || (!members.length ? 'Pick at least one friend to add.' : members.length + 1 > GROUP_MAX ? `A group can have up to ${GROUP_MAX} people.` : '');
+            if (problem) {
+              err.textContent = problem;
+              if (!name) body.querySelector('#ng-name').focus();
+              return false;
+            }
+            store
+              .createGroup(name, members, model)
+              .then((g) => {
+                close(g.id);
+                setTimeout(() => {
+                  go('#/messages/g/' + encodeURIComponent(g.id));
+                  M3.toast(`${g.name} is ready`, { symbol: 'groups', shape: g.shape });
+                  fx.haptic([10, 40, 10]);
+                }, 140);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+  ACTIONS['new-group'] = () => newGroup();
+  ACTIONS.call = (btn) => Nook.calls && Nook.calls.start({ to: btn.dataset.user || '', group: btn.dataset.group || '', media: btn.dataset.media === 'video' ? 'video' : 'voice' });
+
+  /** a group's members and settings: add friends, remove people (the owner), rename it, leave or report it */
+  function groupInfo(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const owner = g.role === 'owner';
+    const member = (m) => {
+      const u = store.user(m.name);
+      const me = store.isMe(m.name);
+      return (
+        `<div class="group-member"><button type="button" class="row-link" data-profile="${esc(u.name)}" data-m3-ripple>${avatar(u, 40)}<span class="row-text"><b>${esc(u.name)}${me ? ' <span class="muted">(you)</span>' : ''}</b><small>${m.role === 'owner' ? 'Owner' : 'Member'}</small></span></button>` +
+        (owner && !me ? `<button type="button" class="m3-icon-btn" data-remove="${esc(u.name)}" aria-label="Remove u/${esc(u.name)} from the group" data-tooltip="Remove">${icon('person_remove')}</button>` : '') +
+        '</div>'
+      );
+    };
+    const canAdd = friendNames().filter((n) => !g.members.some((m) => m.name.toLowerCase() === n.toLowerCase())).length > 0;
+    // the owner first, then everyone else by name
+    const members = [...g.members].sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || a.name.localeCompare(b.name));
+    ui.sheet({
+      headline: 'Group info',
+      symbol: 'groups',
+      shape: g.shape,
+      className: 'wide',
+      html:
+        `<div class="group-preview">${views.groupIcon(g, 64)}<span class="row-text"><b class="m3-title">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')} · made ${esc(ui.ago(g.createdAt))}</small></span></div>` +
+        '<div class="toolbar group-tools">' +
+        (canAdd && g.members.length < GROUP_MAX ? `<button type="button" class="m3-btn tonal small" data-do="add">${icon('person_add')}Add friends</button>` : '') +
+        (owner ? `<button type="button" class="m3-btn tonal small" data-do="edit">${icon('edit')}Edit group</button>` : '') +
+        '</div>' +
+        `<div class="field"><span class="field-label">Members</span><div class="group-members">${members.map(member).join('')}</div></div>` +
+        '<div class="toolbar group-tools">' +
+        `<button type="button" class="m3-btn text small danger" data-do="leave">${icon('logout')}Leave group</button>` +
+        `<button type="button" class="m3-btn text small" data-do="report">${icon('flag')}Report group</button></div>`,
+      setup(body, close) {
+        body.addEventListener('click', async (e) => {
+          const profile = e.target.closest('[data-profile]');
+          if (profile) {
+            close(null);
+            return go('#/u/' + encodeURIComponent(profile.dataset.profile));
+          }
+          const remove = e.target.closest('[data-remove]');
+          if (remove) {
+            const name = remove.dataset.remove;
+            const ok = await M3.dialog({
+              headline: `Remove u/${name}?`,
+              symbol: 'person_remove',
+              iconShape: 'softBoom',
+              body: `They’ll stop getting ${g.name}’s messages. Someone can add them again later.`,
+              actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, variant: 'filled' }],
+            });
+            if (!ok) return;
+            try {
+              await store.removeFromGroup(id, name);
+            } catch (error) {
+              return showError(error);
+            }
+            close(null);
+            M3.toast(`Removed u/${name}`, { symbol: 'person_remove', shape: g.shape });
+            return;
+          }
+          const act = e.target.closest('[data-do]');
+          if (!act) return;
+          close(null);
+          if (act.dataset.do === 'add') addToGroup(id);
+          else if (act.dataset.do === 'edit') editGroup(id);
+          else if (act.dataset.do === 'leave') leaveGroup(id);
+          else if (act.dataset.do === 'report') report('group', { id });
+        });
+      },
+      actions: [{ label: 'Done', value: null }],
+    });
+  }
+  ACTIONS['group-info'] = (btn) => groupInfo(btn.dataset.group);
+
+  function addToGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const friends = friendNames().filter((n) => !g.members.some((m) => m.name.toLowerCase() === n.toLowerCase()));
+    if (!friends.length) return M3.snackbar('All your friends are in this group already.');
+    ui.sheet({
+      headline: `Add to ${g.name}`,
+      symbol: 'person_add',
+      shape: g.shape,
+      html: `${friendPicks(friends)}<span class="error" id="ag-err"></span><p class="muted sheet-note">They’ll see the group’s messages from now on, not what was said before they joined.</p>`,
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Add',
+          variant: 'filled',
+          symbol: 'person_add',
+          run(close, body) {
+            const names = pickedIn(body);
+            const err = body.querySelector('#ag-err');
+            if (!names.length) return (err.textContent = 'Pick at least one friend to add.'), false;
+            if (g.members.length + names.length > GROUP_MAX) return (err.textContent = `A group can have up to ${GROUP_MAX} people.`), false;
+            store
+              .addToGroup(id, names)
+              .then(() => {
+                close(true);
+                M3.toast(names.length === 1 ? `Added u/${names[0]}` : `Added ${plural(names.length, 'friend')}`, { symbol: 'person_add', shape: g.shape });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  function editGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const model = { color: g.color, shape: GROUP_SHAPES.includes(g.shape) ? g.shape : GROUP_SHAPES[0] };
+    ui.sheet({
+      headline: 'Edit group',
+      symbol: 'edit',
+      shape: g.shape,
+      className: 'wide',
+      html:
+        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')}</small></span></div>` +
+        `<div class="field"><label for="eg-name">Name</label><input class="m3-field" id="eg-name" maxlength="40" value="${esc(g.name)}" autocomplete="off"><span class="error" id="eg-err"></span></div>` +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'group')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${groupShapesHTML(model.shape)}</div>`,
+      setup(body) {
+        const nameInput = body.querySelector('#eg-name');
+        const redraw = () => (body.querySelector('#gp-icon').innerHTML = views.groupIcon(model, 64));
+        nameInput.addEventListener('input', () => {
+          body.querySelector('#gp-name').textContent = nameInput.value.trim() || 'Your group';
+          body.querySelector('#eg-err').textContent = '';
+        });
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          redraw();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (shape) => {
+          model.shape = shape;
+          redraw();
+        });
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Save',
+          variant: 'filled',
+          symbol: 'check',
+          run(close, body) {
+            const name = body.querySelector('#eg-name').value.trim();
+            const err = body.querySelector('#eg-err');
+            const problem = name === g.name ? '' : groupNameProblem(name);
+            if (problem) return (err.textContent = problem), false;
+            store
+              .renameGroup(id, { name, color: model.color, shape: model.shape })
+              .then(() => close(true))
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  async function leaveGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const ok = await M3.dialog({
+      headline: `Leave ${g.name}?`,
+      symbol: 'logout',
+      iconShape: 'softBoom',
+      body: g.role === 'owner' && g.members.length > 1 ? 'You’ll stop getting its messages, and whoever has been in it longest becomes its owner.' : 'You’ll stop getting its messages. Someone in it can add you again later.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Leave', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.leaveGroup(id);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`You left ${g.name}`, { symbol: 'logout', shape: g.shape });
+    if (route && route.view === 'groupThread' && route.params.id === id) go('#/messages', { replace: true });
+  }
 
   async function askName(headline, value, label) {
     let input = null;
@@ -2503,13 +2784,28 @@
 
   // ---- live: what the server says changed ------------------------------------------------------------
 
+  const said = (m, inGroup) => (m.kind ? views.lineText(m, inGroup) : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70));
   store.on('messages', (incoming = []) => {
     renderBadges();
-    if (main._onMessages) return main._onMessages(incoming);
+    // a group's chat only listens for its own news
+    if (main._onMessages && route && route.view !== 'groupThread') return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
     if (!last) return;
-    const text = S().filterLanguage === false ? last.body : Nook.mod.soften(last.body);
-    M3.snackbar(`u/${last.from}: ${ui.plain(text, 70)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
+    M3.snackbar(`u/${last.from}: ${said(last)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
+  });
+
+  store.on('gmessages', (incoming = []) => {
+    renderBadges();
+    if (main._onMessages && route && (route.view === 'groupThread' || route.view === 'messagesPage')) return main._onMessages(incoming);
+    const last = incoming[incoming.length - 1];
+    const g = last && store.group(last.group);
+    if (!g) return;
+    M3.snackbar(`${g.name} · ${last.from && !last.kind ? 'u/' + last.from + ': ' : ''}${said(last, true)}`, { timeout: 6000, action: { label: 'Open', onClick: () => go('#/messages/g/' + encodeURIComponent(g.id)) } });
+  });
+
+  store.on('groups', () => {
+    renderBadges();
+    if (main._onGroups) main._onGroups();
   });
 
   store.on('friends', () => {

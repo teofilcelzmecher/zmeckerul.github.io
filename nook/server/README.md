@@ -67,6 +67,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 |---|---|
 | `sudo nook signups open` / `invite` | Anyone can join, or only with an invite code |
 | `sudo nook captcha SITE_KEY SECRET_KEY` / `captcha off` | Turns the robot check (Cloudflare Turnstile) on sign-up on or off |
+| `sudo nook turn KEY_ID API_TOKEN` / `turn off` | Sends calls through Cloudflare's TURN relay, or back to direct calls (see below) |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
@@ -105,6 +106,36 @@ server a key from Cloudflare (the same account that has budgiesocial.com):
 
 If Cloudflare can't be reached, nobody can sign up until it's back (people already signed in aren't
 affected). The secret key is kept in the database, so treat backups like the database itself.
+
+## Calls, and the optional relay
+
+Friends can call each other, and group chats can have calls of up to six people, with voice or video.
+The server only rings people and passes on the short messages devices need to find each other; the
+sound and pictures go straight between the devices, encrypted, and never reach the laptop. So calls
+cost the laptop almost nothing, and nothing about a call is kept except a line in the chat ("Voice
+call · 4 min", "Missed video call").
+
+Out of the box, devices find each other with Cloudflare's free STUN server. That works on most home
+and phone networks, but some (school or office Wi-Fi, some mobile networks) block direct calls, and
+the people in a direct call can see each other's IP address. Cloudflare's TURN relay fixes both: every
+call goes through Cloudflare, connects on any network, and nobody sees anyone else's IP address. The
+first 1,000 GB a month are free (then $0.05 per GB; a voice call uses under 0.5 MB a minute, a video
+call up to about 11 MB a minute per person):
+
+1. In https://dash.cloudflare.com open **Realtime** → **TURN Server** (it may be under **Calls**),
+   and **Create** a TURN key. Name it Budgie.
+2. It shows a **Turn Token ID** (the key id) and an **API Token**. Keep the API token to yourself.
+3. On the laptop:
+
+   ```sh
+   sudo nook turn KEY_ID API_TOKEN
+   ```
+
+   It checks them with Cloudflare first and works straight away (no restart). `sudo nook turn` says
+   which way calls go; `sudo nook turn off` goes back to direct calls. If Cloudflare can't be reached,
+   calls fall back to going direct by themselves.
+
+People can stop anyone from ringing them in Settings → Calls.
 
 ## Automatic checks
 
