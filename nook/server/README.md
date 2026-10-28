@@ -71,6 +71,8 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
 | `sudo nook admin NAME` / `unadmin NAME` | Gives or takes away the Moderation page |
+| `sudo nook dev NAME` / `undev NAME` | Gives or takes away the Developer badge (developers can give people the Tester badge from their profile). u/teofil gets it by itself while it's an admin |
+| `sudo nook tester NAME` / `untester NAME` | Gives or takes away the Tester badge |
 | `sudo nook rename NAME NEW_NAME` | Changes a username that breaks the rules |
 | `sudo nook ban NAME reason…` / `unban NAME` | Bans someone (they're signed out everywhere) |
 | `sudo nook reset-password NAME` | Gives someone a temporary password and recovery code |

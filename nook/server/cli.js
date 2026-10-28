@@ -32,6 +32,10 @@ const COMMANDS = {
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
+      '  nook dev <name>                  give someone the Developer badge (they can then give people the Tester badge)',
+      '  nook undev <name>                take the Developer badge away',
+      '  nook tester <name>               give someone the Tester badge',
+      '  nook untester <name>             take the Tester badge away',
       '  nook rename <name> <new name>    change someone\'s username (for one that breaks the rules)',
       '  nook clear-profile <name> [reason]   remove someone\'s picture, banner, bio and pronouns; they\'re told why',
       '  nook scan-images                 check every picture already posted for nudity; doubtful ones go to the Moderation page',
@@ -106,7 +110,7 @@ const COMMANDS = {
   users() {
     const rows = db.all('SELECT * FROM users ORDER BY created_at');
     out(`${rows.length} accounts:`);
-    for (const u of rows) out(`  u/${u.name.padEnd(20)} joined ${date(u.created_at)}${u.role === 'admin' ? '  [admin]' : ''}${u.banned_at ? `  [banned: ${u.ban_reason || ''}]` : ''}`);
+    for (const u of rows) out(`  u/${u.name.padEnd(20)} joined ${date(u.created_at)}${u.role === 'admin' ? '  [admin]' : ''}${nook.badgesOf(u).map((b) => `  [${b}]`).join('')}${u.banned_at ? `  [banned: ${u.ban_reason || ''}]` : ''}`);
   },
 
   admin(name) {
@@ -119,6 +123,26 @@ const COMMANDS = {
     const u = userNamed(name);
     db.run("UPDATE users SET role = 'member', rev = ? WHERE id = ?", db.bump(), u.id);
     out(`u/${u.name} is no longer an admin.`);
+  },
+
+  dev(name) {
+    const u = userNamed(name);
+    out(nook.setBadge(u, 'dev', true) ? `u/${u.name} has the Developer badge now, and can give people the Tester badge from their profile.` : `u/${u.name} already has the Developer badge.`);
+  },
+
+  undev(name) {
+    const u = userNamed(name);
+    out(nook.setBadge(u, 'dev', false) ? `u/${u.name} no longer has the Developer badge.` : `u/${u.name} didn't have the Developer badge.`);
+  },
+
+  tester(name) {
+    const u = userNamed(name);
+    out(nook.setBadge(u, 'tester', true) ? `u/${u.name} has the Tester badge now; they've been told.` : `u/${u.name} already has the Tester badge.`);
+  },
+
+  untester(name) {
+    const u = userNamed(name);
+    out(nook.setBadge(u, 'tester', false) ? `u/${u.name} no longer has the Tester badge.` : `u/${u.name} didn't have the Tester badge.`);
   },
 
   rename(name, to) {

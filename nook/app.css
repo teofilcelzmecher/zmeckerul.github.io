@@ -2152,6 +2152,47 @@ h1 .pride-flag,
   color: var(--m3-on-surface);
   font-weight: 600;
 }
+/* badges Budgie gives, under a name on its profile: a tonal pill each, with its own shape */
+.special-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.special-badge {
+  --m3-shape-icon-color: var(--m3-primary);
+  --m3-shape-icon-on-color: var(--m3-on-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px 0 4px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  font-size: var(--m3-fs-small);
+  font-weight: 650;
+}
+.special-badge.dev {
+  --m3-shape-icon-color: var(--m3-tertiary);
+  --m3-shape-icon-on-color: var(--m3-on-tertiary);
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+}
+.special-badge.tester {
+  --m3-shape-icon-color: var(--m3-secondary);
+  --m3-shape-icon-on-color: var(--m3-on-secondary);
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+/* "Dev" after a developer's name on posts and comments */
+.tag.dev {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--m3-tertiary);
+  color: var(--m3-on-tertiary);
+}
 
 /* the fonts people pick for their names: OFL fonts cut down to the characters a username has (fonts/),
    each at one weight, so the browser mustn't make up a bolder one. size-adjust evens out how big

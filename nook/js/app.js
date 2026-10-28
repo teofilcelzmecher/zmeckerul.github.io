@@ -1268,6 +1268,33 @@
 
   ACTIONS['report-user'] = (btn) => report('user', { name: btn.dataset.user });
 
+  // a developer gives the Tester badge, or takes it away
+  ACTIONS.tester = async (btn) => {
+    const name = btn.dataset.user;
+    const on = btn.getAttribute('aria-pressed') !== 'true';
+    if (!on) {
+      const ok = await M3.dialog({
+        headline: `Take u/${name}’s Tester badge away?`,
+        symbol: 'science',
+        iconShape: 'softBurst',
+        body: 'It comes off their profile. You can give it back any time.',
+        actions: [{ label: 'Cancel', value: false }, { label: 'Take it away', value: true, variant: 'filled' }],
+      });
+      if (!ok) return;
+    }
+    btn.disabled = true;
+    try {
+      await store.giveBadge(name, 'tester', on);
+    } catch (error) {
+      btn.disabled = false;
+      return showError(error);
+    }
+    fx.haptic(10);
+    if (on) M3.burst(btn, 'play', { count: 10 });
+    M3.toast(on ? `u/${name} is a Tester now` : `u/${name} isn’t a Tester any more`, { symbol: 'science', shape: 'softBurst' });
+    render();
+  };
+
   // ---- your account ------------------------------------------------------------------------------------
 
   ACTIONS['sign-out'] = async () => {

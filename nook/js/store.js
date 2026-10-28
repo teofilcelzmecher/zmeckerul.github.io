@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.7.0';
+  const VERSION = '0.8.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -73,7 +73,7 @@
   const meFrom = (me) => ({
     name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
     pronouns: me.pronouns || '', flag: me.flag || '', interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
-    joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member',
+    joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [],
   });
 
   const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});
@@ -162,6 +162,8 @@
   const isMe = (name) => name === ME || (!!name && name.toLowerCase() === state.me.name.toLowerCase());
   const userName = (name) => (name === ME ? state.me.name : name);
   const isAdmin = () => state.me.role === 'admin';
+  // a developer can give people the Tester badge
+  const isDev = () => state.me.badges.includes('dev');
 
   function user(name) {
     if (isMe(name)) return Object.assign({}, state.me, { me: true });
@@ -619,6 +621,12 @@
     emit('friends');
   }
 
+  /** a developer gives someone the Tester badge, or takes it away */
+  async function giveBadge(name, badge, on) {
+    const { user: u } = await api.post('/api/badges', { name, badge, on });
+    ingestUser(u);
+  }
+
   const thread = (name) => threads.get(String(name).toLowerCase()) || { messages: [], loaded: false, more: false };
   const conversation = (name) => state.conversations.find((c) => c.with.toLowerCase() === String(name).toLowerCase()) || null;
   const unreadMessages = () => state.conversations.reduce((sum, c) => sum + (c.unread || 0), 0);
@@ -750,7 +758,7 @@
 
   Nook.store = {
     ME, VERSION, SPARKS, BADGES, state, save, saveNow, on, emit, uid,
-    isMe, isAdmin, userName, user, people, community, allCommunities, post, visiblePosts, comments, commentsById,
+    isMe, isAdmin, isDev, giveBadge, userName, user, people, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
     userStats, history, search, membersOf, activity, notifications, isRead, unread, notify, touchStreak, checkBadges, award,
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,

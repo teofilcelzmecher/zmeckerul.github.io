@@ -27,8 +27,8 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.7.0';
-const TERMS = '0.7.0, 2026-10-28';
+const VERSION = '0.8.0';
+const TERMS = '0.8.0, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -262,11 +262,12 @@ const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 // ---- shaping rows for the app ------------------------------------------------------------------------
 
 function publicUser(u) {
+  const badges = badgesOf(u);
   return {
     name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
     banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio, font: u.name_font || undefined,
     pronouns: u.pronouns || undefined, flag: u.pride_flag || undefined, interests: u.interests ? u.interests.split(',') : undefined,
-    scheme: u.profile_scheme || undefined, sticker: u.sticker_shape || undefined,
+    scheme: u.profile_scheme || undefined, sticker: u.sticker_shape || undefined, badges: badges.length ? badges : undefined,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
 }
@@ -374,6 +375,44 @@ const NOTICE = {
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
   db.meta('terms-told', NOTICE.version);
+}
+
+// ---- badges Budgie gives -------------------------------------------------------------------------------
+// Developer (`nook dev`), Tester (a developer gives it, in the app or with `nook tester`), and Early Bird,
+// which every account made before Budgie 1.0 keeps for good: the server notes when it first runs as 1.0
+const GIVEN_BADGES = ['dev', 'tester'];
+if (Number(VERSION.split('.')[0]) >= 1 && !db.meta('v1-since')) db.meta('v1-since', String(now()));
+function badgesOf(u) {
+  const list = String(u.badges || '').split(',').filter((b) => GIVEN_BADGES.includes(b));
+  if (u.created_at < (Number(db.meta('v1-since')) || Infinity)) list.push('early');
+  return list;
+}
+const EARLY_NOTE = { text: 'You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!', symbol: 'egg', shape: 'sunny' };
+const BADGE_NOTES = {
+  dev: () => ({ text: 'You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.', symbol: 'code', shape: 'pixelCircle' }),
+  tester: (by) => ({ text: `${by ? `u/${by} gave you` : 'You’ve got'} the Tester badge: it’s on your profile now. Thanks for helping test Budgie!`, symbol: 'science', shape: 'softBurst' }),
+};
+/** gives or takes away a badge (whoever gets one is told); false when there was nothing to change */
+function setBadge(u, badge, on, by) {
+  if (!GIVEN_BADGES.includes(badge)) fail(400, 'There’s no badge like that to give.');
+  const list = String(u.badges || '').split(',').filter(Boolean);
+  if (list.includes(badge) === !!on) return false;
+  db.run('UPDATE users SET badges = ?, rev = ? WHERE id = ?', (on ? [...list, badge] : list.filter((b) => b !== badge)).join(','), db.bump(), u.id);
+  if (on) notify(u.id, Object.assign({ kind: 'badge', href: '#/u/' + u.name }, BADGE_NOTES[badge](by)));
+  return true;
+}
+// everyone already here is told once that they're an Early Bird
+if (!db.meta('v1-since') && !db.meta('early-told')) {
+  for (const u of db.all('SELECT id, name FROM users')) notify(u.id, Object.assign({ kind: 'badge', href: '#/u/' + u.name }, EARLY_NOTE));
+  db.meta('early-told', '1');
+}
+// u/teofil, the owner's account, starts out a developer: once, and only while it's an admin, so it's surely theirs
+if (!db.meta('owner-dev')) {
+  const owner = db.get("SELECT * FROM users WHERE name = 'teofil' AND role = 'admin'");
+  if (owner) {
+    setBadge(owner, 'dev', true);
+    db.meta('owner-dev', '1');
+  }
 }
 
 function members() {
@@ -535,6 +574,7 @@ route('POST', '/api/signup', async ({ body, ip }) => {
     for (const nook of DEFAULT_JOINS) db.run('INSERT OR IGNORE INTO joins (user_id, nook, created_at) VALUES (?, ?, ?)', id, nook, t);
     return db.get('SELECT * FROM users WHERE id = ?', id);
   });
+  if (badgesOf(user).includes('early')) notify(user.id, Object.assign({ kind: 'badge', href: '#/u/' + user.name }, EARLY_NOTE));
   return { token: newSession(user.id), recovery, me: meOut(user) };
 }, { auth: false });
 
@@ -1020,6 +1060,17 @@ route('PATCH', '/api/me', async ({ user, body }) => {
   return { me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
 }, { body: 10 * 1024 * 1024 });
 
+// a developer gives someone the Tester badge, or takes it away (the Developer badge only comes from `nook dev`)
+route('POST', '/api/badges', ({ user, body }) => {
+  if (!badgesOf(user).includes('dev')) fail(403, 'Only Budgie’s developers can give badges.');
+  limit('badges:' + user.id, 60, HOUR);
+  if (body.badge !== 'tester') fail(400, 'Developers can give the Tester badge, and only that one.');
+  const target = db.get('SELECT * FROM users WHERE name = ?', text(body.name, 40));
+  if (!target) fail(404, 'There’s no one by that name.');
+  setBadge(target, 'tester', !!body.on, user.name);
+  return { user: publicUser(db.get('SELECT * FROM users WHERE id = ?', target.id)) };
+});
+
 // your own settings, saved posts, collections, streak and badges travel between your devices
 route('PUT', '/api/prefs', ({ user, body }) => {
   const json = JSON.stringify(body.prefs || {});
@@ -1348,4 +1399,4 @@ if (require.main === module) {
   process.on('SIGINT', stop);
 }
 
-module.exports = { server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport };
+module.exports = { server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport, setBadge, badgesOf };

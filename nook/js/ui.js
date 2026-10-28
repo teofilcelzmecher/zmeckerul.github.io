@@ -601,9 +601,27 @@
     ['rainbow', 'Rainbow'], ['fruitSalad', 'Fruit salad'], ['neutral', 'Neutral'], ['monochrome', 'Monochrome'],
   ];
 
+  // badges Budgie gives (the server says who has them): [id, name, what it means, symbol, shape]
+  const SPECIAL_BADGES = [
+    ['dev', 'Developer', 'Builds Budgie', 'code', 'pixelCircle'],
+    ['tester', 'Tester', 'Helps test Budgie', 'science', 'softBurst'],
+    ['early', 'Early Bird', 'Joined before Budgie 1.0', 'egg', 'sunny'],
+  ];
+  const hasBadge = (u, id) => !!(u && u.badges && u.badges.includes(id));
+  /** someone's badges, as a row of tonal chips for their profile */
+  function specialBadges(u) {
+    const list = SPECIAL_BADGES.filter(([id]) => hasBadge(u, id));
+    if (!list.length) return '';
+    return `<div class="special-badges" role="list" aria-label="Badges">${list
+      .map(([id, name, desc, symbol, shape]) => `<span class="special-badge ${id}" role="listitem" data-tooltip="${desc}"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="24" icon-size="14" aria-hidden="true"></m3-shape-icon>${name}</span>`)
+      .join('')}</div>`;
+  }
+  // after a developer's name on posts and comments
+  const devTag = (u) => (hasBadge(u, 'dev') ? `<span class="tag dev" title="One of Budgie’s developers">${icon('code')}Dev</span>` : '');
+
   Nook.ui = {
     esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, nookIcon, icon, theme, sheet,
-    NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES,
+    NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES, SPECIAL_BADGES, hasBadge, specialBadges, devTag,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

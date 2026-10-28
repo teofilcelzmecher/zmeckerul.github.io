@@ -322,6 +322,50 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   await api(B, 'PATCH', '/api/me', { bio: 'back again' });
   ok(/Cleared u\/bob/.test(cli('clear-profile', 'bob', 'Testing the command')), 'the cli clears a profile too');
 
+  // badges: every account made before 1.0 is an Early Bird; Developer comes from the cli; a developer gives the Tester badge
+  const boot0 = (await api(A, 'GET', '/api/bootstrap')).json;
+  ok(boot0.me.badges.join() === 'early' && boot0.users.every((u) => (u.badges || []).includes('early')), 'every account made before 1.0 is an Early Bird', JSON.stringify(boot0.me.badges));
+  const aliceNotes = (await api(A, 'GET', '/api/updates?rev=0&note=0&msg=0')).json.notes;
+  ok(aliceNotes.some((n) => n.kind === 'badge' && /Early Bird/.test(n.text)), 'and is told so when they join');
+  const notDev = await api(B, 'POST', '/api/badges', { name: 'dora', badge: 'tester', on: true });
+  ok(notDev.status === 403, 'only developers give badges', notDev.json.error);
+  ok(/Developer badge now/.test(cli('dev', 'alice')) && /already has/.test(cli('dev', 'alice')), 'the cli makes alice a developer (once)');
+  ok(/u\/alice .*\[dev\]\s+\[early\]/.test(cli('users')), 'and lists her badges');
+  const aliceDev = (await api(A, 'GET', '/api/bootstrap')).json;
+  ok(aliceDev.me.badges.includes('dev') && aliceDev.users.find((u) => u.name === 'alice').badges.includes('dev'), 'alice has the Developer badge, for everyone to see');
+  const give = await api(A, 'POST', '/api/badges', { name: 'bob', badge: 'tester', on: true });
+  ok(give.status === 200 && give.json.user.badges.includes('tester'), 'alice gives bob the Tester badge', give.json.error);
+  const bobTold = (await api(B, 'GET', '/api/updates?rev=0&note=0&msg=0')).json.notes;
+  ok(bobTold.some((n) => /u\/alice gave you the Tester badge/.test(n.text)), 'bob is told who gave it');
+  const doraSees = (await api(open.json.token, 'GET', `/api/updates?rev=${boot0.rev}&note=0&msg=0`)).json.users.find((u) => u.name === 'bob');
+  ok(doraSees && doraSees.badges.includes('tester'), 'others get it with their next update');
+  const noDev = await api(A, 'POST', '/api/badges', { name: 'bob', badge: 'dev', on: true });
+  ok(noDev.status === 400, 'a developer can’t hand out the Developer badge', noDev.json.error);
+  const nobody = await api(A, 'POST', '/api/badges', { name: 'nobody_here', badge: 'tester', on: true });
+  ok(nobody.status === 404, 'or give one to no one', nobody.json.error);
+  const takeAway = await api(A, 'POST', '/api/badges', { name: 'bob', badge: 'tester', on: false });
+  ok(takeAway.status === 200 && !(takeAway.json.user.badges || []).includes('tester'), 'and takes the Tester badge away again');
+  ok(/Tester badge now/.test(cli('tester', 'dora')) && /no longer/.test(cli('untester', 'dora')) && /didn't have/.test(cli('untester', 'dora')), 'the cli gives and takes the Tester badge');
+  // u/teofil, the owner's account, becomes a developer by itself, but only once it's an admin (so it's surely the owner's)
+  const teofil = await api(null, 'POST', '/api/signup', { name: 'Teofil', password: 'correct horse', age: true, terms: true });
+  ok(teofil.status === 200, 'u/Teofil signs up', teofil.json.error);
+  ok(!/u\/Teofil .*\[dev\]/.test(cli('users')), 'it isn’t a developer while it’s a member');
+  cli('admin', 'Teofil');
+  ok(/u\/Teofil .*\[admin\]\s+\[dev\]/.test(cli('users')), 'once it’s an admin, the next start makes it one');
+  cli('undev', 'Teofil');
+  ok(!/u\/Teofil .*\[dev\]/.test(cli('users')), 'just once: taken away, it stays away');
+  // the server notes when it first runs as 1.0: accounts made after that aren't Early Birds
+  const late = await api(null, 'POST', '/api/signup', { name: 'erin', password: 'correct horse', age: true, terms: true });
+  const v1 = JSON.parse(execFileSync('node', ['-e', `
+    const n = require(${JSON.stringify(SERVER + '/server.js')});
+    const erin = n.db.get("SELECT * FROM users WHERE name = 'erin'");
+    n.db.meta('v1-since', String(erin.created_at));
+    const out = { alice: n.badgesOf(n.db.get("SELECT * FROM users WHERE name = 'alice'")), erin: n.badgesOf(erin) };
+    n.db.meta('v1-since', '');
+    n.db.close();
+    console.log(JSON.stringify(out));`], { env, encoding: 'utf8' }));
+  ok(late.status === 200 && v1.alice.includes('early') && !v1.erin.includes('early'), 'after 1.0, new accounts aren’t Early Birds; earlier ones keep it', JSON.stringify(v1));
+
   // password, recovery, ban, export, delete
   const pw = await api(B, 'POST', '/api/account/password', { current: 'battery staple', password: 'new password 1' });
   ok(pw.status === 200, 'bob changes his password');
@@ -344,7 +388,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const bobAfter = await api(null, 'POST', '/api/login', { name: 'bob', password: 'new password 1' });
   const B2 = bobAfter.json.token;
   const world = await api(B2, 'GET', '/api/bootstrap');
-  ok(world.json.users.length === 3 && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
+  ok(!world.json.users.some((u) => u.name === 'alice') && world.json.friends.length === 0 && world.json.conversations.length === 0, 'alice is gone: no user, friendship or messages');
   ok(world.json.comments.every((c) => c.author !== 'alice'), 'her comments are wiped');
   ok(world.json.nooks[0].mods.length === 0, 'her nook stays, without her');
 

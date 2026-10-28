@@ -191,7 +191,7 @@ function open(dir) {
   db.exec(SCHEMA);
   // columns added since the first release, for databases made before them
   const LATER_COLUMNS = [['users', 'photo_gif'], ['users', 'banner'], ['users', 'banner_gif'], ['users', 'name_font'],
-    ['users', 'pronouns'], ['users', 'pride_flag'], ['users', 'interests'], ['users', 'profile_scheme'], ['users', 'sticker_shape']];
+    ['users', 'pronouns'], ['users', 'pride_flag'], ['users', 'interests'], ['users', 'profile_scheme'], ['users', 'sticker_shape'], ['users', 'badges']];
   for (const [table, column] of LATER_COLUMNS) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   }
