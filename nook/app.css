@@ -238,6 +238,17 @@ p {
 .toolbar > .m3-segmented::-webkit-scrollbar {
   display: none;
 }
+@media (max-width: 440px) {
+  /* a little closer together, so five (the ringtones) fit a phone */
+  .setting-row > .m3-segmented > .m3-segment {
+    padding: 0 11px;
+  }
+}
+@media (max-width: 380px) {
+  .setting-row > .m3-segmented > .m3-segment {
+    padding: 0 8px;
+  }
+}
 
 .col {
   display: grid;
@@ -3959,10 +3970,21 @@ html.visitor .landing {
     display: none;
   }
   /* where you write at the bottom of the screen, toasts come in at the top instead */
-  body:is([data-view='thread'], [data-view='submit'], .typing) .m3-toaster {
+  body:is([data-view='thread'], [data-view='groupThread'], [data-view='submit'], .typing) .m3-toaster {
     top: calc(var(--nook-bar) + env(safe-area-inset-top, 0px) + 8px);
     bottom: auto;
   }
+}
+@media (min-width: 720px) {
+  /* in a chat on a computer, they stay clear of the box you type in */
+  body:is([data-view='thread'], [data-view='groupThread']) .m3-toaster {
+    bottom: calc(190px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* in a call, clear of its buttons */
+body:has(.call-screen:not([hidden])) .m3-toaster {
+  top: auto;
+  bottom: calc(124px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ---- avatars wear a photo or an icon ------------------------------------------------------- */
@@ -5426,6 +5448,17 @@ html.has-call-bar .topbar {
 /* the Manage page */
 .manage .m3-segmented {
   margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.manage .m3-segmented::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 400px) {
+  /* four sections fit a small phone in words alone */
+  #manage-tabs .m3-segment > .m3-icon {
+    display: none;
+  }
 }
 #manage-body {
   display: grid;

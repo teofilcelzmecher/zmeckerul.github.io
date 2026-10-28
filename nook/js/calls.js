@@ -1473,7 +1473,7 @@
     const name = call.group ? call.group.name : 'u/' + (lower(call.from) === lower(store.state.me.name) ? call.with : call.from);
     const bar = makeBar(
       'rejoin',
-      `<span class="pill-dot"></span>${icon(call.media === 'video' ? 'videocam' : 'call')}<span class="call-bar-text">You’re still in the call with ${esc(name)}</span>` +
+      `<span class="pill-dot"></span>${icon(call.media === 'video' ? 'videocam' : 'call')}<span class="call-bar-text">${esc(name)} · you’re still in the call</span>` +
         `<button type="button" class="m3-btn filled small" data-rejoin="go">${icon('call')}Rejoin</button><button type="button" class="m3-icon-btn small call-bar-hang" data-rejoin="leave" aria-label="Hang up" data-tooltip="Hang up">${icon('call_end')}</button>`
     );
     tint(bar, seedFor(call, lower(call.from) === lower(store.state.me.name) ? call.with : call.from));

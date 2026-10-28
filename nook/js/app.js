@@ -967,7 +967,7 @@
     const c = store.community(btn.dataset.nook);
     const joined = store.state.joined.includes(c.id);
     menu(btn, [
-      { label: 'Create a post here', symbol: 'edit', onSelect: () => go('#/submit?n=' + c.id) },
+      ...(store.bannedFrom(c.id) ? [] : [{ label: 'Create a post here', symbol: 'edit', onSelect: () => go('#/submit?n=' + c.id) }]),
       { label: 'About this nest', symbol: 'info', onSelect: () => nookAbout(c) },
       { label: 'Copy link', symbol: 'link', onSelect: () => share('#/n/' + c.id, 'nest') },
       { separator: true },
@@ -2334,7 +2334,9 @@
       [['m'], 'In a call: mute or unmute'],
       [['v'], 'In a call: camera on or off'],
       [['Shift+S'], 'In a call: share your screen'],
+      [['r'], 'In a group call: ring people again'],
       [['c'], 'In a call: hide it, or bring it back'],
+      [['Ctrl+D', 'or', 'Ctrl+E'], 'In a call: mute, or camera, even while typing'],
     ];
     const WORDS = ['or', 'then'];
     ui.sheet({
@@ -2383,6 +2385,7 @@
     testers: [
       { name: 'Alex Vochin', color: '#3d7bff', shape: 'cookie9' },
       { name: 'Petcu David Andrei', color: '#00a6a6', shape: 'clover4' },
+      { name: 'Crisu Radu', color: '#ff8a3d', shape: 'flower' },
     ],
   };
   ACTIONS.credits = () => {

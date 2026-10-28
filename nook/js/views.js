@@ -265,7 +265,7 @@
       `<div class="about-stats"><div><b class="count">${num(a.posts)}</b><span>Posts</span></div>` +
       `<div><b class="count">${num(a.comments)}</b><span>Comments</span></div></div>` +
       pulse(c) +
-      `<div class="toolbar" style="margin-top:14px">${joinButton(c, false)}<a class="m3-btn outlined" href="#/submit?n=${c.id}">${icon('edit')}Post</a></div>` +
+      `<div class="toolbar" style="margin-top:14px">${joinButton(c, false)}${store.bannedFrom(c.id) ? '' : `<a class="m3-btn outlined" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`}</div>` +
       '</section>'
     );
   }
@@ -526,7 +526,8 @@
         bannedNote(c) +
         `<div class="toolbar">${sortControl('hot')}<span class="spacer"></span>` +
         `<button class="m3-btn tonal small only-tablet" data-act="nook-about" data-nook="${c.id}">${icon('info')}About</button>` +
-        `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>${compactToggle()}</div>` +
+        // nobody banned from the nest is offered a Post button the server will refuse
+        `${store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`}${compactToggle()}</div>` +
         (flairs.length
           ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join('')}</div>`
           : '') +
@@ -540,7 +541,7 @@
             root,
             store.feed({ nook: c.id, sort, flair }),
             { nook: c.id, ads: true },
-            empty('edit_note', flair ? `No “${flair}” posts yet` : 'No posts yet', 'Be the first to start something here.', `<a class="m3-btn filled" href="#/submit?n=${c.id}">${icon('edit')}Write the first post</a>`)
+            empty('edit_note', flair ? `No “${flair}” posts yet` : 'No posts yet', 'Be the first to start something here.', store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled" href="#/submit?n=${c.id}">${icon('edit')}Write the first post</a>`)
           );
         render();
         store.visit(c.id);
@@ -578,7 +579,7 @@
         `<div class="toolbar" style="margin-bottom:12px"><h2 class="card-title" style="margin:0">${icon('forum')}<span>Comments <span class="count muted" id="comment-count">${num(count)}</span></span></h2><span class="spacer"></span>` +
         segmented('comment-sort', [['best', 'Best', 'star'], ['top', 'Top', 'trending_up'], ['new', 'New', 'new_releases']], 'best', 'Sort comments') +
         '</div>' +
-        `<div id="top-reply">${replyBox('Add to the conversation…', 'Comment')}</div>` +
+        `<div id="top-reply">${store.bannedFrom(c.id) ? bannedNote(c) : replyBox('Add to the conversation…', 'Comment')}</div>` +
         `<div class="comments" id="comment-list">${commentTree(p, 'best')}</div>` +
         (count ? '' : `<div id="no-comments" class="muted" style="text-align:center;padding:20px">No comments yet. Say something nice!</div>`) +
         '</section>' +
@@ -595,7 +596,8 @@
         root._rerenderComments = () => {
           list.innerHTML = commentTree(p, sort);
         };
-        app().wireReplyBox(root.querySelector('#top-reply .reply-box'), p, null);
+        const box = root.querySelector('#top-reply .reply-box');
+        if (box) app().wireReplyBox(box, p, null);
         if (params.focus === 'comments') requestAnimationFrame(() => root.querySelector('#comments').scrollIntoView({ block: 'start' }));
         if (params.c) app().jumpToComment(params.c);
       },
