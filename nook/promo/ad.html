@@ -6,45 +6,71 @@
 <title>Budgie video ad</title>
 <!--
   Copyright (C) 2026 teofilcelzmecher. All rights reserved. See ../LICENSE.
-  A 16-second vertical video ad (1080×1920) for TikTok, Reels and Shorts.
-  Open it in a browser to watch it; render.js turns it into an MP4.
+  A 19-second vertical video ad (1080×1920) for TikTok, Reels and Shorts, cut to a 120 BPM beat.
+  Open it in a browser to watch it (silent); render.js turns it into an MP4 with the music.
   Every frame is drawn from the time alone (renderAt), so the video is exact.
 -->
 <link rel="stylesheet" href="../../m3/fonts/fonts.css">
 <style>
-  html, body { margin: 0; height: 100%; background: #111; }
+  html, body { margin: 0; height: 100%; background: #000; }
   body { display: grid; place-items: center; overflow: hidden; }
   #stage {
-    position: relative; width: 1080px; height: 1920px; overflow: hidden; flex: none;
+    position: relative; width: 1080px; height: 1920px; overflow: hidden; flex: none; background: #141218; color: #e6e0e9;
     font-family: 'Google Sans Flex', sans-serif; transform-origin: 50% 50%;
-    -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision;
+    -webkit-font-smoothing: antialiased;
   }
-  .render body, .render { background: transparent; }
   .render #stage { transform: none !important; }
-  .layer, .abs { position: absolute; }
-  .layer { inset: 0; }
+  .layer { position: absolute; inset: 0; }
+  .abs { position: absolute; }
   .icon {
-    font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1;
+    font-family: 'Material Symbols Rounded'; font-weight: normal; font-style: normal; line-height: 1; display: inline-block;
     letter-spacing: normal; text-transform: none; white-space: nowrap; direction: ltr;
     font-feature-settings: 'liga'; font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 48;
   }
-  svg.shape { position: absolute; overflow: visible; }
-  .center { transform-origin: 50% 50%; }
-  .line { position: absolute; left: 0; right: 0; text-align: center; white-space: nowrap; line-height: 1.05; }
-  .bar { position: absolute; border-radius: 999px; }
-  .pill { position: absolute; display: flex; align-items: center; gap: 18px; white-space: nowrap; border-radius: 999px; }
-  .mark { position: absolute; display: grid; place-items: center; }
-  .mark svg { inset: 0; width: 100%; height: 100%; }
-  .mark .icon { position: relative; color: #fff; }
+  .icon.o { font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 48; }
+  .emoji { font-family: 'Noto Color Emoji', 'Apple Color Emoji', sans-serif; line-height: 1; }
+  .line { position: absolute; left: 0; right: 0; text-align: center; white-space: nowrap; line-height: 1.02; letter-spacing: -0.035em; }
+  .shp { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .mk { position: relative; display: inline-grid; place-items: center; flex: none; }
+  .mk > .icon, .mk > b { position: relative; }
+  .mk > b { font-weight: 800; }
+  .pill { display: flex; align-items: center; white-space: nowrap; border-radius: 999px; }
+
+  /* the phone and the app inside it, coloured by the --variables of the current scheme */
+  .phone { position: absolute; border-radius: 96px; background: #0b0a0d; box-shadow: 0 50px 120px rgba(0,0,0,0.55), inset 0 0 0 4px #2d2b33; }
+  .screen { position: absolute; left: 16px; top: 16px; border-radius: 80px; overflow: hidden; background: var(--surface); color: var(--on-surface); }
+  .view { position: absolute; inset: 0; background: var(--surface); }
+  .appbar { position: absolute; left: 0; right: 0; top: 64px; height: 104px; display: flex; align-items: center; gap: 14px; padding: 0 24px; }
+  .appbar .btn { width: 88px; height: 88px; }
+  .appbar .btn .shp path { fill: var(--surface-container-high); }
+  .appbar .btn .icon { font-size: 44px; color: var(--on-surface); }
+  .brand { display: flex; align-items: center; gap: 14px; font-size: 52px; font-weight: 760; letter-spacing: -0.02em; flex: 1; }
+  .brand .mk { width: 72px; height: 72px; }
+  .brand path { fill: var(--primary); }
+  .navbar { position: absolute; left: 0; right: 0; bottom: 0; height: 160px; display: flex; justify-content: space-around; align-items: flex-start; padding-top: 20px; box-sizing: border-box; background: var(--surface-container); border-top: 2px solid var(--outline-variant); }
+  .navbar .it { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 26px; font-weight: 620; color: var(--on-surface-variant); width: 120px; }
+  .navbar .ind { width: 110px; height: 60px; border-radius: 30px; display: grid; place-items: center; }
+  .navbar .ind .icon { font-size: 42px; }
+  .navbar .on { color: var(--on-surface); }
+  .navbar .on .ind { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .navbar .new .ind { background: var(--primary-container); color: var(--on-primary-container); width: 120px; height: 72px; border-radius: 24px; }
+  .card { position: absolute; background: var(--surface-container); border-radius: 52px; overflow: hidden; }
+  .tonal { background: var(--secondary-container); color: var(--on-secondary-container); }
+  .muted { color: var(--on-surface-variant); }
+  .act { height: 84px; display: flex; align-items: center; justify-content: center; gap: 16px; border-radius: 42px; background: var(--surface-container-high); color: var(--on-surface-variant); padding: 0 26px; flex: none; }
+  .act .icon { font-size: 44px; }
+  .bubble { position: absolute; font-size: 42px; line-height: 1.3; padding: 22px 36px; border-radius: 44px; white-space: nowrap; }
+  .mine { right: 32px; background: var(--primary); color: var(--on-primary); }
+  .theirs { left: 120px; background: var(--surface-container-high); color: var(--on-surface); }
+  .toast { position: absolute; left: 0; display: flex; align-items: center; gap: 28px; height: 150px; padding: 0 56px 0 26px; border-radius: 75px; background: #e6e0e9; color: #1d1b20; font-size: 50px; font-weight: 650; white-space: nowrap; box-shadow: 0 18px 50px rgba(0,0,0,0.45); }
 </style>
 </head>
 <body>
 <div id="stage"></div>
 <script src="../../m3/m3-shapes.js"></script>
 <script type="module">
-// ---------------------------------------------------------------- basics
-const W = 1080, H = 1920, DURATION = 16;
-const NS = 'http://www.w3.org/2000/svg';
+// ================================================================ basics
+const W = 1080, H = 1920, BPM = 120, BEAT = 60 / BPM, DURATION = 19;
 const stage = document.getElementById('stage');
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, p) => a + (b - a) * p;
@@ -58,612 +84,697 @@ function spring(t, k = 320, z = 0.55) {
   const w0 = Math.sqrt(k), wd = w0 * Math.sqrt(1 - z * z);
   return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t));
 }
+const b = (n) => n * BEAT; // beat n, in seconds
+// how hard the last kick drum still hits (1 on the beat, fading fast)
+const GROOVE = (t) => (t >= 2 && t < 14) || (t >= 16 && t < 18.9);
+const kickPulse = (t) => {
+  const k = Math.floor(t / BEAT) * BEAT;
+  return GROOVE(k) || [14, 14.5, 15].includes(k) ? Math.exp(-(t - k) * 9) : 0;
+};
 
-// colours: mixed in OKLab so the in-betweens stay clean
-function hexRgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
-}
+// colours, mixed in OKLab so the in-betweens stay clean
 const toLin = (c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
 const toGam = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
-function oklab(hex) {
-  const [r, g, b] = hexRgb(hex).map(toLin);
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+const labs = new Map();
+function lab(hex) {
+  if (labs.has(hex)) return labs.get(hex);
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, bl] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => toLin(v / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * bl);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * bl);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * bl);
+  const out = [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+  labs.set(hex, out);
+  return out;
 }
-function fromOklab([L, a, b]) {
-  const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
-  const m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
-  const s = Math.pow(L - 0.0894841775 * a - 1.291485548 * b, 3);
+function mix(a, c, p) {
+  if (p <= 0 || a === c) return a;
+  if (p >= 1) return c;
+  const A = lab(a), B = lab(c);
+  const [L, x, y] = [0, 1, 2].map((i) => lerp(A[i], B[i], p));
+  const l = Math.pow(L + 0.3963377774 * x + 0.2158037573 * y, 3);
+  const m = Math.pow(L - 0.1055613458 * x - 0.0638541728 * y, 3);
+  const s = Math.pow(L - 0.0894841775 * x - 1.291485548 * y, 3);
   const rgb = [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s, -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s, -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
-  return '#' + rgb.map((c) => Math.round(clamp(toGam(c)) * 255).toString(16).padStart(2, '0')).join('');
+  return '#' + rgb.map((v) => Math.round(clamp(toGam(v)) * 255).toString(16).padStart(2, '0')).join('');
 }
-const labCache = new Map();
-const lab = (hex) => labCache.get(hex) || (labCache.set(hex, oklab(hex)), labCache.get(hex));
-function mix(a, b, p) {
-  if (p <= 0 || a === b) return a;
-  if (p >= 1) return b;
-  const A = lab(a), B = lab(b);
-  return fromOklab([0, 1, 2].map((i) => lerp(A[i], B[i], p)));
-}
+const alpha = (hex, a) => hex + Math.round(clamp(a) * 255).toString(16).padStart(2, '0');
 
-// ---------------------------------------------------------------- the nests (the real starter nests)
-const NESTS = {
-  budgiehq: { title: 'Budgie HQ', color: '#6750a4', shape: 'cookie9', symbol: 'campaign' },
-  nightsky: { title: 'Night Sky', color: '#4b5bd6', shape: 'verySunny', symbol: 'rocket_launch' },
-  cozygames: { title: 'Cozy Games', color: '#8b5cf6', shape: 'ghostish', symbol: 'sports_esports' },
-  houseplants: { title: 'Plant Parenthood', color: '#3f8f4f', shape: 'clover4', symbol: 'potted_plant' },
-  homecooking: { title: 'Home Cooking', color: '#ff8a3d', shape: 'cookie6', symbol: 'soup_kitchen' },
-  webdev: { title: 'Web Dev', color: '#3d7bff', shape: 'pixelCircle', symbol: 'code' },
-  bookclub: { title: 'Book Nest', color: '#b98c00', shape: 'clamShell', symbol: 'menu_book' },
-  askbudgie: { title: 'Ask Budgie', color: '#c2185b', shape: 'softBurst', symbol: 'forum' },
-};
+// Budgie's real dark colour schemes (Material's tonal spot), one per seed colour
 const ROLES = ['primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer', 'secondaryContainer', 'onSecondaryContainer',
-  'tertiaryContainer', 'surface', 'surfaceContainerLow', 'surfaceContainer', 'surfaceContainerHigh', 'surfaceContainerHighest',
-  'onSurface', 'onSurfaceVariant', 'outlineVariant'];
+  'tertiaryContainer', 'onTertiaryContainer', 'surface', 'surfaceContainerLow', 'surfaceContainer', 'surfaceContainerHigh',
+  'surfaceContainerHighest', 'onSurface', 'onSurfaceVariant', 'outline', 'outlineVariant'];
+const SCHEMES = {};
+const scheme = (seed) => SCHEMES[seed];
+const mixScheme = (a, c, p) => Object.fromEntries(ROLES.map((r) => [r, mix(SCHEMES[a][r], SCHEMES[c][r], p)]));
+const cssName = (role) => '--' + role.replace(/[A-Z]/g, (l) => '-' + l.toLowerCase());
+function paint(e, colors) {
+  for (const r of ROLES) e.style.setProperty(cssName(r), colors[r]);
+}
 
-// ---------------------------------------------------------------- tiny DOM helpers
-function el(tag, cls, parent = stage, css = {}) {
+// ================================================================ the real things from Budgie
+const NESTS = {
+  nightsky: { color: '#4b5bd6', shape: 'verySunny', symbol: 'rocket_launch', tag: 'Looking up since forever.' },
+  cozygames: { color: '#8b5cf6', shape: 'ghostish', symbol: 'sports_esports', tag: 'Farming, fishing, decorating. Zero jump scares.' },
+  houseplants: { color: '#3f8f4f', shape: 'clover4', symbol: 'potted_plant', tag: 'For people whose windowsills are slowly becoming jungles.' },
+  synthwave: { color: '#e8467c', shape: 'sunny', symbol: 'graphic_eq', tag: 'Neon sunsets, gated reverb and cassettes that never die.' },
+  budgiehq: { color: '#6750a4', shape: 'cookie9', symbol: 'campaign' },
+  homecooking: { color: '#ff8a3d', shape: 'cookie6', symbol: 'soup_kitchen' },
+  webdev: { color: '#3d7bff', shape: 'pixelCircle', symbol: 'code' },
+  cycling: { color: '#00a6a6', shape: 'cookie12', symbol: 'directions_bike' },
+  bookclub: { color: '#b98c00', shape: 'clamShell', symbol: 'menu_book' },
+  pixelart: { color: '#ff5252', shape: 'pixelTriangle', symbol: 'brush' },
+  photography: { color: '#5f7d95', shape: 'gem', symbol: 'photo_camera' },
+  travel: { color: '#0288d1', shape: 'arch', symbol: 'flight' },
+  askbudgie: { color: '#c2185b', shape: 'softBurst', symbol: 'forum' },
+};
+// the colour picker in "Create a nest" (ui.js SEEDS and SEED_SHAPES)
+const SEEDS = ['#6750a4', '#e8467c', '#ff8a3d', '#b98c00', '#1db954', '#00a6a6', '#3d7bff', '#8b5cf6', '#c2185b', '#5f7d95'];
+const SEED_SHAPES = ['cookie9', 'heart', 'sunny', 'clover4', 'flower', 'puffy', 'gem', 'softBurst', 'cookie6', 'ghostish'];
+const PICK_SHAPES = ['cookie9', 'gem', 'heart', 'cookie12', 'clover8'];
+const BADGES = [
+  ['Hello, Budgie', 'cookie9', 'waving_hand'],
+  ['Founder', 'softBurst', 'castle'],
+  ['Friendly', 'heart', 'diversity_1'],
+  ['Sparky', 'boom', 'auto_awesome'],
+];
+const SPARKS = [['heart', 'favorite', '#ff6f9c'], ['sunny', 'lightbulb', '#ffc94d'], ['cookie9', 'sentiment_very_satisfied', '#7fd18b'], ['softBurst', 'local_fire_department', '#ff8a3d'], ['burst', 'auto_awesome', '#b69cff']];
+
+// ================================================================ DOM helpers
+function el(tag, cls, parent = stage, css = {}, html = '') {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   Object.assign(e.style, css);
+  if (html) e.innerHTML = html;
   parent.appendChild(e);
   return e;
 }
-function svgShape(parent, css = {}) {
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 100 100');
-  svg.classList.add('shape');
-  Object.assign(svg.style, css);
-  const path = document.createElementNS(NS, 'path');
-  svg.appendChild(path);
-  parent.appendChild(svg);
-  return { svg, path, last: '' };
+const svg = (shape, fill = 'currentColor') => `<svg class="shp" viewBox="0 0 100 100"><path d="${M3Shapes.path(shape, 100)}" fill="${fill}"/></svg>`;
+// a shape with a symbol (or a letter) on it
+const markHTML = (size, shape, fill, symbol, iconSize, iconColor = '#fff') =>
+  `<span class="mk" style="width:${size}px;height:${size}px">${svg(shape, fill)}${symbol ? `<span class="icon" style="font-size:${iconSize}px;color:${iconColor}">${symbol}</span>` : ''}</span>`;
+// a shape whose path can morph each frame
+function morpher(parent, css = {}) {
+  const e = el('div', 'abs', parent, css);
+  e.innerHTML = '<svg class="shp" viewBox="0 0 100 100"><path/></svg>';
+  e.path = e.querySelector('path');
+  e.last = '';
+  return e;
 }
-// set a morph between two shapes (progress may overshoot past 1)
-function setShape(s, from, to, p, fill) {
+function morph(e, from, to, p, fill) {
   const key = from + to + p.toFixed(3);
-  if (s.last !== key) {
-    s.path.setAttribute('d', M3Shapes.morphPath(from, to, p, 100));
-    s.last = key;
+  if (e.last !== key) {
+    e.path.setAttribute('d', M3Shapes.morphPath(from, to, p, 100));
+    e.last = key;
   }
-  if (fill) s.path.setAttribute('fill', fill);
+  if (fill) e.path.setAttribute('fill', fill);
 }
-// a nest's mark: its shape in its colour, with its symbol in white
-function mark(parent, size, iconSize) {
-  const m = el('div', 'mark', parent, { width: size + 'px', height: size + 'px' });
-  m.s = svgShape(m);
-  m.i = el('span', 'icon', m, { fontSize: iconSize + 'px' });
-  return m;
-}
-function setMark(m, nest, from = nest, p = 1) {
-  const n = NESTS[nest], f = NESTS[from];
-  setShape(m.s, f.shape, n.shape, p, n.color);
-  if (m.i.textContent !== n.symbol) m.i.textContent = n.symbol;
-}
-const tf = (e, x, y, s = 1, r = 0) => (e.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`);
+const tf = (e, x = 0, y = 0, s = 1, r = 0) => (e.style.transform = `translate(${x}px, ${y}px) scale(${s}) rotate(${r}deg)`);
 const show = (e, on) => (e.style.display = on ? '' : 'none');
-
-// a nest timeline: [[time, nest], ...] → which nest, and how far the change has got
-function nestAt(list, t) {
+// a line of words that springs up into place
+function rise(e, t, at, { k = 300, z = 0.6, from = 90, out = 0 } = {}) {
+  const p = spring(t - at, k, z);
+  e.style.opacity = clamp(p * 1.6) * (1 - out);
+  tf(e, 0, (1 - p) * from - out * 50, 1);
+}
+// a word that lands hard on the beat
+function slam(e, t, at, { k = 520, z = 0.45, out = 0 } = {}) {
+  const p = spring(t - at, k, z);
+  e.style.opacity = clamp(p * 3) * (1 - out);
+  e.style.transform = `scale(${lerp(1.5, 1, p)})`;
+}
+// steps on a timeline: [[time, value], ...] → the current one, the one before, and how long ago it changed
+function stepAt(list, t) {
   let i = 0;
   while (i + 1 < list.length && t >= list[i + 1][0]) i++;
-  const [start, nest] = list[i];
-  const prev = i > 0 ? list[i - 1][1] : nest;
-  return { nest, prev, since: t - start, index: i };
+  return { value: list[i][1], prev: i ? list[i - 1][1] : list[i][1], since: t - list[i][0], index: i };
 }
 
-// ---------------------------------------------------------------- sound cues (render.js turns these into a soundtrack)
+// sound cues for render.js
 const EVENTS = [];
 const cue = (t, kind, note = 0) => EVENTS.push({ t, kind, note });
 
-// ---------------------------------------------------------------- scene times
-const S2 = 3.4, S3 = 6.7, S4 = 10.7, S5 = 13.1;
-
-let SCHEMES = {}, DARK = {};
-
-// ================================================================= scene 1: the hook
-const s1 = el('div', 'layer');
-const s1bg = el('div', 'layer', s1);
-const s1blobA = el('div', 'abs', s1, { width: '1200px', height: '1200px', left: '-500px', top: '-450px', borderRadius: '50%' });
-const s1blobB = el('div', 'abs', s1, { width: '1300px', height: '1300px', left: '350px', top: '1100px', borderRadius: '50%' });
-const s1lineA = el('div', 'line', s1, { top: '226px', fontSize: '118px', fontWeight: 820, letterSpacing: '-0.035em' });
-s1lineA.textContent = 'This app';
-const s1lineB = el('div', 'line', s1, { top: '354px', fontSize: '118px', fontWeight: 820, letterSpacing: '-0.035em' });
-s1lineB.innerHTML = 'changes <span>colour</span>';
-const s1colour = s1lineB.querySelector('span');
-const s1big = mark(s1, 600, 230);
-s1big.style.left = (540 - 300) + 'px';
-s1big.style.top = (930 - 300) + 'px';
-const s1label = el('div', 'pill', s1, { top: '1268px', left: '0', height: '96px', padding: '0 40px 0 18px', fontSize: '50px', fontWeight: 700 });
-const s1labelMark = mark(s1label, 66, 36);
-s1labelMark.style.position = 'relative';
-const s1labelText = el('span', '', s1label);
-const s1lineC = el('div', 'line', s1, { top: '1410px', fontSize: '82px', fontWeight: 780, letterSpacing: '-0.03em' });
-s1lineC.textContent = 'with every community.';
-const S1_NESTS = [[0, 'budgiehq'], [1.0, 'nightsky'], [1.46, 'cozygames'], [1.86, 'houseplants'], [2.22, 'homecooking'], [2.55, 'bookclub'], [2.86, 'askbudgie']];
-S1_NESTS.forEach(([t], i) => i && cue(t, 'note', i));
-cue(0.04, 'note', 0);
-
-function scene1(t) {
-  show(s1, t < S2);
-  if (t >= S2) return;
-  const n = nestAt(S1_NESTS, t);
-  const cp = easeInOut(prog(n.since, 0, 0.3));
-  const c = (role) => mix(SCHEMES[n.prev][role], SCHEMES[n.nest][role], n.index ? cp : 1);
-  s1bg.style.background = c('surface');
-  s1blobA.style.background = `radial-gradient(circle, ${c('primaryContainer')} 0, transparent 68%)`;
-  s1blobB.style.background = `radial-gradient(circle, ${c('tertiaryContainer')} 0, transparent 68%)`;
-  s1.style.color = c('onSurface');
-  s1colour.style.color = mix(NESTS[n.prev].color, NESTS[n.nest].color, n.index ? cp : 1);
-
-  // the words rise in
-  const out = easeIn(prog(t, S2 - 0.32, 0.26));
-  [[s1lineA, -0.1], [s1lineB, -0.02]].forEach(([e, d]) => {
-    const p = spring(t - d, 260, 0.62);
-    e.style.opacity = clamp(p * 1.4) * (1 - out);
-    tf(e, 0, (1 - p) * 120 - out * 60);
-  });
-  const pc = spring(t - 0.75, 260, 0.62);
-  s1lineC.style.opacity = clamp(pc * 1.4) * (1 - out);
-  tf(s1lineC, 0, (1 - pc) * 90);
-
-  // the big shape: pops in, then morphs from nest to nest, turning a little each time
-  const pop = spring(t + 0.08, 300, 0.5);
-  const mp = n.index ? spring(n.since, 520, 0.5) : 1;
-  setMark(s1big, n.nest, n.prev, mp);
-  const turn = n.index * 45 + (n.index ? (mp - 1) * 45 : 0) + t * 8;
-  // and at the end it grows to fill the screen (the way into scene 2)
-  const grow = easeIn(prog(t, S2 - 0.36, 0.36));
-  s1big.s.svg.style.transform = `rotate(${turn}deg)`;
-  tf(s1big, 0, 0, pop * (1 + grow * 5.4));
-  if (grow > 0) s1big.s.path.setAttribute('fill', mix(NESTS[n.nest].color, '#6750a4', grow));
-  const iconPop = n.index ? spring(n.since, 600, 0.45) : 1;
-  s1big.i.style.transform = `scale(${0.4 + 0.6 * iconPop})`;
-  s1big.i.style.opacity = 1 - out;
-
-  // the nest's name under it
-  setMark(s1labelMark, n.nest, n.prev, mp);
-  s1labelText.textContent = 'n/' + n.nest;
-  s1label.style.background = c('surfaceContainerHighest');
-  s1label.style.color = c('onSurface');
-  const lw = s1label.offsetWidth;
-  const lp = spring(t - 0.35, 300, 0.6);
-  s1label.style.opacity = clamp(lp * 1.5) * (1 - out);
-  tf(s1label, 540 - lw / 2, (1 - lp) * 60, 0.9 + 0.1 * (n.index ? spring(n.since, 600, 0.4) : 1));
+// ================================================================ the background (a glow that pulses with the kick)
+const bg = el('div', 'layer');
+const glowA = el('div', 'abs', stage, { width: '1500px', height: '1500px', left: '-210px', top: '-520px', borderRadius: '50%' });
+const glowB = el('div', 'abs', stage, { width: '1500px', height: '1500px', left: '-210px', top: '1000px', borderRadius: '50%' });
+function background(t, color, strength = 1) {
+  bg.style.background = '#141218';
+  const pulse = 1 + kickPulse(t) * 0.06;
+  glowA.style.background = `radial-gradient(circle, ${alpha(color, 0.55 * strength)} 0, transparent 62%)`;
+  glowB.style.background = `radial-gradient(circle, ${alpha(color, 0.3 * strength)} 0, transparent 62%)`;
+  glowA.style.transform = `scale(${pulse})`;
+  glowB.style.transform = `scale(${pulse})`;
 }
 
-// ================================================================= scene 2: communities are nests
-const s2 = el('div', 'layer');
-const s2bg = el('div', 'layer', s2, { background: 'radial-gradient(circle at 15% 8%, #8a74d0 0, transparent 55%), radial-gradient(circle at 95% 95%, #9b3f8a 0, transparent 55%), #6750a4' });
-const s2deco = [['clover8', 760, 170, 420], ['cookie12', -160, 1180, 520], ['flower', 820, 1500, 360], ['sunny', -90, 260, 260]].map(([shape, x, y, size]) => {
-  const s = svgShape(s2, { left: x + 'px', top: y + 'px', width: size + 'px', height: size + 'px' });
-  setShape(s, shape, shape, 1, 'rgba(255,255,255,0.07)');
-  return s;
-});
-const s2lineA = el('div', 'line', s2, { top: '250px', fontSize: '70px', fontWeight: 620, color: 'rgba(255,255,255,0.86)' });
-s2lineA.textContent = 'On Budgie, communities';
-const s2lineB = el('div', 'line', s2, { top: '335px', fontSize: '70px', fontWeight: 620, color: 'rgba(255,255,255,0.86)' });
-s2lineB.textContent = 'are called';
-const s2word = el('div', 'line', s2, { top: '410px', fontSize: '290px', color: '#fff', letterSpacing: '-0.04em', lineHeight: '1' });
-const s2letters = [...'nests.'].map((ch) => {
-  const s = el('span', '', s2word, { display: 'inline-block' });
-  s.textContent = ch;
-  return s;
-});
-const CHIP_ROWS = [['budgiehq', 'nightsky'], ['cozygames', 'houseplants'], ['homecooking', 'webdev'], ['bookclub', 'askbudgie']];
-const chips = [];
-CHIP_ROWS.forEach((row, r) => row.forEach((nest) => {
-  const c = el('div', 'pill', s2, { top: '0', left: '0', height: '104px', padding: '0 38px 0 18px', fontSize: '46px', fontWeight: 700, background: '#fff', color: '#1d1b20', boxShadow: '0 10px 30px rgba(20,0,60,0.25)' });
-  const m = mark(c, 72, 38);
-  m.style.position = 'relative';
-  setMark(m, nest);
-  el('span', '', c).textContent = 'n/' + nest;
-  chips.push({ c, m, nest, row: r });
-}));
-const s2tap = el('div', 'abs', s2, { width: '130px', height: '130px', borderRadius: '50%', background: 'rgba(255,255,255,0.55)', left: '0', top: '0' });
-const s2foot = el('div', 'line', s2, { top: '1420px', fontSize: '50px', fontWeight: 560, color: 'rgba(255,255,255,0.9)' });
-s2foot.textContent = 'Join the ones you like, or start your own.';
-const s2iris = mark(s2, 100, 0);
-let chipLayout = null;
-function layoutChips() {
-  const hidden = s2.style.display;
-  s2.style.display = '';
-  chipLayout = [];
-  const gap = 30, rowY = [930, 1065, 1200, 1335], shift = [-46, 46, -46, 46];
-  CHIP_ROWS.forEach((row, r) => {
-    const ws = row.map((nest) => chips.find((c) => c.nest === nest).c.offsetWidth);
-    let x = 540 - (ws[0] + ws[1] + gap) / 2 + shift[r];
-    row.forEach((nest, i) => {
-      chipLayout.push({ nest, x, y: rowY[r] - 52, w: ws[i] });
-      x += ws[i] + gap;
-    });
-  });
-  s2.style.display = hidden;
+// ================================================================ scene A: the hook (0–2 s)
+const sA = el('div', 'layer');
+const boring = el('div', 'abs', sA, { left: '160px', top: '0', width: '760px' });
+for (let i = 0; i < 6; i++) {
+  el('div', 'abs', boring, { left: 0, top: i * 560 + 'px', width: '760px', height: '520px', borderRadius: '28px', background: '#232227' }, `
+    <div class="abs" style="left:34px;top:34px;width:70px;height:70px;border-radius:50%;background:#3a393f"></div>
+    <div class="abs" style="left:124px;top:44px;width:240px;height:22px;border-radius:11px;background:#3a393f"></div>
+    <div class="abs" style="left:124px;top:80px;width:150px;height:18px;border-radius:9px;background:#313036"></div>
+    <div class="abs" style="left:34px;top:134px;width:692px;height:290px;border-radius:18px;background:#2c2b31"></div>
+    <div class="abs" style="left:34px;top:448px;width:46px;height:46px;border-radius:50%;background:#3a393f"></div>
+    <div class="abs" style="left:104px;top:448px;width:46px;height:46px;border-radius:50%;background:#3a393f"></div>
+    <div class="abs" style="left:174px;top:448px;width:46px;height:46px;border-radius:50%;background:#3a393f"></div>`);
 }
-const CHIP_T0 = S2 + 0.75;
-chips.forEach((c, i) => cue(CHIP_T0 + i * 0.085, 'pop', i));
-cue(S2 + 0.28, 'note', 7);
-const TAP2 = S3 - 0.62;
-cue(TAP2, 'tap');
-cue(S3 - 0.38, 'whoosh');
-cue(S2 - 0.36, 'whoosh');
+el('div', 'layer', sA, { background: 'radial-gradient(ellipse 80% 40% at 50% 47%, rgba(20,18,24,0.92) 0, rgba(20,18,24,0.55) 70%, rgba(20,18,24,0.35) 100%)' });
+const aBox = el('div', 'layer', sA);
+const aL1 = el('div', 'line', aBox, { top: '660px', fontSize: '150px', fontWeight: 850, color: '#fff' }, 'Social media');
+const aL2 = el('div', 'line', aBox, { top: '830px', fontSize: '150px', fontWeight: 280, color: '#8e8a95', letterSpacing: '-0.02em' }, 'got boring.');
+const aL3 = el('div', 'line', aBox, { top: '660px', fontSize: '150px', fontWeight: 850, color: '#fff' }, 'So I made');
+const aL4 = el('div', 'line', aBox, { top: '830px', fontSize: '176px', fontWeight: 900, color: '#d0bcff' }, 'my own.');
+cue(0, 'pluck', 0); cue(b(1), 'pluck', 2); cue(b(2), 'pluck', 4); cue(b(3), 'pluck', 7);
 
-function scene2(t) {
-  const on = t >= S2 - 0.001 && t < S3;
-  show(s2, on);
+function sceneA(t) {
+  const on = t < 2.12;
+  show(sA, on);
   if (!on) return;
-  const lt = t - S2;
-  s2deco.forEach((s, i) => (s.svg.style.transform = `rotate(${lt * (i % 2 ? -10 : 12)}deg)`));
-  [[s2lineA, 0.05], [s2lineB, 0.14]].forEach(([e, d]) => {
-    const p = spring(lt - d, 260, 0.62);
-    e.style.opacity = clamp(p * 1.4);
-    tf(e, 0, (1 - p) * 80);
+  // the boring feed drifts up, then shakes as the drop comes
+  const shake = t > 1.6 ? Math.sin(t * 90) * 7 * prog(t, 1.6, 0.4) : 0;
+  tf(boring, shake, -t * 140 - 300, 1);
+  sA.style.opacity = 1 - prog(t, 2, 0.12);
+  aBox.style.transform = `scale(${1 + prog(t, 1.5, 0.5) * 0.06})`;
+  const swap = easeIn(prog(t, b(2) - 0.08, 0.08));
+  slam(aL1, t, -0.04, { out: swap });
+  rise(aL2, t, b(1), { from: 60, out: swap });
+  slam(aL3, t, b(2));
+  slam(aL4, t, b(3), { k: 600, z: 0.38 });
+  aL4.style.fontWeight = Math.round(lerp(500, 900, easeOut(prog(t, b(3), 0.3))));
+  show(aL3, t >= b(2) - 0.01);
+  show(aL4, t >= b(3) - 0.01);
+}
+
+// ================================================================ scene B: the drop, Budgie, nests (2–5 s)
+const sB = el('div', 'layer');
+const FLY = Object.keys(NESTS).map((id, i) => {
+  const n = NESTS[id];
+  const size = [150, 120, 170, 110, 140, 125, 160, 115, 135, 150, 120, 145, 130][i];
+  const e = el('div', 'abs', sB, { left: 0, top: 0, width: size + 'px', height: size + 'px' }, markHTML(size, n.shape, n.color, n.symbol, size * 0.44));
+  return { e, size };
+});
+// where the flying nests settle: around the edges, out of the way of the words
+const SPOTS = [[100, 120], [985, 130], [70, 640], [1000, 700], [130, 1080], [960, 1120], [110, 1560], [930, 1580], [330, 1760], [720, 1800], [560, 70], [540, 1630], [1015, 1430]];
+const bigB = morpher(sB, { left: 540 - 230 + 'px', top: 860 - 230 + 'px', width: '460px', height: '460px' });
+const bigIcon = el('span', 'icon abs', sB, { left: '0', top: 860 - 95 + 'px', width: '1080px', textAlign: 'center', fontSize: '190px', color: '#fff' });
+const wordB = el('div', 'line', sB, { top: '1130px', fontSize: '210px', fontWeight: 780, color: '#e6e0e9', letterSpacing: '-0.03em' }, 'budgie');
+const bCap1 = el('div', 'line', sB, { top: '250px', fontSize: '112px', fontWeight: 850, color: '#fff' }, 'Every community');
+const bCap2 = el('div', 'line', sB, { top: '370px', fontSize: '112px', fontWeight: 850, color: '#fff' }, 'is a <span>nest.</span>');
+const bNest = bCap2.querySelector('span');
+const namePill = el('div', 'pill abs', sB, { top: '1150px', left: '0', height: '112px', padding: '0 48px', fontSize: '62px', fontWeight: 760 });
+const tagline = el('div', 'abs', sB, { top: '1300px', left: '120px', width: '840px', textAlign: 'center', fontSize: '50px', lineHeight: '1.25', color: '#cac4d0', fontWeight: 500 });
+const B_NESTS = [[b(6), 'nightsky'], [b(7), 'cozygames'], [b(8), 'houseplants'], [b(9), 'synthwave']];
+cue(2, 'crash');
+
+function sceneB(t) {
+  const on = t >= 2 && t < 5.05;
+  show(sB, on);
+  if (!on) return;
+  const lt = t - 2;
+  const n = t >= b(6) ? stepAt(B_NESTS, t) : null;
+  const nest = n && NESTS[n.value];
+  const color = nest ? mix(NESTS[n.prev].color, nest.color, n.index ? easeOut(prog(n.since, 0, 0.18)) : 1) : '#d0bcff';
+  background(t, nest ? color : '#6750a4');
+  const leave = easeIn(prog(t, 4.82, 0.2));
+  // the grey cards burst into colourful nests, which drift round the edges
+  FLY.forEach((f, i) => {
+    const p = spring(lt - i * 0.012, 160, 0.62);
+    const [sx, sy] = [540 + ((i % 3) - 1) * 220, 700 + (i % 5) * 140];
+    const [ex, ey] = SPOTS[i];
+    const x = lerp(sx, ex, p) + Math.sin(lt * 1.3 + i) * 14 - f.size / 2;
+    const y = lerp(sy, ey, p) + Math.cos(lt * 1.1 + i * 2) * 14 - f.size / 2 - leave * 120;
+    f.e.style.opacity = clamp(p * 3) * (1 - leave);
+    tf(f.e, x, y, 0.3 + 0.7 * clamp(p), (1 - p) * 200 + lt * (i % 2 ? 20 : -20));
   });
-  // "nests." bounces in letter by letter, and its weight swells
-  s2letters.forEach((s, i) => {
-    const p = spring(lt - 0.26 - i * 0.05, 380, 0.42);
-    s.style.opacity = clamp(p * 2);
-    s.style.transform = `translateY(${(1 - p) * 160}px) scale(${0.5 + 0.5 * p})`;
-  });
-  s2word.style.fontWeight = Math.round(lerp(380, 880, easeOut(prog(lt, 0.3, 0.8))));
-  // the chips pop in, then float
-  if (!chipLayout) layoutChips();
-  const leave = easeIn(prog(t, S3 - 0.4, 0.3));
-  chips.forEach((c, i) => {
-    const L = chipLayout.find((l) => l.nest === c.nest);
-    const p = spring(t - CHIP_T0 - i * 0.085, 340, 0.48);
-    const bob = Math.sin((t - CHIP_T0) * 2.2 + i * 1.3) * 6;
-    const rot = (1 - p) * (i % 2 ? 18 : -18) + (i % 3 - 1) * 2.5;
-    const tapped = c.nest === 'nightsky';
-    const press = tapped ? 1 - 0.07 * Math.sin(Math.PI * prog(t, TAP2, 0.22)) : 1;
-    c.c.style.opacity = clamp(p * 2) * (tapped ? 1 : 1 - leave);
-    c.c.style.transformOrigin = '50% 50%';
-    tf(c.c, L.x, L.y + bob + (tapped ? 0 : leave * 40), p * press, rot);
-  });
-  const fp = spring(lt - 1.6, 260, 0.62);
-  s2foot.style.opacity = clamp(fp * 1.4) * (1 - leave);
-  tf(s2foot, 0, (1 - fp) * 60);
-  // a tap on n/nightsky, and its shape opens up into the next scene
-  const L = chipLayout.find((l) => l.nest === 'nightsky');
-  const cx = L.x + 18 + 36, cy = L.y + 52;
-  const tp = prog(t, TAP2, 0.45);
-  show(s2tap, tp > 0 && tp < 1);
-  s2tap.style.opacity = 0.7 * (1 - tp);
-  tf(s2tap, cx - 65, cy - 65, 0.3 + 1.4 * easeOut(tp));
-  const ip = easeIn(prog(t, S3 - 0.42, 0.42));
-  show(s2iris, ip > 0);
-  if (ip > 0) {
-    setShape(s2iris.s, 'verySunny', 'verySunny', 1, mix('#4b5bd6', SCHEMES.nightsky.surface, ip));
-    s2iris.style.left = cx - 50 + 'px';
-    s2iris.style.top = cy - 50 + 'px';
-    tf(s2iris, 0, 0, 0.72 + ip * 52, ip * 90);
+  // Budgie's shape lands on the drop, then turns into nest after nest on the beat
+  const pop = spring(lt, 380, 0.42);
+  const from = n && n.index ? NESTS[n.prev].shape : 'cookie9';
+  const to = n ? nest.shape : 'cookie9';
+  morph(bigB, from, to, n ? spring(n.since, 600, 0.45) : 1, color);
+  tf(bigB, 0, 0, pop * (1 + kickPulse(t) * 0.05) * (1 - leave * 0.4), lt * 30 + (n ? n.index * 50 : 0));
+  bigB.style.opacity = 1 - leave;
+  bigIcon.textContent = nest ? nest.symbol : '';
+  bigIcon.style.transform = `scale(${0.3 + 0.7 * (n ? spring(n.since, 700, 0.42) : 0)})`;
+  bigIcon.style.opacity = 1 - leave;
+  // the word "budgie", then the nests' names and their real taglines
+  const wOut = easeIn(prog(t, b(6) - 0.12, 0.12));
+  const wp = spring(lt - 0.1, 420, 0.5);
+  wordB.style.opacity = clamp(wp * 2) * (1 - wOut);
+  wordB.style.transform = `translateY(${(1 - wp) * 120}px)`;
+  wordB.style.fontWeight = Math.round(lerp(300, 780, easeOut(prog(lt, 0.05, 0.4))));
+  show(wordB, t < b(6));
+  slam(bCap1, t, b(6), { out: leave });
+  slam(bCap2, t, b(7), { out: leave });
+  bNest.style.color = color;
+  show(namePill, !!n);
+  show(tagline, !!n);
+  if (n) {
+    namePill.textContent = 'n/' + n.value;
+    namePill.style.background = scheme(nest.color).primaryContainer;
+    namePill.style.color = scheme(nest.color).onPrimaryContainer;
+    const np = spring(n.since, 520, 0.5);
+    namePill.style.transform = `translateX(${540 - namePill.offsetWidth / 2}px) scale(${0.8 + 0.2 * np})`;
+    namePill.style.opacity = clamp(np * 3) * (1 - leave);
+    tagline.textContent = nest.tag;
+    const tp = spring(n.since - 0.04, 400, 0.6);
+    tagline.style.opacity = clamp(tp * 2) * (1 - leave);
+    tagline.style.transform = `translateY(${(1 - tp) * 30}px)`;
   }
 }
 
-// ================================================================= scene 3: the whole app changes
-const s3 = el('div', 'layer');
-const s3bg = el('div', 'layer', s3);
-const s3blobA = el('div', 'abs', s3, { width: '1300px', height: '1300px', left: '-560px', top: '-520px', borderRadius: '50%' });
-const s3blobB = el('div', 'abs', s3, { width: '1300px', height: '1300px', left: '380px', top: '1050px', borderRadius: '50%' });
-const s3lineA = el('div', 'line', s3, { top: '196px', fontSize: '96px', fontWeight: 820, letterSpacing: '-0.035em' });
-s3lineA.textContent = 'Every nest has';
-const s3lineB = el('div', 'line', s3, { top: '302px', fontSize: '96px', fontWeight: 820, letterSpacing: '-0.035em' });
-s3lineB.innerHTML = 'its own <span>look</span>.';
-const s3look = s3lineB.querySelector('span');
-// the phone
-const PX = 540 - 320, PY = 470, PW = 640, PH = 1260, BZ = 16;
-const phone = el('div', 'abs', s3, { left: PX + 'px', top: PY + 'px', width: PW + 'px', height: PH + 'px', borderRadius: '86px', background: '#1b1a1f', boxShadow: '0 40px 90px rgba(0,0,0,0.28), inset 0 0 0 3px #2c2b31' });
-const screen = el('div', 'abs', phone, { left: BZ + 'px', top: BZ + 'px', width: PW - 2 * BZ + 'px', height: PH - 2 * BZ + 'px', borderRadius: '72px', overflow: 'hidden' });
-const SW = PW - 2 * BZ;
-el('div', 'abs', phone, { left: PW / 2 - 18 + 'px', top: '34px', width: '36px', height: '36px', borderRadius: '50%', background: '#0c0c0f', zIndex: 3 });
-// top app bar, like the real one
-const appbar = el('div', 'abs', screen, { left: 0, top: '62px', width: SW + 'px', height: '96px' });
-const abMenu = el('div', 'abs', appbar, { left: '26px', top: '10px', width: '76px', height: '76px', borderRadius: '50%', display: 'grid', placeItems: 'center' });
-el('span', 'icon', abMenu, { fontSize: '40px' }).textContent = 'menu';
-const abMark = mark(appbar, 64, 34);
-abMark.style.left = '118px';
-abMark.style.top = '16px';
-const abTitle = el('div', 'abs', appbar, { left: '196px', top: '22px', fontSize: '44px', fontWeight: 720, letterSpacing: '-0.01em', whiteSpace: 'nowrap' });
-const abSearch = el('div', 'abs', appbar, { right: '26px', top: '10px', width: '76px', height: '76px', borderRadius: '50%', display: 'grid', placeItems: 'center' });
-el('span', 'icon', abSearch, { fontSize: '40px' }).textContent = 'search';
-// your nests, as a row to tap
-const RAIL = ['nightsky', 'houseplants', 'homecooking', 'bookclub', 'askbudgie'];
-const rail = RAIL.map((nest, i) => {
-  const ring = el('div', 'abs', screen, { left: 38 + i * 112 + 'px', top: '182px', width: '96px', height: '96px', borderRadius: '50%' });
-  const m = mark(screen, 80, 40);
-  m.style.left = 38 + i * 112 + 8 + 'px';
-  m.style.top = '190px';
-  setMark(m, nest);
-  return { ring, m, nest };
-});
-const railTap = el('div', 'abs', screen, { left: 0, top: 0, width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(0,0,0,0.18)' });
-// the nest's hero card
-const hero = el('div', 'abs', screen, { left: '22px', top: '300px', width: SW - 44 + 'px', height: '262px', borderRadius: '44px', overflow: 'hidden' });
-const heroStickers = [['cookie12', 380, -40, 170, 20], ['flower', 470, 150, 120, -10], ['sunny', 300, 200, 90, 40], ['clover8', -30, 220, 110, 0]].map(([shape, x, y, size, r]) => {
-  const s = svgShape(hero, { left: x + 'px', top: y + 'px', width: size + 'px', height: size + 'px', transform: `rotate(${r}deg)`, opacity: 0.16 });
-  setShape(s, shape, shape, 1);
-  return s;
-});
-const heroMark = mark(hero, 150, 72);
-heroMark.style.left = '32px';
-heroMark.style.top = '26px';
-const heroTitle = el('div', 'abs', hero, { left: '206px', top: '44px', fontSize: '48px', fontWeight: 780, letterSpacing: '-0.02em', whiteSpace: 'nowrap' });
-const heroId = el('div', 'abs', hero, { left: '208px', top: '108px', fontSize: '32px', fontWeight: 560, whiteSpace: 'nowrap' });
-const heroJoin = el('div', 'pill', hero, { left: '32px', top: '176px', height: '66px', padding: '0 34px 0 24px', gap: '10px', fontSize: '32px', fontWeight: 700 });
-el('span', 'icon', heroJoin, { fontSize: '36px' }).textContent = 'check';
-el('span', '', heroJoin).textContent = 'Joined';
-// sort buttons (the app's real ones)
-const sorts = ['Hot', 'New', 'Top'].map((label, i) => {
-  const s = el('div', 'pill', screen, { left: 22 + i * 132 + 'px', top: '582px', height: '62px', padding: '0 26px', fontSize: '30px', fontWeight: 650, gap: '8px' });
-  s.textContent = label;
-  return s;
-});
-// a post card: shapes and bars instead of words (no made-up posts), and no numbers, like Calm mode
-function postCard(top, imageH) {
-  const card = el('div', 'abs', screen, { left: '22px', top: top + 'px', width: SW - 44 + 'px', height: imageH + 336 + 'px', borderRadius: '44px', overflow: 'hidden' });
-  const av = mark(card, 52, 28);
-  av.style.left = '30px';
-  av.style.top = '30px';
-  const b1 = el('div', 'bar', card, { left: '98px', top: '40px', width: '170px', height: '30px' });
-  const b2 = el('div', 'bar', card, { left: '286px', top: '40px', width: '120px', height: '30px' });
-  const t1 = el('div', 'bar', card, { left: '30px', top: '108px', width: '470px', height: '38px' });
-  const t2 = el('div', 'bar', card, { left: '30px', top: '160px', width: '300px', height: '38px' });
-  const img = el('div', 'abs', card, { left: '30px', top: '226px', width: SW - 104 + 'px', height: imageH + 'px', borderRadius: '34px', overflow: 'hidden' });
-  const imgShape = svgShape(img, { left: '50%', top: '50%', width: '240px', height: '240px', marginLeft: '-120px', marginTop: '-120px' });
-  const imgIcon = el('span', 'icon', img, { position: 'absolute', left: '50%', top: '50%', fontSize: '110px', transform: 'translate(-50%, -50%)' });
-  const actions = el('div', 'abs', card, { left: '22px', top: 226 + imageH + 22 + 'px', height: '72px', display: 'flex', gap: '14px' });
-  const vote = el('div', 'pill', actions, { position: 'relative', height: '72px', padding: '0 22px', gap: '22px' });
-  el('span', 'icon', vote, { fontSize: '40px' }).textContent = 'arrow_upward';
-  el('span', 'icon', vote, { fontSize: '40px', fontVariationSettings: "'FILL' 0, 'wght' 500" }).textContent = 'arrow_downward';
-  const others = ['chat_bubble', 'add_reaction', 'ios_share'].map((name) => {
-    const b = el('div', 'pill', actions, { position: 'relative', height: '72px', padding: '0 24px' });
-    el('span', 'icon', b, { fontSize: '38px', fontVariationSettings: "'FILL' 0, 'wght' 500" }).textContent = name;
-    return b;
-  });
-  const save = el('span', 'icon', card, { position: 'absolute', right: '34px', top: 226 + imageH + 38 + 'px', fontSize: '40px', fontVariationSettings: "'FILL' 0, 'wght' 500" });
-  save.textContent = 'bookmark';
-  return { card, av, bars: [b1, b2, t1, t2], img, imgShape, imgIcon, vote, others, save };
-}
-const posts = [postCard(664, 230), postCard(664 + 230 + 336 + 22, 300)];
-const S3_NESTS = [[S3, 'nightsky'], [S3 + 0.95, 'houseplants'], [S3 + 1.75, 'homecooking'], [S3 + 2.5, 'bookclub'], [S3 + 3.2, 'askbudgie']];
-S3_NESTS.forEach(([t], i) => {
-  if (i) cue(t - 0.2, 'tap');
-  if (i) cue(t, 'note', [0, 2, 4, 5, 7][i]);
-});
-cue(S4 - 0.36, 'whoosh');
+// ================================================================ the phone (5–12 s)
+const PX = 180, PY = 470, PW = 720, PH = 1400, SW = PW - 32, SH = PH - 32;
+const sPhone = el('div', 'layer');
+const capBox = el('div', 'layer', sPhone);
+const cap1 = el('div', 'line', capBox, { top: '200px', fontSize: '112px', fontWeight: 850, color: '#fff' });
+const cap2 = el('div', 'line', capBox, { top: '320px', fontSize: '112px', fontWeight: 850, color: '#fff' });
+const phone = el('div', 'phone', sPhone, { left: PX + 'px', top: PY + 'px', width: PW + 'px', height: PH + 'px' });
+const screen = el('div', 'screen', phone, { width: SW + 'px', height: SH + 'px' });
+el('div', 'abs', phone, { left: PW / 2 - 20 + 'px', top: '40px', width: '40px', height: '40px', borderRadius: '50%', background: '#000', zIndex: 5 });
+const appbarHTML = `<div class="appbar">
+  <span class="mk btn">${svg('cookie12')}<span class="icon o">menu</span></span>
+  <span class="brand"><span class="mk">${svg('cookie9')}</span>budgie</span>
+  <span class="mk btn">${svg('cookie12')}<span class="icon o">search</span></span>
+  ${markHTML(88, 'heart', '#00a6a6', 'person', 46)}
+</div>`;
+const navHTML = (on) => `<div class="navbar">${[['home', 'Home'], ['explore', 'Explore'], ['add', 'Create'], ['chat', 'Chats'], ['notifications', 'Inbox']]
+  .map(([i, l]) => `<div class="it ${l === on ? 'on' : ''} ${l === 'Create' ? 'new' : ''}"><span class="ind"><span class="icon ${l === on || l === 'Create' ? '' : 'o'}">${i}</span></span>${l}</div>`).join('')}</div>`;
 
-function scene3(t) {
-  const on = t >= S3 - 0.001 && t < S4;
-  show(s3, on);
-  if (!on) return;
-  const lt = t - S3;
-  const n = nestAt(S3_NESTS, t);
-  const cp = easeInOut(prog(n.since, 0, 0.32));
-  const c = (role) => mix(SCHEMES[n.prev][role], SCHEMES[n.nest][role], n.index ? cp : 1);
-  const seed = mix(NESTS[n.prev].color, NESTS[n.nest].color, n.index ? cp : 1);
-  const mp = n.index ? spring(n.since, 480, 0.5) : 1;
+// --- view C: "Create a nest" (the real sheet, its real placeholder and picker colours)
+const vC = el('div', 'view', screen, {}, appbarHTML + '<div class="layer" style="background:rgba(0,0,0,0.55)"></div>');
+const sheet = el('div', 'abs', vC, { left: 0, top: '190px', width: SW + 'px', height: SH - 190 + 'px', background: 'var(--surface-container-low)', borderRadius: '60px 60px 0 0' });
+el('div', 'abs', sheet, { left: SW / 2 - 36 + 'px', top: '22px', width: '72px', height: '9px', borderRadius: '5px', background: 'var(--outline)' });
+el('div', 'abs', sheet, { left: '34px', top: '60px', display: 'flex', alignItems: 'center', gap: '22px', fontSize: '50px', fontWeight: 780 },
+  markHTML(70, 'softBurst', 'var(--secondary-container)', 'castle', 36, 'var(--on-secondary-container)') + 'Create a nest');
+const preview = el('div', 'abs', sheet, { left: '34px', top: '160px', width: SW - 68 + 'px', height: '230px', borderRadius: '46px' });
+const pvMark = morpher(preview, { left: '30px', top: '45px', width: '140px', height: '140px' });
+const pvIcon = el('span', 'icon abs', preview, { left: '30px', top: '45px', width: '140px', lineHeight: '140px', textAlign: 'center', fontSize: '66px', color: '#fff' });
+const pvTitle = el('div', 'abs', preview, { left: '200px', top: '42px', fontSize: '56px', fontWeight: 800, color: 'var(--on-surface)' });
+const pvId = el('div', 'abs muted', preview, { left: '202px', top: '112px', fontSize: '34px' });
+el('div', 'abs muted', preview, { left: '202px', top: '160px', fontSize: '32px' }, 'A cosy corner for…');
+el('div', 'abs muted', sheet, { left: '36px', top: '425px', fontSize: '30px', fontWeight: 700 }, 'Name (n/…)');
+const field = el('div', 'abs', sheet, { left: '34px', top: '470px', width: SW - 68 + 'px', height: '104px', boxSizing: 'border-box', borderRadius: '20px', border: '4px solid var(--primary)', display: 'flex', alignItems: 'center', padding: '0 30px', fontSize: '44px' });
+const typed = el('span', '', field);
+const caret = el('span', '', field, { width: '4px', height: '54px', marginLeft: '3px', background: 'var(--primary)' });
+const placeholder = el('span', 'muted', field, {}, 'pottery_club');
+el('div', 'abs muted', sheet, { left: '36px', top: '614px', fontSize: '30px', fontWeight: 700 }, 'Colour');
+const swatchXY = (i) => [34 + (i % 5) * 126, 664 + Math.floor(i / 5) * 116];
+const swatchRing = el('div', 'abs', sheet, { left: 0, top: 0, width: '112px', height: '112px', borderRadius: '50%', border: '5px solid var(--on-surface)', boxSizing: 'border-box' });
+SEEDS.forEach((c, i) => {
+  const [x, y] = swatchXY(i);
+  el('div', 'abs', sheet, { left: x + 'px', top: y + 'px', width: '92px', height: '92px' }, svg(SEED_SHAPES[i], c));
+});
+el('div', 'abs muted', sheet, { left: '36px', top: '916px', fontSize: '30px', fontWeight: 700 }, 'Shape');
+const shapeXY = (i) => [34 + i * 126, 966];
+const shapeCells = PICK_SHAPES.map((s, i) => {
+  const [x, y] = shapeXY(i);
+  return el('div', 'abs', sheet, { left: x + 'px', top: y + 'px', width: '92px', height: '92px', color: 'var(--secondary-container)' }, svg(s));
+});
+const createBtn = el('div', 'abs pill', sheet, { left: '34px', top: '1080px', width: SW - 68 + 'px', height: '104px', justifyContent: 'center', gap: '14px', background: 'var(--primary)', color: 'var(--on-primary)', fontSize: '40px', fontWeight: 760 }, '<span class="icon" style="font-size:44px">add</span>Create nest');
+const founder = el('div', 'abs pill', vC, { left: '44px', top: '92px', height: '120px', padding: '0 40px 0 18px', gap: '20px', background: '#e6e0e9', color: '#1d1b20', fontSize: '40px', fontWeight: 650, boxShadow: '0 12px 30px rgba(0,0,0,0.5)', zIndex: 4 },
+  markHTML(88, 'softBurst', '#6750a4', 'castle', 44) + 'Badge unlocked: Founder');
+const tapC = el('div', 'abs', screen, { left: 0, top: 0, width: '130px', height: '130px', borderRadius: '50%', background: '#fff', zIndex: 6 });
 
-  s3bg.style.background = c('surface');
-  s3blobA.style.background = `radial-gradient(circle, ${c('primaryContainer')} 0, transparent 68%)`;
-  s3blobB.style.background = `radial-gradient(circle, ${c('tertiaryContainer')} 0, transparent 68%)`;
-  s3.style.color = c('onSurface');
-  s3look.style.color = seed;
-  const leave = easeIn(prog(t, S4 - 0.42, 0.34));
-  [[s3lineA, 0.12], [s3lineB, 0.22]].forEach(([e, d]) => {
-    const p = spring(lt - d, 260, 0.62);
-    e.style.opacity = clamp(p * 1.4) * (1 - leave);
-    tf(e, 0, (1 - p) * 80 - leave * 40);
-  });
-  // the phone rises in, and sinks away at the end
-  const pp = spring(lt - 0.05, 220, 0.8);
-  phone.style.transformOrigin = '50% 30%';
-  tf(phone, 0, (1 - pp) * 900 + leave * 140, 0.92 + 0.08 * pp - leave * 0.08, (1 - pp) * 6);
-  phone.style.opacity = 1 - leave;
-
-  // the app inside, in the nest's colours
-  screen.style.background = c('surface');
-  screen.style.color = c('onSurface');
-  abMenu.style.background = c('surfaceContainerHigh');
-  abSearch.style.background = c('surfaceContainerHigh');
-  setMark(abMark, n.nest, n.prev, mp);
-  abTitle.textContent = 'n/' + n.nest;
-  rail.forEach((r) => {
-    const sel = r.nest === n.nest;
-    r.ring.style.boxShadow = sel ? `inset 0 0 0 5px ${c('primary')}` : 'none';
-    r.ring.style.background = sel ? c('surface') : 'transparent';
-    const press = sel && n.index ? 1 - 0.12 * Math.sin(Math.PI * prog(n.since, -0.2, 0.3)) : 1;
-    r.m.style.transform = `scale(${press})`;
-  });
-  // the tap before each change
-  const next = S3_NESTS[n.index + 1];
-  const tapAt = next ? next[0] - 0.2 : -1;
-  const tp = next ? prog(t, tapAt, 0.42) : 0;
-  const tpPrev = n.index ? prog(t, S3_NESTS[n.index][0] - 0.2, 0.42) : 1;
-  const tap = tp > 0 ? { p: tp, nest: next[1] } : tpPrev < 1 ? { p: tpPrev, nest: n.nest } : null;
-  show(railTap, !!tap);
-  if (tap) {
-    const i = RAIL.indexOf(tap.nest);
-    railTap.style.background = c('onSurface');
-    railTap.style.opacity = 0.22 * (1 - tap.p);
-    tf(railTap, 38 + i * 112 + 48 - 60, 182 + 48 - 60, 0.3 + 0.9 * easeOut(tap.p));
-  }
-  // the hero card
-  hero.style.background = c('primaryContainer');
-  hero.style.color = c('onPrimaryContainer');
-  heroStickers.forEach((s, i) => {
-    s.path.setAttribute('fill', c('primary'));
-    s.svg.style.transform = `rotate(${lt * (i % 2 ? -14 : 14) + i * 30}deg)`;
-  });
-  setMark(heroMark, n.nest, n.prev, mp);
-  heroMark.s.svg.style.transform = `rotate(${n.index * 40 + (mp - 1) * 40}deg)`;
-  heroMark.i.style.transform = `scale(${0.5 + 0.5 * (n.index ? spring(n.since, 600, 0.45) : 1)})`;
-  const swap = n.index ? clamp(n.since / 0.16) : 1;
-  heroTitle.textContent = swap < 0.5 && n.index ? NESTS[n.prev].title : NESTS[n.nest].title;
-  heroId.textContent = 'n/' + (swap < 0.5 && n.index ? n.prev : n.nest);
-  heroTitle.style.fontSize = '48px';
-  if (heroTitle.offsetWidth > 330) heroTitle.style.fontSize = Math.floor((48 * 330) / heroTitle.offsetWidth) + 'px';
-  const ty = Math.sin(Math.PI * swap) * 14;
-  heroTitle.style.opacity = heroId.style.opacity = n.index ? Math.abs(1 - 2 * swap) * 0.6 + 0.4 : 1;
-  heroTitle.style.transform = heroId.style.transform = `translateY(${ty}px)`;
-  heroJoin.style.background = c('primary');
-  heroJoin.style.color = c('onPrimary');
-  sorts.forEach((s, i) => {
-    s.style.background = i === 0 ? c('secondaryContainer') : 'transparent';
-    s.style.color = i === 0 ? c('onSecondaryContainer') : c('onSurfaceVariant');
-    s.style.boxShadow = i === 0 ? 'none' : `inset 0 0 0 2px ${c('outlineVariant')}`;
-  });
-  posts.forEach((p, i) => {
-    p.card.style.background = c('surfaceContainer');
-    setMark(p.av, n.nest, n.prev, mp);
-    p.bars.forEach((b, j) => (b.style.background = j < 2 ? c('outlineVariant') : c('surfaceContainerHighest')));
-    p.img.style.background = `linear-gradient(135deg, ${c('primaryContainer')}, ${c('tertiaryContainer')})`;
-    setShape(p.imgShape, NESTS[n.prev].shape, NESTS[n.nest].shape, mp, c('surface'));
-    p.imgShape.svg.style.opacity = 0.55;
-    p.imgShape.svg.style.transform = `rotate(${lt * 10 + i * 50}deg)`;
-    p.imgIcon.textContent = NESTS[n.nest].symbol;
-    p.imgIcon.style.color = seed;
-    p.vote.style.background = c('primaryContainer');
-    p.vote.style.color = c('onPrimaryContainer');
-    p.others.forEach((o) => {
-      o.style.background = c('surfaceContainerHigh');
-      o.style.color = c('onSurfaceVariant');
-    });
-    p.save.style.color = c('onSurfaceVariant');
-  });
-}
-
-// ================================================================= scene 4: what else
-const s4 = el('div', 'layer', stage, { background: '#141218' });
-const s4glow = el('div', 'layer', s4, { background: 'radial-gradient(circle at 50% 0%, rgba(103,80,164,0.55) 0, transparent 60%), radial-gradient(circle at 50% 100%, rgba(194,24,91,0.28) 0, transparent 55%)' });
-const s4iris = svgShape(s4, { left: '490px', top: '1870px', width: '100px', height: '100px' });
-const s4head = el('div', 'line', s4, { top: '230px', fontSize: '92px', fontWeight: 820, color: '#fff', letterSpacing: '-0.035em' });
-s4head.textContent = 'And there’s more';
-const FEATURES = [
-  ['clover4', 'chat', '#3f8f4f', 'Chat with friends'],
-  ['cookie9', 'add', '#ff8a3d', 'Start your own nest'],
-  ['flower', 'self_improvement', '#8b5cf6', 'Calm mode hides numbers'],
-  ['gem', 'lock', '#3d7bff', 'No email or phone needed'],
+// what gets typed and picked, nest by nest (examples of what anyone could make)
+const MAKE = [
+  { at: 5.0, name: 'gym', seed: 6, shape: 1, symbol: 'fitness_center' },
+  { at: 6.0, name: 'kpop', seed: 1, shape: 2, symbol: 'music_note' },
+  { at: 7.0, name: 'cats', seed: 5, shape: 3, symbol: 'pets' },
 ];
-const feats = FEATURES.map(([shape, symbol, color, text], i) => {
-  const card = el('div', 'pill', s4, { left: '70px', top: 440 + i * 232 + 'px', width: '940px', height: '196px', boxSizing: 'border-box', padding: '0 40px 0 30px', gap: '34px', borderRadius: '60px', background: '#2b2930', color: '#fff', fontSize: '54px', fontWeight: 720, letterSpacing: '-0.015em' });
-  const m = el('div', 'mark', card, { position: 'relative', width: '136px', height: '136px', flex: 'none' });
-  m.s = svgShape(m);
-  setShape(m.s, shape, shape, 1, color);
-  m.i = el('span', 'icon', m, { fontSize: '66px' });
-  m.i.textContent = symbol;
-  el('span', '', card).textContent = text;
-  return { card, m, shape };
+const CREATE_TAP = 7.5;
+MAKE.forEach((m) => {
+  [...m.name].forEach((_, i) => cue(m.at + 0.06 + i * 0.07, 'key'));
+  cue(m.at + 0.5, 'tap');
+  cue(m.at + 0.75, 'tap');
 });
-const FEAT_T0 = S4 + 0.45;
-FEATURES.forEach((f, i) => cue(FEAT_T0 + i * 0.3, 'note', [9, 11, 12, 14][i]));
-cue(S5 - 0.36, 'whoosh');
+cue(CREATE_TAP, 'tap');
+cue(CREATE_TAP + 0.12, 'badge');
+function makeState(t) {
+  let i = 0;
+  while (i + 1 < MAKE.length && t >= MAKE[i + 1].at) i++;
+  const m = MAKE[i];
+  const lt = t - m.at;
+  // typing, then rubbing it out just before the next one
+  let text = m.name.slice(0, Math.floor(clamp((lt - 0.06) / 0.07, 0, m.name.length)));
+  if (i + 1 < MAKE.length && lt > 0.86) text = m.name.slice(0, Math.max(0, m.name.length - Math.floor((lt - 0.86) / 0.035)));
+  const prevSeed = i ? SEEDS[MAKE[i - 1].seed] : SEEDS[0];
+  const seed = lt >= 0.5 ? SEEDS[m.seed] : prevSeed;
+  const prevShape = i ? PICK_SHAPES[MAKE[i - 1].shape] : PICK_SHAPES[0];
+  const shape = lt >= 0.75 ? PICK_SHAPES[m.shape] : prevShape;
+  const symbol = lt >= 0.75 ? m.symbol : i ? MAKE[i - 1].symbol : 'forum';
+  return { m, i, lt, text, seed, prevSeed, colorP: lt >= 0.5 ? easeOut(prog(lt, 0.5, 0.22)) : 1, shape, prevShape, shapeP: lt >= 0.75 ? spring(lt - 0.75, 600, 0.42) : 1, symbol };
+}
 
-function scene4(t) {
-  const on = t >= S4 - 0.4 && t < S5;
-  show(s4, on);
+// --- view D: the new nest, a post in it, and a Spark
+const TEAL = '#00a6a6';
+const vD = el('div', 'view', screen, {}, appbarHTML);
+el('div', 'card', vD, { left: '24px', top: '186px', width: SW - 48 + 'px', height: '330px', background: 'linear-gradient(160deg, var(--primary-container), var(--surface-container) 75%)' },
+  `<div class="abs" style="left:380px;top:-60px;width:260px;height:260px;opacity:.16;color:var(--primary)">${svg('flower')}</div>
+   <div class="abs" style="left:470px;top:180px;width:150px;height:150px;opacity:.12;color:var(--primary)">${svg('clover8')}</div>
+   <div class="abs" style="left:36px;top:34px">${markHTML(150, 'cookie12', TEAL, 'pets', 74)}</div>
+   <div class="abs pill tonal" style="left:400px;top:50px;height:80px;padding:0 34px 0 26px;gap:12px;font-size:36px;font-weight:700"><span class="icon o" style="font-size:40px">check</span>Joined</div>
+   <div class="abs" style="left:38px;top:206px;font-size:68px;font-weight:800;letter-spacing:-0.02em">Cats</div>
+   <div class="abs muted" style="left:40px;top:282px;font-size:34px">n/cats</div>`);
+const post = el('div', 'card', vD, { left: '24px', top: '540px', width: SW - 48 + 'px', height: '620px' },
+  `<div class="abs" style="left:32px;top:30px;display:flex;align-items:center;gap:16px;font-size:34px;white-space:nowrap">${markHTML(58, 'cookie12', TEAL, 'pets', 30)}<b>n/cats</b><span class="muted">· u/you · now</span></div>
+   <div class="abs" style="left:34px;top:112px;font-size:46px;font-weight:760;letter-spacing:-0.015em">first post in my new nest</div>
+   <div class="abs" style="left:32px;top:190px;width:${SW - 112}px;height:300px;border-radius:38px;background:linear-gradient(135deg, var(--tertiary-container), var(--primary-container));display:grid;place-items:center"><span class="emoji" style="font-size:210px">🐱</span></div>`);
+const sparkChip = el('div', 'abs pill', post, { left: '56px', top: '410px', height: '64px', padding: '0 24px 0 16px', gap: '8px', background: 'var(--surface)', color: 'var(--on-surface)', fontSize: '32px', fontWeight: 700 }, '<span class="icon" style="font-size:40px;color:#ff8a3d">local_fire_department</span>Fire');
+const actions = el('div', 'abs', post, { left: '26px', top: '510px', display: 'flex', gap: '14px' });
+const voteBtn = el('div', 'act', actions, { background: 'var(--primary-container)', color: 'var(--on-primary-container)' }, '<span class="icon o" style="font-size:46px">arrow_upward</span><span class="icon o" style="font-size:46px">arrow_downward</span>');
+el('div', 'act', actions, {}, '<span class="icon o">chat_bubble</span>');
+const sparkBtn = el('div', 'act', actions, {}, '<span class="icon o">add_reaction</span>');
+el('div', 'act', actions, {}, '<span class="icon o">ios_share</span>');
+el('span', 'icon o abs', post, { left: SW - 48 - 80 + 'px', top: '530px', fontSize: '46px', color: 'var(--on-surface-variant)' }, 'bookmark');
+const picker = el('div', 'abs pill', vD, { left: '60px', top: '900px', height: '150px', padding: '0 22px', gap: '14px', background: 'var(--surface-container-highest)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', zIndex: 3 },
+  SPARKS.map(([s, i, c]) => markHTML(108, s, c, i, 52, '#1d1b20')).join(''));
+el('div', 'layer', vD, { top: 'auto', height: '160px' }, navHTML('Home'));
+const SPARK_TAP = 8.5, FIRE_TAP = 9.0, VOTE_TAP = 9.5;
+cue(SPARK_TAP, 'tap'); cue(SPARK_TAP + 0.05, 'pop', 3); cue(FIRE_TAP, 'tap'); cue(FIRE_TAP + 0.02, 'burst'); cue(VOTE_TAP, 'tap'); cue(VOTE_TAP + 0.03, 'pop', 6);
+// the Spark burst flies out of the phone
+const burst = Array.from({ length: 22 }, (_, i) => {
+  const shape = ['softBurst', 'cookie9', 'sunny', 'heart', 'burst', 'flower'][i % 6];
+  const color = ['#ff8a3d', '#ffc94d', '#ff5252', '#ff6f9c', '#ffb74d'][i % 5];
+  const size = 40 + ((i * 37) % 50);
+  const e = el('div', 'abs', stage, { left: 0, top: 0, width: size + 'px', height: size + 'px', zIndex: 20 }, svg(shape, color));
+  const ang = (i / 22) * Math.PI * 2 + (i % 3) * 0.2;
+  return { e, size, vx: Math.cos(ang) * (500 + (i % 4) * 160), vy: Math.sin(ang) * (500 + (i % 5) * 140) - 520, spin: (i % 2 ? 1 : -1) * (200 + i * 15) };
+});
+
+// --- view E: a chat (with jumbo emoji and Seen, like the real one)
+const vE = el('div', 'view', screen, {}, `
+  <div class="abs" style="left:24px;top:70px;right:24px;height:110px;display:flex;align-items:center;gap:20px">
+    <span class="mk btn" style="width:88px;height:88px">${svg('cookie12', 'var(--surface-container-high)')}<span class="icon o" style="font-size:44px">arrow_back</span></span>
+    <span class="mk" style="width:92px;height:92px">${svg('flower', '#e8467c')}<b style="font-size:44px;color:#fff">B</b></span>
+    <span style="flex:1"><b style="display:block;font-size:46px">bestie</b><span class="muted" style="font-size:32px">Friends</span></span>
+    <span class="icon o" style="font-size:48px">flag</span>
+  </div>
+  <div class="abs pill" style="left:${SW / 2 - 80}px;top:300px;height:64px;padding:0 30px;background:var(--surface-container-high);font-size:30px;font-weight:650">Today</div>`);
+const bubbles = [
+  el('div', 'bubble mine', vE, { top: '420px', borderBottomRightRadius: '14px' }, 'made a nest for cats'),
+  el('div', 'bubble mine', vE, { top: '524px', borderTopRightRadius: '14px' }, 'join!!'),
+];
+const seen = el('div', 'abs', vE, { right: '40px', top: '628px', fontSize: '30px', color: 'var(--on-surface-variant)', display: 'flex', alignItems: 'center', gap: '6px' }, 'now · <span class="icon o" style="font-size:34px;color:var(--primary)">done_all</span><b style="color:var(--primary)">Seen</b>');
+const typing = el('div', 'bubble theirs', vE, { top: '720px', display: 'flex', gap: '12px', padding: '34px 36px' }, '<i></i><i></i><i></i>');
+typing.querySelectorAll('i').forEach((d) => Object.assign(d.style, { width: '18px', height: '18px', borderRadius: '50%', background: 'var(--on-surface-variant)', display: 'block' }));
+const reply = el('div', 'bubble theirs', vE, { top: '720px' }, 'omw');
+const jumbo = el('div', 'abs emoji', vE, { left: '128px', top: '850px', fontSize: '120px', letterSpacing: '4px', whiteSpace: 'nowrap' }, '😻😻😻');
+const avatarE = el('div', 'abs', vE, { left: '24px', top: '742px' }, `<span class="mk" style="width:72px;height:72px">${svg('flower', '#e8467c')}<b style="font-size:34px;color:#fff">B</b></span>`);
+el('div', 'abs pill', vE, { left: '28px', top: '1060px', width: SW - 56 + 'px', height: '112px', boxSizing: 'border-box', padding: '0 36px', justifyContent: 'space-between', background: 'var(--surface-container-high)', fontSize: '38px' }, '<span class="muted">Message u/bestie</span><span class="icon o" style="font-size:48px;color:var(--on-surface-variant)">send</span>');
+el('div', 'layer', vE, { top: 'auto', height: '160px' }, navHTML('Chats'));
+const CHAT = { mine1: 10.0, mine2: 10.25, seen: 10.62, typing: 10.75, reply: 11.0, jumbo: 11.5 };
+cue(CHAT.mine1, 'send'); cue(CHAT.mine2, 'send'); cue(CHAT.reply, 'recv'); cue(CHAT.jumbo, 'recv');
+
+const tapD = el('div', 'abs', screen, { left: 0, top: 0, width: '130px', height: '130px', borderRadius: '50%', background: '#fff', zIndex: 6 });
+// a finger's tap: a soft circle that grows and fades
+function tapAt(e, t, at, x, y) {
+  const p = prog(t, at - 0.06, 0.4);
+  const on = p > 0 && p < 1;
+  show(e, on);
   if (!on) return;
-  const lt = t - S4;
-  // the dark scene opens from the bottom as a growing shape, over the phone
-  const ip = easeInOut(prog(t, S4 - 0.4, 0.5));
-  s4.style.background = ip >= 1 ? '#141218' : 'transparent';
-  s4glow.style.opacity = easeOut(prog(t, S4 + 0.05, 0.5));
-  show(s4iris.svg, ip < 1);
-  setShape(s4iris, 'cookie12', 'cookie12', 1, '#141218');
-  tf(s4iris.svg, 0, 0, ip * 50, ip * 60);
-  const leave = easeIn(prog(t, S5 - 0.4, 0.3));
-  const hp = spring(lt - 0.1, 260, 0.62);
-  s4head.style.opacity = clamp(hp * 1.4) * (1 - leave);
-  tf(s4head, 0, (1 - hp) * 80);
-  feats.forEach((f, i) => {
-    const p = spring(t - FEAT_T0 - i * 0.3, 300, 0.55);
-    f.card.style.opacity = clamp(p * 2) * (1 - leave);
-    tf(f.card, (1 - p) * (i % 2 ? 700 : -700), leave * 30, 1);
-    const mpop = spring(t - FEAT_T0 - i * 0.3 - 0.08, 420, 0.42);
-    f.m.style.transform = `scale(${mpop}) rotate(${(1 - mpop) * -120 + Math.sin(lt * 2 + i) * 4}deg)`;
+  e.style.opacity = 0.42 * (1 - p);
+  tf(e, x - 65, y - 65, 0.35 + 0.9 * easeOut(p));
+}
+// where something sits on the phone's screen, measured once with the phone at rest
+const posIn = (target) => {
+  const r = target.getBoundingClientRect(), s = screen.getBoundingClientRect(), k = s.width / SW;
+  return [(r.left - s.left + r.width / 2) / k, (r.top - s.top + r.height / 2) / k];
+};
+let POS = null;
+
+function scenePhone(t) {
+  const on = t >= 5 && t < 12.2;
+  show(sPhone, on);
+  burst.forEach((p) => show(p.e, false));
+  if (!on) return;
+  if (!POS) {
+    phone.style.transform = 'none';
+    [vC, vD, vE].forEach((v) => ((v.style.transform = 'none'), show(v, true)));
+    show(picker, true);
+    POS = { create: posIn(createBtn), spark: posIn(sparkBtn), vote: posIn(voteBtn), fire: posIn(picker.children[3]) };
+  }
+  // which screen: making the nest → the nest → a chat, sliding like the app does
+  const toD = easeInOut(prog(t, 7.86, 0.28)), toE = easeInOut(prog(t, 9.86, 0.28));
+  show(vC, toD < 1);
+  show(vD, toD > 0 && toE < 1);
+  show(vE, toE > 0);
+  vC.style.transform = `translateX(${-toD * SW * 0.35}px)`;
+  vD.style.transform = `translateX(${(1 - toD) * SW - toE * SW * 0.35}px)`;
+  vE.style.transform = `translateX(${(1 - toE) * SW}px)`;
+
+  // colours: the picked colour while making it, the nest's own teal inside it, your purple in chats
+  const mk = makeState(t);
+  let colors;
+  if (t < 7.86) colors = mixScheme(mk.prevSeed, mk.seed, mk.colorP);
+  else if (t < 9.86) colors = scheme(TEAL);
+  else colors = mixScheme(TEAL, '#6750a4', easeOut(prog(t, 9.86, 0.3)));
+  paint(screen, colors);
+  const seedNow = t < 7.86 ? mix(mk.prevSeed, mk.seed, mk.colorP) : t < 9.86 ? TEAL : mix(TEAL, '#6750a4', prog(t, 9.86, 0.3));
+  background(t, seedNow, 0.9);
+
+  // the phone springs up from below, beats with the music, and drops away at the end
+  const pp = spring(t - 5, 190, 0.72);
+  const exit = easeIn(prog(t, 11.86, 0.3));
+  phone.style.transformOrigin = '50% 40%';
+  tf(phone, 0, (1 - pp) * 1300 + exit * 1500, 1 + kickPulse(t) * 0.012, (1 - pp) * 8 - exit * 6);
+
+  // captions, changed on the beat
+  const caps = t < 7.86 ? ['Make a nest', 'for <span>anything.</span>', 5, 5.5] : t < 9.86 ? ['Spark what', 'you <span>love.</span>', 8, 8.5] : ['Chat with', 'your <span>friends.</span>', 10, 10.5];
+  if (cap1.dataset.k !== caps[0]) {
+    cap1.innerHTML = caps[0];
+    cap2.innerHTML = caps[1];
+    cap1.dataset.k = caps[0];
+  }
+  const capOut = t < 7.86 ? prog(t, 7.78, 0.08) : t < 9.86 ? prog(t, 9.78, 0.08) : prog(t, 11.86, 0.12);
+  slam(cap1, t, caps[2], { out: capOut });
+  slam(cap2, t, caps[3], { out: capOut });
+  cap2.querySelector('span').style.color = colors.primary;
+
+  // C: typing a name, picking a colour and a shape, then Create
+  if (toD < 1) {
+    typed.textContent = mk.text;
+    show(placeholder, !mk.text);
+    caret.style.opacity = mk.lt % 0.5 < 0.3 || mk.text.length ? 1 : 0;
+    pvTitle.textContent = mk.text ? mk.text[0].toUpperCase() + mk.text.slice(1) : 'Your nest';
+    pvId.textContent = 'n/' + (mk.text || 'your_nest');
+    preview.style.background = `linear-gradient(120deg, ${colors.primaryContainer}, ${colors.surfaceContainerHigh})`;
+    morph(pvMark, mk.prevShape, mk.shape, mk.shapeP, mix(mk.prevSeed, mk.seed, mk.colorP));
+    pvMark.style.transform = `rotate(${mk.i * 60 + (mk.shapeP - 1) * 40}deg)`;
+    pvIcon.textContent = mk.symbol;
+    pvIcon.style.transform = `scale(${mk.lt >= 0.75 ? 0.4 + 0.6 * spring(mk.lt - 0.75, 700, 0.45) : 1})`;
+    const [rx, ry] = swatchXY(SEEDS.indexOf(mk.lt >= 0.5 ? mk.seed : mk.prevSeed));
+    swatchRing.style.transform = `translate(${rx - 10}px, ${ry - 10}px) scale(${mk.lt >= 0.5 ? 0.8 + 0.2 * spring(mk.lt - 0.5, 600, 0.5) : 1})`;
+    const shapeIndex = PICK_SHAPES.indexOf(mk.shape);
+    shapeCells.forEach((c, i) => (c.style.color = i === shapeIndex ? colors.primary : colors.secondaryContainer));
+    // the taps
+    const sx = swatchXY(mk.m.seed), shx = shapeXY(mk.m.shape);
+    if (t < CREATE_TAP - 0.1) {
+      if (mk.lt < 0.7) tapAt(tapC, t, mk.m.at + 0.5, sx[0] + 46, sx[1] + 46 + 190);
+      else tapAt(tapC, t, mk.m.at + 0.75, shx[0] + 46, shx[1] + 46 + 190);
+    } else tapAt(tapC, t, CREATE_TAP, POS.create[0], POS.create[1]);
+    createBtn.style.transform = `scale(${1 - 0.05 * Math.sin(Math.PI * prog(t, CREATE_TAP - 0.04, 0.2))})`;
+    const fp = spring(t - CREATE_TAP - 0.12, 420, 0.55);
+    founder.style.opacity = clamp(fp * 2);
+    founder.style.transform = `translateY(${(1 - fp) * -160}px) scale(${0.8 + 0.2 * fp})`;
+  } else show(tapC, false);
+
+  // D: a Spark from the picker bursts out of the phone, then an upvote
+  if (toD > 0 && toE < 1) {
+    const pk = spring(t - SPARK_TAP - 0.04, 500, 0.5);
+    const pkOut = easeIn(prog(t, FIRE_TAP + 0.05, 0.12));
+    show(picker, t >= SPARK_TAP && pkOut < 1);
+    picker.style.opacity = clamp(pk * 2) * (1 - pkOut);
+    picker.style.transformOrigin = '60% 100%';
+    picker.style.transform = `scale(${(0.5 + 0.5 * pk) * (1 - pkOut * 0.3)})`;
+    [...picker.children].forEach((c, i) => (c.style.transform = `scale(${spring(t - SPARK_TAP - 0.06 - i * 0.03, 600, 0.45)})`));
+    if (t < FIRE_TAP - 0.12) tapAt(tapD, t, SPARK_TAP, POS.spark[0], POS.spark[1]);
+    else if (t < VOTE_TAP - 0.12) tapAt(tapD, t, FIRE_TAP, POS.fire[0], POS.fire[1]);
+    else tapAt(tapD, t, VOTE_TAP, POS.vote[0], POS.vote[1]);
+    const sc = spring(t - FIRE_TAP - 0.05, 500, 0.45);
+    sparkChip.style.opacity = clamp(sc * 2);
+    sparkChip.style.transform = `scale(${sc})`;
+    voteBtn.firstChild.classList.toggle('o', t < VOTE_TAP);
+    voteBtn.style.transform = `scale(${1 + 0.12 * Math.sin(Math.PI * prog(t, VOTE_TAP, 0.2))})`;
+    const bt = t - FIRE_TAP;
+    if (bt > 0 && bt < 1.1) {
+      const ox = PX + 16 + POS.fire[0], oy = PY + 16 + POS.fire[1];
+      burst.forEach((p, i) => {
+        show(p.e, true);
+        const tt = bt * (0.9 + (i % 3) * 0.08);
+        const x = ox + p.vx * tt * Math.exp(-tt * 1.4);
+        const y = oy + p.vy * tt * Math.exp(-tt * 1.4) + 700 * tt * tt;
+        p.e.style.opacity = 1 - prog(bt, 0.7, 0.4);
+        tf(p.e, x - p.size / 2, y - p.size / 2, Math.min(1, bt * 8), p.spin * tt);
+      });
+    }
+  } else show(tapD, false);
+
+  // E: messages pop in on the beat
+  if (toE > 0) {
+    const pop = (e, at, from = 'right') => {
+      const p = spring(t - at, 520, 0.5);
+      show(e, t >= at);
+      e.style.opacity = clamp(p * 2);
+      e.style.transformOrigin = from === 'right' ? '100% 100%' : '0% 100%';
+      e.style.transform = `scale(${0.4 + 0.6 * p})`;
+    };
+    pop(bubbles[0], CHAT.mine1);
+    pop(bubbles[1], CHAT.mine2);
+    pop(seen, CHAT.seen);
+    show(typing, t >= CHAT.typing && t < CHAT.reply);
+    [...typing.children].forEach((d, i) => (d.style.transform = `translateY(${Math.sin(t * 14 - i * 0.9) * 6}px)`));
+    pop(reply, CHAT.reply, 'left');
+    pop(avatarE, CHAT.typing, 'left');
+    const jp = spring(t - CHAT.jumbo, 420, 0.38);
+    show(jumbo, t >= CHAT.jumbo);
+    jumbo.style.transformOrigin = '0% 50%';
+    jumbo.style.transform = `scale(${jp}) rotate(${(1 - jp) * -20}deg)`;
+  }
+}
+
+// ================================================================ scene F: badges (12–14 s)
+const sF = el('div', 'layer');
+const fBig = morpher(sF, { left: '90px', top: '560px', width: '900px', height: '900px' });
+const fCap1 = el('div', 'line', sF, { top: '220px', fontSize: '112px', fontWeight: 850, color: '#fff' }, 'Collect badges');
+const fCap2 = el('div', 'line', sF, { top: '340px', fontSize: '112px', fontWeight: 850, color: '#fff' }, 'as you <span style="color:#d0bcff">go.</span>');
+const toasts = BADGES.map(([name, shape, symbol], i) =>
+  el('div', 'toast', sF, { top: 600 + i * 190 + 'px' }, markHTML(104, shape, ['#6750a4', '#c2185b', '#00a6a6', '#ff8a3d'][i], symbol, 52) + `<span>Badge unlocked: <b>${name}</b></span>`));
+BADGES.forEach((_, i) => cue(12 + i * BEAT, 'badge'));
+
+function sceneF(t) {
+  const on = t >= 11.9 && t < 14;
+  show(sF, on);
+  if (!on) return;
+  const lt = t - 12;
+  background(t, '#8b5cf6', 0.8);
+  morph(fBig, 'cookie12', 'cookie12', 1, 'rgba(208,188,255,0.06)');
+  tf(fBig, 0, 0, 1 + kickPulse(t) * 0.04, lt * 25);
+  slam(fCap1, t, 12);
+  slam(fCap2, t, 12.25);
+  toasts.forEach((e, i) => {
+    const at = 12 + i * BEAT;
+    const p = spring(t - at, 460, 0.5);
+    e.style.opacity = clamp(p * 2);
+    e.style.transform = `translateX(${540 - e.offsetWidth / 2}px) translateY(${(1 - p) * 120}px) scale(${0.6 + 0.4 * p})`;
+    e.firstChild.style.transform = `rotate(${(1 - spring(t - at - 0.05, 500, 0.4)) * -180}deg)`;
+  });
+  sF.style.opacity = 1 - easeIn(prog(t, 13.9, 0.1));
+}
+
+// ================================================================ scene G: three facts, one per beat (14–15.5 s)
+const sG = el('div', 'layer');
+const gShape = morpher(sG, { left: '90px', top: '510px', width: '900px', height: '900px' });
+const gText = el('div', 'line', sG, { top: '0', fontSize: '200px', fontWeight: 900, color: '#fff', lineHeight: '1' });
+const FACTS = [[14, ['Free.', '#6750a4', 'cookie9']], [14.5, ['No email.', '#00838f', 'gem']], [15, ['No phone<br>number.', '#c2185b', 'softBurst']]];
+
+function sceneG(t) {
+  const on = t >= 14 && t < 15.5;
+  show(sG, on);
+  if (!on) return;
+  const f = stepAt(FACTS, t);
+  const [text, color, shape] = f.value;
+  sG.style.background = color;
+  morph(gShape, f.index ? f.prev[2] : shape, shape, f.index ? spring(f.since, 600, 0.45) : 1, 'rgba(255,255,255,0.14)');
+  tf(gShape, 0, 0, 0.9 + 0.1 * spring(f.since, 500, 0.4), f.since * 40 + f.index * 60);
+  gText.innerHTML = text;
+  gText.style.top = (text.includes('<br>') ? 760 : 860) + 'px';
+  const p = spring(f.since, 700, 0.4);
+  gText.style.transform = `scale(${lerp(1.6, 1, p)})`;
+  gText.style.opacity = clamp(p * 4);
+}
+
+// ================================================================ scene H: the ending (15.5–18 s)
+const sH = el('div', 'layer');
+const hFly = Object.keys(NESTS).slice(0, 8).map((id, i) => {
+  const n = NESTS[id];
+  const size = [120, 100, 130, 90, 110, 100, 125, 95][i];
+  return { e: el('div', 'abs', sH, { left: 0, top: 0, width: size + 'px', height: size + 'px' }, markHTML(size, n.shape, n.color, n.symbol, size * 0.44)), size };
+});
+const H_SPOTS = [[110, 200], [960, 240], [90, 1580], [980, 1560], [130, 900], [960, 980], [300, 1780], [780, 1790]];
+const hL1 = el('div', 'line', sH, { top: '240px', fontSize: '60px', fontWeight: 600, color: '#cac4d0', letterSpacing: '-0.01em' }, 'It’s brand new.');
+const hL2 = el('div', 'line', sH, { top: '340px', fontSize: '128px', fontWeight: 850, color: '#fff' }, 'Grab your');
+const hL3 = el('div', 'line', sH, { top: '476px', fontSize: '150px', fontWeight: 900, color: '#d0bcff' }, 'username');
+const hL4 = el('div', 'line', sH, { top: '650px', fontSize: '64px', fontWeight: 600, color: '#e6e0e9', letterSpacing: '-0.015em' }, 'before someone else does.');
+const hMark = morpher(sH, { left: 540 - 130 + 'px', top: '820px', width: '260px', height: '260px' });
+const hWord = el('div', 'line', sH, { top: '1090px', fontSize: '150px', fontWeight: 780, color: '#e6e0e9', letterSpacing: '-0.03em' }, 'budgie');
+const hUrl = el('div', 'abs pill', sH, { left: 0, top: '1300px', height: '150px', padding: '0 64px 0 44px', gap: '20px', background: '#d0bcff', color: '#381e72', fontSize: '76px', fontWeight: 800 }, '<span class="icon" style="font-size:76px">language</span>budgiesocial.com');
+const hFine = el('div', 'line', sH, { top: '1490px', fontSize: '48px', fontWeight: 560, color: '#cac4d0', letterSpacing: '-0.01em' }, 'Free · Works right in your browser');
+const H_SHAPES = [[15.5, 'cookie9'], [16.5, 'heart'], [17, 'flower'], [17.5, 'cookie9']];
+cue(16, 'crash');
+
+function sceneH(t) {
+  const on = t >= 15.5;
+  show(sH, on);
+  if (!on) return;
+  const lt = t - 15.5;
+  background(t, '#6750a4', 1);
+  rise(hL1, t, 15.5, { from: 50 });
+  slam(hL2, t, 15.75);
+  slam(hL3, t, 16, { k: 600, z: 0.4 });
+  hL3.style.fontWeight = Math.round(lerp(500, 900, easeOut(prog(t, 16, 0.35))));
+  rise(hL4, t, 16.25, { from: 50 });
+  const s = stepAt(H_SHAPES, t);
+  morph(hMark, s.prev, s.value, s.index ? spring(s.since, 560, 0.45) : 1, '#d0bcff');
+  tf(hMark, 0, 0, spring(t - 16.25, 380, 0.5) * (1 + kickPulse(t) * 0.06), lt * 30 + s.index * 45);
+  const wp = spring(t - 16.35, 420, 0.55);
+  hWord.style.opacity = clamp(wp * 2);
+  hWord.style.transform = `translateY(${(1 - wp) * 80}px)`;
+  const up = spring(t - 16.5, 420, 0.42);
+  const ring = (t - 16.5) % 1;
+  hUrl.style.opacity = clamp(up * 2);
+  hUrl.style.transform = `translateX(${540 - hUrl.offsetWidth / 2}px) scale(${(0.6 + 0.4 * up) * (1 + kickPulse(t) * 0.04)})`;
+  hUrl.style.boxShadow = t > 16.5 ? `0 0 0 ${ring * 44}px rgba(208,188,255,${0.45 * (1 - ring)})` : 'none';
+  rise(hFine, t, 16.75, { from: 40 });
+  hFly.forEach((f, i) => {
+    const p = spring(lt - i * 0.03, 180, 0.6);
+    const [x, y] = H_SPOTS[i];
+    f.e.style.opacity = clamp(p * 2) * 0.9;
+    tf(f.e, x - f.size / 2 + Math.sin(lt * 1.4 + i) * 12, y - f.size / 2 + Math.cos(lt * 1.2 + i) * 12, p, lt * (i % 2 ? 24 : -24));
   });
 }
 
-// ================================================================= scene 5: the end card
-const s5 = el('div', 'layer', stage, { background: 'radial-gradient(circle at 10% 2%, #eaddff 0, transparent 50%), radial-gradient(circle at 100% 100%, #ffd8e4 0, transparent 55%), #fdf7ff', color: '#1d1b20' });
-const s5mark = mark(s5, 360, 150);
-s5mark.style.left = 540 - 180 + 'px';
-s5mark.style.top = 420 + 'px';
-const s5word = el('div', 'line', s5, { top: '820px', fontSize: '176px', fontWeight: 760, letterSpacing: '-0.03em' });
-s5word.textContent = 'budgie';
-const s5head = el('div', 'line', s5, { top: '1036px', fontSize: '104px', fontWeight: 820, letterSpacing: '-0.035em' });
-s5head.innerHTML = 'Find your <span style="color:#6750a4">nest.</span>';
-const s5url = el('div', 'pill', s5, { left: '0', top: '1210px', height: '128px', padding: '0 56px 0 36px', gap: '18px', background: '#6750a4', color: '#fff', fontSize: '64px', fontWeight: 760, boxShadow: '0 18px 40px rgba(103,80,164,0.35)' });
-el('span', 'icon', s5url, { fontSize: '62px' }).textContent = 'language';
-el('span', '', s5url).textContent = 'budgiesocial.com';
-const s5fine = el('div', 'line', s5, { top: '1386px', fontSize: '46px', fontWeight: 560, color: '#49454f' });
-s5fine.textContent = 'Free · Made by one developer';
-const S5_NESTS = [[S5, 'nightsky'], [S5 + 0.45, 'houseplants'], [S5 + 0.85, 'homecooking'], [S5 + 1.2, 'budgiehq']];
-cue(S5 + 0.05, 'note', 7);
-S5_NESTS.forEach(([t], i) => i && cue(t, 'note', [7, 9, 11, 14][i]));
-cue(S5 + 1.45, 'chord');
-
-function scene5(t) {
-  const on = t >= S5 - 0.4;
-  show(s5, on);
-  if (!on) return;
-  const lt = t - S5;
-  // opens as a growing shape over the dark scene
-  const ip = easeInOut(prog(t, S5 - 0.4, 0.5));
-  s5.style.clipPath = ip < 1 ? `circle(${ip * 1200}px at 540px 960px)` : 'none';
-  const n = nestAt(S5_NESTS, Math.max(t, S5));
-  const mp = n.index ? spring(n.since, 480, 0.5) : 1;
-  const pop = spring(lt - 0.02, 260, 0.5);
-  setMark(s5mark, n.nest, n.prev, mp);
-  s5mark.i.style.opacity = 0;
-  s5mark.s.svg.style.transform = `rotate(${n.index * 50 + (mp - 1) * 50 + lt * 10}deg)`;
-  tf(s5mark, 0, Math.sin(lt * 2.4) * 8, pop);
-  const wp = spring(lt - 0.12, 260, 0.6);
-  s5word.style.opacity = clamp(wp * 1.4);
-  tf(s5word, 0, (1 - wp) * 90);
-  s5word.style.fontWeight = Math.round(lerp(420, 760, easeOut(prog(lt, 0.1, 0.7))));
-  const hp = spring(lt - 0.3, 260, 0.6);
-  s5head.style.opacity = clamp(hp * 1.4);
-  tf(s5head, 0, (1 - hp) * 90);
-  const up = spring(lt - 0.6, 320, 0.45);
-  const uw = s5url.offsetWidth;
-  const pulse = lt > 1.6 ? 1 + 0.035 * Math.sin((lt - 1.6) * 5) * Math.exp(-(lt - 1.6) * 0.5) : 1;
-  s5url.style.opacity = clamp(up * 2);
-  s5url.style.transformOrigin = '50% 50%';
-  tf(s5url, 540 - uw / 2, (1 - up) * 70, (0.7 + 0.3 * up) * pulse);
-  const fp = spring(lt - 0.9, 260, 0.62);
-  s5fine.style.opacity = clamp(fp * 1.4);
-  tf(s5fine, 0, (1 - fp) * 60);
-}
-
-// ================================================================= putting it together
+// ================================================================ putting it together
 function renderAt(t) {
-  scene1(t);
-  scene2(t);
-  scene3(t);
-  scene4(t);
-  scene5(t);
+  if (t < 2) background(t, '#3b3940', 0.4);
+  sceneA(t);
+  sceneB(t);
+  scenePhone(t);
+  sceneF(t);
+  sceneG(t);
+  sceneH(t);
 }
 
 async function ready() {
   const mcu = await import('../../m3/vendor/material-color-utilities.js');
-  for (const [id, n] of Object.entries(NESTS)) {
-    const s = new mcu.SchemeTonalSpot(mcu.Hct.fromInt(mcu.argbFromHex(n.color)), false, 0);
-    SCHEMES[id] = Object.fromEntries(ROLES.map((r) => [r, mcu.hexFromArgb(s[r])]));
+  const seeds = new Set([...SEEDS, ...Object.values(NESTS).map((n) => n.color), TEAL]);
+  for (const seed of seeds) {
+    const s = new mcu.SchemeTonalSpot(mcu.Hct.fromInt(mcu.argbFromHex(seed)), true, 0);
+    SCHEMES[seed] = Object.fromEntries(ROLES.map((r) => [r, mcu.hexFromArgb(s[r])]));
   }
+  paint(screen, scheme(SEEDS[0]));
   await Promise.all([
-    document.fonts.load('400 100px "Google Sans Flex"'),
-    document.fonts.load('800 100px "Google Sans Flex"'),
+    document.fonts.load('300 100px "Google Sans Flex"'),
+    document.fonts.load('900 100px "Google Sans Flex"'),
     document.fonts.load('48px "Material Symbols Rounded"', 'campaign'),
+    document.fonts.load('100px "Noto Color Emoji"', '🐱😻'),
   ]);
   await document.fonts.ready;
+  for (let t = 0; t < DURATION; t += 0.5) renderAt(t);
   renderAt(0);
-  layoutChips();
 }
 
-window.AD = { W, H, DURATION, EVENTS, renderAt, ready: ready() };
+// the music, for render.js: chords by beat, where the drums play, the three stops, and the build-ups
+const SONG = {
+  bpm: BPM,
+  chords: [[0, 'Am'], [4, 'C'], [8, 'G'], [12, 'Am'], [16, 'F'], [20, 'C'], [24, 'G'], [28, 'F'], [29, 'G'], [30, 'Am'], [32, 'F'], [34, 'G'], [36, 'C']],
+  groove: [[4, 28], [32, 38]],
+  outro: 36,
+  stabs: [28, 29, 30],
+  risers: [[1.0, 2.0], [15.0, 16.0]],
+};
+window.AD = { W, H, DURATION, EVENTS, SONG, renderAt, ready: ready() };
 
 // watching in a browser: fit it to the window and play it on a loop
 if (!new URLSearchParams(location.search).has('render')) {
