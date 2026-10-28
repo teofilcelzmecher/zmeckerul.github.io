@@ -96,9 +96,9 @@
   function show(name, options = {}) {
     const root = frame();
     root.innerHTML = SCREENS[name](options);
-    // from the welcome page, a way back to it
+    // from the welcome page, a way back to it, in the card's corner (as a dialog's close button is)
     if (landing && landing.isConnected && ['signin', 'signup', 'forgot'].includes(name)) {
-      root.insertAdjacentHTML('afterbegin', `<button type="button" class="m3-icon-btn gate-back" aria-label="Back">${icon('arrow_back')}</button>`);
+      root.querySelector('.gate-card').insertAdjacentHTML('afterbegin', `<button type="button" class="m3-icon-btn gate-back" aria-label="Back">${icon('arrow_back')}</button>`);
       root.querySelector('.gate-back').addEventListener('click', welcome);
     }
     document.title = 'Budgie';

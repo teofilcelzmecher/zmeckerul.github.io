@@ -3355,10 +3355,10 @@ html.visitor .landing {
 .landing-foot a {
   color: var(--m3-on-surface-variant);
 }
-/* from the welcome page, sign-in and sign-up have a way back */
+/* from the welcome page, sign-in and sign-up have a way back, in the card's top corner */
 .gate-back {
   position: absolute;
-  top: calc(12px + env(safe-area-inset-top, 0px));
+  top: 12px;
   left: 12px;
 }
 @media (max-width: 719px) {
@@ -3398,6 +3398,7 @@ html.visitor .landing {
   color: var(--m3-on-background);
 }
 .gate-card {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 12px;
