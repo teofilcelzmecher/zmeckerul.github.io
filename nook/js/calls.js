@@ -26,6 +26,8 @@
     const [major, minor] = String(Nook.serverVersion || '0.0').split('.').map(Number);
     return major > 0 || minor >= 9;
   };
+  // ringing again and coming back after a reload need the server's 0.9.5
+  const server095 = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('0.9.5'));
   const lower = (name) => String(name || '').toLowerCase();
   const clock = (ms) => {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -888,7 +890,8 @@
     finish('you');
   }
   // a page closing or reloading mid-call is "away": back within half a minute, it's still in the call
-  addEventListener('pagehide', () => active && api.post(`/api/calls/${encodeURIComponent(active.id)}/away`, {}, { keepalive: true }).catch(() => {}));
+  // (an older server, which can't wait, is told the page left)
+  addEventListener('pagehide', () => active && api.post(`/api/calls/${encodeURIComponent(active.id)}/${server095() ? 'away' : 'leave'}`, {}, { keepalive: true }).catch(() => {}));
 
   const ENDINGS = {
     'no-answer': 'No answer',
@@ -1097,7 +1100,7 @@
       '<div class="call-top">' +
       `<button type="button" class="m3-icon-btn call-min" data-call="min" aria-label="Back to Budgie (the call carries on)" data-tooltip="Minimise (Esc)">${icon('picture_in_picture_alt')}</button>` +
       `<div class="call-title"><b>${esc(title())}</b><small class="call-status" aria-live="polite">${active.outgoing ? 'Calling…' : 'Connecting…'}</small></div>` +
-      (active.call.group ? `<button type="button" class="m3-icon-btn" data-call="people" aria-label="People: ring them again" data-tooltip="People (R)">${icon('group_add')}</button>` : '') +
+      (active.call.group && server095() ? `<button type="button" class="m3-icon-btn" data-call="people" aria-label="People: ring them again" data-tooltip="People (R)">${icon('group_add')}</button>` : '') +
       `<button type="button" class="m3-icon-btn" data-call="look" aria-label="Call look" data-tooltip="Call look">${icon('palette')}</button>` +
       (keys ? `<button type="button" class="m3-icon-btn" data-call="keys" aria-label="Keyboard shortcuts" data-tooltip="Shortcuts (?)">${icon('keyboard')}</button>` : '') +
       `<span class="call-lock" data-tooltip="Encrypted between devices, never recorded">${icon('lock')}</span></div>` +
@@ -1451,7 +1454,7 @@
         if (key === 'm' && !e.shiftKey) act = toggleMic;
         else if (key === 'v' && !e.shiftKey) act = toggleCam;
         else if (key === 's' && e.shiftKey && canShare()) act = toggleShare;
-        else if (key === 'r' && !e.shiftKey && active.call.group) act = people;
+        else if (key === 'r' && !e.shiftKey && active.call.group && server095()) act = people;
         else if (key === 'c' && !e.shiftKey) act = () => (active.minimised ? restore() : minimise());
         else if (e.key === '?' && !active.minimised) act = shortcutsSheet;
       }
