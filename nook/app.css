@@ -2043,6 +2043,41 @@ h1 .pride-flag,
   background: var(--m3-secondary-container);
   color: var(--m3-on-secondary-container);
 }
+/* the flag you wear in the editor: a row that brings up the flag picker */
+.flag-pick {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 12px 10px 14px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: var(--m3-r-normal);
+  background: transparent;
+  color: var(--m3-on-surface);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--m3-motion-element-move-fast), scale var(--m3-motion-bounce);
+}
+.flag-pick:hover {
+  background: var(--m3-layer1-hover);
+}
+.flag-pick:active {
+  scale: 0.98;
+}
+.flag-pick > .m3-icon {
+  color: var(--m3-on-surface-variant);
+}
+.flag-sheet .flag-grid {
+  padding-block: 4px;
+}
+/* where there's room, None and the 20 flags make three even rows */
+@media (min-width: 720px) {
+  .flag-sheet .flag-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
 .flag-grid small,
 .scheme-grid small {
   max-width: 100%;

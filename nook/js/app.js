@@ -1659,6 +1659,30 @@
     const fonts = major > 0 || minor >= 6;
     const more = major > 0 || minor >= 7;
     const PRONOUN_PICKS = ['she/her', 'he/him', 'they/them', 'she/they', 'he/they', 'any pronouns', 'ask me'];
+    // the flag you wear, as a row; pressing it brings up every flag to pick from
+    const flagRow = (id) => {
+      const flag = ui.PRIDE_FLAGS.find(([f]) => f === id);
+      return (
+        (flag ? `<span class="flag-big">${ui.flagSVG(id)}</span>` : `<span class="flag-none">${icon('block')}</span>`) +
+        `<span class="row-text"><b>${flag ? flag[1] : 'None'}</b><small>${flag ? 'Change or remove it' : `Choose from ${ui.PRIDE_FLAGS.length} flags`}</small></span>${icon('chevron_right')}`
+      );
+    };
+    const flagTile = (id, label, art) => `<button type="button" data-flag="${id}" aria-pressed="${id === model.flag}"${id === model.flag ? ' autofocus' : ''}>${art}<small>${label}</small></button>`;
+    // resolves with the flag picked ('' for none), or null when put away
+    const pickFlag = () =>
+      ui.sheet({
+        headline: 'Pride flag',
+        symbol: 'flag',
+        shape: 'heart',
+        className: 'flag-sheet wide',
+        html:
+          '<div class="flag-grid" role="group" aria-label="Pride flags">' +
+          flagTile('', 'None', `<span class="flag-none">${icon('block')}</span>`) +
+          ui.PRIDE_FLAGS.map(([id, label]) => flagTile(id, label, `<span class="flag-big">${ui.flagSVG(id)}</span>`)).join('') +
+          '</div>',
+        setup: (sheetBody, close) => sheetBody.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => close(b.dataset.flag))),
+        actions: [{ label: 'Cancel' }],
+      });
     const section = (shape, symbol, title) =>
       `<header class="m3-section-header ep-section"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="30" icon-size="16"></m3-shape-icon><h3 class="m3-title">${title}</h3><m3-wavy-line></m3-wavy-line></header>`;
     const BIO_MAX = media ? 300 : 160;
@@ -1677,10 +1701,9 @@
         (more
           ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
             `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>` +
-            '<div class="field"><span class="field-label">Pride flag</span><div class="flag-grid" role="group" aria-label="Pride flag">' +
-            `<button type="button" data-flag="" aria-pressed="${!model.flag}"><span class="flag-none">${icon('block')}</span><small>None</small></button>` +
-            ui.PRIDE_FLAGS.map(([id, label]) => `<button type="button" data-flag="${id}" aria-pressed="${id === model.flag}"><span class="flag-big">${ui.flagSVG(id)}</span><small>${label}</small></button>`).join('') +
-            '</div><small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
+            '<div class="field"><span class="field-label" id="ep-flag-label">Pride flag</span>' +
+            `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flag)}</button>` +
+            '<small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
           : '') +
         (fonts
           ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
@@ -1767,8 +1790,12 @@
               fx.pop($$('#ep-sub'), 0.4);
             })
           );
-          wireGrid(body.querySelector('.flag-grid'), 'flag', (id) => {
+          const flagPick = $$('#ep-flag-pick');
+          flagPick.addEventListener('click', async () => {
+            const id = await pickFlag();
+            if (id == null || !flagPick.isConnected) return;
             model.flag = id;
+            flagPick.innerHTML = flagRow(id);
             $$('#ep-flag').innerHTML = ui.prideFlag(model);
             fx.pop($$('#ep-flag'), 0.6);
           });

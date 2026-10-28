@@ -321,18 +321,21 @@
    * a dialog in M3's look that holds anything. `setup(body, close)` fills it;
    * an action's `run(close)` may return false to keep it open.
    */
+  let sheets = 0;
   function sheet({ headline = '', symbol = '', shape = 'cookie9', className = '', html = '', setup = null, actions = [] } = {}) {
     return new Promise((resolve) => {
       const el = document.createElement('dialog');
+      // each its own title, so a sheet opened over another is named right
+      const titleId = 'sheet-title-' + ++sheets;
       el.className = 'm3-dialog sheet ' + className;
       el.innerHTML =
         '<div class="sheet-grip" aria-hidden="true"><span></span></div>' +
         (headline
           ? `<div class="m3-dialog-header">${symbol ? `<m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="21" aria-hidden="true"></m3-shape-icon>` : ''}` +
-            `<h2 class="m3-title m3-dialog-headline" id="sheet-title">${esc(headline)}</h2></div>`
+            `<h2 class="m3-title m3-dialog-headline" id="${titleId}">${esc(headline)}</h2></div>`
           : '') +
         `<div class="sheet-body">${html}</div><div class="m3-dialog-actions"></div>`;
-      if (headline) el.setAttribute('aria-labelledby', 'sheet-title');
+      if (headline) el.setAttribute('aria-labelledby', titleId);
       const body = el.querySelector('.sheet-body');
       const row = el.querySelector('.m3-dialog-actions');
       let settled = false;
