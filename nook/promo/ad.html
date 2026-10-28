@@ -85,11 +85,25 @@ function spring(t, k = 320, z = 0.55) {
   return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + ((z * w0) / wd) * Math.sin(wd * t));
 }
 const b = (n) => n * BEAT; // beat n, in seconds
+// the music's plan, for music.js (beats count from 0; risers, rolls and cuts are in seconds)
+const SONG = {
+  bpm: BPM,
+  chords: [[0, 'Am'], [4, 'C'], [8, 'G'], [12, 'Am'], [16, 'F'], [20, 'C'], [24, 'G'], [28, 'F'], [29, 'G'], [30, 'Am'], [32, 'F'], [34, 'G'], [36, 'C']],
+  groove: [[4, 28], [32, 36]], // the full beat
+  drops: [4, 32], // a boom where the beat comes in
+  fills: [15, 23], // a snare fill instead of the kick, into the next scene
+  stabs: [28, 29, 30], // "Free." "No email." "No phone number."
+  end: 36, // the last chord, under the address
+  risers: [[1, 2], [13, 14], [15, 16]],
+  rolls: [[1, 2], [13, 14], [15.25, 16]],
+  cuts: [5, 8, 10, 12],
+};
+const KICKS = new Set([...SONG.stabs, SONG.end]);
+for (const [a, z] of SONG.groove) for (let i = a; i < z; i++) if (!SONG.fills.includes(i)) KICKS.add(i);
 // how hard the last kick drum still hits (1 on the beat, fading fast)
-const GROOVE = (t) => (t >= 2 && t < 14) || (t >= 16 && t < 18.9);
 const kickPulse = (t) => {
-  const k = Math.floor(t / BEAT) * BEAT;
-  return GROOVE(k) || [14, 14.5, 15].includes(k) ? Math.exp(-(t - k) * 9) : 0;
+  const i = Math.floor(t / BEAT + 1e-6);
+  return KICKS.has(i) ? Math.exp(-(t - i * BEAT) * 9) : 0;
 };
 
 // colours, mixed in OKLab so the in-betweens stay clean
@@ -765,15 +779,6 @@ async function ready() {
   renderAt(0);
 }
 
-// the music, for render.js: chords by beat, where the drums play, the three stops, and the build-ups
-const SONG = {
-  bpm: BPM,
-  chords: [[0, 'Am'], [4, 'C'], [8, 'G'], [12, 'Am'], [16, 'F'], [20, 'C'], [24, 'G'], [28, 'F'], [29, 'G'], [30, 'Am'], [32, 'F'], [34, 'G'], [36, 'C']],
-  groove: [[4, 28], [32, 38]],
-  outro: 36,
-  stabs: [28, 29, 30],
-  risers: [[1.0, 2.0], [15.0, 16.0]],
-};
 window.AD = { W, H, DURATION, EVENTS, SONG, renderAt, ready: ready() };
 
 // watching in a browser: fit it to the window and play it on a loop
