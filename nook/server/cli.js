@@ -28,7 +28,7 @@ const COMMANDS = {
       '  nook signups [open|invite]       anyone can join (open), or only with an invite code',
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
-      '  nook captcha <site key> <secret key>   turn on Google reCAPTCHA ("I\'m not a robot") for new accounts; nook captcha off turns it off',
+      '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
       '  nook unadmin <name>              take the admin role away',
@@ -54,25 +54,33 @@ const COMMANDS = {
     out(now === 'open' ? 'Sign-up is open: anyone can create an account.' : 'Sign-up is invite-only: new accounts need a code from `nook invite`.');
   },
 
-  captcha(site, secret) {
+  async captcha(site, secret) {
     if (site === 'off') {
-      db.meta('captcha-site', '');
-      db.meta('captcha-secret', '');
+      db.meta('turnstile-site', '');
+      db.meta('turnstile-secret', '');
       return out('The robot check is off: new accounts are made without it.');
     }
     if (!site) {
-      const key = db.meta('captcha-site');
-      return out(key ? `The robot check (reCAPTCHA) is on, with the site key ${key}. Turn it off with: nook captcha off` : 'The robot check is off. Turn it on with: nook captcha <site key> <secret key>');
+      const key = db.meta('turnstile-site');
+      return out(key ? `The robot check (Cloudflare Turnstile) is on, with the site key ${key}. Turn it off with: nook captcha off` : 'The robot check is off. Turn it on with: nook captcha <site key> <secret key>');
     }
-    if (!/^[A-Za-z0-9_-]{20,100}$/.test(site) || !/^[A-Za-z0-9_-]{20,100}$/.test(secret || '')) quit('Usage: nook captcha <site key> <secret key>   (both from the key\'s page in the Google Cloud console)');
-    if (site === secret) quit('The site key and the secret key are different keys: the secret one is under Integration → Use legacy key.');
-    db.meta('captcha-site', site);
-    db.meta('captcha-secret', secret);
-    out(
-      'The robot check is on: new accounts need to tick "I\'m not a robot". No restart needed.',
-      'Google only says whether the secret key is right once someone ticks the box, so make a test account now.',
-      'If sign-ups fail, nook logs says why; nook captcha off turns the check off.'
-    );
+    if (!/^[A-Za-z0-9_-]{20,100}$/.test(site) || !/^[A-Za-z0-9_-]{20,100}$/.test(secret || '')) quit('Usage: nook captcha <site key> <secret key>   (both from the widget\'s page under Turnstile in the Cloudflare dashboard)');
+    if (site === secret) quit('The site key and the secret key are different keys: copy both from the widget\'s page in Cloudflare.');
+    if (/^6L/.test(site)) quit('That looks like a Google reCAPTCHA key. Budgie uses Cloudflare Turnstile: its keys come from the Cloudflare dashboard, under Turnstile.');
+    // Cloudflare says straight away when it doesn't know a secret key, so it's checked before it's kept
+    if (process.env.NOOK_CAPTCHA !== 'test') {
+      let result;
+      try {
+        const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new URLSearchParams({ secret, response: 'checking-the-key' }), signal: AbortSignal.timeout(15000) });
+        result = await res.json();
+      } catch (error) {
+        quit(`Couldn't reach Cloudflare to check the key (${error.message}). Is the laptop online?`);
+      }
+      if ((result['error-codes'] || []).some((code) => /secret/.test(code))) quit('Cloudflare doesn\'t know that secret key. Copy it again from the widget\'s page under Turnstile.');
+    }
+    db.meta('turnstile-site', site);
+    db.meta('turnstile-secret', secret);
+    out('The robot check is on: new accounts go through Cloudflare Turnstile first. No restart needed.', 'If it ever causes trouble: nook captcha off');
   },
 
   invite(count = '1', ...note) {

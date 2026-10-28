@@ -74,12 +74,12 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const A = a.json.token;
   const B = b.json.token;
 
-  // the "I'm not a robot" check: off until the owner sets it up, then needed for every new account
+  // the robot check (Cloudflare Turnstile): off until the owner sets it up, then needed for every new account
   ok(!health.json.captcha && /is off/.test(cli('captcha')), 'the robot check is off at first');
-  ok(/on: new accounts need/.test(cli('captcha', '6LeTestSiteKey_000000000000000000000000', '6LeTestSecretKey_00000000000000000000000')), 'the cli turns it on');
-  ok((await api(null, 'GET', '/api/health')).json.captcha === '6LeTestSiteKey_000000000000000000000000', 'health hands the app the site key (and nothing secret)');
+  ok(/is on: new accounts go through Cloudflare Turnstile/.test(cli('captcha', '0x4AAAAAAATestSiteKey00000', '0x4AAAAAAATestSecretKey000000000000000')), 'the cli turns it on');
+  ok((await api(null, 'GET', '/api/health')).json.captcha === '0x4AAAAAAATestSiteKey00000', 'health hands the app the site key (and nothing secret)');
   const robot = await api(null, 'POST', '/api/signup', { name: 'robotron', password: 'correct horse', age: true, terms: true });
-  ok(robot.status === 400 && robot.json.field === 'captcha' && robot.json.captcha === '6LeTestSiteKey_000000000000000000000000', 'without the check, no account (and the form is told the site key)', robot.json.error);
+  ok(robot.status === 400 && robot.json.field === 'captcha' && robot.json.captcha === '0x4AAAAAAATestSiteKey00000', 'without the check, no account (and the form is told the site key)', robot.json.error);
   const failed = await api(null, 'POST', '/api/signup', { name: 'robotron', password: 'correct horse', age: true, terms: true, captcha: 'nope' });
   ok(failed.status === 400 && failed.json.field === 'captcha', 'a failed check, no account', failed.json.error);
   const takenFirst = await api(null, 'POST', '/api/signup', { name: 'alice', password: 'correct horse', age: true, terms: true, captcha: 'nope' });
@@ -87,7 +87,9 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const human = await api(null, 'POST', '/api/signup', { name: 'human_one', password: 'correct horse', age: true, terms: true, captcha: 'pass' });
   ok(human.status === 200 && human.json.token, 'a passed check makes the account');
   ok(/is off/.test(cli('captcha', 'off')) && !(await api(null, 'GET', '/api/health')).json.captcha, 'the cli turns it off again');
-  ok(/Usage/.test((() => { try { return cli('captcha', 'short', 'x'); } catch (e) { return String(e.stderr); } })()), 'the cli refuses keys that can’t be keys');
+  const refused = (...a) => { try { return cli(...a); } catch (e) { return String(e.stderr); } };
+  ok(/Usage/.test(refused('captcha', 'short', 'x')), 'the cli refuses keys that can’t be keys');
+  ok(/Google reCAPTCHA key/.test(refused('captcha', '6LcExampleExampleExampleExampleExample00', '6LcExampleSecretExampleSecretExample0000')), 'and says so when it’s given a Google reCAPTCHA key');
 
   // login
   const wrong = await api(null, 'POST', '/api/login', { name: 'alice', password: 'nope nope' });

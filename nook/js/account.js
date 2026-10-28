@@ -1,8 +1,8 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
 /*
  * The way in: the welcome page for someone who isn't signed in, then sign in,
- * create an account (with an invite code, and an "I'm not a robot" check, if the
- * server asks for them), or get back in with a recovery code. Once signed in, it fetches everything the app needs
+ * create an account (with an invite code, and a robot check, if the server asks
+ * for them), or get back in with a recovery code. Once signed in, it fetches everything the app needs
  * from the server and only then starts the app's own scripts.
  */
 (function () {
@@ -18,7 +18,7 @@
   const landing = document.getElementById('landing');
   // open to everyone unless the server says it's invite-only (asked as soon as the page opens)
   let signup = 'open';
-  // the reCAPTCHA site key, when the server wants an "I'm not a robot" check before making an account
+  // the Turnstile site key, when the server wants a robot check before making an account
   let captcha = '';
 
   function frame() {
@@ -162,28 +162,34 @@
     });
   }
 
-  // ---- "I'm not a robot" (Google reCAPTCHA) -----------------------------------------------------------
-  // Google's script is only loaded once someone opens the sign-up form, and only when the server asks for it
+  // ---- the robot check (Cloudflare Turnstile) -------------------------------------------------------
+  // Cloudflare's script is only loaded once someone opens the sign-up form, and only when the server asks for it.
+  // Usually it passes by itself ("Success!"); sometimes it asks for a tick.
 
-  let recaptcha = null;
-  function loadRecaptcha() {
-    if (!recaptcha) {
-      recaptcha = new Promise((resolve, reject) => {
-        window.nookRecaptchaReady = () => resolve(window.grecaptcha);
+  let turnstile = null;
+  function loadTurnstile() {
+    if (!turnstile) {
+      turnstile = new Promise((resolve, reject) => {
+        window.nookTurnstileReady = () => resolve(window.turnstile);
         const script = document.createElement('script');
-        script.src = 'https://www.google.com/recaptcha/api.js?onload=nookRecaptchaReady&render=explicit&hl=en';
+        script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=nookTurnstileReady&render=explicit';
         script.async = true;
         script.onerror = () => {
-          recaptcha = null;
+          turnstile = null;
           reject(new Error('blocked'));
         };
         document.head.appendChild(script);
       });
     }
-    return recaptcha;
+    return turnstile;
   }
 
-  const CAPTCHA_BLOCKED = 'The “I’m not a robot” check couldn’t load. If something blocks google.com here (an ad blocker, say), allow it on Budgie, or try another browser.';
+  const CAPTCHA_WAIT = 'Wait for the robot check to say “Success!” (tick it if it asks).';
+  const CAPTCHA_BLOCKED = 'The robot check couldn’t load. If something blocks challenges.cloudflare.com here (an ad blocker, say), allow it on Budgie, or try another browser.';
+  const widgetOf = (form) => {
+    const id = form.querySelector('#g-captcha').dataset.widget || '';
+    return window.turnstile && id && id !== 'loading' && id !== 'failed' ? id : null;
+  };
 
   async function placeCaptcha(form) {
     const box = form && form.querySelector('#g-captcha');
@@ -192,33 +198,37 @@
     box.dataset.widget = 'loading';
     const error = box.querySelector('.gate-error');
     try {
-      const grecaptcha = await loadRecaptcha();
+      const api = await loadTurnstile();
       if (!box.isConnected) return;
       const slot = box.querySelector('.gate-captcha-box');
-      box.dataset.widget = String(
-        grecaptcha.render(slot, {
-          sitekey: captcha,
-          theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-          // the box is 304 pixels wide; a narrow phone gets the tall, compact one
-          size: slot.clientWidth && slot.clientWidth < 304 ? 'compact' : 'normal',
-          callback: () => (error.textContent = ''),
-        })
-      );
+      box.dataset.widget = api.render(slot, {
+        sitekey: captcha,
+        theme: 'auto',
+        // the box is 300 pixels wide; a narrow phone gets the tall, compact one
+        size: slot.clientWidth && slot.clientWidth < 300 ? 'compact' : 'normal',
+        // passing clears "wait for it"; why a try failed stays until the next one
+        callback: () => {
+          if (error.textContent === CAPTCHA_WAIT) error.textContent = '';
+        },
+        'error-callback': () => {
+          error.textContent = 'The robot check hit a problem. It’ll try again; if it keeps failing, reload the page.';
+        },
+      });
     } catch (_) {
       box.dataset.widget = 'failed';
       error.textContent = CAPTCHA_BLOCKED;
     }
   }
 
-  /** the answer reCAPTCHA gave once the box was ticked, or '' */
+  /** the answer Turnstile gave, or '' while it's still checking */
   function captchaAnswer(form) {
-    const id = form.querySelector('#g-captcha').dataset.widget;
-    return window.grecaptcha && /^\d+$/.test(id || '') ? window.grecaptcha.getResponse(Number(id)) : '';
+    const id = widgetOf(form);
+    return id ? window.turnstile.getResponse(id) || '' : '';
   }
 
   function resetCaptcha(form) {
-    const id = form.querySelector('#g-captcha').dataset.widget;
-    if (window.grecaptcha && /^\d+$/.test(id || '')) window.grecaptcha.reset(Number(id));
+    const id = widgetOf(form);
+    if (id) window.turnstile.reset(id);
   }
 
   function shake(form) {
@@ -249,7 +259,7 @@
       if (!/^[A-Za-z0-9_]{3,20}$/.test(value('g-name'))) return problem('g-name', 'Use 3–20 letters, numbers or underscores.');
       if (password.length < 8) return problem('g-pass', 'Use at least 8 characters.');
       if (!$('#g-age').checked || !$('#g-terms').checked) return problem('', 'Please tick both boxes to continue.');
-      if (captcha && !captchaAnswer(form)) return problem('g-captcha', $('#g-captcha').dataset.widget === 'failed' ? CAPTCHA_BLOCKED : 'Tick “I’m not a robot” first.');
+      if (captcha && !captchaAnswer(form)) return problem('g-captcha', $('#g-captcha').dataset.widget === 'failed' ? CAPTCHA_BLOCKED : CAPTCHA_WAIT);
     } else {
       if (!value('g-name')) return problem('g-name', 'Enter your username.');
       if (name === 'forgot' && !value('g-recovery')) return problem('g-recovery', 'Enter your recovery code.');

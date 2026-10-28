@@ -3738,7 +3738,7 @@ html.visitor .landing {
   margin: 1px 0 0;
   accent-color: var(--m3-primary);
 }
-/* Google's "I'm not a robot" box keeps its own size and look; it sits centred, with room saved while it loads */
+/* Cloudflare's robot check keeps its own size and look; it sits centred, with room saved while it loads */
 .gate-captcha {
   display: grid;
   justify-items: center;
@@ -3750,7 +3750,7 @@ html.visitor .landing {
 }
 .gate-captcha-box {
   width: 100%;
-  min-height: 78px;
+  min-height: 65px;
   display: grid;
   justify-content: center;
 }
