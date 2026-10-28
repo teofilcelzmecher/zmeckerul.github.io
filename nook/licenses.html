@@ -19,7 +19,7 @@
     </div>
 
     <h1>Open-source licenses</h1>
-    <p class="meta">Budgie 0.4.0 · Last updated 28 October 2026</p>
+    <p class="meta">Budgie 0.5.0 · Last updated 28 October 2026</p>
     <p>Budgie is built on other people’s open work. Thank you to all of them. The full text of each license ships with the site.</p>
 
     <div class="table-wrap">
@@ -50,6 +50,41 @@
             <td>Icons</td>
             <td><a href="https://github.com/google/material-design-icons">Material Symbols</a> by Google</td>
             <td>Apache License 2.0 (<a href="../m3/fonts/LICENSE-material-symbols.txt">text</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>On Budgie’s server</h2>
+    <p>Budgie’s server checks pictures and text with these, on its own computer (see <a href="terms.html#moderation">How moderation works</a>).</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What</th><th>By</th><th>License</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>The text model: multilingual-toxicity-small, downloaded by the server from Hugging Face</td>
+            <td><a href="https://huggingface.co/Horizon-Labs/multilingual-toxicity-small">Horizon Labs</a>, built on <a href="https://huggingface.co/jhu-clsp/mmBERT-small">mmBERT-small</a> by the Johns Hopkins University Center for Language and Speech Processing (MIT License), and trained on Civil Comments</td>
+            <td>Apache License 2.0 (on its page)</td>
+          </tr>
+          <tr>
+            <td>Running the text model</td>
+            <td><a href="https://github.com/microsoft/onnxruntime">ONNX Runtime</a>, Copyright (c) Microsoft Corporation</td>
+            <td>MIT License (<a href="server/vendor/node_modules/onnxruntime-node/LICENSE">text</a>, <a href="server/vendor/node_modules/onnxruntime-node/ThirdPartyNotices.txt">third-party notices</a>)</td>
+          </tr>
+          <tr>
+            <td>The picture models: MobileNetV2 and MobileNetV2 Mid</td>
+            <td><a href="https://github.com/infinitered/nsfwjs">NSFWJS</a>, Copyright (c) 2019 Infinite Red, Inc.</td>
+            <td>MIT License (<a href="server/vendor/nsfw/LICENSE">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Running the picture models</td>
+            <td><a href="https://github.com/tensorflow/tfjs">TensorFlow.js</a> (core, layers, converter and WebAssembly backend), Copyright Google LLC, with <a href="https://github.com/davidbau/seedrandom">seedrandom</a>, Copyright 2019 David Bau (MIT License, <a href="server/vendor/node_modules/seedrandom/LICENSE">text</a>)</td>
+            <td>Apache License 2.0 (<a href="server/vendor/node_modules/@tensorflow/tfjs-core/LICENSE">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Reading JPEG, PNG and GIF pictures</td>
+            <td><a href="https://github.com/jpeg-js/jpeg-js">jpeg-js</a> by Eugene Ware, with a decoder by notmasteryet (Apache License 2.0); <a href="https://github.com/pngjs/pngjs">pngjs</a> by Luke Page and Kuba Niegowski; <a href="https://github.com/deanm/omggif">omggif</a> by Dean McNamee</td>
+            <td>BSD 3-Clause (<a href="server/vendor/node_modules/jpeg-js/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/pngjs/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/omggif/omggif.js">in its file</a>)</td>
           </tr>
         </tbody>
       </table>

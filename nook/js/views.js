@@ -1348,7 +1348,7 @@
                     ? '<p class="muted">Already gone.</p>'
                     : `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
                   return (
-                    `<article class="card report" data-report="${r.id}"><div class="report-head">${icon('flag')}<b>${esc(r.reason)}</b><span class="muted">a ${esc(r.kind)} · reported by u/${esc(r.reporter)} · ${ago(r.createdAt)}</span></div>${what}` +
+                    `<article class="card report" data-report="${r.id}"><div class="report-head">${icon('flag')}<b>${esc(r.reason)}</b><span class="muted">a ${esc(r.kind)} · ${r.automatic ? 'flagged by the automatic check' : `reported by u/${esc(r.reporter)}`} · ${ago(r.createdAt)}</span></div>${what}` +
                     '<div class="toolbar">' +
                     (item && item.href ? `<a class="m3-btn text small" href="${esc(item.href)}">${icon('open_in_new')}Open</a>` : '') +
                     (r.kind === 'user'

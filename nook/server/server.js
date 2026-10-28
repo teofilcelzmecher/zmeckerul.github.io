@@ -24,9 +24,11 @@ const vm = require('node:vm');
 const { promisify } = require('node:util');
 const { open } = require('./db');
 const mod = require('../js/moderation.js');
+const pictures = require('./pictures');
+const textmodel = require('./textmodel');
 
-const VERSION = '0.4.0';
-const TERMS = '2026-10-28';
+const VERSION = '0.5.0';
+const TERMS = '0.5.0, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -55,6 +57,7 @@ const STARTERS = (() => {
 })();
 
 const db = open(CONFIG.data);
+textmodel.setup(CONFIG.data);
 
 // two starter nests were renamed with the app (Nook became Budgie): what was in them moves along, once
 for (const [was, now] of [['nookhq', 'budgiehq'], ['asknook', 'askbudgie']]) {
@@ -147,19 +150,18 @@ setInterval(() => {
   for (const [key, b] of buckets) if (b.reset < t) buckets.delete(key);
 }, 10 * MINUTE).unref();
 
-// ---- images: JPEG, PNG or WebP (and GIF, where it's allowed), checked by their first bytes --------------
+// ---- pictures: JPEG and PNG (and GIF, where it's allowed), checked by their first bytes and for nudity ----
 
 const size = (bytes) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(0)} MB` : `${Math.round(bytes / 1024)} KB`);
 
-/** gif: false (stills only), true (stills or GIFs) or 'only' (a GIF and nothing else) */
-function storeImage(dataUrl, ownerId, maxBytes, { gif = false, maxSide = 2048 } = {}) {
-  const m = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
-  if (!m) fail(400, gif ? 'Pictures must be JPEG, PNG, WebP or GIF.' : 'Images must be JPEG, PNG or WebP.');
+/** a picture sent as data, checked to be what it says it is: { bytes, mime }. gif: false, true or 'only' */
+function readImage(dataUrl, maxBytes, { gif = false, maxSide = 2048 } = {}) {
+  const m = /^data:(image\/(?:jpeg|png|gif|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(dataUrl || ''));
+  if (!m) fail(400, gif ? 'Pictures must be JPEG, PNG or GIF.' : 'Pictures must be JPEG or PNG.');
   const bytes = Buffer.from(m[2], 'base64');
   if (bytes.length > maxBytes) fail(413, `That ${gif === 'only' ? 'GIF' : 'image'} is too big (the limit is ${size(maxBytes)}).`);
   const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   const isPng = bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  const isWebp = bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP';
   const isGif = /^GIF8[79]a$/.test(bytes.subarray(0, 6).toString('latin1'));
   if (isGif) {
     if (!gif) fail(400, 'GIFs can’t go here.');
@@ -168,12 +170,72 @@ function storeImage(dataUrl, ownerId, maxBytes, { gif = false, maxSide = 2048 } 
     if (!width || !height) fail(400, 'That GIF looks broken.');
     if (width > maxSide || height > maxSide) fail(413, `That GIF is too large (at most ${maxSide}×${maxSide} pixels).`);
   } else if (gif === 'only') fail(400, 'That isn’t a GIF.');
-  const mime = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : isWebp ? 'image/webp' : isGif ? 'image/gif' : null;
-  if (!mime) fail(400, 'That doesn’t look like a real image.');
+  // WebP can't be checked for nudity here, so it isn't taken (the app always sends JPEG)
+  const mime = isJpeg ? 'image/jpeg' : isPng ? 'image/png' : isGif ? 'image/gif' : null;
+  if (!mime) fail(400, gif ? 'That doesn’t look like a JPEG, PNG or GIF.' : 'That doesn’t look like a JPEG or PNG.');
+  return { bytes, mime };
+}
+
+/** keeps a picture that's been read and checked; returns its id */
+function saveImage(img, ownerId) {
   const id = crypto.randomBytes(16).toString('base64url');
-  db.run('INSERT INTO images (id, owner_id, mime, data, created_at) VALUES (?, ?, ?, ?, ?)', id, ownerId, mime, bytes, now());
+  db.run('INSERT INTO images (id, owner_id, mime, data, created_at) VALUES (?, ?, ?, ?, ?)', id, ownerId, img.mime, img.bytes, now());
   return id;
 }
+
+const PICTURE_REFUSED = {
+  profile: 'This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be a profile picture or banner. Try a different one.',
+  post: 'This picture looks like it shows nudity or sexual content, which isn’t allowed on Budgie.',
+};
+
+/** the nudity check (pictures.js): refuses what isn't allowed; returns 'review' when a moderator should look */
+async function checkPicture(img, where) {
+  let score;
+  try {
+    score = await pictures.score(img.bytes, img.mime);
+  } catch (error) {
+    if (error.unreadable) fail(400, 'That picture couldn’t be read. Try another one.');
+    console.error('picture check failed:', error.message);
+    fail(503, 'Pictures can’t be checked right now, so they can’t be posted. Try again in a minute.');
+  }
+  const verdict = pictures.verdict(score, where);
+  if (verdict === 'block') fail(422, PICTURE_REFUSED[where], { rule: 'No sexual content' });
+  return verdict;
+}
+
+/** a report from the automatic checks, for a moderator to look at (one open one per thing) */
+function autoReport(kind, target, why) {
+  if (db.get('SELECT 1 AS x FROM reports WHERE kind = ? AND target = ? AND reporter_id IS NULL AND resolved_at IS NULL', kind, String(target))) return false;
+  db.run('INSERT INTO reports (reporter_id, kind, target, reason, created_at) VALUES (NULL, ?, ?, ?, ?)', kind, String(target), 'Automatic check: ' + why, now());
+  for (const admin of db.all("SELECT id FROM users WHERE role = 'admin'")) {
+    notify(admin.id, { kind: 'report', text: `The automatic check flagged a ${kind} for a look`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
+  }
+  return true;
+}
+
+// ---- text: the language model's say (textmodel.js), after the word lists' ---------------------------
+
+const TEXT_REFUSED = {
+  severe_toxicity: ['bully', 'This reads as an attack on someone. Disagree or joke all you like, but not by putting people down.'],
+  insult: ['bully', 'This reads as an insult aimed at someone. Disagree or joke all you like, but not by putting people down.'],
+  threat: ['threat', 'This reads as a threat, or as wishing harm on someone.'],
+  identity_attack: ['hate', 'This reads as attacking people for who they are: where they’re from, their religion, race, gender or sexuality.'],
+  sexual_explicit: ['sexual', 'This reads as sexual. Budgie doesn’t allow sexual messages: everyone here is 13 or older, and many are teenagers.'],
+};
+
+/**
+ * refuses text the model is sure is harmful; returns a reason when a moderator should look at it.
+ * strict: what's doubtful is refused too (a nest's name and description, which can't be reported)
+ */
+async function checkText(texts, kind, { strict = false } = {}) {
+  const judged = textmodel.judge(await textmodel.score(texts.filter(Boolean).join('\n\n')), kind);
+  if (judged.verdict === 'block' || (strict && judged.verdict === 'review')) {
+    const [rule, why] = TEXT_REFUSED[judged.label];
+    fail(422, why + ' (An automatic check read it this way. If it got you wrong, try putting it differently.)', { rule: mod.RULES[rule] });
+  }
+  return judged.verdict === 'review' ? textmodel.reason(judged) : null;
+}
+
 const imageUrl = (id) => (id ? '/api/images/' + id : '');
 // profile pictures and banners: a still (shown in feeds, and when motion is reduced) and, for a GIF, the moving one
 const MEDIA = {
@@ -284,6 +346,19 @@ function notify(userId, note) {
   );
   // a long inbox keeps its newest 200
   db.run('DELETE FROM notes WHERE user_id = ? AND id NOT IN (SELECT id FROM notes WHERE user_id = ? ORDER BY id DESC LIMIT 200)', userId, userId);
+}
+
+// when the Terms or Privacy Policy change in a way that matters, everyone already here is told once
+if (db.meta('terms-told') !== TERMS) {
+  for (const u of db.all('SELECT id FROM users')) {
+    notify(u.id, {
+      kind: 'system',
+      text: 'Budgie’s Terms and Privacy Policy have changed: posts, comments, messages and pictures are now also checked by small AI models that run on Budgie’s own server, and a moderator may see a private message the checks flag. Read them in Settings → Privacy and legal.',
+      symbol: 'gavel',
+      shape: 'pixelCircle',
+    });
+  }
+  db.meta('terms-told', TERMS);
 }
 
 function members() {
@@ -577,7 +652,7 @@ route('GET', '/api/updates', ({ user, query }) => {
 
 // posts ---------------------------------------------------------------------------------------------------
 
-route('POST', '/api/posts', ({ user, body }) => {
+route('POST', '/api/posts', async ({ user, body }) => {
   limit('post:' + user.id, 20, HOUR, 'That’s a lot of posts. Take a break and try again later.');
   const n = text(body.n, 30);
   const nook = nookData(n);
@@ -604,11 +679,14 @@ route('POST', '/api/posts', ({ user, body }) => {
     if (poll.length < 2) fail(400, 'A poll needs at least two options.', { field: 'poll' });
   }
   vet([title, postBody, ...(poll || []), link && link.url], { kind: 'post', history: history(user.id) });
+  const picture = type === 'image' ? readImage(body.image, 3 * 1024 * 1024) : null;
+  const doubt = await checkText([title, postBody, ...(poll || [])], 'post');
+  const review = picture ? await checkPicture(picture, 'post') : 'ok';
 
   const id = randomId('p', 8);
   const t = now();
   db.tx(() => {
-    const image = type === 'image' ? storeImage(body.image, user.id, 3 * 1024 * 1024) : null;
+    const image = picture ? saveImage(picture, user.id) : null;
     db.run(
       'INSERT INTO posts (id, nook, author_id, type, title, body, flair, link, image, poll, spoiler, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       id, n, user.id, type, title, postBody, flair, link ? JSON.stringify(link) : null, image, poll ? JSON.stringify(poll) : null, body.spoiler ? 1 : 0, t, db.bump()
@@ -616,6 +694,8 @@ route('POST', '/api/posts', ({ user, body }) => {
     // you upvote your own, as tradition demands
     db.run('INSERT INTO votes (user_id, target, value) VALUES (?, ?, 1)', user.id, id);
   });
+  if (review === 'review') autoReport('post', id, 'this picture might be sexual. Please take a look.');
+  else if (doubt) autoReport('post', id, doubt);
   return { post: postOut(db.get(`${POST_SELECT} WHERE p.id = ?`, id)) };
 }, { body: 4.5 * 1024 * 1024 });
 
@@ -626,14 +706,17 @@ function ownPost(user, id) {
   return p;
 }
 
-route('PATCH', '/api/posts/:id', ({ user, params, body }) => {
-  const p = ownPost(user, params.id);
+route('PATCH', '/api/posts/:id', async ({ user, params, body }) => {
+  let p = ownPost(user, params.id);
   if (p.author_id !== user.id) fail(403, 'Only the person who wrote a post can edit it.');
   const title = body.title == null ? p.title : text(body.title, 300);
   const postBody = body.body == null ? p.body : text(body.body, 10000);
   if (title.length < 3) fail(400, 'Give your post a title (at least 3 characters).', { field: 'title' });
   vet([title, postBody], { kind: 'post', editing: true });
+  const doubt = await checkText([title, postBody], 'post');
+  p = ownPost(user, params.id); // it may have been taken down while the model read it
   db.run('UPDATE posts SET title = ?, body = ?, edited_at = ?, rev = ? WHERE id = ?', title, postBody, now(), db.bump(), p.id);
+  if (doubt) autoReport('post', p.id, doubt);
   return { post: postOut(db.get(`${POST_SELECT} WHERE p.id = ?`, p.id)) };
 });
 
@@ -653,22 +736,29 @@ route('DELETE', '/api/posts/:id', ({ user, params }) => {
 
 // comments ------------------------------------------------------------------------------------------------
 
-route('POST', '/api/comments', ({ user, body }) => {
+route('POST', '/api/comments', async ({ user, body }) => {
   limit('comment:' + user.id, 60, HOUR, 'That’s a lot of comments. Take a break and try again later.');
-  const post = db.get(`${POST_SELECT} WHERE p.id = ?`, text(body.postId, 40));
-  if (!post || post.removed_at) fail(404, 'That post is gone.');
-  const parentId = body.parentId ? text(body.parentId, 40) : null;
-  const parent = parentId ? db.get(`${COMMENT_SELECT} WHERE c.id = ? AND c.post_id = ?`, parentId, post.id) : null;
-  if (parentId && !parent) fail(404, 'The comment you’re replying to is gone.');
   const commentBody = text(body.body, 5000);
   if (!commentBody) fail(400, 'Write something first.');
-  vet([commentBody], { kind: 'comment', postId: post.id, history: history(user.id) });
+  const find = () => {
+    const post = db.get(`${POST_SELECT} WHERE p.id = ?`, text(body.postId, 40));
+    if (!post || post.removed_at) fail(404, 'That post is gone.');
+    const parentId = body.parentId ? text(body.parentId, 40) : null;
+    const parent = parentId ? db.get(`${COMMENT_SELECT} WHERE c.id = ? AND c.post_id = ?`, parentId, post.id) : null;
+    if (parentId && !parent) fail(404, 'The comment you’re replying to is gone.');
+    return { post, parentId, parent };
+  };
+  vet([commentBody], { kind: 'comment', postId: find().post.id, history: history(user.id) });
+  const doubt = await checkText([commentBody], 'comment');
+  // the post may have been taken down while the model read the comment
+  const { post, parentId, parent } = find();
 
   const id = randomId('c', 8);
   db.tx(() => {
     db.run('INSERT INTO comments (id, post_id, parent_id, author_id, body, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?)', id, post.id, parentId, user.id, commentBody, now(), db.bump());
     db.run('INSERT INTO votes (user_id, target, value) VALUES (?, ?, 1)', user.id, id);
   });
+  if (doubt) autoReport('comment', id, doubt);
   const href = `#/n/${post.nook}/p/${post.id}?c=${id}`;
   const short = post.title.length > 60 ? post.title.slice(0, 59) + '…' : post.title;
   if (parent && parent.author_id && parent.author_id !== user.id) {
@@ -687,12 +777,15 @@ function ownComment(user, id) {
   return c;
 }
 
-route('PATCH', '/api/comments/:id', ({ user, params, body }) => {
-  const c = ownComment(user, params.id);
+route('PATCH', '/api/comments/:id', async ({ user, params, body }) => {
+  let c = ownComment(user, params.id);
   const commentBody = text(body.body, 5000);
   if (!commentBody) fail(400, 'Write something first.');
   vet([commentBody], { kind: 'comment', postId: c.post_id, editing: true });
+  const doubt = await checkText([commentBody], 'comment');
+  c = ownComment(user, params.id);
   db.run('UPDATE comments SET body = ?, edited_at = ?, rev = ? WHERE id = ?', commentBody, now(), db.bump(), c.id);
+  if (doubt) autoReport('comment', c.id, doubt);
   return { comment: commentOut(db.get(`${COMMENT_SELECT} WHERE c.id = ?`, c.id)) };
 });
 
@@ -745,16 +838,19 @@ route('POST', '/api/polls', ({ user, body }) => {
 
 // nooks -----------------------------------------------------------------------------------------------------
 
-route('POST', '/api/nooks', ({ user, body }) => {
+route('POST', '/api/nooks', async ({ user, body }) => {
   limit('nook:' + user.id, 3, DAY, 'You can create up to 3 nests a day.');
   const id = text(body.id, 30).toLowerCase();
   if (!/^[a-z0-9_]{3,21}$/.test(id)) fail(400, 'Use 3–21 letters, numbers or underscores.', { field: 'id' });
   if (nookExists(id)) fail(409, `n/${id} already exists. Try another name.`, { field: 'id' });
   const title = text(body.title, 60) || id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   const tagline = text(body.tagline, 200) || `A brand new nest about ${title.toLowerCase()}.`;
-  vet([id.replace(/_/g, ' '), title, tagline], { kind: 'nook' }, { strongNames: true, personal: true });
+  const description = text(body.description, 500) || tagline;
+  vet([id.replace(/_/g, ' '), title, tagline, description], { kind: 'nook' }, { strongNames: true, personal: true });
+  await checkText([title, tagline, description], 'nook', { strict: true });
+  if (nookExists(id)) fail(409, `n/${id} already exists. Try another name.`, { field: 'id' });
   const data = {
-    title, tagline, description: text(body.description, 500) || tagline,
+    title, tagline, description,
     category: CATEGORIES.includes(body.category) ? body.category : 'Hobbies',
     color: HEX_RE.test(body.color) ? body.color : '#6750a4',
     shape: WORD_RE.test(body.shape) ? body.shape : 'cookie9',
@@ -780,7 +876,7 @@ route('POST', '/api/joins', ({ user, body }) => {
 
 // you ---------------------------------------------------------------------------------------------------------
 
-route('PATCH', '/api/me', ({ user, body }) => {
+route('PATCH', '/api/me', async ({ user, body }) => {
   const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif };
   if (body.name != null && body.name !== user.name) {
     limit('rename:' + user.id, 5, DAY, 'You can change your username up to 5 times a day.');
@@ -796,18 +892,28 @@ route('PATCH', '/api/me', ({ user, body }) => {
     next.bio = text(String(body.bio).replace(/\r/g, ''), BIO_MAX).replace(/\n{3,}/g, '\n\n').split('\n').slice(0, 8).join('\n').trim();
     vet([next.bio], { kind: 'profile' }, { personal: true });
   }
+  const bioDoubt = next.bio !== user.bio ? await checkText([next.bio], 'profile') : null;
   if (body.color != null) next.color = HEX_RE.test(body.color) ? body.color : user.color;
   if (body.shape != null) next.shape = WORD_RE.test(body.shape) ? body.shape : user.shape;
   if (body.icon != null) next.icon = body.icon === '' || WORD_RE.test(body.icon) ? body.icon : user.icon;
   // a new picture or banner arrives as data (a still, plus the GIF when it moves); '' removes it; its old URL keeps it
   const changing = ['photo', 'banner'].filter((k) => body[k] != null && !String(body[k]).includes('/api/images/'));
   if (changing.some((k) => body[k])) limit('media:' + user.id, 20, DAY, 'You can change your picture or banner up to 20 times a day.');
+  // every new picture (the still and the GIF) is read and checked before anything changes
+  const incoming = {};
+  for (const k of changing) {
+    if (!body[k]) continue;
+    const rules = MEDIA[k];
+    incoming[k] = readImage(body[k], rules.still);
+    if (body[k + 'Gif']) incoming[k + '_gif'] = readImage(body[k + 'Gif'], rules.gif, { gif: 'only', maxSide: rules.maxSide });
+  }
+  let review = false;
+  for (const img of Object.values(incoming)) if ((await checkPicture(img, 'profile')) === 'review') review = true;
   db.tx(() => {
     for (const k of changing) {
       for (const old of [user[k], user[k + '_gif']]) if (old) db.run('DELETE FROM images WHERE id = ?', old);
-      const rules = MEDIA[k], gifData = body[k + 'Gif'];
-      next[k] = body[k] ? storeImage(body[k], user.id, rules.still) : '';
-      next[k + '_gif'] = body[k] && gifData ? storeImage(gifData, user.id, rules.gif, { gif: 'only', maxSide: rules.maxSide }) : '';
+      next[k] = incoming[k] ? saveImage(incoming[k], user.id) : '';
+      next[k + '_gif'] = incoming[k] && incoming[k + '_gif'] ? saveImage(incoming[k + '_gif'], user.id) : '';
     }
     db.run('UPDATE users SET name = ?, color = ?, shape = ?, icon = ?, bio = ?, photo = ?, photo_gif = ?, banner = ?, banner_gif = ?, rev = ? WHERE id = ?',
       next.name, next.color, next.shape, next.icon, next.bio, next.photo, next.photo_gif, next.banner, next.banner_gif, db.bump(), user.id);
@@ -817,6 +923,8 @@ route('PATCH', '/api/me', ({ user, body }) => {
       for (const c of db.all('SELECT id FROM comments WHERE author_id = ?', user.id)) db.run('UPDATE comments SET rev = ? WHERE id = ?', db.bump(), c.id);
     }
   });
+  if (review) autoReport('user', next.name, 'this profile picture or banner might not be OK for everyone. Please take a look.');
+  else if (bioDoubt) autoReport('user', next.name, bioDoubt.replace('this might be', 'this bio might be'));
   return { me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
 }, { body: 10 * 1024 * 1024 });
 
@@ -891,7 +999,7 @@ route('GET', '/api/messages', ({ user, query }) => {
   return { messages: rows.reverse().map((r) => messageOut(r, user.id)), more: rows.length === 50 };
 });
 
-route('POST', '/api/messages', ({ user, body }) => {
+route('POST', '/api/messages', async ({ user, body }) => {
   limit('message:' + user.id, 40, MINUTE, 'You’re sending messages very fast. Slow down a little.');
   const other = db.get('SELECT * FROM users WHERE name = ?', text(body.to, 40));
   if (!other || other.banned_at) fail(404, 'There’s nobody by that name.');
@@ -899,8 +1007,15 @@ route('POST', '/api/messages', ({ user, body }) => {
   if (!f || f.status !== 'friends') fail(403, 'You can only message friends.');
   const messageBody = text(body.body, 2000);
   if (!messageBody) fail(400, 'Write something first.');
-  vet([messageBody], { kind: 'message' });
+  const verdict = vet([messageBody], { kind: 'message' });
+  // in private messages the model only stops what it's very sure of, and only sexual ones are shown to a moderator
+  const doubt = await checkText([messageBody], 'message');
+  const still = friendship(user.id, other.id);
+  if (!still || still.status !== 'friends') fail(403, 'You can only message friends.');
   const { lastInsertRowid } = db.run('INSERT INTO messages (from_id, to_id, body, created_at) VALUES (?, ?, ?, ?)', user.id, other.id, messageBody, now());
+  // a warning sign (someone asked to keep secrets, say) isn't blocked, but a moderator gets to see it
+  if (verdict.flag) autoReport('message', Number(lastInsertRowid), verdict.flag.why);
+  else if (doubt) autoReport('message', Number(lastInsertRowid), doubt);
   return { message: messageOut(db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(lastInsertRowid)), user.id) };
 });
 
@@ -937,7 +1052,8 @@ route('GET', '/api/admin/reports', () => {
   const rows = db.all(
     'SELECT r.*, u.name AS reporter FROM reports r LEFT JOIN users u ON u.id = r.reporter_id WHERE r.resolved_at IS NULL ORDER BY r.id DESC LIMIT 200'
   );
-  return { reports: rows.map((r) => ({ id: r.id, kind: r.kind, target: r.target, reason: r.reason, reporter: r.reporter || '[deleted]', createdAt: r.created_at, item: reportTarget(r) })) };
+  const automatic = (r) => !r.reporter_id && /^Automatic check/.test(r.reason);
+  return { reports: rows.map((r) => ({ id: r.id, kind: r.kind, target: r.target, reason: r.reason, reporter: r.reporter || '[deleted]', automatic: automatic(r) || undefined, createdAt: r.created_at, item: reportTarget(r) })) };
 }, { admin: true });
 
 /** an admin takes something down; its author is told what and why */
@@ -1132,10 +1248,12 @@ server.headersTimeout = 15000;
 if (require.main === module) {
   server.listen(CONFIG.port, CONFIG.host, () => {
     console.log(`Budgie server ${VERSION} on http://${CONFIG.host}:${CONFIG.port}, data in ${CONFIG.data}, allowing ${CONFIG.origins.join(', ')}`);
+    pictures.warmUp();
+    textmodel.warmUp();
   });
   const stop = () => server.close(() => (db.close(), process.exit(0)));
   process.on('SIGTERM', stop);
   process.on('SIGINT', stop);
 }
 
-module.exports = { server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser };
+module.exports = { server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport };

@@ -4,8 +4,8 @@ The app used to be called Nook, so on the laptop its command, service, user and 
 called `nook`. Only the name people see changed.
 
 Accounts, posts, comments, votes, nests, friends and messages, kept in one SQLite file. It's plain
-Node.js (22.5 or newer) with nothing to download from npm, and it uses about 50–80 MB of memory, so
-an old laptop is plenty.
+Node.js (22.5 or newer) with nothing to install from npm: what its automatic checks need comes with it
+in `vendor/`. With those loaded it uses about 800 MB of memory, so a laptop with 4 GB is plenty.
 
 It only listens on the laptop itself (127.0.0.1). **Tailscale Funnel** puts it on the internet over
 HTTPS: free, no router changes, a fixed address, and your home IP address stays hidden.
@@ -76,8 +76,38 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook remove post ID reason…` | Takes a post down and tells its author why |
 | `sudo nook delete-user NAME` | Erases an account (for deletion requests) |
 | `sudo nook stats` | How much is stored |
-| `sudo nook update` | Gets the latest version from GitHub and restarts |
+| `sudo nook text-check "some text"` | Is the text model ready? What does it make of this? |
+| `sudo nook scan-images` / `scan-text` | Checks everything posted before; doubtful things go to the Moderation page |
+| `sudo nook update` | Gets the latest version from GitHub, updates the service's settings and restarts |
 | `sudo nook status` / `logs` / `restart` | Is it running? What is it saying? Restart it |
+
+## Automatic checks
+
+Everything posted or sent is checked on this laptop before it's saved; nothing is sent anywhere else.
+
+- **Word lists** (`js/moderation.js`, the same as in the app): slurs, threats, sexual requests, adult
+  links, scams, spam.
+- **Pictures** (`pictures.js`): two small image models look at every picture, banner and GIF for nudity.
+  They ship in `vendor/` and load a few seconds after the server starts. If they can't run, pictures
+  are refused until they can.
+- **Text** (`textmodel.js`): a small AI model reads posts, comments, bios, nests and messages for
+  insults, threats, hate and sexual talk, in many languages. It's about 300 MB, so the server downloads
+  it once from Hugging Face into `/var/lib/nook/text-model` (checked against its fingerprint) the first
+  time it starts. Until then, or if it can't run, the word lists carry on alone. `sudo nook text-check`
+  says whether it's ready, and why not.
+
+What the models are very sure of is refused with a reason; what they're unsure of is posted and shows up
+on the Moderation page as "flagged by the automatic check". In private messages, the text model only
+stops what it's very sure of, and only flags messages that might be sexual.
+
+The text model needs about 550 MB of memory on top of the rest, so the service may use up to 1.5 GB
+(`MemoryMax=1536M`). **Coming from Budgie 0.4.0**, after `sudo nook update` run
+`sudo /opt/nook/server/install.sh` once to raise the old 512 MB limit (until then the text model stays
+off, and the logs say so). From then on, `sudo nook update` keeps the service's settings up to date
+by itself.
+
+In an emergency (say the laptop is running out of memory), `NOOK_TEXT_CHECK=off` or
+`NOOK_PICTURE_CHECK=off` in the service's settings turns one off.
 
 ## Backups
 
@@ -101,5 +131,6 @@ To restore: `sudo systemctl stop nook`, copy the backup over `/var/lib/nook/nook
 - **Your data folder** is `/var/lib/nook`. It holds people's accounts and messages, so keep the laptop's
   login password strong and don't share the laptop.
 - **Settings** (in `/etc/systemd/system/nook.service`): `NOOK_PORT` (8787), `NOOK_DATA` (`/var/lib/nook`),
-  `NOOK_ORIGINS` (`https://budgiesocial.com`, its `www.` and `https://teofilcelzmecher.github.io`). After changing them:
+  `NOOK_ORIGINS` (`https://budgiesocial.com`, its `www.` and `https://teofilcelzmecher.github.io`),
+  and `NOOK_TEXT_CHECK` / `NOOK_PICTURE_CHECK` (`off` to turn a check off). After changing them:
   `sudo systemctl daemon-reload && sudo systemctl restart nook`.

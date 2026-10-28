@@ -1025,7 +1025,7 @@
       shape: 'pixelCircle',
       html:
         ruleHTML(block) +
-        '<p class="muted">Budgie checks posts with simple automatic rules, not AI, so it can get things wrong. If it did, tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
+        '<p class="muted">Budgie checks posts automatically, with word lists and a small AI model on Budgie’s own server, so it can get things wrong. If it did, put it another way or tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
       actions: [{ label: 'Edit it', variant: 'filled' }],
     });
   }

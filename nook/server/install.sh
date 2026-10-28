@@ -4,8 +4,11 @@
 #   sudo git clone https://github.com/teofilcelzmecher/nook-early-access-website /opt/nook
 #   sudo /opt/nook/server/install.sh
 #
-# Safe to run again: it updates what's there and keeps the database.
+# Safe to run again: it updates what's there and keeps the database. `nook update` runs it with
+# --update after getting the new code, so the service's settings follow along.
 set -euo pipefail
+UPDATE=0
+[[ "${1:-}" == "--update" ]] && UPDATE=1
 
 if [[ $EUID -ne 0 ]]; then
   echo "Run me with sudo:  sudo $0"
@@ -27,8 +30,10 @@ fi
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 
-step "Installing Node.js, SQLite and Tailscale"
-pacman -S --needed --noconfirm nodejs sqlite tailscale git
+if [[ $UPDATE == 0 ]]; then
+  step "Installing Node.js, SQLite and Tailscale"
+  pacman -S --needed --noconfirm nodejs sqlite tailscale git
+fi
 if ! node -e 'require("node:sqlite")' 2>/dev/null; then
   echo "This Node.js ($(node --version)) is too old: Budgie needs 22.5 or newer. Run: sudo pacman -Syu"
   exit 1
@@ -56,7 +61,7 @@ Environment=NOOK_ORIGINS=$ORIGINS
 ExecStart=$NODE --disable-warning=ExperimentalWarning $REPO/server/server.js
 Restart=always
 RestartSec=3
-MemoryMax=512M
+MemoryMax=1536M
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
@@ -113,7 +118,7 @@ cat > /usr/local/bin/nook <<EOF
 # Budgie's admin command. Try: sudo nook help
 [ "\$(id -u)" -eq 0 ] || exec sudo "\$0" "\$@"
 case "\$1" in
-  update) cd $REPO && git pull --ff-only && chmod -R a+rX $REPO && systemctl restart nook && echo "Budgie is updated and restarted." ; exit ;;
+  update) cd $REPO && git pull --ff-only && exec bash $REPO/server/install.sh --update ;;
   logs) exec journalctl -u nook -f ;;
   status) exec systemctl status nook ;;
   restart) systemctl restart nook && echo "Restarted." ; exit ;;
@@ -136,13 +141,20 @@ timedatectl set-ntp true || true
 
 step "Starting everything"
 systemctl daemon-reload
-systemctl enable --now nook.service nook-backup.timer tailscaled.service
+systemctl enable --quiet nook.service nook-backup.timer tailscaled.service
+systemctl start nook-backup.timer tailscaled.service
+# a restart, so the server runs the new code with the new settings
+systemctl restart nook.service
 sleep 2
 if curl -fsS "http://127.0.0.1:$PORT/api/health" >/dev/null; then
   echo "Budgie's server is running on this laptop (port $PORT)."
 else
   echo "The server didn't answer. See what went wrong with:  ${SUDO_USER:+sudo }nook logs"
   exit 1
+fi
+if [[ $UPDATE == 1 ]]; then
+  echo "Budgie is updated and restarted."
+  exit 0
 fi
 
 # logged in as root there may be no sudo at all, so it's only shown when this ran with sudo

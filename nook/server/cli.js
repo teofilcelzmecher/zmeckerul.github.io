@@ -33,6 +33,9 @@ const COMMANDS = {
       '  nook unadmin <name>              take the admin role away',
       '  nook rename <name> <new name>    change someone\'s username (for one that breaks the rules)',
       '  nook clear-profile <name> [reason]   remove someone\'s picture, banner and bio; they\'re told why',
+      '  nook scan-images                 check every picture already posted for nudity; doubtful ones go to the Moderation page',
+      '  nook text-check [text]           get the text model ready (downloads it the first time), and see what it makes of some text',
+      '  nook scan-text                   read every post and comment already there with the text model; doubtful ones go to the Moderation page',
       '  nook ban <name> [reason]         ban an account and sign it out everywhere',
       '  nook unban <name>                lift a ban',
       '  nook reset-password <name>       give someone a temporary password and a new recovery code',
@@ -102,6 +105,41 @@ const COMMANDS = {
     out(`Cleared u/${u.name}'s picture, banner and bio; they've been told why.`);
   },
 
+  async 'scan-images'() {
+    // profile pictures and banners (the strict rules), then post pictures
+    const users = db.all("SELECT name, photo, photo_gif, banner, banner_gif FROM users WHERE photo != '' OR banner != ''");
+    const list = users.flatMap((u) => [u.photo, u.photo_gif, u.banner, u.banner_gif].filter(Boolean).map((id) => ({ id, where: 'profile', kind: 'user', target: u.name })));
+    for (const p of db.all('SELECT id, image FROM posts WHERE image IS NOT NULL AND removed_at IS NULL')) list.push({ id: p.image, where: 'post', kind: 'post', target: p.id });
+    out(`Checking ${list.length} pictures (the first takes a few seconds while the checker loads)…`);
+    let reported = 0, skipped = 0;
+    try {
+      for (const item of list) {
+        const img = db.get('SELECT mime, data FROM images WHERE id = ?', item.id);
+        if (!img || img.mime === 'image/webp') {
+          skipped++;
+          continue;
+        }
+        let verdict;
+        try {
+          verdict = nook.pictures.verdict(await nook.pictures.score(Buffer.from(img.data), img.mime), item.where);
+        } catch (error) {
+          out(`  couldn't check ${item.kind} ${item.target}: ${error.message}`);
+          skipped++;
+          continue;
+        }
+        if (verdict === 'ok') continue;
+        const why = item.kind === 'user' ? 'this profile picture or banner might not be OK for everyone. Please take a look.' : 'this picture might be sexual. Please take a look.';
+        if (nook.autoReport(item.kind, item.target, why)) {
+          reported++;
+          out(`  ${verdict === 'block' ? 'likely' : 'maybe'} not OK: ${item.kind === 'user' ? 'u/' + item.target + "'s profile" : 'post ' + item.target}`);
+        }
+      }
+    } finally {
+      nook.pictures.close();
+    }
+    out(`Done: ${reported} reported to the Moderation page${skipped ? `, ${skipped} couldn't be checked (old WebP pictures, or unreadable)` : ''}.`);
+  },
+
   ban(name, ...reason) {
     const u = userNamed(name);
     nook.ban(u.name, reason.join(' ') || 'Broke Budgie’s rules', true);
@@ -133,6 +171,48 @@ const COMMANDS = {
     const u = userNamed(name);
     nook.eraseUser(u.id);
     out(`u/${u.name} is erased: the account, its votes, friends, messages and images are gone, and its posts and comments are wiped.`);
+  },
+
+  async 'text-check'(...words) {
+    const tm = nook.textmodel;
+    try {
+      if (!(await tm.ready({ log: out }))) quit(`The text model isn't available: ${tm.status().problem || 'it couldn’t start'}. Posts are still checked by the word lists.`);
+      out(`The text model is ready (in ${tm.status().dir}).`);
+      const text = words.join(' ').trim();
+      if (!text) return;
+      const score = await tm.score(text);
+      for (const [label, p] of Object.entries(score.labels)) out(`  ${label.replace(/_/g, ' ').padEnd(16)} ${(p * 100).toFixed(0).padStart(3)}%${tm.HARMS.includes(label) ? '' : '  (not used: swearing is allowed)'}`);
+      for (const kind of ['post', 'message']) {
+        const j = tm.judge(score, kind);
+        out(`As a ${kind}: ${j.verdict === 'block' ? 'refused' : j.verdict === 'review' ? 'posted, and sent to the Moderation page' : 'fine'}${j.label ? ` (${j.label.replace(/_/g, ' ')})` : ''}`);
+      }
+    } finally {
+      tm.close();
+    }
+  },
+
+  async 'scan-text'() {
+    const tm = nook.textmodel;
+    const list = [
+      ...db.all('SELECT id, title, body FROM posts WHERE removed_at IS NULL').map((p) => ({ kind: 'post', id: p.id, text: [p.title, p.body] })),
+      ...db.all('SELECT id, body FROM comments WHERE removed_at IS NULL').map((c) => ({ kind: 'comment', id: c.id, text: [c.body] })),
+    ];
+    let reported = 0;
+    try {
+      if (!(await tm.ready({ log: out }))) quit(`The text model isn't available: ${tm.status().problem || 'it couldn’t start'}.`);
+      out(`Reading ${list.length} posts and comments…`);
+      for (const item of list) {
+        const j = tm.judge(await tm.score(item.text.filter(Boolean).join('\n\n')), item.kind);
+        if (j.verdict === 'ok') continue;
+        if (nook.autoReport(item.kind, item.id, tm.reason(j))) {
+          reported++;
+          out(`  ${j.verdict === 'block' ? 'likely' : 'maybe'} not OK: ${item.kind} ${item.id}`);
+        }
+      }
+    } finally {
+      tm.close();
+    }
+    out(`Done: ${reported} reported to the Moderation page.`);
   },
 
   stats() {

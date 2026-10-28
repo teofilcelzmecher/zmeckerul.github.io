@@ -2,7 +2,7 @@
 
 Usage: python3 nook/tools/build-site.py <source repo root> <output folder, e.g. a nook-early-access-website clone>
 It rewrites ../m3/ paths to m3/, refreshes the pages' script fingerprints, writes ads.txt when AdSense is
-set up in js/config.js, and copies the app, legal pages, m3, fonts, server, LICENSE and SECURITY.md.
+set up in js/config.js, and copies the app, legal pages, m3, fonts, server (with its vendor folder), LICENSE and SECURITY.md.
 """
 import os, re, shutil, sys
 sys.dont_write_bytecode = True  # no __pycache__ left behind in the repository
@@ -24,11 +24,14 @@ for f in ['m3.css', 'm3.js', 'm3-shapes.js', 'index.html', 'LICENSE-shapes.txt',
 for d in ['fonts', 'vendor']:
     for f in os.listdir(f'{src}/m3/{d}'):
         shutil.copy(f'{src}/m3/{d}/{f}', f'{out}/m3/{d}/{f}')
-# the server travels with the site, so the laptop can clone one repository (never its data folder)
+# the server travels with the site, so the laptop can clone one repository (never its data folder),
+# with vendor/: the picture and text checkers' libraries, ready to run with nothing to install
 os.makedirs(f'{out}/server', exist_ok=True)
 for f in os.listdir(f'{src}/nook/server'):
     if os.path.isfile(f'{src}/nook/server/{f}'):
         shutil.copy(f'{src}/nook/server/{f}', f'{out}/server/{f}')
+shutil.rmtree(f'{out}/server/vendor', ignore_errors=True)
+shutil.copytree(f'{src}/nook/server/vendor', f'{out}/server/vendor')
 open(f'{out}/.nojekyll', 'w').write('')
 open(f'{out}/.gitignore', 'w').write('server/data/\n*.db\n*.db-wal\n*.db-shm\n')
 open(f'{out}/robots.txt', 'w').write('User-agent: *\nAllow: /\n')
