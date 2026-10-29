@@ -2596,6 +2596,7 @@
       type: startType,
       flair: draft.flair || null,
       image: null,
+      video: null, // a video already sent and checked (1.0): { id, url, poster, … }
       poll: draft.poll && draft.poll.length >= 2 ? draft.poll : ['', ''],
     };
     const title = $('#f-title', root);
@@ -2685,35 +2686,79 @@
     const inner = $('#f-drop-inner', root);
     const placeholder = inner.innerHTML;
     const showImage = () => {
-      if (model.image) {
-        inner.innerHTML = `<img src="${model.image}" alt="Your image"><button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="Remove image"><span translate="no" class="m3-icon">close</span></button>`;
+      if (model.image || model.video) {
+        inner.innerHTML =
+          (model.video
+            ? `<video src="${esc(model.video.url)}" poster="${esc(model.video.poster)}" controls playsinline preload="metadata" aria-label="Your video"></video>`
+            : `<img src="${model.image}" alt="Your image">`) +
+          `<button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="${model.video ? 'Remove video' : 'Remove image'}"><span translate="no" class="m3-icon">close</span></button>`;
         $('#f-remove', root).addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
           model.image = null;
+          model.video = null;
           showImage();
         });
       } else {
         inner.innerHTML = placeholder;
       }
     };
+    // a GIF goes as it is (made smaller, it would stop moving); a video is sent at once, and made ready and checked
+    // on the server while you write the rest
+    const readGif = (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('read'));
+        reader.readAsDataURL(file);
+      });
+    let sending = 0;
     const takeFile = async (file) => {
       const err = $('#f-image-err', root);
       err.textContent = '';
-      if (!file || !file.type.startsWith('image/')) {
-        err.textContent = 'That doesn’t look like an image.';
+      const isVideo = !!file && store.state.videos && (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|3gp|mkv)$/i.test(file.name));
+      if (!file || (!file.type.startsWith('image/') && !isVideo)) {
+        err.textContent = store.state.videos ? 'That doesn’t look like a picture or a video.' : 'That doesn’t look like an image.';
         return;
+      }
+      model.image = null;
+      model.video = null;
+      if (isVideo) {
+        if (file.size > 100 * 1024 * 1024) {
+          err.textContent = 'That video is too big. Try one under 100 MB (or a shorter one).';
+          return showImage();
+        }
+        const ticket = ++sending;
+        inner.innerHTML = `<span class="upload-progress"><m3-loading></m3-loading><b id="f-up-text">Sending your video… 0%</b><span class="upload-bar"><span id="f-up-bar"></span></span></span>`;
+        const submitBtn = $('#f-submit', root);
+        submitBtn.disabled = true;
+        try {
+          const video = await store.uploadVideo(file, (p) => {
+            if (ticket !== sending || !$('#f-up-text', root)) return;
+            $('#f-up-bar', root).style.width = Math.round(p * 100) + '%';
+            $('#f-up-text', root).textContent = p < 1 ? `Sending your video… ${Math.round(p * 100)}%` : 'Getting it ready and checking it…';
+          });
+          if (ticket !== sending) return;
+          model.video = video;
+        } catch (error) {
+          if (ticket !== sending) return;
+          err.textContent = error.message;
+        }
+        submitBtn.disabled = false;
+        return showImage();
       }
       inner.innerHTML = '<m3-loading></m3-loading>';
       try {
-        model.image = await shrinkImage(file);
-        if (model.image.length > 2_400_000) {
-          model.image = null;
-          err.textContent = 'That image is too big. Try a smaller one.';
+        if (file.type === 'image/gif' && store.state.videos) {
+          if (file.size > 6 * 1024 * 1024) throw Object.assign(new Error('big'), { tooBig: true });
+          model.image = await readGif(file);
+        } else {
+          model.image = await shrinkImage(file);
+          if (model.image.length > 2_400_000) throw Object.assign(new Error('big'), { tooBig: true });
         }
-      } catch (_) {
+      } catch (error) {
         model.image = null;
-        err.textContent = 'Couldn’t read that image.';
+        err.textContent = error.tooBig ? (file.type === 'image/gif' ? 'That GIF is too big. Try one under 6 MB.' : 'That image is too big. Try a smaller one.') : 'Couldn’t read that image.';
       }
       showImage();
     };
@@ -2788,7 +2833,7 @@
       const t = title.value.trim();
       if (t.length < 3) fail('#f-title-err', 'Give your post a title (at least 3 characters).', title);
       let link = null;
-      if (model.type === 'image' && !model.image) fail('#f-image-err', 'Add an image, or switch to a text post.', drop);
+      if (model.type === 'image' && !model.image && !model.video) fail('#f-image-err', store.state.videos ? 'Add a picture, GIF or video, or switch to a text post.' : 'Add an image, or switch to a text post.', drop);
       if (model.type === 'link') {
         try {
           const u = new URL(url.value.trim());
@@ -2811,7 +2856,8 @@
       M3.rollText(status, 'Posting…');
       let p;
       try {
-        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: model.type, flair: model.flair, link, image: model.image, poll: options, spoiler: spoiler.checked });
+        const video = model.type === 'image' && model.video;
+        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : model.type, flair: model.flair, link, image: video ? null : model.image, video: video ? video.id : undefined, poll: options, spoiler: spoiler.checked });
       } catch (error) {
         submitBtn.disabled = false;
         M3.rollText(status, 'Not posted yet');

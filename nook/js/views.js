@@ -96,6 +96,11 @@
   }
 
   function art(p, size) {
+    // a video (1.0): its still until it's played; nothing loads before then
+    if (p.video) {
+      const v = p.video;
+      return `<div class="post-art video" style="--ratio:${v.width || 16}/${v.height || 9}"><video src="${esc(v.url)}" poster="${esc(v.poster)}" controls playsinline preload="none" aria-label="Video: ${esc(p.title)}"></video></div>`;
+    }
     if (p.image) return `<div class="post-art photo"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy"></div>`;
     if (!p.art) return '';
     const a = p.art;
@@ -106,6 +111,7 @@
   }
 
   function thumb(p) {
+    if (p.video) return `<div class="post-thumb video"><img src="${esc(p.video.poster)}" alt="" loading="lazy">${icon('play_circle')}</div>`;
     if (p.image) return `<div class="post-thumb"><img src="${esc(p.image)}" alt="" loading="lazy"></div>`;
     if (p.art) return `<div class="post-thumb" style="--a1:${p.art.from};--a2:${p.art.to};--ang:${p.art.angle || 150}deg">${icon(p.art.symbol)}</div>`;
     const symbol = p.type === 'link' ? 'link' : p.type === 'poll' ? 'ballot' : 'notes';
@@ -1065,11 +1071,14 @@
         `<div class="page-head"><m3-shape-icon shape="sunny" symbol="edit" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Create a post</h1><span class="muted">Drafts save themselves as you type</span></div></div>` +
         '<form class="card form" id="submit-form" novalidate>' +
         `<div class="field"><span class="field-label">Posting in</span><button type="button" class="picker-btn" id="nook-picker" aria-haspopup="menu">${nookIcon(nook, 32, 18)}<span id="nook-picker-name">n/${esc(nook.id)}</span>${icon('expand_more')}</button></div>` +
-        `<div>${segmented('post-type', [['text', 'Text', 'notes'], ['image', 'Image', 'image'], ['link', 'Link', 'link'], ['poll', 'Poll', 'ballot']], type, 'Post type')}</div>` +
+        // a picture or GIF, or (when the server takes them, from 1.0) a video
+        `<div>${segmented('post-type', [['text', 'Text', 'notes'], ['image', s.videos ? 'Media' : 'Image', s.videos ? 'perm_media' : 'image'], ['link', 'Link', 'link'], ['poll', 'Poll', 'ballot']], type === 'video' ? 'image' : type, 'Post type')}</div>` +
         `<div class="field"><label for="f-title">Title</label><input class="m3-field" id="f-title" maxlength="300" required placeholder="An interesting title" value="${esc(draft.title || '')}"><span class="counter" id="f-title-count">0/300</span><span class="error" id="f-title-err"></span></div>` +
         `<div class="field"><span class="field-label">Flair</span><div class="chips" id="f-flairs" role="group" aria-label="Flair"></div></div>` +
         // image
-        `<div class="field" data-for="image"><span class="field-label">Image</span><label class="drop" id="f-drop"><input type="file" id="f-file" accept="image/*" hidden><span id="f-drop-inner"><m3-shape-icon shape="clover8" symbol="add_photo_alternate" size="56" icon-size="28"></m3-shape-icon><br>Drop an image here, or click to choose one</span></label><span class="error" id="f-image-err"></span></div>` +
+        `<div class="field" data-for="image"><span class="field-label">${s.videos ? 'A picture, GIF or video' : 'Image'}</span><label class="drop" id="f-drop"><input type="file" id="f-file" accept="${s.videos ? 'image/*,video/*' : 'image/*'}" hidden><span id="f-drop-inner"><m3-shape-icon shape="clover8" symbol="${s.videos ? 'perm_media' : 'add_photo_alternate'}" size="56" icon-size="28"></m3-shape-icon><br>${
+          s.videos ? 'Drop a picture, GIF or video here, or click to choose one<br><small class="muted">Videos up to a minute. Everything is checked automatically.</small>' : 'Drop an image here, or click to choose one'
+        }</span></label><span class="error" id="f-image-err"></span></div>` +
         // link
         `<div class="field" data-for="link"><label for="f-url">Link</label><input class="m3-field" id="f-url" type="url" placeholder="https://" value="${esc(draft.url || '')}"><span class="error" id="f-url-err"></span></div>` +
         // poll

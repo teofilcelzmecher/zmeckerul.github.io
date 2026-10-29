@@ -89,6 +89,34 @@
     put: (path, body, options) => request('PUT', path, body || {}, options),
     patch: (path, body) => request('PATCH', path, body || {}),
     del: (path) => request('DELETE', path),
+    /**
+     * a file sent as the whole request (a video, from 1.0), with how far it's got as it goes: onProgress(0 to 1)
+     * while it's sent, then the server's answer (which can take a while: the server makes the video ready first)
+     */
+    upload(path, file, onProgress) {
+      if (!base) return Promise.reject(new ApiError(0, { error: 'Budgie’s server isn’t set up yet.', offline: true }));
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', base + path);
+        if (token) xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.upload.onprogress = (e) => e.lengthComputable && onProgress && onProgress(e.loaded / e.total);
+        xhr.upload.onload = () => onProgress && onProgress(1);
+        xhr.onload = () => {
+          let data = {};
+          try {
+            data = JSON.parse(xhr.responseText || '{}');
+          } catch (_) {
+            /* an answer that isn't JSON says what went wrong by its status */
+          }
+          if (xhr.status >= 200 && xhr.status < 300) return resolve(data);
+          if (xhr.status === 401) setToken(null);
+          reject(new ApiError(xhr.status, Object.assign({ error: xhr.status === 413 ? 'That file is too big.' : 'Couldn’t send it. Try again.' }, data)));
+        };
+        xhr.onerror = () => reject(new ApiError(0, { error: 'Couldn’t reach Budgie’s server. Check your connection and try again.', offline: true }));
+        xhr.send(file);
+      });
+    },
     /** an answer that keeps coming (the live event stream), read as it arrives */
     stream: (path, signal) =>
       base

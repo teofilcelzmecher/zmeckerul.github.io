@@ -26,6 +26,7 @@ const { open } = require('./db');
 const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
+const video = require('./video');
 
 const VERSION = '1.0.0';
 const TERMS = '0.9.5, 2026-10-28';
@@ -186,6 +187,7 @@ function saveImage(img, ownerId) {
 const PICTURE_REFUSED = {
   profile: 'This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be a profile picture or banner. Try a different one.',
   message: 'This picture might not be OK to send (an automatic check flagged it as possibly sexual), so it wasn’t sent.',
+  video: 'This video might not be OK for everyone on Budgie (an automatic check flagged it as possibly sexual), so it can’t be posted.',
   post: 'This picture looks like it shows nudity or sexual content, which isn’t allowed on Budgie.',
 };
 
@@ -199,8 +201,8 @@ async function checkPicture(img, where) {
     console.error('picture check failed:', error.message);
     fail(503, 'Pictures can’t be checked right now, so they can’t be posted. Try again in a minute.');
   }
-  // pictures in chats are held to the same limits as profile pictures
-  const verdict = pictures.verdict(score, where === 'message' ? 'profile' : where);
+  // pictures in chats are held to the same limits as profile pictures; a video's frames to a post's
+  const verdict = pictures.verdict(score, where === 'message' ? 'profile' : where === 'video' ? 'post' : where);
   if (verdict === 'block') fail(422, PICTURE_REFUSED[where], { rule: 'No sexual content' });
   return verdict;
 }
@@ -318,6 +320,10 @@ function postOut(row) {
   if (row.pinned_at) out.pinned = Number(row.pinned_at);
   if (row.link) out.link = JSON.parse(row.link);
   if (row.image) out.image = imageUrl(row.image);
+  if (row.video) {
+    const v = db.get('SELECT * FROM videos WHERE id = ?', row.video);
+    if (v) out.video = videoOut(v);
+  }
   if (row.poll) out.poll = { options: JSON.parse(row.poll).map((option, i) => [option, a.polls[i] || 0]) };
   return out;
 }
@@ -542,10 +548,38 @@ function authenticate(req) {
 // ---- the routes -------------------------------------------------------------------------------------
 
 const routes = [];
-function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024, stream = false } = {}) {
+function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024, stream = false, upload = 0 } = {}) {
   const keys = [];
   const re = new RegExp('^' + pattern.replace(/:(\w+)/g, (_, key) => (keys.push(key), '([^/]+)')) + '$');
-  routes.push({ method, re, keys, handler, auth, admin, body, stream });
+  routes.push({ method, re, keys, handler, auth, admin, body, stream, upload });
+}
+
+/** a file sent as the whole request (a video), saved to a temporary file once its sender is known: its path */
+function saveUpload(req, max) {
+  const dir = path.join(CONFIG.data, 'tmp');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, crypto.randomBytes(12).toString('hex'));
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const out = fs.createWriteStream(file);
+    const stop = (error) => {
+      req.unpipe(out);
+      out.destroy();
+      fs.rm(file, { force: true }, () => {});
+      reject(error);
+    };
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > max) {
+        stop(new HttpError(413, `That file is too big (the limit is ${Math.round(max / 1024 / 1024)} MB).`));
+        req.destroy();
+      }
+    });
+    req.on('error', stop);
+    out.on('error', stop);
+    out.on('finish', () => (size ? resolve(file) : stop(new HttpError(400, 'Nothing arrived. Try again.'))));
+    req.pipe(out);
+  });
 }
 
 // anyone can join, unless the owner turned invite codes back on with `nook signups invite`
@@ -721,6 +755,7 @@ route('GET', '/api/account/export', ({ user }) => {
     nestBans: db.all('SELECT nook, reason, created_at AS since, until FROM nest_bans WHERE user_id = ?', id),
     blocked: blockedNames(id),
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
+    videos: db.all('SELECT * FROM videos WHERE owner_id = ?', id).map((v) => Object.assign(videoOut(v), { post: v.post_id || undefined, createdAt: v.created_at })),
   };
 });
 
@@ -729,8 +764,9 @@ function eraseUser(id) {
   const t = now();
   db.tx(() => {
     for (const p of db.all('SELECT id FROM posts WHERE author_id = ? AND removed_at IS NULL', id)) {
-      db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, removed_at = ?, removed_reason = 'deleted', author_id = NULL, rev = ? WHERE id = ?", t, db.bump(), p.id);
+      db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, video = '', removed_at = ?, removed_reason = 'deleted', author_id = NULL, rev = ? WHERE id = ?", t, db.bump(), p.id);
     }
+    for (const v of db.all('SELECT id FROM videos WHERE owner_id = ?', id)) dropVideo(v.id);
     for (const c of db.all('SELECT id FROM comments WHERE author_id = ? AND removed_at IS NULL', id)) {
       db.run("UPDATE comments SET body = '', removed_at = ?, removed_reason = 'deleted', author_id = NULL, rev = ? WHERE id = ?", t, db.bump(), c.id);
     }
@@ -805,6 +841,8 @@ route('GET', '/api/bootstrap', ({ user }) => {
     blocked: blockedNames(id),
     // the KLIPY key for GIF search, once the owner has set one (KLIPY asks for searches to come from the app itself)
     gifs: db.meta('klipy-key') || undefined,
+    // whether videos can be posted (the server needs ffmpeg for them)
+    videos: video.available() || undefined,
   };
 });
 
@@ -857,7 +895,7 @@ route('POST', '/api/posts', async ({ user, body }) => {
   const nook = nookData(n);
   if (!nook) fail(404, 'That nest doesn’t exist.');
   notBanned(user, n);
-  const type = ['text', 'image', 'link', 'poll'].includes(body.type) ? body.type : 'text';
+  const type = ['text', 'image', 'link', 'poll', 'video'].includes(body.type) ? body.type : 'text';
   const title = text(body.title, 300);
   const postBody = text(body.body, 10000);
   if (title.length < 3) fail(400, 'Give your post a title (at least 3 characters).', { field: 'title' });
@@ -879,25 +917,125 @@ route('POST', '/api/posts', async ({ user, body }) => {
     if (poll.length < 2) fail(400, 'A poll needs at least two options.', { field: 'poll' });
   }
   vet([title, postBody, ...(poll || []), link && link.url], { kind: 'post', history: history(user.id) });
-  const picture = type === 'image' ? readImage(body.image, 3 * 1024 * 1024) : null;
+  // a picture, or (from 1.0) a GIF, checked frame by frame like a profile GIF
+  const isGif = type === 'image' && /^data:image\/gif/.test(String(body.image || ''));
+  const picture = type === 'image' ? readImage(body.image, isGif ? POST_GIF_MAX : 3 * 1024 * 1024, { gif: true, maxSide: 2048 }) : null;
+  // a video was uploaded (and checked) already: it's theirs, and in no other post
+  let clip = null;
+  if (type === 'video') {
+    clip = db.get('SELECT * FROM videos WHERE id = ? AND owner_id = ?', text(body.video, 40), user.id);
+    if (!clip || clip.post_id) fail(400, 'That video is gone. Add it again.', { field: 'video' });
+  }
   const doubt = await checkText([title, postBody, ...(poll || [])], 'post');
-  const review = picture ? await checkPicture(picture, 'post') : 'ok';
+  const review = picture ? await checkPicture(picture, 'post') : clip ? clip.review || 'ok' : 'ok';
 
   const id = randomId('p', 8);
   const t = now();
   db.tx(() => {
     const image = picture ? saveImage(picture, user.id) : null;
     db.run(
-      'INSERT INTO posts (id, nook, author_id, type, title, body, flair, link, image, poll, spoiler, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, n, user.id, type, title, postBody, flair, link ? JSON.stringify(link) : null, image, poll ? JSON.stringify(poll) : null, body.spoiler ? 1 : 0, t, db.bump()
+      'INSERT INTO posts (id, nook, author_id, type, title, body, flair, link, image, poll, video, spoiler, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, n, user.id, type, title, postBody, flair, link ? JSON.stringify(link) : null, image, poll ? JSON.stringify(poll) : null, clip ? clip.id : '', body.spoiler ? 1 : 0, t, db.bump()
     );
+    if (clip) db.run('UPDATE videos SET post_id = ? WHERE id = ?', id, clip.id);
     // you upvote your own, as tradition demands
     db.run('INSERT INTO votes (user_id, target, value) VALUES (?, ?, 1)', user.id, id);
   });
-  if (review === 'review') autoReport('post', id, 'this picture might be sexual. Please take a look.');
+  if (review === 'review') autoReport('post', id, `this ${clip ? 'video' : isGif ? 'GIF' : 'picture'} might be sexual. Please take a look.`);
   else if (doubt) autoReport('post', id, doubt);
   return { post: postOut(db.get(`${POST_SELECT} WHERE p.id = ?`, id)) };
-}, { body: 4.5 * 1024 * 1024 });
+}, { body: 9 * 1024 * 1024 });
+
+// ---- videos (1.0): uploaded on their own first, made into a plain MP4 and checked, then put in a post ----------------
+
+const POST_GIF_MAX = 6 * 1024 * 1024;
+const VIDEO_UPLOAD_MAX = 100 * 1024 * 1024;
+const VIDEOS = path.join(CONFIG.data, 'videos');
+fs.mkdirSync(VIDEOS, { recursive: true });
+const videoFile = (id) => path.join(VIDEOS, id + '.mp4');
+const videoOut = (v) => ({ url: `/api/videos/${v.id}.mp4`, poster: imageUrl(v.poster), width: v.width, height: v.height, duration: Math.round(v.duration * 10) / 10 });
+
+/** a video, its file and its still go */
+function dropVideo(id) {
+  const v = db.get('SELECT * FROM videos WHERE id = ?', id);
+  if (!v) return;
+  if (v.poster) db.run('DELETE FROM images WHERE id = ?', v.poster);
+  db.run('DELETE FROM videos WHERE id = ?', id);
+  fs.rm(videoFile(id), { force: true }, () => {});
+}
+
+route('POST', '/api/videos', async ({ user, file }) => {
+  if (!video.available()) fail(503, 'Budgie can’t take videos right now.');
+  limit('video:' + user.id, 12, DAY, 'That’s a lot of videos for one day. Try again tomorrow.');
+  const id = randomId('v', 16);
+  const out = videoFile(id);
+  try {
+    let source;
+    try {
+      source = await video.probe(file);
+    } catch (error) {
+      fail(400, error.message);
+    }
+    if (source.duration > video.MAX_SECONDS + 1) fail(400, `Videos can be up to ${video.MAX_SECONDS} seconds long. Trim it and try again.`);
+    if (source.duration < 0.3) fail(400, 'That video is too short.');
+    let made;
+    try {
+      made = await video.prepare(file, out);
+    } catch (error) {
+      console.error('video failed:', error.message);
+      fail(400, 'That video couldn’t be read. Try another one, or an MP4.');
+    }
+    // checked like a picture in a post: frames from across it
+    let review = 'ok';
+    for (const frame of await video.frames(out, made.duration)) {
+      const verdict = await checkPicture({ bytes: frame, mime: 'image/jpeg' }, 'video');
+      if (verdict === 'review') review = 'review';
+    }
+    const still = await video.poster(out, made.duration);
+    const poster = saveImage({ bytes: still, mime: 'image/jpeg' }, user.id);
+    db.run(
+      'INSERT INTO videos (id, owner_id, poster, width, height, duration, size, review, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, user.id, poster, made.width, made.height, made.duration, fs.statSync(out).size, review === 'review' ? 'review' : '', now()
+    );
+    return { video: Object.assign({ id }, videoOut(db.get('SELECT * FROM videos WHERE id = ?', id))) };
+  } catch (error) {
+    fs.rm(out, { force: true }, () => {});
+    throw error;
+  }
+}, { upload: VIDEO_UPLOAD_MAX });
+
+// a video that was uploaded but never posted goes after a few hours
+setInterval(() => {
+  for (const v of db.all("SELECT id FROM videos WHERE post_id = '' AND created_at < ?", now() - 6 * HOUR)) dropVideo(v.id);
+}, HOUR).unref();
+
+/** sends a video, or the part of it a player asks for (Safari always asks for parts) */
+function serveVideo(req, res, id) {
+  const file = videoFile(id);
+  let size;
+  try {
+    size = fs.statSync(file).size;
+  } catch (_) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    return res.end('Not found');
+  }
+  const headers = { 'Content-Type': 'video/mp4', 'Accept-Ranges': 'bytes', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' };
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (range && (range[1] || range[2])) {
+    let start = range[1] ? Number(range[1]) : size - Number(range[2]);
+    let end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start < 0) start = 0;
+    if (start >= size || start > end) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+      return res.end();
+    }
+    res.writeHead(206, Object.assign(headers, { 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 }));
+    return fs.createReadStream(file, { start, end }).pipe(res);
+  }
+  res.writeHead(200, Object.assign(headers, { 'Content-Length': size }));
+  if (req.method === 'HEAD') return res.end();
+  fs.createReadStream(file).pipe(res);
+}
 
 function ownPost(user, id) {
   const p = db.get('SELECT * FROM posts WHERE id = ?', id);
@@ -924,7 +1062,8 @@ route('PATCH', '/api/posts/:id', async ({ user, params, body }) => {
 function removePost(p, reason) {
   db.tx(() => {
     if (p.image) db.run('DELETE FROM images WHERE id = ?', p.image);
-    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, pinned_at = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
+    if (p.video) dropVideo(p.video);
+    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, video = '', pinned_at = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
   });
 }
 
@@ -2258,6 +2397,8 @@ async function handle(req, res) {
   }
   const image = /^\/api\/images\/([^/]+)$/.exec(url.pathname);
   if (image && req.method === 'GET') return serveImage(res, image[1]);
+  const clip = /^\/api\/videos\/([A-Za-z0-9_-]{8,40})\.mp4$/.exec(url.pathname);
+  if (clip && (req.method === 'GET' || req.method === 'HEAD')) return serveVideo(req, res, clip[1]);
 
   for (const r of routes) {
     if (r.method !== req.method) continue;
@@ -2269,7 +2410,7 @@ async function handle(req, res) {
       params,
       query: Object.fromEntries(url.searchParams),
       ip: req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : 'unknown',
-      body: ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readBody(req, r.body) : {},
+      body: ['POST', 'PUT', 'PATCH'].includes(req.method) && !r.upload ? await readBody(req, r.body) : {},
     };
     if (r.auth) {
       const who = authenticate(req);
@@ -2283,6 +2424,15 @@ async function handle(req, res) {
     }
     // a stream writes its own answer, and keeps writing
     if (r.stream) return r.handler(Object.assign(ctx, { req, res }));
+    // an upload is only taken from someone signed in, and its temporary file goes when the handler's done
+    if (r.upload) {
+      ctx.file = await saveUpload(req, r.upload);
+      try {
+        return send(res, 200, await r.handler(ctx));
+      } finally {
+        fs.rm(ctx.file, { force: true }, () => {});
+      }
+    }
     return send(res, 200, await r.handler(ctx));
   }
   fail(404, 'There’s nothing here.');
@@ -2295,7 +2445,8 @@ const server = http.createServer((req, res) => {
     send(res, 500, { error: 'Something went wrong on Budgie’s server. Try again in a moment.' });
   });
 });
-server.requestTimeout = 30000;
+// long enough for a video to arrive on a slow phone connection (the headers still have to come within 15 seconds)
+server.requestTimeout = 5 * 60000;
 server.headersTimeout = 15000;
 
 if (require.main === module) {

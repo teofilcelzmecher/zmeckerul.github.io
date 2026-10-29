@@ -674,6 +674,35 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(starterMod.status === 200 && starterMod.json.nook.starter && starterMod.json.nook.title && starterMod.json.nook.team[0].name === 'bob', 'an admin gives bob a role in a starter nest, which keeps its looks', starterMod.json.error);
   ok((await api(B, 'GET', '/api/bootstrap')).json.nooks.some((n) => n.id === 'askbudgie' && n.starter && n.team), 'the app gets the starter nest with its team');
 
+  // GIF posts and video posts (1.0): a GIF is checked frame by frame; a video is uploaded first, made into an MP4 by
+  // ffmpeg and checked, then put in a post; it plays in parts (as Safari asks), and goes when the post does
+  const gifPost = await api(B, 'POST', '/api/posts', { n: 'askbudgie', title: 'A dancing GIF', type: 'image', image: GIF });
+  ok(gifPost.status === 200 && /^\/api\/images\//.test(gifPost.json.post.image), 'a GIF can be posted', gifPost.json.error);
+  ok((await api(B, 'GET', '/api/bootstrap')).json.videos === true, 'the app is told videos can be posted (ffmpeg is here)');
+  const clipFile = path.join(os.tmpdir(), 'budgie-test-clip.mp4');
+  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=size=640x360:rate=25', '-f', 'lavfi', '-i', 'sine=frequency=440', '-t', '3', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-metadata', 'location=+45.0000+025.0000/', clipFile]);
+  const upload = (token, buffer, type = 'video/mp4') =>
+    fetch(BASE + '/api/videos', { method: 'POST', headers: { Authorization: 'Bearer ' + token, Origin: 'http://localhost:8790', 'Content-Type': type }, body: buffer }).then(async (r) => ({ status: r.status, json: await r.json() }));
+  const notVideo = await upload(B, Buffer.from('this is not a video at all'), 'video/mp4');
+  ok(notVideo.status === 400 && /doesn’t look like a video/.test(notVideo.json.error), 'something that isn’t a video is refused', notVideo.json.error);
+  ok((await fetch(BASE + '/api/videos', { method: 'POST', headers: { Origin: 'http://localhost:8790' }, body: fs.readFileSync(clipFile) })).status === 401, 'nobody uploads without signing in');
+  const vidUp = await upload(D, fs.readFileSync(clipFile));
+  ok(vidUp.status === 200 && vidUp.json.video.width === 640 && vidUp.json.video.height === 360 && Math.abs(vidUp.json.video.duration - 3) < 0.3 && /^\/api\/images\//.test(vidUp.json.video.poster), 'a video is uploaded, made ready, with a still to show first', vidUp.json.error || JSON.stringify(vidUp.json.video));
+  const vidPost = await api(D, 'POST', '/api/posts', { n: 'askbudgie', title: 'Look at this test card', type: 'video', video: vidUp.json.video.id });
+  ok(vidPost.status === 200 && vidPost.json.post.video && vidPost.json.post.video.url === vidUp.json.video.url, 'it goes in a post', vidPost.json.error);
+  ok((await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'Stealing a video', type: 'video', video: vidUp.json.video.id })).status === 400, 'nobody else can post someone’s video (or post it twice)');
+  const whole = await fetch(BASE + vidPost.json.post.video.url);
+  const bytes = Buffer.from(await whole.arrayBuffer());
+  ok(whole.status === 200 && whole.headers.get('content-type') === 'video/mp4' && bytes.length > 1000 && !bytes.includes(Buffer.from('+45.0000')), 'it plays as an MP4, without where it was recorded');
+  const part = await fetch(BASE + vidPost.json.post.video.url, { headers: { Range: 'bytes=100-199' } });
+  ok(part.status === 206 && part.headers.get('content-range') === `bytes 100-199/${bytes.length}` && Buffer.from(await part.arrayBuffer()).length === 100, 'and in parts, as Safari asks');
+  const long = path.join(os.tmpdir(), 'budgie-test-long.mp4');
+  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=blue:size=160x120:rate=5', '-t', '75', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', long]);
+  const tooLong = await upload(D, fs.readFileSync(long));
+  ok(tooLong.status === 400 && /up to 60 seconds/.test(tooLong.json.error), 'a video over a minute is refused, with why', tooLong.json.error);
+  await api(D, 'DELETE', '/api/posts/' + vidPost.json.post.id);
+  ok((await fetch(BASE + vidPost.json.post.video.url)).status === 404, 'deleting the post deletes the video');
+
   // blocking: dora blocks bob
   for (const T of [B, D]) {
     const going = (await api(T, 'GET', '/api/bootstrap')).json.call;

@@ -102,6 +102,8 @@
     // the people you've blocked (a server without blocking sends no list, and the app offers none)
     blocked: BOOT.blocked || [],
     canBlock: Array.isArray(BOOT.blocked),
+    // whether the server takes videos in posts (from 1.0, when it has ffmpeg)
+    videos: !!BOOT.videos,
   });
   for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
 
@@ -145,6 +147,7 @@
       return;
     }
     if (p.image) p.image = api.url(p.image);
+    if (p.video) p.video = Object.assign({}, p.video, { url: api.url(p.video.url), poster: api.url(p.video.poster) });
     const had = posts.get(p.id);
     if (had) Object.assign(had, p);
     else posts.set(p.id, p);
@@ -508,8 +511,8 @@
     checkBadges();
   }
 
-  async function createPost({ n, title, body, type, flair, link, image, poll, spoiler }) {
-    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, poll, spoiler });
+  async function createPost({ n, title, body, type, flair, link, image, video, poll, spoiler }) {
+    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, video, poll, spoiler });
     ingestPost(p);
     state.votes[p.id] = 1;
     state.draft = null;
@@ -517,6 +520,12 @@
     checkBadges();
     emit('posted', p);
     return p;
+  }
+
+  /** sends a video for a post (it's made ready and checked by the server): { id, url, poster, width, height, duration } */
+  async function uploadVideo(file, onProgress) {
+    const { video } = await api.upload('/api/videos', file, onProgress);
+    return Object.assign({}, video, { url: api.url(video.url), poster: api.url(video.poster) });
   }
 
   async function addOwnComment(postId, parentId, body) {
@@ -940,7 +949,7 @@
     group, groupThread, createGroup, loadGroupThread, sendGroupMessage, markGroupRead, renameGroup, addToGroup, removeFromGroup, leaveGroup, community, allCommunities, post, visiblePosts, comments, commentsById,
     commentCount, score, commentScore, sparks, sparkTotal, pollResults, feed, sortComments, highlights,
     userStats, history, search, membersOf, activity, notifications, isRead, unread, notify, touchStreak, checkBadges, award,
-    vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,
+    vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost, uploadVideo,
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
     markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
     friendStatus, friends, befriend, unfriend, isBlocked, block, unblock, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,

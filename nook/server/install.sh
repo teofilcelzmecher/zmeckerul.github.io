@@ -34,6 +34,11 @@ if [[ $UPDATE == 0 ]]; then
   step "Installing Node.js, SQLite and Tailscale"
   pacman -S --needed --noconfirm nodejs sqlite tailscale git
 fi
+# videos in posts (from Budgie 1.0) are made into plain MP4s and checked with ffmpeg; an update adds it once
+if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+  step "Installing ffmpeg (for videos in posts)"
+  pacman -S --needed --noconfirm ffmpeg || echo "Couldn't install ffmpeg, so Budgie won't take videos for now. Try: sudo pacman -Syu ffmpeg"
+fi
 if ! node -e 'require("node:sqlite")' 2>/dev/null; then
   echo "This Node.js ($(node --version)) is too old: Budgie needs 22.5 or newer. Run: sudo pacman -Syu"
   exit 1
