@@ -1319,6 +1319,46 @@
 
   ACTIONS['report-user'] = (btn) => report('user', { name: btn.dataset.user });
 
+  // ---- blocking ----------------------------------------------------------------------------------------------
+
+  async function blockPerson(name) {
+    const ok = await M3.dialog({
+      headline: `Block u/${name}?`,
+      symbol: 'block',
+      iconShape: 'softBoom',
+      body: 'You won’t be friends any more, and they won’t be able to message you, call you or add you. Their posts and comments are hidden from you, and in groups you share, their messages are folded away. They aren’t told.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Block', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.block(name);
+    } catch (error) {
+      return showError(error);
+    }
+    fx.haptic(10);
+    M3.toast(`You blocked u/${name}`, { symbol: 'block', shape: 'softBoom' });
+  }
+  async function unblockPerson(name) {
+    try {
+      await store.unblock(name);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`You unblocked u/${name}`, { symbol: 'lock_open', shape: 'cookie9' });
+  }
+  ACTIONS.block = (btn) => blockPerson(btn.dataset.user);
+  ACTIONS.unblock = (btn) => unblockPerson(btn.dataset.user);
+  // a chat's More menu: report them, or block them
+  ACTIONS['person-menu'] = (btn) => {
+    const name = btn.dataset.user;
+    menu(btn, [
+      { label: `Report u/${name}`, symbol: 'flag', onSelect: () => report('user', { name }) },
+      store.isBlocked(name)
+        ? { label: `Unblock u/${name}`, symbol: 'lock_open', onSelect: () => unblockPerson(name) }
+        : { label: `Block u/${name}`, symbol: 'block', destructive: true, onSelect: () => blockPerson(name) },
+    ], { placement: 'bottom-end' });
+  };
+
   // a developer gives the Tester badge, or takes it away
   ACTIONS.tester = async (btn) => {
     const name = btn.dataset.user;
@@ -2859,7 +2899,7 @@
     if (main._onMessages && route && (route.view === 'groupThread' || route.view === 'messagesPage')) return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
     const g = last && store.group(last.group);
-    if (!g) return;
+    if (!g || (last.from && store.isBlocked(last.from))) return;
     M3.snackbar(`${g.name} · ${last.from && !last.kind ? 'u/' + last.from + ': ' : ''}${said(last, true)}`, { timeout: 6000, action: { label: 'Open', onClick: () => go('#/messages/g/' + encodeURIComponent(g.id)) } });
   });
 

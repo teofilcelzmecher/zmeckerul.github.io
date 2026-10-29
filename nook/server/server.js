@@ -337,6 +337,10 @@ function friendsOf(userId) {
 function friendship(aId, bId) {
   return db.get('SELECT * FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', aId, bId, bId, aId) || null;
 }
+/** whether userId has blocked otherId */
+const hasBlocked = (userId, otherId) => !!db.get('SELECT 1 AS x FROM blocks WHERE user_id = ? AND blocked_id = ?', userId, otherId);
+/** the people someone has blocked, newest first */
+const blockedNames = (userId) => db.all('SELECT u.name FROM blocks b JOIN users u ON u.id = b.blocked_id WHERE b.user_id = ? ORDER BY b.created_at DESC', userId).map((r) => r.name);
 
 // a picture or GIF in a chat: one sent from a device is kept here (and checked like any picture); one found with
 // KLIPY's GIF search is kept as KLIPY's link, as KLIPY asks, and loaded from KLIPY by whoever sees it
@@ -703,6 +707,7 @@ route('GET', '/api/account/export', ({ user }) => {
     reportsMade: db.all('SELECT kind, target, reason, created_at AS createdAt, resolution FROM reports WHERE reporter_id = ?', id),
     nestRoles: db.all('SELECT nook, role, title, perms, created_at AS since FROM nest_team WHERE user_id = ?', id),
     nestBans: db.all('SELECT nook, reason, created_at AS since, until FROM nest_bans WHERE user_id = ?', id),
+    blocked: blockedNames(id),
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
   };
 });
@@ -784,6 +789,8 @@ route('GET', '/api/bootstrap', ({ user }) => {
     call: callOf(id) ? callOut(callOf(id)) : undefined,
     // nests they can't post in for now
     bannedFrom: db.all('SELECT nook, reason, until FROM nest_bans WHERE user_id = ? AND (until IS NULL OR until > ?)', id, now()).map((b) => ({ nook: b.nook, reason: b.reason, until: b.until || undefined })),
+    // the people they've blocked
+    blocked: blockedNames(id),
     // the KLIPY key for GIF search, once the owner has set one (KLIPY asks for searches to come from the app itself)
     gifs: db.meta('klipy-key') || undefined,
   };
@@ -826,6 +833,7 @@ route('GET', '/api/updates', ({ user, query }) => {
     gmessages: gmessages.map((r) => gmessageOut(r, id)),
     // calls ringing for you, for a device that couldn't keep its event stream open
     ringing: [...calls.values()].filter((c) => c.ringing.has(id)).map(callOut),
+    blocked: blockedNames(id),
   };
 });
 
@@ -943,10 +951,10 @@ route('POST', '/api/comments', async ({ user, body }) => {
   if (doubt) autoReport('comment', id, doubt);
   const href = `#/n/${post.nook}/p/${post.id}?c=${id}`;
   const short = post.title.length > 60 ? post.title.slice(0, 59) + '…' : post.title;
-  if (parent && parent.author_id && parent.author_id !== user.id) {
+  if (parent && parent.author_id && parent.author_id !== user.id && !hasBlocked(parent.author_id, user.id)) {
     notify(parent.author_id, { kind: 'reply', text: `u/${user.name} replied to your comment`, href, symbol: 'reply', shape: 'cookie6' });
   }
-  if (post.author_id && post.author_id !== user.id && (!parent || parent.author_id !== post.author_id)) {
+  if (post.author_id && post.author_id !== user.id && (!parent || parent.author_id !== post.author_id) && !hasBlocked(post.author_id, user.id)) {
     notify(post.author_id, { kind: 'reply', text: `u/${user.name} commented on your post “${short}”`, href, symbol: 'chat', shape: 'clover4' });
   }
   return { comment: commentOut(db.get(`${COMMENT_SELECT} WHERE c.id = ?`, id)) };
@@ -1424,6 +1432,8 @@ route('POST', '/api/friends', ({ user, body }) => {
   const other = db.get('SELECT * FROM users WHERE name = ?', text(body.name, 40));
   if (!other || other.banned_at) fail(404, 'There’s nobody by that name.');
   if (other.id === user.id) fail(400, 'You’re already your own best friend.');
+  if (hasBlocked(user.id, other.id)) fail(403, `You’ve blocked u/${other.name}. Unblock them first.`);
+  if (hasBlocked(other.id, user.id)) fail(403, `You can’t send u/${other.name} a friend request.`);
   const existing = friendship(user.id, other.id);
   if (existing && existing.status === 'friends') return { status: 'friends' };
   if (existing && existing.a === user.id) return { status: 'outgoing' };
@@ -1442,6 +1452,34 @@ route('DELETE', '/api/friends/:name', ({ user, params }) => {
   const other = db.get('SELECT id FROM users WHERE name = ?', decodeURIComponent(params.name));
   if (other) db.run('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', user.id, other.id, other.id, user.id);
   return { ok: true };
+});
+
+// blocking: you stop being friends, and neither of you can ask again, message or call the other. They aren't told.
+route('POST', '/api/blocks', ({ user, body }) => {
+  limit('block:' + user.id, 60, HOUR);
+  const other = db.get('SELECT * FROM users WHERE name = ?', text(body.name, 40));
+  if (!other) fail(404, 'There’s nobody by that name.');
+  if (other.id === user.id) fail(400, 'You can’t block yourself.');
+  db.tx(() => {
+    db.run('INSERT OR IGNORE INTO blocks (user_id, blocked_id, created_at) VALUES (?, ?, ?)', user.id, other.id, now());
+    db.run('DELETE FROM friends WHERE (a = ? AND b = ?) OR (a = ? AND b = ?)', user.id, other.id, other.id, user.id);
+  });
+  for (const c of [...calls.values()]) {
+    // a call between the two of you ends
+    if (!c.group && [c.by, c.peer].includes(user.id) && [c.by, c.peer].includes(other.id)) endCall(c, 'ended');
+    // a group call they're in stops ringing you
+    else if (c.group && c.joined.has(other.id) && c.ringing.delete(user.id)) {
+      signal(user.id, 'call-stop', { call: c.id });
+      ringsChanged(c);
+    }
+  }
+  return { blocked: blockedNames(user.id) };
+});
+
+route('DELETE', '/api/blocks/:name', ({ user, params }) => {
+  const other = db.get('SELECT id FROM users WHERE name = ?', decodeURIComponent(params.name));
+  if (other) db.run('DELETE FROM blocks WHERE user_id = ? AND blocked_id = ?', user.id, other.id);
+  return { blocked: blockedNames(user.id) };
 });
 
 // messages ---------------------------------------------------------------------------------------------------
@@ -1875,7 +1913,7 @@ route('POST', '/api/calls', async ({ user, body }) => {
     const going = [...calls.values()].find((c) => c.group === g.id);
     if (going) return joinCall(going, user);
     const others = db.all('SELECT u.id, u.calls FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND u.id != ? AND u.banned_at IS NULL', g.id, user.id);
-    const c = newCall(user, media, { group: g.id, ring: others.filter((u) => u.calls !== 'off').map((u) => u.id) });
+    const c = newCall(user, media, { group: g.id, ring: others.filter((u) => u.calls !== 'off' && !hasBlocked(u.id, user.id)).map((u) => u.id) });
     return { call: callOut(c), ice: await iceConfig(), peers: [] };
   }
   const other = db.get('SELECT * FROM users WHERE name = ?', text(body.to, 40));
@@ -1938,7 +1976,7 @@ route('POST', '/api/calls/:id/ring', ({ user, params, body }) => {
   if (!c.group) fail(400, 'Only a group call can ring people again.');
   const named = Array.isArray(body.names) && body.names.length ? new Set(body.names.map((n) => String(n).toLowerCase())) : null;
   const members = db.all('SELECT u.id, u.name, u.calls FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND u.banned_at IS NULL', c.group);
-  const ring = members.filter((m) => !c.joined.has(m.id) && m.calls !== 'off' && (!named || named.has(m.name.toLowerCase())));
+  const ring = members.filter((m) => !c.joined.has(m.id) && m.calls !== 'off' && !hasBlocked(m.id, user.id) && (!named || named.has(m.name.toLowerCase())));
   if (!ring.length) fail(400, named ? 'They can’t be rung right now (they may have calls turned off).' : 'Everyone who can be rung is already in the call.');
   ringAgain(c, ring.map((m) => m.id));
   return { rang: ring.map((m) => m.name), call: callOut(c) };

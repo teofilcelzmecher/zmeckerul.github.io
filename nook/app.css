@@ -5445,6 +5445,23 @@ html.has-call-bar .topbar {
   gap: 2px;
 }
 
+/* someone you've blocked: a note on their profile, and their group messages folded away */
+.blocked-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 46ch;
+  margin: 8px 0 0;
+  font-size: var(--m3-fs-smaller);
+}
+.blocked-note .m3-icon {
+  --m3-icon-size: 18px;
+  flex: none;
+}
+.chat-line.blocked {
+  font-style: italic;
+}
+
 /* the Manage page */
 .manage .m3-segmented {
   margin-bottom: 16px;

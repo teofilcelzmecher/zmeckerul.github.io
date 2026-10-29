@@ -645,6 +645,40 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(starterMod.status === 200 && starterMod.json.nook.starter && starterMod.json.nook.title && starterMod.json.nook.team[0].name === 'bob', 'an admin gives bob a role in a starter nest, which keeps its looks', starterMod.json.error);
   ok((await api(B, 'GET', '/api/bootstrap')).json.nooks.some((n) => n.id === 'askbudgie' && n.starter && n.team), 'the app gets the starter nest with its team');
 
+  // blocking: dora blocks bob
+  for (const T of [B, D]) {
+    const going = (await api(T, 'GET', '/api/bootstrap')).json.call;
+    if (going) await api(T, 'POST', `/api/calls/${going.id}/leave`, {});
+  }
+  await api(B, 'POST', '/api/friends', { name: 'dora' });
+  await api(D, 'POST', '/api/friends', { name: 'bob' });
+  const pair = await api(B, 'POST', '/api/groups', { name: 'Two of us', members: ['dora'] });
+  const doraPost = await api(D, 'POST', '/api/posts', { n: 'askbudgie', title: 'Dora wonders about crumpets', type: 'text' });
+  const selfBlock = await api(D, 'POST', '/api/blocks', { name: 'dora' });
+  ok(selfBlock.status === 400, 'nobody blocks themselves');
+  const blocks = await api(D, 'POST', '/api/blocks', { name: 'bob' });
+  ok(blocks.status === 200 && blocks.json.blocked.join() === 'bob', 'dora blocks bob', blocks.json.error);
+  const doraBoot = (await api(D, 'GET', '/api/bootstrap')).json;
+  ok(doraBoot.blocked.join() === 'bob' && !doraBoot.friends.some((f) => f.name === 'bob'), 'they aren’t friends any more, and her app knows who she blocked');
+  ok(!(await api(B, 'GET', '/api/bootstrap')).json.friends.some((f) => f.name === 'dora') && !(await api(B, 'GET', '/api/bootstrap')).json.blocked.length, 'bob just sees they aren’t friends (he isn’t told)');
+  ok((await api(B, 'POST', '/api/messages', { to: 'dora', body: 'hey?' })).status === 403, 'bob can’t message her');
+  const bobAsks = await api(B, 'POST', '/api/friends', { name: 'dora' });
+  ok(bobAsks.status === 403 && /can’t send/.test(bobAsks.json.error), 'or ask to be friends again', bobAsks.json.error);
+  const doraAsks = await api(D, 'POST', '/api/friends', { name: 'bob' });
+  ok(doraAsks.status === 403 && /Unblock/.test(doraAsks.json.error), 'dora is told to unblock him first', doraAsks.json.error);
+  ok((await api(B, 'POST', '/api/calls', { to: 'dora', media: 'voice' })).status === 403, 'bob can’t call her');
+  const pairCall = await api(B, 'POST', '/api/calls', { group: pair.json.group.id, media: 'voice' });
+  ok(pairCall.status === 200 && !pairCall.json.call.ringing.includes('dora'), 'a call in a group they share doesn’t ring her', pairCall.json.error || JSON.stringify(pairCall.json.call && pairCall.json.call.ringing));
+  if (pairCall.json.call) await api(B, 'POST', `/api/calls/${pairCall.json.call.id}/leave`, {});
+  const notesBefore = (await api(D, 'GET', '/api/bootstrap')).json.notes.length;
+  await api(B, 'POST', '/api/comments', { postId: doraPost.json.post.id, body: 'Crumpets are great.' });
+  ok((await api(D, 'GET', '/api/bootstrap')).json.notes.length === notesBefore, 'his comments on her posts don’t reach her inbox');
+  ok((await api(D, 'GET', '/api/account/export')).json.blocked.join() === 'bob', 'her data export lists who she blocked');
+  const unblock = await api(D, 'DELETE', '/api/blocks/bob');
+  ok(unblock.status === 200 && unblock.json.blocked.length === 0, 'dora unblocks bob');
+  ok((await api(B, 'POST', '/api/friends', { name: 'dora' })).json.status === 'outgoing' && (await api(D, 'POST', '/api/friends', { name: 'bob' })).json.status === 'friends', 'and they can be friends again');
+  await api(B, 'DELETE', '/api/friends/dora');
+
   // password, recovery, ban, export, delete
   const pw = await api(B, 'POST', '/api/account/password', { current: 'battery staple', password: 'new password 1' });
   ok(pw.status === 200, 'bob changes his password');

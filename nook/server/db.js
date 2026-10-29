@@ -204,6 +204,14 @@ CREATE TABLE IF NOT EXISTS nest_bans (
   PRIMARY KEY (nook, user_id)
 );
 
+-- someone you've blocked (0.9.5): no friend requests, messages or calls either way, and they don't ring you
+CREATE TABLE IF NOT EXISTS blocks (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  blocked_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, blocked_id)
+);
+
 CREATE TABLE IF NOT EXISTS notes (
   id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

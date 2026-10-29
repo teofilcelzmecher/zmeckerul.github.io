@@ -99,6 +99,9 @@
     // nests you can't post in for now (from 0.9.5), and the key for KLIPY's GIF search, once the owner sets one
     bannedFrom: BOOT.bannedFrom || [],
     gifs: BOOT.gifs || '',
+    // the people you've blocked (a server without blocking sends no list, and the app offers none)
+    blocked: BOOT.blocked || [],
+    canBlock: Array.isArray(BOOT.blocked),
   });
   for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
 
@@ -230,7 +233,7 @@
   };
 
   function feed({ nook = null, joinedOnly = false, author = null, sort = 'hot', flair = null } = {}) {
-    let list = visiblePosts().filter((p) => !state.hidden.includes(p.id));
+    let list = visiblePosts().filter((p) => !state.hidden.includes(p.id) && !isBlocked(p.author));
     if (nook) list = list.filter((p) => p.n === nook);
     if (joinedOnly) list = list.filter((p) => state.joined.includes(p.n));
     if (author) list = list.filter((p) => p.author.toLowerCase() === author.toLowerCase());
@@ -282,7 +285,7 @@
     const q = query.trim().toLowerCase();
     if (!q) return { posts: [], nooks: [], people: [] };
     const has = (text) => (text || '').toLowerCase().includes(q);
-    const found = visiblePosts().filter((p) => !state.hidden.includes(p.id) && (has(p.title) || has(p.body) || has(p.flair)));
+    const found = visiblePosts().filter((p) => !state.hidden.includes(p.id) && !isBlocked(p.author) && (has(p.title) || has(p.body) || has(p.flair)));
     found.sort((a, b) => (has(b.title) ? 1 : 0) - (has(a.title) ? 1 : 0) || SORTS.hot(a, b));
     const nooks = allCommunities().filter((c) => has(c.id) || has(c.title) || has(c.tagline) || has(c.category));
     const found2 = people().filter((u) => has(u.name) || has(u.bio)).map((u) => user(u.name));
@@ -626,6 +629,22 @@
     emit('friends');
   }
 
+  // ---- blocking: they can't message, call or befriend you, and what they write is kept out of your way --------------
+
+  const isBlocked = (name) => !!name && state.blocked.some((n) => n.toLowerCase() === String(name).toLowerCase());
+  async function block(name) {
+    const r = await api.post('/api/blocks', { name });
+    state.blocked = r.blocked;
+    state.friends = state.friends.filter((f) => f.name.toLowerCase() !== name.toLowerCase());
+    emit('friends');
+    emit('changed');
+  }
+  async function unblock(name) {
+    const r = await api.del('/api/blocks/' + encodeURIComponent(name));
+    state.blocked = r.blocked;
+    emit('changed');
+  }
+
   // ---- group chats -----------------------------------------------------------------------------------------------
 
   const groupThreads = new Map();
@@ -857,6 +876,10 @@
           if (c.removed) news.removed.push(c.id);
         }
         if (d.me) state.me = meFrom(d.me);
+        if (d.blocked && JSON.stringify(d.blocked) !== JSON.stringify(state.blocked)) {
+          state.blocked = d.blocked;
+          news.blocked = true;
+        }
         const friendsBefore = JSON.stringify(state.friends);
         state.friends = d.friends;
         if (JSON.stringify(state.friends) !== friendsBefore) {
@@ -899,6 +922,8 @@
         // calls ringing for you, for when the live connection can't say so itself
         if ((d.ringing || []).length) emit('ringing', d.ringing);
         emit('synced', news);
+        // blocked or unblocked on another device: the page is drawn again without (or with) them
+        if (news.blocked) emit('changed');
       })
       .catch((error) => emit('sync-failed', error))
       .finally(() => (syncing = null));
@@ -917,7 +942,7 @@
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost,
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
     markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
-    friendStatus, friends, befriend, unfriend, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
+    friendStatus, friends, befriend, unfriend, isBlocked, block, unblock, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
     NEST_PERMS, NEST_ROLES, ROLE_LABELS, nestPerms, nestCan, nestRole, bannedFrom, manageNest, setNestRole, removeNestRole, editNest, banFromNest, unbanFromNest,
     dismissNestReport, pinPost, nestRemove,
     report, adminReports, resolveReport, adminRemove, ban, sync,

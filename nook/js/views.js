@@ -350,6 +350,14 @@
   // ---- comments -------------------------------------------------------------------------------
 
   function commentHTML(c, kids, op) {
+    if (!store.isRemoved(c.id) && store.isBlocked(c.author)) {
+      return (
+        `<div class="comment" id="c-${c.id}" data-comment="${c.id}"><div class="c-side">${avatar({ name: '?', color: '#938f99', shape: 'ghostish' }, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
+        `<div class="c-main"><div class="c-head"><span>[blocked]</span><span>· ${ago(c.createdAt)}</span><span class="c-hidden"></span></div><div class="c-body md removed"><p>A comment from someone you blocked.</p></div></div>` +
+        (kids ? `<div class="c-children">${kids}</div>` : '') +
+        '</div>'
+      );
+    }
     const removed = store.isRemoved(c.id);
     const name = store.userName(c.author);
     const u = store.user(c.author);
@@ -773,7 +781,15 @@
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
         (interests.length ? `<div class="interests" aria-label="Into">${interests.map(([, label, symbol]) => `<span class="chip static">${icon(symbol)}${label}</span>`).join('')}</div>` : '') +
         '</div>' +
-        (me ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>` : u.banned ? '' : `<div class="toolbar profile-actions">${friendButtons(u.name)}${store.isDev() ? testerButton(u) : ''}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`) +
+        (me
+          ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>`
+          : u.banned
+          ? ''
+          : store.isBlocked(u.name)
+          ? `<div class="toolbar profile-actions"><button class="m3-btn tonal" data-act="unblock" data-user="${esc(u.name)}">${icon('lock_open')}Unblock</button></div><p class="muted blocked-note">${icon('block')}You blocked u/${esc(u.name)}. They can’t message you, call you or add you, and their posts and comments are hidden from you.</p>`
+          : `<div class="toolbar profile-actions">${friendButtons(u.name)}${store.isDev() ? testerButton(u) : ''}<button class="m3-icon-btn tonal" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button>` +
+            (store.state.canBlock ? `<button class="m3-icon-btn tonal" data-act="block" data-user="${esc(u.name)}" aria-label="Block u/${esc(u.name)}" data-tooltip="Block">${icon('block')}</button>` : '') +
+            '</div>') +
         '</div><div class="stats">' +
         `<div class="stat" title="Every upvote on their posts and comments is a feather"><b class="count">${num(st.feathers)}</b><span>Feathers</span></div>` +
         `<div class="stat"><b class="count">${num(st.posts.length)}</b><span>Posts</span></div>` +
@@ -797,6 +813,10 @@
       mount(root) {
         const box = root.querySelector('#profile-list');
         const show = (tab) => {
+          if (!me && store.isBlocked(u.name)) {
+            box.innerHTML = empty('block', tab === 'posts' ? 'Their posts are hidden' : 'Their comments are hidden', `You blocked u/${u.name}. Unblock them to see what they write.`);
+            return;
+          }
           if (tab === 'posts') {
             box.innerHTML = feedShell();
             const sorted = [...st.posts].sort((a, b) => b.createdAt - a.createdAt);
@@ -926,6 +946,15 @@
                 `<div class="toolbar"><button class="m3-btn tonal" data-act="call-look">${icon('palette')}Call look</button><button class="m3-btn text" data-act="ring-preview">${icon('volume_up')}Hear the ringtone</button></div>`
               : '') +
             '<p class="muted">Calls go straight between devices, encrypted, and are never recorded. As with any direct call, the people in a call can see your device’s internet (IP) address, unless it goes through Budgie’s relay. Only call people you trust.</p>' +
+            '</div></section>'
+          : '') +
+        (store.state.canBlock
+          ? `<section>${header('softBoom', 'block', 'Blocked people')}<div class="card setting-card">` +
+            (store.state.blocked.length
+              ? `<div class="team-list">${store.state.blocked
+                  .map((n) => `<div class="team-row">${avatar(store.user(n), 40)}<span class="row-text"><b>u/${esc(n)}</b><small>Can’t message you, call you or add you</small></span><button type="button" class="m3-btn text small" data-act="unblock" data-user="${esc(n)}">${icon('lock_open')}Unblock</button></div>`)
+                  .join('')}</div>`
+              : '<p class="muted">Nobody. You can block someone from their profile, or from the More menu in a chat with them. They aren’t told.</p>') +
             '</div></section>'
           : '') +
         `<section>${header('pixelCircle', 'manage_accounts', 'Account')}<div class="card setting-card">` +
@@ -1258,9 +1287,12 @@
     let day = '';
     let run = null;
     const lastMine = [...messages].reverse().find((m) => m.mine && !m.kind && !m.pending && !m.failed);
+    let hidden = 0;
     const close = () => {
       if (run) html += runHTML(run, them, lastMine, inGroup);
       run = null;
+      if (hidden) html += `<div class="chat-line blocked">${icon('block')}<span>${hidden === 1 ? 'A message' : hidden + ' messages'} from someone you blocked</span></div>`;
+      hidden = 0;
     };
     for (const m of messages) {
       const d = new Date(m.createdAt).toDateString();
@@ -1274,6 +1306,12 @@
         html += chatLine(m, them, inGroup);
         continue;
       }
+      if (inGroup && !m.mine && store.isBlocked(m.from)) {
+        if (run) close();
+        hidden++;
+        continue;
+      }
+      if (hidden) close();
       const who = m.mine ? '' : m.from;
       const prev = run && run.items[run.items.length - 1];
       if (run && (run.who !== who || m.createdAt - prev.createdAt > GROUP_GAP)) close();
@@ -1619,13 +1657,19 @@
       `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
       `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
       (friends ? callButtons(`data-user="${esc(u.name)}"`, 'u/' + u.name) : '') +
-      `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`;
+      (store.state.canBlock
+        ? `<button class="m3-icon-btn chat-report" data-act="person-menu" data-user="${esc(u.name)}" aria-label="More for u/${esc(u.name)}" data-tooltip="More">${icon('more_vert')}</button></div>`
+        : `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`);
     return {
       title: `Chat with u/${u.name}`,
       brand: u.shape,
       html: chatPage(head, {
         placeholder: `Message u/${u.name}`,
-        locked: friends ? '' : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`,
+        locked: store.isBlocked(u.name)
+          ? `<div class="card chat-locked"><p>You blocked u/${esc(u.name)}. Unblock them to be friends and message again.</p><div class="toolbar"><button class="m3-btn tonal" data-act="unblock" data-user="${esc(u.name)}">${icon('lock_open')}Unblock</button></div></div>`
+          : friends
+          ? ''
+          : `<div class="card chat-locked"><p>You can message u/${esc(u.name)} once you’re friends.</p><div class="toolbar">${friendButtons(u.name)}</div></div>`,
       }),
       mount(root) {
         mountChat(root, {
