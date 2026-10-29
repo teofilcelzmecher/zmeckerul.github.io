@@ -28,6 +28,9 @@
   };
   // ringing again and coming back after a reload need the server's 0.9.5
   const server095 = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('0.9.5'));
+  const server100 = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('1.0.0'));
+  // a phone or tablet (a finger, no mouse): its cameras can be switched, and it can't share its screen
+  const touchOnly = () => matchMedia('(hover: none) and (pointer: coarse)').matches;
   const lower = (name) => String(name || '').toLowerCase();
   const clock = (ms) => {
     const s = Math.max(0, Math.floor(ms / 1000));
@@ -273,6 +276,8 @@
         changed();
         unring(d.call);
         if (active && active.id === d.call) finish(d.reason);
+        // the relay's free allowance for the month ran out (1.0): calls stop until it comes back
+        if (d.reason === 'limit') paused(d.until);
         return;
       case 'call-signal':
         // one at a time and in order: an answer can't be dealt with before its offer
@@ -582,6 +587,44 @@
     poll.needed();
     meters.start();
     active.tick = setInterval(status, 1000);
+    // through the relay (1.0), this device says how much it got through it: the server keeps the month's total
+    if (active.ice.relay && server100()) active.usage = setInterval(reportUsage, 15000);
+  }
+
+  /** what came to this device through the relay since it last said (Cloudflare counts what it sends to each device) */
+  async function reportUsage() {
+    const call = active;
+    if (!call) return;
+    let bytes = 0;
+    for (const peer of call.peers.values()) {
+      if (!peer.pc) continue;
+      try {
+        const stats = await peer.pc.getStats();
+        let got = 0;
+        stats.forEach((r) => {
+          if (r.type !== 'candidate-pair' || r.state !== 'succeeded' || !r.nominated) return;
+          const local = stats.get(r.localCandidateId);
+          if (local && local.candidateType === 'relay') got += r.bytesReceived || 0;
+        });
+        bytes += Math.max(0, got - (peer.relayIn || 0));
+        peer.relayIn = Math.max(peer.relayIn || 0, got);
+      } catch (_) {
+        /* a connection that's closing: its last part goes uncounted */
+      }
+    }
+    if (bytes > 0 && active === call) api.post(`/api/calls/${encodeURIComponent(call.id)}/usage`, { bytes }).catch(() => {});
+  }
+
+  /** calls are paused until `until` (the relay's allowance for the month is used up): said once */
+  function paused(until) {
+    const when = until ? new Date(until).toLocaleDateString([], { day: 'numeric', month: 'long' }) : 'next month';
+    M3.dialog({
+      headline: 'Calls are paused for now',
+      symbol: 'phone_disabled',
+      iconShape: 'softBoom',
+      body: `Budgie’s free calling allowance for this month is used up, so calls stop until ${when}. Messages and everything else still work.`,
+      actions: [{ label: 'OK', value: true, variant: 'filled' }],
+    }).catch(() => {});
   }
 
   /** someone joined the call: their device calls this one */
@@ -818,7 +861,7 @@
 
   // ---- sharing your screen (on a computer; phones' browsers can't) ----------------------------------------------
 
-  const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  const canShare = () => !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !touchOnly();
   async function toggleShare() {
     if (!active || !canShare()) return;
     if (active.screen) return stopShare();
@@ -894,6 +937,7 @@
   addEventListener('pagehide', () => active && api.post(`/api/calls/${encodeURIComponent(active.id)}/${server095() ? 'away' : 'leave'}`, {}, { keepalive: true }).catch(() => {}));
 
   const ENDINGS = {
+    limit: 'Calls are paused until next month',
     'no-answer': 'No answer',
     declined: 'Couldn’t talk right now',
     cancelled: 'Call cancelled',
@@ -907,6 +951,7 @@
     active = null;
     unloop();
     clearInterval(was.tick);
+    clearInterval(was.usage);
     meters.stop();
     was.peers.forEach(closePeer);
     stopTracks(was.local);
@@ -1109,6 +1154,7 @@
       '<div class="call-controls" role="toolbar" aria-label="Call controls"></div>';
     document.body.appendChild(el);
     active.el = el;
+    wireSelf(el.querySelector('.call-self'));
     applyLook();
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-call]');
@@ -1131,8 +1177,8 @@
     controls();
     fx.play(el, [{ opacity: 0, transform: 'translateY(6%)' }, { opacity: 1, transform: 'none' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
     if (matchMedia('(hover: hover)').matches) el.querySelector('[data-call="hang"]').focus({ preventScroll: true });
-    // more than one camera (a phone's front and back): you can switch
-    if (active.canCam && navigator.mediaDevices.enumerateDevices) {
+    // more than one camera on a phone (its front and back): you can switch (a computer's second webcam isn't offered)
+    if (active.canCam && touchOnly() && navigator.mediaDevices.enumerateDevices) {
       navigator.mediaDevices
         .enumerateDevices()
         .then((devices) => {
@@ -1156,6 +1202,7 @@
       (canShare() ? `<button type="button" class="call-btn toggle${active.screen ? ' sharing' : ''}" data-call="share" aria-pressed="${!!active.screen}" aria-label="${active.screen ? 'Stop sharing your screen' : 'Share your screen'}" data-tooltip="${active.screen ? 'Stop sharing' : 'Share your screen'} (Shift+S)">${icon(active.screen ? 'stop_screen_share' : 'present_to_all')}</button>` : '') +
       `<button type="button" class="call-btn hang wide" data-call="hang" aria-label="Hang up" data-tooltip="Hang up">${icon('call_end')}</button>`;
     if (active.bar) barText(true);
+    requestAnimationFrame(() => placeSelf());
   }
 
   function selfView() {
@@ -1165,6 +1212,82 @@
     self.classList.toggle('mirror', active.facing === 'user');
     // a fresh stream each time, so a browser shows the camera that's on now
     self.srcObject = active.cam ? new MediaStream(active.local.getVideoTracks()) : null;
+    requestAnimationFrame(() => placeSelf());
+  }
+
+  // ---- your own picture: drag it to any corner, and it stays in that corner (for the next call too) ----------------
+
+  const CORNERS = ['tl', 'tr', 'bl', 'br'];
+  function savedCorner() {
+    try {
+      const c = localStorage.getItem('nook-self-corner');
+      return CORNERS.includes(c) ? c : 'br';
+    } catch (_) {
+      return 'br';
+    }
+  }
+  /** where your picture sits in a corner: clear of the title at the top and the buttons at the bottom */
+  function cornerSpot(self, corner) {
+    const box = active.el.getBoundingClientRect();
+    const top = active.el.querySelector('.call-top').getBoundingClientRect().bottom - box.top + 8;
+    const bottom = active.el.querySelector('.call-controls').getBoundingClientRect().top - box.top - 10;
+    const pad = 12;
+    return {
+      x: corner[1] === 'l' ? pad : box.width - self.offsetWidth - pad,
+      y: corner[0] === 't' ? top : Math.max(top, bottom - self.offsetHeight),
+    };
+  }
+  function placeSelf(glide = false) {
+    const self = active && active.el && active.el.querySelector('.call-self');
+    if (!self || self.hidden || self._dragging) return;
+    const { x, y } = cornerSpot(self, active.corner || (active.corner = savedCorner()));
+    self.classList.toggle('settling', glide);
+    self.style.left = x + 'px';
+    self.style.top = y + 'px';
+  }
+  addEventListener('resize', () => active && placeSelf());
+  function wireSelf(self) {
+    let drag = null;
+    self.addEventListener('pointerdown', (e) => {
+      if (e.button > 0 || !active) return;
+      try {
+        self.setPointerCapture(e.pointerId);
+      } catch (_) {
+        /* it still follows while the pointer is down */
+      }
+      const r = self.getBoundingClientRect();
+      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top, box: active.el.getBoundingClientRect(), x0: e.clientX, y0: e.clientY, moved: false };
+      self._dragging = true;
+      self.classList.remove('settling');
+    });
+    self.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 4) return;
+      drag.moved = true;
+      self.style.left = Math.min(drag.box.width - self.offsetWidth, Math.max(0, e.clientX - drag.box.left - drag.dx)) + 'px';
+      self.style.top = Math.min(drag.box.height - self.offsetHeight, Math.max(0, e.clientY - drag.box.top - drag.dy)) + 'px';
+    });
+    const drop = () => {
+      if (!drag) return;
+      self._dragging = false;
+      if (drag.moved && active) {
+        // it goes to the corner nearest to where it was let go
+        const r = self.getBoundingClientRect();
+        const cx = r.left + r.width / 2 - drag.box.left;
+        const cy = r.top + r.height / 2 - drag.box.top;
+        active.corner = (cy < drag.box.height / 2 ? 't' : 'b') + (cx < drag.box.width / 2 ? 'l' : 'r');
+        try {
+          localStorage.setItem('nook-self-corner', active.corner);
+        } catch (_) {
+          /* it stays there for this call */
+        }
+        fx.haptic(6);
+      }
+      drag = null;
+      placeSelf(true);
+    };
+    self.addEventListener('pointerup', drop);
+    self.addEventListener('pointercancel', drop);
   }
 
   /** the faces (or pictures) of everyone else in the call; while it rings, whoever is being called */

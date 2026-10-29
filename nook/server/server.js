@@ -843,6 +843,8 @@ route('GET', '/api/bootstrap', ({ user }) => {
     gifs: db.meta('klipy-key') || undefined,
     // whether videos can be posted (the server needs ffmpeg for them)
     videos: video.available() || undefined,
+    // calls paused until then (the relay's free allowance for the month is used up)
+    callsPaused: callsPaused() ? nextMonth() : undefined,
   };
 });
 
@@ -1950,6 +1952,54 @@ async function iceConfig() {
   }
 }
 
+// ---- the relay's monthly allowance (1.0) --------------------------------------------------------------------
+// Cloudflare's TURN relay is free up to an allowance a month (1,000 GB, counted as what it sends to devices). Each
+// device in a relayed call says how much it got through the relay; the month's total, with a tenth on top for the
+// relay's own overhead, is kept here. When it reaches the limit (950 GB unless `nook turn-limit` says otherwise),
+// every call ends and none can start until the month turns. With `nook turn-usage`, Cloudflare's own count is
+// fetched too every hour, and the higher of the two counts.
+const monthKey = (t = now()) => new Date(t).toISOString().slice(0, 7);
+const nextMonth = (t = now()) => {
+  const d = new Date(t);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+};
+const relayLimit = () => (Number(db.meta('turn-limit-gb')) || 950) * 1e9;
+const relayUsed = () => Math.max(Number(db.meta('turn-used-' + monthKey())) || 0, Number(db.meta('turn-cf-' + monthKey())) || 0);
+const callsPaused = () => !!db.meta('turn-key') && relayUsed() >= relayLimit();
+const pausedMessage = () =>
+  `Calls are paused until ${new Date(nextMonth()).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' })}: Budgie’s free calling allowance for this month is used up. Messages still work.`;
+function addRelayUse(bytes) {
+  const key = 'turn-used-' + monthKey();
+  db.meta(key, String((Number(db.meta(key)) || 0) + Math.round(bytes * 1.1)));
+  if (callsPaused()) pauseCalls();
+}
+/** the allowance is used up: every call ends, and everyone in one is told until when */
+function pauseCalls() {
+  for (const c of [...calls.values()]) endCall(c, 'limit');
+}
+/** Cloudflare's own count of what the relay sent this month, when the owner gave an analytics token */
+async function checkRelayUsage() {
+  const account = db.meta('cf-account');
+  const token = db.meta('cf-analytics-token');
+  if (!account || !token || !db.meta('turn-key')) return null;
+  const start = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1) - 60000).toISOString();
+  const query = 'query($a: string!, $s: Time!, $e: Time!) { viewer { accounts(filter: { accountTag: $a }) { callsTurnUsageAdaptiveGroups(filter: { datetimeMinute_gt: $s, datetimeMinute_lt: $e }, limit: 1) { sum { egressBytes } } } } }';
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: { a: account, s: start, e: new Date().toISOString() } }),
+    signal: AbortSignal.timeout(20000),
+  });
+  const json = await res.json();
+  if (!res.ok || json.errors) throw new Error((json.errors && json.errors[0] && json.errors[0].message) || 'Cloudflare answered ' + res.status);
+  const groups = json.data.viewer.accounts[0] ? json.data.viewer.accounts[0].callsTurnUsageAdaptiveGroups : [];
+  const bytes = groups.length ? Number(groups[0].sum.egressBytes) || 0 : 0;
+  db.meta('turn-cf-' + monthKey(), String(bytes));
+  if (callsPaused()) pauseCalls();
+  return bytes;
+}
+setInterval(() => checkRelayUsage().catch((error) => console.error('Couldn’t check the relay’s use with Cloudflare:', error.message)), HOUR).unref();
+
 function callOut(c) {
   const g = c.group && db.get('SELECT name, color, shape FROM chat_groups WHERE id = ?', c.group);
   return {
@@ -2035,7 +2085,7 @@ function endCall(c, reason) {
   if (!calls.delete(c.id)) return;
   clearTimeout(c.timer);
   for (const timer of (c.away || new Map()).values()) clearTimeout(timer);
-  for (const id of new Set([...c.ever, ...c.ringing, c.by, ...(c.peer ? [c.peer] : [])])) signal(id, 'call-ended', { call: c.id, reason });
+  for (const id of new Set([...c.ever, ...c.ringing, c.by, ...(c.peer ? [c.peer] : [])])) signal(id, 'call-ended', { call: c.id, reason, until: reason === 'limit' ? nextMonth() : undefined });
   // its line in the chat: how long it went on, or that nobody picked up
   const log = JSON.stringify({ media: c.media, secs: c.answered ? Math.round((now() - c.answered) / 1000) : 0, missed: !c.answered || undefined });
   try {
@@ -2064,6 +2114,7 @@ function disconnect(userId) {
 
 route('POST', '/api/calls', async ({ user, body }) => {
   limit('call:' + user.id, 30, HOUR, 'That’s a lot of calls. Wait a little and try again.');
+  if (callsPaused()) fail(503, pausedMessage(), { callsPaused: nextMonth() });
   const media = body.media === 'video' ? 'video' : 'voice';
   if (callOf(user.id)) fail(409, 'You’re already in a call. Hang up first.');
   if (body.group) {
@@ -2088,6 +2139,7 @@ route('POST', '/api/calls', async ({ user, body }) => {
 route('POST', '/api/calls/:id/join', ({ user, params }) => {
   const c = calls.get(params.id);
   if (!c) fail(404, 'That call has ended.');
+  if (callsPaused()) fail(503, pausedMessage(), { callsPaused: nextMonth() });
   return joinCall(c, user);
 });
 
@@ -2139,6 +2191,17 @@ route('POST', '/api/calls/:id/ring', ({ user, params, body }) => {
   if (!ring.length) fail(400, named ? 'They can’t be rung right now (they may have calls turned off).' : 'Everyone who can be rung is already in the call.');
   ringAgain(c, ring.map((m) => m.id));
   return { rang: ring.map((m) => m.name), call: callOut(c) };
+});
+
+/** how much came to this device through the relay since it last said (only counted while the relay is on) */
+route('POST', '/api/calls/:id/usage', ({ user, params, body }) => {
+  limit('usage:' + user.id, 30, MINUTE);
+  const c = calls.get(params.id);
+  if (!c || !c.joined.has(user.id) || !db.meta('turn-key')) return { ok: true };
+  // at most what a fast video call could bring in a quarter of a minute (more is a mistake, or someone fooling)
+  const bytes = Math.max(0, Math.min(Number(body.bytes) || 0, 64 * 1024 * 1024));
+  addRelayUse(bytes);
+  return { ok: true };
 });
 
 route('POST', '/api/calls/:id/leave', ({ user, params }) => {
@@ -2460,4 +2523,4 @@ if (require.main === module) {
   process.on('SIGINT', stop);
 }
 
-module.exports = { server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport, setBadge, badgesOf };
+module.exports = { checkRelayUsage, relayUsed, relayLimit, monthKey, server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport, setBadge, badgesOf };

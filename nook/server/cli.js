@@ -30,6 +30,9 @@ const COMMANDS = {
       '  nook invites                     list invite codes (used and unused)',
       '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
       '  nook turn <key id> <api token>   send calls through Cloudflare\'s TURN relay (they always connect, and nobody sees another\'s IP); nook turn off goes back to direct calls',
+      '  nook turn                        whether calls go through the relay, and how much of the month\'s free allowance is used',
+      '  nook turn-limit <GB>             when calls stop for the month (950 GB unless set; Cloudflare\'s free allowance is 1,000 GB)',
+      '  nook turn-usage <account> <token>   also check Cloudflare\'s own count every hour (an API token with Account Analytics: Read)',
       '  nook gifs <KLIPY app key>        turn on GIF search in chats (KLIPY); nook gifs off turns it off',
       '  nook users                       list accounts',
       '  nook admin <name>                give someone the admin role (moderation page)',
@@ -96,10 +99,17 @@ const COMMANDS = {
       return out('Calls go straight between devices now, with Cloudflare\'s free STUN server helping them find each other.', 'To use the relay again: nook turn <key id> <api token>');
     }
     if (!key) {
+      const gb = (b) => (b / 1e9).toFixed(b < 1e10 ? 2 : 0);
       return out(
         db.meta('turn-key')
           ? `Calls go through Cloudflare's TURN relay (key ${db.meta('turn-key')}): they connect on any network, and nobody in a call sees another's IP address. Go back to direct calls with: nook turn off`
-          : 'Calls go straight between devices, with Cloudflare\'s free STUN server helping them find each other. Some networks block that, and people in a call can see each other\'s IP address. For calls that always connect: nook turn <key id> <api token>'
+          : 'Calls go straight between devices, with Cloudflare\'s free STUN server helping them find each other. Some networks block that, and people in a call can see each other\'s IP address. For calls that always connect: nook turn <key id> <api token>',
+        ...(db.meta('turn-key')
+          ? [
+              `This month (${nook.monthKey()}): ${gb(nook.relayUsed())} GB of ${gb(nook.relayLimit())} GB used${db.meta('cf-account') ? ' (the higher of Budgie\'s count and Cloudflare\'s)' : ' (Budgie\'s own count)'}. At the limit, calls stop until the month turns.`,
+              'Change the limit with: nook turn-limit <GB>' + (db.meta('cf-account') ? '' : '   Check against Cloudflare\'s own count with: nook turn-usage <account id> <analytics api token>'),
+            ]
+          : [])
       );
     }
     if (!/^[A-Za-z0-9_-]{16,100}$/.test(key) || !/^[A-Za-z0-9_.-]{20,300}$/.test(token || '')) quit('Usage: nook turn <TURN key id> <API token>   (both from Realtime → TURN in the Cloudflare dashboard)');
@@ -121,6 +131,35 @@ const COMMANDS = {
     db.meta('turn-key', key);
     db.meta('turn-token', token);
     out('Calls now go through Cloudflare\'s TURN relay: they connect on any network, and nobody in a call sees another\'s IP address. The first 1,000 GB a month are free. No restart needed.', 'To go back to direct calls: nook turn off');
+  },
+
+  /** the most the relay may send in a month before calls stop (Cloudflare's free allowance is 1,000 GB) */
+  'turn-limit'(gb) {
+    if (gb == null) return out(`Calls stop when the relay has sent ${(nook.relayLimit() / 1e9).toFixed(0)} GB in a month. Change it with: nook turn-limit <GB>`);
+    const n = Number(gb);
+    if (!Number.isFinite(n) || n < 1 || n > 100000) quit('Usage: nook turn-limit <GB>   (Cloudflare\'s free allowance is 1000 a month; 950 leaves a little room)');
+    db.meta('turn-limit-gb', String(n));
+    out(`Calls now stop when the relay has sent ${n} GB in a month, until the month turns.${n > 1000 ? ' That\'s over Cloudflare\'s free 1,000 GB: what goes over costs $0.05 a GB.' : ''}`);
+  },
+
+  /** Cloudflare's own count of the relay's use, as well as Budgie's (an API token with Account Analytics: Read) */
+  async 'turn-usage'(account, token) {
+    if (account === 'off') {
+      db.meta('cf-account', '');
+      db.meta('cf-analytics-token', '');
+      return out('Budgie counts the relay\'s use on its own now.');
+    }
+    if (!/^[0-9a-f]{32}$/.test(account || '') || !/^[A-Za-z0-9_.-]{20,300}$/.test(token || '')) quit('Usage: nook turn-usage <account id> <api token>   (the account id is in the Cloudflare dashboard\'s address; the token needs Account Analytics: Read)');
+    db.meta('cf-account', account);
+    db.meta('cf-analytics-token', token);
+    try {
+      const bytes = await nook.checkRelayUsage();
+      out(`Cloudflare says the relay has sent ${(bytes / 1e9).toFixed(2)} GB this month. Budgie checks again every hour, and goes by whichever count is higher.`);
+    } catch (error) {
+      db.meta('cf-account', '');
+      db.meta('cf-analytics-token', '');
+      quit(`Cloudflare didn't answer with the relay's use (${error.message}). Check the account id, and that the token has Account Analytics: Read.`);
+    }
   },
 
   async gifs(key) {

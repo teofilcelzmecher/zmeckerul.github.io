@@ -5223,6 +5223,14 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   position: relative;
   transition: opacity 200ms;
 }
+/* a voice call with one other person (1.0): their face is the call, so it's big, with their name under it */
+.call-screen[data-media='voice'] .call-stage[data-count='1'] .tile-face {
+  scale: 1.6;
+  margin-bottom: 36px;
+}
+.call-screen[data-media='voice'] .call-stage[data-count='1'] .tile-name {
+  font-size: var(--m3-fs-title, 1.25rem);
+}
 .call-tile[data-state='wait'] .tile-pic,
 .call-tile[data-state='failed'] .tile-pic {
   opacity: 0.55;
@@ -5340,6 +5348,25 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 .call-self.mirror {
   transform: scaleX(-1);
 }
+/* it can be dragged to any corner (1.0), and glides into the one it's let go near */
+.call-self {
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.call-self:active {
+  cursor: grabbing;
+}
+.call-self.settling {
+  transition: left 340ms var(--m3-ease-emphasized-decel), top 340ms var(--m3-ease-emphasized-decel);
+}
+/* a phone on its side: a smaller picture of you, so the others still have room */
+@media (max-height: 500px) {
+  .call-self {
+    width: 150px;
+  }
+}
 .call-self[hidden] {
   display: none;
 }
@@ -5361,6 +5388,24 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   padding: 12px;
   border-radius: 44px;
   background: var(--m3-surface-container-high);
+}
+/* a narrow phone: the buttons a little smaller and closer, so they stay in one row */
+@media (max-width: 420px) {
+  .call-controls {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px;
+  }
+  .call-controls .call-btn {
+    width: 56px;
+    height: 56px;
+  }
+  .call-controls .call-btn.wide {
+    width: 76px;
+  }
+  .call-controls .call-btn .m3-icon {
+    font-size: 26px;
+  }
 }
 .call-play {
   position: absolute;

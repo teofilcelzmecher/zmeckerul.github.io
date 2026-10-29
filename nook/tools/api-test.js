@@ -554,6 +554,29 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(/straight between devices/.test(cli('turn')), 'the cli says how calls connect');
   ok(/through Cloudflare's TURN relay/.test(cli('turn', 'abcdefabcdefabcdefabcdefabcdef12', 'test-token-test-token-1234')) && /straight between devices/.test(cli('turn', 'off')), 'and sets up (and turns off) Cloudflare’s relay');
 
+  // the relay's monthly allowance (1.0): devices say what came through it; at the limit every call ends, and none starts
+  cli('turn', 'abcdefabcdefabcdefabcdefabcdef12', 'test-token-test-token-1234');
+  const capCall = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  await api(B, 'POST', `/api/calls/${capCall.json.call.id}/join`, {});
+  await api(B, 'POST', `/api/calls/${capCall.json.call.id}/usage`, { bytes: 50e6 });
+  ok(/: 0\.06 GB of 950 GB used/.test(cli('turn')), 'what came through the relay is counted, with a tenth on top for its overhead', cli('turn').split('\n')[1]);
+  ok((await api(A, 'POST', `/api/calls/${capCall.json.call.id}/usage`, { bytes: 1e12 })).status === 200 && /: 0\.13 GB/.test(cli('turn')), 'one report can’t count more than a fast call could bring');
+  ok(/stop when the relay has sent 900 GB/.test(cli('turn-limit', '900')) && /of 900 GB/.test(cli('turn')), 'the owner sets the limit');
+  const month = new Date().toISOString().slice(0, 7);
+  const rawDb = new (require('node:sqlite').DatabaseSync)(path.join(DATA, 'nook.db'));
+  rawDb.prepare('UPDATE meta SET value = ? WHERE key = ?').run(String(899.99e9), 'turn-used-' + month);
+  await api(B, 'POST', `/api/calls/${capCall.json.call.id}/usage`, { bytes: 20e6 });
+  const capped = (await api(B, 'GET', '/api/signals?after=0')).json.signals.find((x) => x.type === 'call-ended' && x.data.call === capCall.json.call.id);
+  ok(capped && capped.data.reason === 'limit' && capped.data.until > Date.now(), 'at the limit, the call ends for everyone in it, saying until when', JSON.stringify(capped && capped.data));
+  const pausedCall = await api(A, 'POST', '/api/calls', { to: 'bob', media: 'voice' });
+  ok(pausedCall.status === 503 && /paused until 1 /.test(pausedCall.json.error) && pausedCall.json.callsPaused, 'and no call can start until the month turns', pausedCall.json.error);
+  ok((await api(B, 'GET', '/api/bootstrap')).json.callsPaused > Date.now(), 'the app knows calls are paused');
+  rawDb.prepare('UPDATE meta SET value = ? WHERE key = ?').run('0', 'turn-used-' + month);
+  rawDb.close();
+  cli('turn-limit', '950');
+  cli('turn', 'off');
+  ok((await api(B, 'GET', '/api/bootstrap')).json.callsPaused === undefined, 'with the relay off, nothing is counted or paused');
+
   // ringing a group again, and a page reloaded mid-call: the others see it away, and it can come back
   const regroup = await api(B, 'POST', `/api/calls`, { group: GR.id, media: 'voice' });
   const RG = regroup.json.call;
