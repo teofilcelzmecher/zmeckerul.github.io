@@ -79,6 +79,15 @@ const SHORT = {
   it: { now: 'ora', m: '{0} min', h: '{0} h', d: '{0} g', w: '{0} sett.' },
 };
 
+// a translation that's itself an English sentence with another translation: js/i18n.js never translates its
+// own words twice, but it's worth knowing about ("Explore" → "Explorer", the French for "Explore", is also a badge)
+for (const lang of LANGS) {
+  const { strings } = packs[lang];
+  for (const [en, out] of Object.entries(strings)) {
+    if (strings[out] !== undefined && strings[out] !== out) console.log(`note: ${lang} ${en} → ${out}, which is also English for ${strings[out]}`);
+  }
+}
+
 fs.mkdirSync(OUT, { recursive: true });
 for (const lang of LANGS) {
   const nouns = Object.fromEntries(Object.entries(NOUNS).map(([word, by]) => [word, by[lang]]));

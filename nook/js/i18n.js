@@ -127,13 +127,26 @@
   const ATTRS = ['aria-label', 'placeholder', 'title', 'data-tooltip', 'alt', 'data-title', 'data-description', 'data-tagline', 'data-example', 'aria-description'];
   const kept = (el) => !!(el && el.closest && el.closest(KEEP));
 
+  // what this file has already put on the page, so it's never translated twice: in French, "Explore" is
+  // "Explorer", which is also an English word (a badge) that French calls "Explorateur"
+  const wrote = new WeakMap(); // a text node, or an element (for its text) → the words written there
+  const wroteAttrs = new WeakMap(); // an element → { attribute: the words written there }
+  function translateText(n) {
+    const v = n.nodeValue;
+    if (!v || wrote.get(n) === v || !/\p{L}/u.test(v)) return;
+    const out = t(v);
+    wrote.set(n, out);
+    if (out !== v) setData.call(n, out);
+  }
   function translateAttrs(el) {
+    let done = wroteAttrs.get(el);
     for (const name of ATTRS) {
       const v = el.getAttribute(name);
-      if (v) {
-        const out = t(v);
-        if (out !== v) setAttr.call(el, name, out);
-      }
+      if (!v || (done && done[name] === v)) continue;
+      const out = t(v);
+      if (!done) wroteAttrs.set(el, (done = {}));
+      done[name] = out;
+      if (out !== v) setAttr.call(el, name, out);
     }
   }
   /** translates the words in an element (or a text node) and everything in it */
@@ -141,10 +154,7 @@
     if (!node) return;
     if (node.nodeType === 3) {
       const parent = node.parentElement;
-      if (parent && !kept(parent) && !parent.closest(BOX)) {
-        const out = t(node.nodeValue);
-        if (out !== node.nodeValue) setData.call(node, out);
-      }
+      if (parent && !kept(parent) && !parent.closest(BOX)) translateText(node);
       return;
     }
     if (node.nodeType !== 1 && node.nodeType !== 11) return;
@@ -164,13 +174,8 @@
     });
     let n = walker.nextNode();
     while (n) {
-      if (n.nodeType === 3) {
-        const v = n.nodeValue;
-        if (v && /\p{L}/u.test(v)) {
-          const out = t(v);
-          if (out !== v) setData.call(n, out);
-        }
-      } else translateAttrs(n);
+      if (n.nodeType === 3) translateText(n);
+      else translateAttrs(n);
       n = walker.nextNode();
     }
   }
@@ -198,20 +203,36 @@
     enumerable: textContent.enumerable,
     get: textContent.get,
     set(value) {
-      if (this.nodeType === 1 && !kept(this) && !this.closest(BOX) && typeof value === 'string') value = t(value);
+      const mine = this.nodeType === 1 && typeof value === 'string' && !kept(this) && !this.closest(BOX);
+      if (mine && wrote.get(this) !== value) value = t(value);
       textContent.set.call(this, value);
+      if (mine) {
+        wrote.set(this, value);
+        if (this.firstChild) wrote.set(this.firstChild, value);
+      }
     },
   });
   const setAttr = Element.prototype.setAttribute;
   Element.prototype.setAttribute = function (name, value) {
-    if (ATTRS.includes(name) && typeof value === 'string' && !kept(this)) value = t(value);
+    if (ATTRS.includes(name) && typeof value === 'string' && !kept(this)) {
+      const done = wroteAttrs.get(this) || {};
+      if (done[name] !== value) value = t(value);
+      done[name] = value;
+      wroteAttrs.set(this, done);
+    }
     return setAttr.call(this, name, value);
   };
   const setData = Object.getOwnPropertyDescriptor(CharacterData.prototype, 'data').set;
   // words that roll into place letter by letter are translated before they're cut up
   if (window.M3 && M3.rollText) {
     const roll = M3.rollText;
-    M3.rollText = (el, text, options) => roll(el, kept(el) ? text : t(text), options);
+    M3.rollText = (el, text, options) => {
+      if (kept(el)) return roll(el, text, options);
+      // it sets the words with textContent, more than once: they're already translated by then
+      const out = t(text == null ? '' : String(text));
+      wrote.set(el, out);
+      return roll(el, out, options);
+    };
   }
   // dates and times in the language too, wherever the app asks for the browser's own way of writing them
   for (const name of ['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString']) {

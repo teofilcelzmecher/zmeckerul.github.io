@@ -2,7 +2,7 @@
 
 Usage: python3 nook/tools/build-site.py <source repo root> <output folder, e.g. a nook-early-access-website clone>
 It rewrites ../m3/ paths to m3/, refreshes the pages' script fingerprints, writes ads.txt when AdSense is
-set up in js/config.js, and copies the app, legal pages, m3, fonts (the design system's and the name fonts), server (with its vendor folder), LICENSE and SECURITY.md.
+set up in js/config.js, writes robots.txt and sitemap.xml, and copies the app, legal pages, m3, fonts (the design system's and the name fonts), server (with its vendor folder), LICENSE and SECURITY.md.
 """
 import os, re, shutil, sys
 sys.dont_write_bytecode = True  # no __pycache__ left behind in the repository
@@ -12,7 +12,7 @@ src, out = sys.argv[1], sys.argv[2]
 for d in ['js', 'm3', 'm3/fonts', 'm3/vendor']:
     os.makedirs(os.path.join(out, d), exist_ok=True)
 fix = lambda text: text.replace('href="../m3/"', 'href="m3/index.html"').replace('../m3/', 'm3/')
-for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html']:
+for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html']:
     html = rehash(fix(open(f'{src}/nook/{page}').read()))
     open(f'{out}/{page}', 'w').write(html)
 for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
@@ -44,7 +44,13 @@ shutil.rmtree(f'{out}/server/vendor', ignore_errors=True)
 shutil.copytree(f'{src}/nook/server/vendor', f'{out}/server/vendor')
 open(f'{out}/.nojekyll', 'w').write('')
 open(f'{out}/.gitignore', 'w').write('server/data/\n*.db\n*.db-wal\n*.db-shm\n')
-open(f'{out}/robots.txt', 'w').write('User-agent: *\nAllow: /\n')
+# for search engines: the pages worth finding (the app itself is one page; the server's files aren't for reading)
+SITE = 'https://budgiesocial.com/'
+open(f'{out}/robots.txt', 'w').write(f'User-agent: *\nAllow: /\nDisallow: /server/\n\nSitemap: {SITE}sitemap.xml\n')
+open(f'{out}/sitemap.xml', 'w').write(
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + ''.join(f'  <url><loc>{SITE}{page}</loc></url>\n' for page in ['', 'terms.html', 'privacy.html', 'licenses.html'])
+    + '</urlset>\n')
 # AdSense wants this file at the root of the site, naming the publisher allowed to sell its ad space
 pub = re.search(r"client: '(ca-pub-\d+)'", open(f'{src}/nook/js/config.js').read())
 if pub:
@@ -52,6 +58,6 @@ if pub:
 elif os.path.exists(f'{out}/ads.txt'):
     os.remove(f'{out}/ads.txt')
 open(f'{out}/README.md', 'w').write(
-    '# Budgie\n\nA community app built on Material 3 Expressive, with nests (communities), posts, comments, friends and chats.\n\n'
-    'Plain HTML, CSS and JS with no build step, and a small Node server in `server/` (see server/README.md). The only code from another company is Google AdSense, for ads between posts, and only once it is switched on in js/config.js.\n\n'
+    '# Budgie\n\nA community app built on Material 3 Expressive, with nests (communities), posts, comments, friends, chats and calls, in six languages.\n\n'
+    'Plain HTML, CSS and JS with no build step, and a small Node server in `server/` (see server/README.md). The only code from other companies is Google AdSense (ads between posts, once switched on in js/config.js), Cloudflare Turnstile on the sign-up form, and GIFs from KLIPY, each only once the owner switches it on.\n\n'
     'See [Terms of Use](terms.html) and [Privacy Policy](privacy.html).\n\nBudgie is not open source: see [LICENSE](LICENSE). Security problems: see [SECURITY.md](SECURITY.md).\n')
