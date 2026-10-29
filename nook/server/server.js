@@ -29,7 +29,7 @@ const textmodel = require('./textmodel');
 const video = require('./video');
 
 const VERSION = '1.0.0';
-const TERMS = '0.9.5, 2026-10-28';
+const TERMS = '1.0.0, 2026-10-30';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
   host: process.env.NOOK_HOST || '127.0.0.1',
@@ -442,8 +442,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '0.9.5, 2026-10-28',
-  text: 'Budgie 0.9.5 is the last early-access version. Nest owners can now give people roles (moderators who can pin and remove posts and ban people from the nest), and write their nest’s rules. You can send pictures and GIFs in chats, find GIFs with KLIPY, and share your screen on calls. The Terms and Privacy Policy say how: pictures in chats are checked like profile pictures, and GIF searches go to KLIPY. Read the details in Settings → Privacy and legal.',
+  version: '1.0.0, 2026-10-30',
+  text: 'Budgie 1.0 is here, and open to everyone. New: short videos and GIFs in posts (checked automatically, like pictures), up to four pride flags, choosing the part of a picture to keep, a colour for each chat, blocking, and Budgie in Romanian, Spanish, French, German and Italian. Calls can go through Cloudflare’s relay, so the others in a call don’t see your IP address, and pause for the rest of the month if its free allowance runs out. The Terms and Privacy Policy say how: read them in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });

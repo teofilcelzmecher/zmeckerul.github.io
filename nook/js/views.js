@@ -929,6 +929,12 @@
         '<div class="page single"><div class="col settings">' +
         `<div class="page-head"><m3-shape-icon shape="gem" symbol="settings" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Settings</h1><span class="muted">Make Budgie yours. Changes save as you go.</span></div></div>` +
         `<section>${header('flower', 'palette', 'Appearance')}<div class="card setting-card">` +
+        // the app's language (1.0), each named in its own language
+        (Nook.i18n
+          ? `<div class="setting-row"><label class="label" for="set-lang">Language</label><select class="m3-field lang-select" id="set-lang" data-no-i18n translate="no">${Object.entries(Nook.i18n.LANGS)
+              .map(([code, name]) => `<option value="${code}"${code === Nook.i18n.lang ? ' selected' : ''}>${name}</option>`)
+              .join('')}</select></div>`
+          : '') +
         `<div class="setting-row"><span class="label">Mode</span>${segmented('set-mode', [['system', 'System', 'brightness_auto'], ['light', 'Light', 'light_mode'], ['dark', 'Dark', 'dark_mode']], s.mode, 'Mode')}</div>` +
         `<div class="setting-row"><span class="label">Your colour (used outside nests)</span><div class="swatches" id="set-seeds">${ui.SEEDS.map(
           (seed, i) => `<button class="swatch" data-seed="${seed}" aria-pressed="${seed === s.seed}" aria-label="Colour ${seed}" data-tooltip="${seed}"><m3-shape shape="${ui.SEED_SHAPES[i]}" style="color:${seed}"></m3-shape></button>`
@@ -1023,6 +1029,15 @@
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();
+          });
+        }
+        // a new language: kept with your settings (so your other devices follow) and the page starts again in it
+        const langPick = $('#set-lang');
+        if (langPick) {
+          langPick.addEventListener('change', () => {
+            s.lang = langPick.value;
+            store.save();
+            setTimeout(() => Nook.i18n.choose(langPick.value), 300);
           });
         }
         const tone = $('#set-ringtone');

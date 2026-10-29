@@ -216,7 +216,7 @@
     main.innerHTML = view.html;
     // a view transition moves the page itself; without one it fades up
     if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
-    document.title = `${view.title} · Budgie`;
+    document.title = `${Nook.i18n ? Nook.i18n.t(view.title) : view.title} · Budgie`;
 
     // the app wears the nook (or the profile) it is in, and the brand takes its shape
     const wear = wearing();
@@ -3124,6 +3124,18 @@
     M3.snackbar('You’ve been signed out. Sign in again to carry on.');
     setTimeout(() => location.replace(location.pathname), 1800);
   });
+
+  // the language you picked on another device (kept with your settings) is the one here too
+  if (Nook.i18n && S().lang && S().lang !== Nook.i18n.lang && Nook.i18n.LANGS[S().lang]) {
+    let tried = false;
+    try {
+      tried = sessionStorage.getItem('nook-lang-followed') === S().lang;
+      sessionStorage.setItem('nook-lang-followed', S().lang);
+    } catch (_) {
+      tried = true;
+    }
+    if (!tried) Nook.i18n.choose(S().lang);
+  }
 
   // calm mode (1.0): the little bursts of shapes on votes, Sparks and joins stay away too
   const burstAway = M3.burst;

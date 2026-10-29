@@ -6254,3 +6254,22 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   background: var(--m3-primary);
   color: var(--m3-on-primary);
 }
+
+/* ---- 1.0: choosing the app's language ---------------------------------------------------------------------- */
+
+.lang-select {
+  max-width: 240px;
+}
+.lang-btn {
+  gap: 6px;
+}
+@media (max-width: 480px) {
+  /* a narrow phone: the welcome bar's language button is just its icon */
+  .lang-btn #lang-name {
+    display: none;
+  }
+  .lang-btn {
+    min-width: 40px;
+    padding: 0 8px;
+  }
+}

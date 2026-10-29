@@ -39,7 +39,7 @@
   <section class="landing" id="landing" aria-labelledby="landing-title">
     <header class="landing-bar">
       <span class="landing-brand" translate="no"><m3-shape shape="cookie9" aria-hidden="true"></m3-shape>budgie</span>
-      <span class="landing-bar-actions"><button type="button" class="m3-btn text" data-gate="signin">Sign in</button><button type="button" class="m3-btn filled" data-gate="signup">Join</button></span>
+      <span class="landing-bar-actions"><button type="button" class="m3-btn text lang-btn" id="lang-btn" aria-label="Language" aria-haspopup="menu" data-no-i18n><span translate="no" class="m3-icon" aria-hidden="true">translate</span><span id="lang-name" translate="no">English</span></button><button type="button" class="m3-btn text" data-gate="signin">Sign in</button><button type="button" class="m3-btn filled" data-gate="signup">Join</button></span>
     </header>
 
     <div class="landing-hero">
@@ -170,6 +170,6 @@
   </nav>
 
   <!-- the design system, then signing in, which fetches what the app needs and then starts it -->
-  <script>['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js','js/account.js'].forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});</script>
+  <script>(function(){var L=['ro','es','fr','de','it'],l='';try{l=localStorage.getItem('nook-lang')||''}catch(e){}if(!l){var n=navigator.languages||[navigator.language||''];for(var i=0;i<n.length&&!l;i++){var c=String(n[i]).slice(0,2).toLowerCase();if(c==='en'||L.indexOf(c)>=0)l=c}}var list=['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js'];if(L.indexOf(l)>=0)list.push('js/lang/'+l+'.js');list.push('js/i18n.js','js/account.js');list.forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});})();</script>
 </body>
 </html>

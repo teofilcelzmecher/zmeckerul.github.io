@@ -85,11 +85,14 @@
 
   function ago(time) {
     const s = Math.max(0, (Date.now() - time) / 1000);
-    if (s < 45) return 'now';
-    if (s < 3600) return Math.round(s / 60) + 'm';
-    if (s < 86400) return Math.round(s / 3600) + 'h';
-    if (s < 86400 * 7) return Math.round(s / 86400) + 'd';
-    if (s < 86400 * 30) return Math.round(s / 86400 / 7) + 'w';
+    // the short units in the app's language (1.0): "5m" is "5 min" in Romanian, "5 Min." in German
+    const u = (Nook.i18n && Nook.i18n.short) || {};
+    const unit = (n, k) => (u[k] ? u[k].replace('{0}', n) : n + k);
+    if (s < 45) return u.now || 'now';
+    if (s < 3600) return unit(Math.round(s / 60), 'm');
+    if (s < 86400) return unit(Math.round(s / 3600), 'h');
+    if (s < 86400 * 7) return unit(Math.round(s / 86400), 'd');
+    if (s < 86400 * 30) return unit(Math.round(s / 86400 / 7), 'w');
     return new Date(time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 

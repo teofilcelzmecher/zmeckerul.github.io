@@ -22,6 +22,12 @@ os.makedirs(f'{out}/fonts', exist_ok=True)
 for f in os.listdir(f'{src}/nook/fonts'):
     shutil.copy(f'{src}/nook/fonts/{f}', f'{out}/fonts/{f}')
 for f in os.listdir(f'{src}/nook/js'):
+    if os.path.isdir(f'{src}/nook/js/{f}'):
+        # js/lang/: the app in other languages (1.0)
+        os.makedirs(f'{out}/js/{f}', exist_ok=True)
+        for g in os.listdir(f'{src}/nook/js/{f}'):
+            open(f'{out}/js/{f}/{g}', 'w').write(open(f'{src}/nook/js/{f}/{g}').read())
+        continue
     open(f'{out}/js/{f}', 'w').write(fix(open(f'{src}/nook/js/{f}').read()))
 for f in ['m3.css', 'm3.js', 'm3-shapes.js', 'index.html', 'LICENSE-shapes.txt', 'LICENSE', 'README.md']:
     shutil.copy(f'{src}/m3/{f}', f'{out}/m3/{f}')

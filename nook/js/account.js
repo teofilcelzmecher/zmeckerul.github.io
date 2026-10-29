@@ -21,6 +21,19 @@
     for (const el of node.querySelectorAll('.m3-icon:not([translate])')) el.setAttribute('translate', 'no');
   };
   untranslatable(document.body);
+
+  // the welcome page's language button (1.0): each language named in its own words
+  const langBtn = document.getElementById('lang-btn');
+  if (langBtn && Nook.i18n) {
+    document.getElementById('lang-name').textContent = Nook.i18n.LANGS[Nook.i18n.lang];
+    langBtn.addEventListener('click', () =>
+      M3.menu(
+        langBtn,
+        Object.entries(Nook.i18n.LANGS).map(([code, name]) => ({ label: name, checked: code === Nook.i18n.lang, onSelect: () => Nook.i18n.choose(code) })),
+        { placement: 'bottom-end' }
+      )
+    );
+  }
   new MutationObserver((records) => {
     for (const r of records) for (const node of r.addedNodes) untranslatable(node);
   }).observe(document.body, { childList: true, subtree: true });
