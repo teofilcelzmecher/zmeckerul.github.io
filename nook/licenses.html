@@ -19,7 +19,7 @@
     </div>
 
     <h1>Open-source licenses</h1>
-    <p class="meta">Budgie 0.9.5 · Last updated 28 October 2026</p>
+    <p class="meta">Budgie 1.0.0 · Last updated 30 October 2026</p>
     <p>Budgie is built on other people’s open work. Thank you to all of them. The full text of each license ships with the site.</p>
 
     <div class="table-wrap">
@@ -66,7 +66,7 @@
     </div>
 
     <h2>On Budgie’s server</h2>
-    <p>Budgie’s server checks pictures and text with these, on its own computer (see <a href="terms.html#moderation">How moderation works</a>).</p>
+    <p>Budgie’s server checks pictures, videos and text, and prepares videos, with these, on its own computer (see <a href="terms.html#moderation">How moderation works</a>).</p>
     <div class="table-wrap">
       <table>
         <thead><tr><th>What</th><th>By</th><th>License</th></tr></thead>
@@ -95,6 +95,11 @@
             <td>Reading JPEG, PNG and GIF pictures</td>
             <td><a href="https://github.com/jpeg-js/jpeg-js">jpeg-js</a> by Eugene Ware, with a decoder by notmasteryet (Apache License 2.0); <a href="https://github.com/pngjs/pngjs">pngjs</a> by Luke Page and Kuba Niegowski; <a href="https://github.com/deanm/omggif">omggif</a> by Dean McNamee</td>
             <td>BSD 3-Clause (<a href="server/vendor/node_modules/jpeg-js/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/pngjs/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/omggif/omggif.js">in its file</a>)</td>
+          </tr>
+          <tr>
+            <td>Converting videos and taking frames from them to check, run as a separate program installed on the server’s computer (it isn’t part of Budgie)</td>
+            <td><a href="https://ffmpeg.org">FFmpeg</a>, Copyright the FFmpeg developers</td>
+            <td>GNU LGPL 2.1 or later, or GNU GPL as built (<a href="https://ffmpeg.org/legal.html">details</a>)</td>
           </tr>
         </tbody>
       </table>

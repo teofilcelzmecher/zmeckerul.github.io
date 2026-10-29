@@ -27,7 +27,7 @@ Plug the laptop in and connect it to the internet, then open a terminal.
    sudo /opt/nook/server/install.sh
    ```
 
-   This installs Node.js and Tailscale, creates a `nook` system user, starts Budgie as a service that
+   This installs Node.js, FFmpeg (for videos) and Tailscale, creates a `nook` system user, starts Budgie as a service that
    restarts by itself (and after a reboot), sets up nightly backups, and stops the laptop sleeping when
    the lid closes. It ends with "Budgie's server is running".
 
@@ -67,7 +67,9 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 |---|---|
 | `sudo nook signups open` / `invite` | Anyone can join, or only with an invite code |
 | `sudo nook captcha SITE_KEY SECRET_KEY` / `captcha off` | Turns the robot check (Cloudflare Turnstile) on sign-up on or off |
-| `sudo nook turn KEY_ID API_TOKEN` / `turn off` | Sends calls through Cloudflare's TURN relay, or back to direct calls (see below) |
+| `sudo nook turn KEY_ID API_TOKEN` / `turn off` | Sends calls through Cloudflare's TURN relay, or back to direct calls (see below). `sudo nook turn` also says how much of the month's allowance is used |
+| `sudo nook turn-limit GB` | When calls stop for the month (950 GB unless you change it) |
+| `sudo nook turn-usage ACCOUNT_ID TOKEN` / `turn-usage off` | Also checks Cloudflare's own count of the relay's data every hour |
 | `sudo nook gifs KLIPY_APP_KEY` / `gifs off` | Turns GIF search in chats on or off (see below) |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
@@ -136,6 +138,26 @@ call up to about 11 MB a minute per person):
    which way calls go; `sudo nook turn off` goes back to direct calls. If Cloudflare can't be reached,
    calls fall back to going direct by themselves.
 
+**So it never costs money,** Budgie counts how much the relay carries each month: every device in a call
+reports what it received through the relay, and the server adds it up (with a 10% margin). When the
+total reaches 950 GB, every call ends with a message, and nobody can start one until the 1st of the next
+month (UTC); messages and everything else carry on. `sudo nook turn` shows the count, and
+`sudo nook turn-limit 500` (say) moves the line.
+
+The devices' count is close, but Cloudflare's own is exact. To have the server check it every hour too
+(and stop calls if Cloudflare's number is the higher one):
+
+1. In the Cloudflare dashboard, open **Manage account** → **Account API tokens** → **Create token**, and
+   make a custom token with one permission: **Account** → **Account Analytics** → **Read**.
+2. Your account id is the long code in the dashboard's address (`dash.cloudflare.com/<account id>/…`).
+3. On the laptop:
+
+   ```sh
+   sudo nook turn-usage ACCOUNT_ID ANALYTICS_TOKEN
+   ```
+
+   `sudo nook turn-usage off` stops it.
+
 People can stop anyone from ringing them in Settings → Calls.
 
 ## GIF search in chats (KLIPY)
@@ -168,9 +190,13 @@ Everything posted or sent is checked on this laptop before it's saved; nothing i
 - **Word lists** (`js/moderation.js`, the same as in the app): slurs, threats, sexual requests, adult
   links, scams, spam.
 - **Pictures** (`pictures.js`): two small image models look at every picture, banner and GIF for nudity.
+- **Videos** (`video.js`): FFmpeg turns each posted video into a standard MP4 (at most 60 seconds and
+  1280 pixels, without the phone's hidden details), and the image models check frames from it. One video
+  is prepared at a time. If FFmpeg isn't installed, the app just doesn't offer videos;
+  `sudo pacman -S ffmpeg` (or `sudo nook update`, which installs it) fixes that.
   They ship in `vendor/` and load a few seconds after the server starts. If they can't run, pictures
   are refused until they can.
-- **Text** (`textmodel.js`): a small AI model reads posts, comments, bios, nests and messages for
+- **Text** (`textmodel.js`): a small AI model reads posts, comments, usernames, bios, nests and messages for
   insults, threats, hate and sexual talk, in many languages. It's about 300 MB, so the server downloads
   it once from Hugging Face into `/var/lib/nook/text-model` (checked against its fingerprint) the first
   time it starts. Until then, or if it can't run, the word lists carry on alone. `sudo nook text-check`

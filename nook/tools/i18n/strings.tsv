@@ -518,84 +518,84 @@ e0e3241	text	js/calls.js:419	Couldn’t use your microphone. Is another app usin
 35cabdc	text	js/calls.js:437	Join the video call
 57516ad	text	js/calls.js:437	Start a video call
 291a0a5	text	js/calls.js:437	Call
-e891ff5	text	js/calls.js:472	Budgie needs your microphone for calls. Allow it in your browser’s settings for this site, then try again.
-dfef59b	text	js/calls.js:483	Camera off
-2707a67	text	js/calls.js:484	You can change both during the call.
-bf86d8a	text	js/calls.js:495	Microphone on
-ef195cb	text	js/calls.js:495	Microphone off
-1de2ce0	text	js/calls.js:496	Camera on
-81f446f	text	js/calls.js:620	next month
-ca3f76b	text	js/calls.js:622	Calls are paused for now
-e0093af	pattern	js/calls.js:625	Budgie’s free calling allowance for this month is used up, so calls stop until {0}. Messages and everything else still work.
-9ce3bd4	text	js/calls.js:626	OK
-6f8104b	text	js/calls.js:872	Couldn’t share your screen.
-bce9bfd	text	js/calls.js:925	Couldn’t start your camera.
-8af56de	text	js/calls.js:933	you
-e73de22	text	js/calls.js:940	Calls are paused until next month
-a9c16dd	text	js/calls.js:941	No answer
-bffeda9	text	js/calls.js:942	Couldn’t talk right now
-289c54c	text	js/calls.js:943	Call cancelled
-9933a46	text	js/calls.js:944	Call ended
-cee416e	text	js/calls.js:971	You left the call
-3411805	text	js/calls.js:1092	Plain
-b1985e3	text	js/calls.js:1092	Shapes
-d5545de	text	js/calls.js:1092	Glow
-590db7c	text	js/calls.js:1107	Call look
-3914c7f	text	js/calls.js:1112	Whoever you’re calling
-755844b	text	js/calls.js:1112	Yours
-eb4e912	text	js/calls.js:1112	Colours
-64dd60f	text	js/calls.js:1114	Background
-59acfe5	text	js/calls.js:1115	Ringtone
-8980bf1	pattern	js/calls.js:1141	{0} with {1}
-5f68b09	text	js/calls.js:1146	Back to Budgie (the call carries on)
-d66e545	text	js/calls.js:1146	Minimise (Esc)
-acd4a67	text	js/calls.js:1147	Calling…
-fd3e796	text	js/calls.js:1147	Connecting…
-70c1118	text	js/calls.js:1148	People: ring them again
-34da5e1	text	js/calls.js:1148	People (R)
-530dff3	text	js/calls.js:1150	Shortcuts (?)
-95c1d24	text	js/calls.js:1151	Encrypted between devices, never recorded
-51125b1	text	js/calls.js:1154	Call controls
-0f09734	text	js/calls.js:1199	Mute
-7044c31	text	js/calls.js:1199	Unmute
-97e661b	text	js/calls.js:1200	Turn camera off
-98c78a9	text	js/calls.js:1200	Turn camera on
-481df2e	text	js/calls.js:1201	Switch camera
-c746693	text	js/calls.js:1202	Stop sharing your screen
-a72f69f	text	js/calls.js:1202	Share your screen
-0e45aee	text	js/calls.js:1202	Stop sharing
-1f28287	pattern	js/calls.js:1202	{3} (Shift+S)
-66be99b	text	js/calls.js:1203	Hang up
-c7d2102	text	js/calls.js:1345	Couldn’t connect
-8a8b956	text	js/calls.js:1345	Reconnecting…
-568fc45	pattern	js/calls.js:1362	{0}’s screen
-94571eb	text	js/calls.js:1387	You’re sharing your screen
-9e25347	text	js/calls.js:1387	Stop
-0132930	text	js/calls.js:1418	Tap to hear the call
-4be25ff	text	js/calls.js:1432	Ringing everyone…
-417814b	text	js/calls.js:1432	Ringing…
-ea7a35c	text	js/calls.js:1432	Waiting for others to join…
-d45b636	pattern	js/calls.js:1433	· {0} in the call
-1d5016c	text	js/calls.js:1465	Your call
-64bf869	pattern	js/calls.js:1482	Back to the call with {0}
-24f096b	text	js/calls.js:1482	Return
-b37554f	text	js/calls.js:1508	People
-03db7a1	text	js/calls.js:1515	In the call
-1f3909b	text	js/calls.js:1515	Not here
-96ddacc	text	js/calls.js:1517	Ring
-8525af8	text	js/calls.js:1529	Ring everyone not here
-9ea63d2	pattern	js/calls.js:1536	Ringing {0}
-8cc5a98	text	js/calls.js:1547	Mute or unmute (Ctrl+D or ⌘D works while you type)
-1403889	text	js/calls.js:1548	Camera on or off (Ctrl+E or ⌘E)
-d950831	text	js/calls.js:1549	Share your screen, or stop
-bc7a739	text	js/calls.js:1550	People: ring someone again (in a group)
-79f7c82	text	js/calls.js:1551	Hide the call, or bring it back
-1f7a4f9	text	js/calls.js:1552	Esc
-5e95636	text	js/calls.js:1552	Hide the call
-de61dea	text	js/calls.js:1553	Answer a call that’s ringing (Esc turns it down)
-99384f9	text	js/calls.js:1557	Keys in a call
-a522dab	text	js/calls.js:1599	· you’re still in the call
-c6240d6	text	js/calls.js:1600	Rejoin
+e891ff5	text	js/calls.js:474	Budgie needs your microphone for calls. Allow it in your browser’s settings for this site, then try again.
+dfef59b	text	js/calls.js:485	Camera off
+2707a67	text	js/calls.js:486	You can change both during the call.
+bf86d8a	text	js/calls.js:497	Microphone on
+ef195cb	text	js/calls.js:497	Microphone off
+1de2ce0	text	js/calls.js:498	Camera on
+81f446f	text	js/calls.js:623	next month
+ca3f76b	text	js/calls.js:625	Calls are paused for now
+e0093af	pattern	js/calls.js:628	Budgie’s free calling allowance for this month is used up, so calls stop until {0}. Messages and everything else still work.
+9ce3bd4	text	js/calls.js:629	OK
+6f8104b	text	js/calls.js:875	Couldn’t share your screen.
+bce9bfd	text	js/calls.js:928	Couldn’t start your camera.
+8af56de	text	js/calls.js:936	you
+e73de22	text	js/calls.js:943	Calls are paused until next month
+a9c16dd	text	js/calls.js:944	No answer
+bffeda9	text	js/calls.js:945	Couldn’t talk right now
+289c54c	text	js/calls.js:946	Call cancelled
+9933a46	text	js/calls.js:947	Call ended
+cee416e	text	js/calls.js:974	You left the call
+3411805	text	js/calls.js:1095	Plain
+b1985e3	text	js/calls.js:1095	Shapes
+d5545de	text	js/calls.js:1095	Glow
+590db7c	text	js/calls.js:1110	Call look
+3914c7f	text	js/calls.js:1115	Whoever you’re calling
+755844b	text	js/calls.js:1115	Yours
+eb4e912	text	js/calls.js:1115	Colours
+64dd60f	text	js/calls.js:1117	Background
+59acfe5	text	js/calls.js:1118	Ringtone
+8980bf1	pattern	js/calls.js:1144	{0} with {1}
+5f68b09	text	js/calls.js:1149	Back to Budgie (the call carries on)
+d66e545	text	js/calls.js:1149	Minimise (Esc)
+acd4a67	text	js/calls.js:1150	Calling…
+fd3e796	text	js/calls.js:1150	Connecting…
+70c1118	text	js/calls.js:1151	People: ring them again
+34da5e1	text	js/calls.js:1151	People (R)
+530dff3	text	js/calls.js:1153	Shortcuts (?)
+95c1d24	text	js/calls.js:1154	Encrypted between devices, never recorded
+51125b1	text	js/calls.js:1157	Call controls
+0f09734	text	js/calls.js:1202	Mute
+7044c31	text	js/calls.js:1202	Unmute
+97e661b	text	js/calls.js:1203	Turn camera off
+98c78a9	text	js/calls.js:1203	Turn camera on
+481df2e	text	js/calls.js:1204	Switch camera
+c746693	text	js/calls.js:1205	Stop sharing your screen
+a72f69f	text	js/calls.js:1205	Share your screen
+0e45aee	text	js/calls.js:1205	Stop sharing
+1f28287	pattern	js/calls.js:1205	{3} (Shift+S)
+66be99b	text	js/calls.js:1206	Hang up
+c7d2102	text	js/calls.js:1348	Couldn’t connect
+8a8b956	text	js/calls.js:1348	Reconnecting…
+568fc45	pattern	js/calls.js:1365	{0}’s screen
+94571eb	text	js/calls.js:1390	You’re sharing your screen
+9e25347	text	js/calls.js:1390	Stop
+0132930	text	js/calls.js:1421	Tap to hear the call
+4be25ff	text	js/calls.js:1435	Ringing everyone…
+417814b	text	js/calls.js:1435	Ringing…
+ea7a35c	text	js/calls.js:1435	Waiting for others to join…
+d45b636	pattern	js/calls.js:1436	· {0} in the call
+1d5016c	text	js/calls.js:1468	Your call
+64bf869	pattern	js/calls.js:1485	Back to the call with {0}
+24f096b	text	js/calls.js:1485	Return
+b37554f	text	js/calls.js:1511	People
+03db7a1	text	js/calls.js:1518	In the call
+1f3909b	text	js/calls.js:1518	Not here
+96ddacc	text	js/calls.js:1520	Ring
+8525af8	text	js/calls.js:1532	Ring everyone not here
+9ea63d2	pattern	js/calls.js:1539	Ringing {0}
+8cc5a98	text	js/calls.js:1550	Mute or unmute (Ctrl+D or ⌘D works while you type)
+1403889	text	js/calls.js:1551	Camera on or off (Ctrl+E or ⌘E)
+d950831	text	js/calls.js:1552	Share your screen, or stop
+bc7a739	text	js/calls.js:1553	People: ring someone again (in a group)
+79f7c82	text	js/calls.js:1554	Hide the call, or bring it back
+1f7a4f9	text	js/calls.js:1555	Esc
+5e95636	text	js/calls.js:1555	Hide the call
+de61dea	text	js/calls.js:1556	Answer a call that’s ringing (Esc turns it down)
+99384f9	text	js/calls.js:1560	Keys in a call
+a522dab	text	js/calls.js:1602	· you’re still in the call
+c6240d6	text	js/calls.js:1603	Rejoin
 931fbc9	text	js/moderation.js:40	NFKD
 069d335	text	js/moderation.js:71	~nigger
 0ab8fb9	text	js/moderation.js:71	~nigga

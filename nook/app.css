@@ -3487,7 +3487,7 @@ html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
   animation: none !important;
 }
 
-/* ---- early access: the invite-code gate -------------------------------------------------- */
+/* ---- signing in and joining: the gate -------------------------------------------------------- */
 
 /* until someone is let in, only the gate shows, and the welcome page for someone not signed in */
 html.gated body > :not(.gate):not(.landing) {

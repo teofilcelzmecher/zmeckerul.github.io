@@ -442,6 +442,8 @@
         r = await api.post('/api/calls', Object.assign(group ? { group } : { to }, { media: kind }));
       } catch (error) {
         stopTracks(local);
+        // the month's free calling allowance is used up: say until when, in the app's own words
+        if (error.callsPaused) return paused(error.callsPaused);
         return app().showError(error);
       }
       begin(r, local, { outgoing: true, to, mic: ready.mic });
@@ -550,6 +552,7 @@
       r = await api.post(`/api/calls/${encodeURIComponent(call.id)}/join`, {});
     } catch (error) {
       stopTracks(local);
+      if (error.callsPaused) return paused(error.callsPaused);
       return app().showError(error);
     }
     begin(r, local, { outgoing: false });
