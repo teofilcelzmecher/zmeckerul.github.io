@@ -315,6 +315,8 @@
   }
 
   function streakCard() {
+    // calm mode (1.0): no streak to keep up
+    if (store.state.settings.calm) return '';
     const s = store.state.streak;
     const milestones = [3, 7, 14, 30, 100, 365];
     const next = milestones.find((m) => m > s.count) || s.count + 1;
@@ -445,12 +447,13 @@
   function home() {
     const s = store.state;
     const name = s.me.name;
+    // a short hello until it's put away (1.0: one line and two small buttons, so the feed starts near the top)
     const hello = !s.tourDone
-      ? `<section class="hello" data-m3-stickers="hello-${name}" data-count="5" data-strength="1.3" data-clip-radius="30">` +
+      ? `<section class="hello" data-m3-stickers="hello-${name}" data-count="4" data-strength="1.1" data-clip-radius="28">` +
         `<button class="m3-icon-btn close" data-act="dismiss-hello" aria-label="Dismiss welcome"><span translate="no" class="m3-icon">close</span></button>` +
-        `<h1 class="m3-title">Welcome to Budgie, ${esc(name)}!</h1>` +
-        '<p>Every nest has its own colour and shape, and the app wears them as you move around. Join a few and Spark what you love.<span class="not-phone"> Press <kbd>?</kbd> for shortcuts.</span></p>' +
-        `<div class="row"><button class="m3-btn filled" data-act="about-nook">${icon('tour')}What’s Budgie?</button><a class="m3-btn tonal" href="#/explore">${icon('explore')}Find your nests</a></div></section>`
+        `<h1 class="m3-title">Welcome, ${esc(name)}!</h1>` +
+        '<p>Join a few nests and Spark what you love.</p>' +
+        `<div class="row"><a class="m3-btn filled small" href="#/explore">${icon('explore')}Find your nests</a><button class="m3-btn tonal small" data-act="about-nook">${icon('tour')}What’s Budgie?</button></div></section>`
       : '';
     return {
       title: 'Home',
@@ -463,9 +466,9 @@
         `<a class="m3-icon-btn" href="#/submit?type=poll" aria-label="Start a poll" data-tooltip="Poll"><span translate="no" class="m3-icon">ballot</span></a></div>` +
         `<div class="toolbar">${sortControl(s.settings.sort)}<span class="spacer"></span>${compactToggle()}</div>` +
         feedShell() +
+        // the side: a few nests to try, and the small print (the streak lives on your profile)
         '</div><aside class="rail" aria-label="Sidebar">' +
-        streakCard() +
-        trendingCard() +
+        trendingCard(3) +
         footCard() +
         '</aside></div>',
       mount(root) {
@@ -803,7 +806,7 @@
         `<div class="stat" title="Every upvote on their posts and comments is a feather"><b class="count">${num(st.feathers)}</b><span>Feathers</span></div>` +
         `<div class="stat"><b class="count">${num(st.posts.length)}</b><span>Posts</span></div>` +
         `<div class="stat"><b class="count">${num(st.comments.length)}</b><span>Comments</span></div>` +
-        (me ? `<div class="stat"><b>${plural(s.streak.count, 'day')}</b><span>Streak</span></div>` : '') +
+        (me && !s.settings.calm ? `<div class="stat"><b>${plural(s.streak.count, 'day')}</b><span>Streak</span></div>` : '') +
         '</div></section>' +
         badges +
         `<div class="toolbar">${segmented('profile-tab', [['posts', 'Posts', 'article'], ['comments', 'Comments', 'forum']], 'posts', 'Show')}</div>` +
@@ -941,7 +944,7 @@
         `<section>${header('cookie9', 'dynamic_feed', 'Feed')}<div class="card setting-card">` +
         `<div class="setting-row"><span class="label">Default sort on Home</span>${segmented('set-sort', ['hot', 'new', 'top', 'rising'].map((k) => [k, SORT_LABELS[k][0], SORT_LABELS[k][1]]), s.sort, 'Default sort')}</div>` +
         sw('set-compact', 'Compact cards', 'Smaller posts with thumbnails, so you see more at once.', s.compact) +
-        sw('set-calm', 'Calm mode', 'Hide every score, count and tally. Votes still count, you just don’t see them.', s.calm) +
+        sw('set-calm', 'Calm mode', 'Hide every score, count, tally and streak, show new things as a dot instead of a number, and skip the confetti. Votes still count, you just don’t see them.', s.calm) +
         sw('set-filterLanguage', 'Hide strong language', 'Swear words show as dots, like f•••. Slurs and threats are never allowed at all.', s.filterLanguage !== false) +
         '</div></section>' +
         `<section>${header('heart', 'self_improvement', 'Wellbeing')}<div class="card setting-card">` +

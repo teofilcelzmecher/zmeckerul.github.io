@@ -1287,6 +1287,15 @@ body.calm .spark {
 body.calm :is(.stat, .about-stats > div):has(.count) {
   display: none;
 }
+/* (1.0) something new is a dot, not a number to chase */
+body.calm :is(.badge, .badge-dot) {
+  min-width: 10px;
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+}
 
 /* ---- feed bits ------------------------------------------------------------------ */
 
@@ -1344,15 +1353,16 @@ body.calm :is(.stat, .about-stats > div):has(.count) {
 .hello {
   position: relative;
   display: grid;
-  gap: 8px;
+  gap: 4px;
   overflow: hidden;
-  padding: 24px;
+  padding: 18px 20px;
   border-radius: var(--m3-r-very-large);
   background: linear-gradient(140deg, var(--m3-primary-container), var(--m3-tertiary-container));
   color: var(--m3-on-primary-container);
 }
 .hello h1 {
-  font-size: var(--m3-fs-headline);
+  padding-right: 40px;
+  font-size: 24px;
 }
 .hello p {
   max-width: 52ch;
@@ -3749,6 +3759,29 @@ html.visitor .landing {
 .landing-feature h3 {
   font-size: 19px;
   font-weight: 700;
+}
+/* on a phone (1.0) each one is a short row: its shape beside its words, so the page isn't one long column */
+@media (max-width: 600px) {
+  .landing-grid {
+    gap: 8px;
+  }
+  .landing-feature {
+    grid-template-columns: 48px minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 2px;
+    padding: 14px 16px;
+  }
+  .landing-feature m3-shape-icon {
+    grid-row: span 2;
+    align-self: center;
+  }
+  .landing-feature h3 {
+    font-size: 17px;
+  }
+  .landing-feature p {
+    margin: 0;
+    font-size: 14px;
+  }
 }
 .landing-feature p {
   color: var(--m3-on-surface-variant);

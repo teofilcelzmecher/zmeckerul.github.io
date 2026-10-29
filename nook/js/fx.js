@@ -185,7 +185,8 @@
 
   /** confetti of shapes from a point or an element, with a little gravity */
   function confetti(at, { shapes = ['cookie9', 'sunny', 'flower', 'heart', 'clover4'], colors = null, count = 22, power = 1, from = null } = {}) {
-    if (reduced()) return;
+    // calm mode (1.0): no confetti
+    if (reduced() || document.body.classList.contains('calm')) return;
     const point = at && typeof at.getBoundingClientRect === 'function' ? centre(at) : at;
     if (!point || !Number.isFinite(point.x)) return;
     const source = from || (at && at.nodeType === 1 ? at : null);

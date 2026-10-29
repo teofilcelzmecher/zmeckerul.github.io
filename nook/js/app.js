@@ -439,7 +439,7 @@
     } else {
       flip();
     }
-    if (key === 'calm') M3.toast(S().calm ? 'Calm mode on: no more numbers' : 'Calm mode off', { symbol: 'self_improvement', shape: 'heart' });
+    if (key === 'calm') M3.toast(S().calm ? 'Calm mode on: no numbers, no streaks, no confetti' : 'Calm mode off', { symbol: 'self_improvement', shape: 'heart' });
   }
 
   /** puts the settings into effect; settles once every colour is in place */
@@ -3125,7 +3125,13 @@
     setTimeout(() => location.replace(location.pathname), 1800);
   });
 
+  // calm mode (1.0): the little bursts of shapes on votes, Sparks and joins stay away too
+  const burstAway = M3.burst;
+  M3.burst = (...args) => (S().calm ? null : burstAway(...args));
+
   store.on('badge', (badge) => {
+    // in calm mode a badge arrives quietly: it's on your profile, with no fanfare
+    if (S().calm) return;
     setTimeout(() => {
       M3.toast(`Badge unlocked: ${badge.name}`, { symbol: badge.symbol, shape: badge.shape, timeout: 3200 });
       fx.confetti({ x: innerWidth / 2, y: innerHeight - (innerWidth < 720 ? 130 : 60) }, { shapes: [badge.shape, badge.shape, 'sunny'], count: 24, power: 0.9 });
