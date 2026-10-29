@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '0.9.5';
+  const VERSION = '1.0.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -72,7 +72,7 @@
   const pictures = (u) => ({ photo: api.url(u.photo), photoGif: api.url(u.photoGif), banner: api.url(u.banner), bannerGif: api.url(u.bannerGif) });
   const meFrom = (me) => ({
     name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
-    pronouns: me.pronouns || '', flag: me.flag || '', interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
+    pronouns: me.pronouns || '', flag: me.flag || '', flags: me.flags || (me.flag ? [me.flag] : []), interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [], calls: me.calls || 'on',
   });
 
@@ -792,9 +792,10 @@
 
   const report = (kind, id, reason) => api.post('/api/reports', { kind, id, reason });
   const adminReports = () => api.get('/api/admin/reports').then((r) => r.reports);
-  const resolveReport = (id, action, reason) => api.post('/api/admin/resolve', { id, action, reason });
-  async function adminRemove(kind, id, reason) {
-    await api.post('/api/admin/remove', { kind, id, reason });
+  // parts: for a profile, just its 'photo' or 'banner' (from 1.0); none is the whole profile
+  const resolveReport = (id, action, reason, parts) => api.post('/api/admin/resolve', { id, action, reason, parts });
+  async function adminRemove(kind, id, reason, parts) {
+    await api.post('/api/admin/remove', { kind, id, reason, parts });
     removed.add(id);
     if (kind === 'post') posts.delete(id);
   }

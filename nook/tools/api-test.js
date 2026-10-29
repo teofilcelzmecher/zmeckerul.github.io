@@ -117,6 +117,12 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(open.status === 200 && open.json.token, 'with sign-up open, no code is needed', open.json.error);
   const A = a.json.token;
   const B = b.json.token;
+  // usernames are read by the text model too: a sure one is refused, a doubtful one goes to a moderator
+  const aiName = await api(null, 'POST', '/api/signup', { name: 'harmfulname', password: 'correct horse', age: true, terms: true });
+  ok(aiName.status === 422 && aiName.json.field === 'name', 'a username the text model is sure is hurtful is refused', aiName.json.error);
+  const doubtName = await api(null, 'POST', '/api/signup', { name: 'doubtfulname', password: 'correct horse', age: true, terms: true });
+  ok(doubtName.status === 200, 'a doubtful one is let through (and a moderator gets a look, checked below)', doubtName.json.error);
+  ok((await api(doubtName.json.token, 'PATCH', '/api/me', { name: 'harmfulname' })).status === 422, 'renaming is checked the same way');
 
   // the robot check (Cloudflare Turnstile): off until the owner sets it up, then needed for every new account
   ok(!health.json.captcha && /is off/.test(cli('captcha')), 'the robot check is off at first');
@@ -145,7 +151,7 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
 
   // bootstrap
   const boot = await api(A, 'GET', '/api/bootstrap');
-  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 4, 'bootstrap (alice, bob, dora and human_one)', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
+  ok(boot.status === 200 && boot.json.joined.length === 7 && boot.json.users.length === 5, 'bootstrap (alice, bob, dora, human_one and doubtfulname)', `joined ${boot.json.joined.length}, users ${boot.json.users.length}`);
 
   // posts, moderation
   const kys = await api(A, 'POST', '/api/posts', { n: 'askbudgie', title: 'kys everyone', type: 'text' });
@@ -268,6 +274,11 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   const swearing = await api(A, 'PATCH', '/api/me', { pronouns: 'fuck/off' });
   ok(swearing.status === 422, 'no swearing in pronouns', swearing.json.error);
   await refusedField({ flag: 'pirate' }, 'flag', 'only Budgie’s pride flags');
+  // up to four flags (1.0); `flag` stays the first, for an app from before
+  const flags = await api(A, 'PATCH', '/api/me', { flags: ['trans', 'bi', 'lesbian'] });
+  ok(flags.status === 200 && flags.json.me.flags.join() === 'trans,bi,lesbian' && flags.json.me.flag === 'trans', 'someone can wear several flags, in the order they picked', flags.json.error);
+  await refusedField({ flags: ['trans', 'bi', 'lesbian', 'ace', 'aro'] }, 'flag', 'up to four flags');
+  await refusedField({ flags: ['trans', 'pirate'] }, 'flag', 'only Budgie’s flags, among several too');
   await refusedField({ interests: ['music', 'art', 'books', 'space', 'plants', 'anime', 'dance'] }, 'interests', 'up to 6 interests');
   await refusedField({ interests: ['music', 'crime'] }, 'interests', 'only Budgie’s interests');
   await refusedField({ scheme: 'rgb' }, 'scheme', 'only Material’s colour styles');
@@ -337,11 +348,12 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(notAdmin.status === 403, 'only admins see reports');
   cli('admin', 'alice');
   const reports = await api(A, 'GET', '/api/admin/reports');
+  ok(reports.json.reports.some((r) => r.kind === 'user' && r.target === 'doubtfulname' && /username/.test(r.reason)), 'the doubtful username is waiting for a moderator');
   const people = reports.json.reports.filter((r) => !r.automatic);
   ok(people.length === 1 && people[0].item.title, 'alice (admin) sees the report', people[0] && people[0].item.title);
   const auto = reports.json.reports.filter((r) => r.automatic);
   const autoKinds = auto.map((r) => r.kind).sort().join(',');
-  ok(autoKinds === 'comment,message,message,post,post,user', 'the automatic checks reported the doubtful post, comment, bio, picture and two messages', autoKinds);
+  ok(autoKinds === 'comment,message,message,post,post,user,user', 'the automatic checks reported the doubtful post, comment, bio, username, picture and two messages', autoKinds);
   ok(!auto.some((r) => r.kind === 'message' && /banter/.test(r.item && r.item.body)), 'but not the doubtful insult in a private message');
   ok(auto.every((r) => /^Automatic check: /.test(r.reason)), 'each says why', auto.map((r) => r.reason).join(' | '));
   const res = await api(A, 'POST', '/api/admin/resolve', { id: people[0].id, action: 'remove', reason: 'Testing removal' });
@@ -362,15 +374,32 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok(cleared.status === 200 && bobNow && !bobNow.photo && !bobNow.banner && !bobNow.bannerGif && !bobNow.bio && !bobNow.pronouns, 'clearing a profile removes its picture, banner, bio and pronouns');
   ok(bobNow && bobNow.flag === 'bi', 'but not a pride flag (it isn’t anything they wrote)');
   const bobNotes = await api(B, 'GET', '/api/updates?rev=0&note=0&msg=0');
-  ok(bobNotes.json.notes.some((n) => /cleared your profile.*Testing profiles/.test(n.text)), 'and tells its owner why');
+  ok(bobNotes.json.notes.some((n) => /removed your profile picture, banner, bio and pronouns\. Reason: Testing profiles/.test(n.text)), 'and tells its owner why');
+  // just the picture (1.0): the banner and the rest of the profile stay, and no ban
+  await api(B, 'PATCH', '/api/me', { photo: png, banner: png, bio: 'second try' });
+  const picOnly = await api(A, 'POST', '/api/admin/remove', { kind: 'user', id: 'bob', reason: 'Not OK for a profile picture', parts: ['photo'] });
+  const bobPic = (await api(A, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'bob');
+  ok(picOnly.status === 200 && !bobPic.photo && bobPic.banner && bobPic.bio === 'second try' && !bobPic.banned, 'a moderator removes just a profile picture: the banner, bio and account stay', picOnly.json.error);
+  const bannerOnly = await api(A, 'POST', '/api/admin/remove', { kind: 'user', id: 'bob', reason: 'Not OK for a banner', parts: ['banner'] });
+  const bobBan = (await api(A, 'GET', '/api/bootstrap')).json.users.find((u) => u.name === 'bob');
+  ok(bannerOnly.status === 200 && !bobBan.banner && bobBan.bio === 'second try', 'or just a banner');
+  const told = (await api(B, 'GET', '/api/updates?rev=0&note=0&msg=0')).json.notes;
+  ok(told.some((n) => /removed your profile picture\. Reason: Not OK for a profile picture/.test(n.text)) && told.some((n) => /removed your banner\. Reason: Not OK for a banner/.test(n.text)), 'each time, its owner is told what went and why');
+  ok((await api(A, 'POST', '/api/admin/remove', { kind: 'user', id: 'bob', reason: 'x', parts: ['banner'] })).status === 404, 'nothing left to remove says so');
   await api(B, 'PATCH', '/api/me', { bio: 'back again' });
   ok(/Cleared u\/bob/.test(cli('clear-profile', 'bob', 'Testing the command')), 'the cli clears a profile too');
 
-  // badges: every account made before 1.0 is an Early Bird; Developer comes from the cli; a developer gives the Tester badge
-  const boot0 = (await api(A, 'GET', '/api/bootstrap')).json;
-  ok(boot0.me.badges.join() === 'early' && boot0.users.every((u) => (u.badges || []).includes('early')), 'every account made before 1.0 is an Early Bird', JSON.stringify(boot0.me.badges));
+  // badges: Budgie is 1.0 now, so an account made from here on isn't an Early Bird; every one made before 1.0 is
+  // (the server notes when it first ran as 1.0). Developer comes from the cli; a developer gives the Tester badge
+  const sinceOne = (await api(A, 'GET', '/api/bootstrap')).json;
   const aliceNotes = (await api(A, 'GET', '/api/updates?rev=0&note=0&msg=0')).json.notes;
-  ok(aliceNotes.some((n) => n.kind === 'badge' && /Early Bird/.test(n.text)), 'and is told so when they join');
+  ok(!(sinceOne.me.badges || []).includes('early') && !aliceNotes.some((n) => n.kind === 'badge' && /Early Bird/.test(n.text)), 'an account made since 1.0 isn’t an Early Bird, and isn’t told it is', JSON.stringify(sinceOne.me.badges));
+  // as if these accounts were made before 1.0: the moment the server first ran as 1.0 moves to later on
+  const raw = new (require('node:sqlite').DatabaseSync)(path.join(DATA, 'nook.db'));
+  raw.prepare("UPDATE meta SET value = ? WHERE key = 'v1-since'").run(String(Date.now() + 3600e3));
+  raw.close();
+  const boot0 = (await api(A, 'GET', '/api/bootstrap')).json;
+  ok(boot0.me.badges.join() === 'early' && boot0.users.every((u) => (u.badges || []).includes('early')), 'every account made before 1.0 keeps the Early Bird badge', JSON.stringify(boot0.me.badges));
   const notDev = await api(B, 'POST', '/api/badges', { name: 'dora', badge: 'tester', on: true });
   ok(notDev.status === 403, 'only developers give badges', notDev.json.error);
   ok(/Developer badge now/.test(cli('dev', 'alice')) && /already has/.test(cli('dev', 'alice')), 'the cli makes alice a developer (once)');

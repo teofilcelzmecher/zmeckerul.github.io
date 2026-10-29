@@ -145,7 +145,7 @@
       const mask = shapeMask(u.shape);
       return `<img src="${esc(photo)}" alt="" style="-webkit-mask-image:${mask};mask-image:${mask}">`;
     }
-    if (u.icon) return `<span class="m3-icon">${esc(u.icon)}</span>`;
+    if (u.icon) return `<span translate="no" class="m3-icon">${esc(u.icon)}</span>`;
     return `<b>${esc((u.name || '?')[0].toUpperCase())}</b>`;
   }
 
@@ -179,7 +179,159 @@
    * centre-cropped to size as a JPEG (this also drops any location the photo carried); a GIF is
    * kept as it is too, so it can move, and the still (its first frame) shows in feeds.
    */
-  function pictureFrom(file, kind) {
+  /**
+   * Lets someone choose which part of a still picture to keep, before it's made smaller: drag it, zoom with the
+   * slider, two fingers or the mouse wheel (and the arrow keys and + and -). Resolves with the part of the picture
+   * to keep, in its own pixels ({ sx, sy, sw, sh }), or null when they put it away.
+   */
+  function cropPicture(file, kind) {
+    const { width, height } = PICTURE_SIZES[kind];
+    const ratio = width / height;
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('Couldn’t read that image. Try a JPEG, PNG or GIF.'));
+      };
+      img.onload = () => {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        let frame = null; // the frame's size on screen
+        let zoom = 1;
+        let base = 1; // the scale at which the picture just covers the frame
+        let x = 0, y = 0; // where the picture's top-left corner is, from the frame's
+        let stage, pic, slider;
+        const scale = () => base * zoom;
+        // the picture always covers the whole frame
+        const keepIn = () => {
+          x = Math.min(0, Math.max(frame.w - w * scale(), x));
+          y = Math.min(0, Math.max(frame.h - h * scale(), y));
+        };
+        const draw = () => {
+          keepIn();
+          pic.style.width = w * scale() + 'px';
+          pic.style.transform = `translate(${frame.x + x}px, ${frame.y + y}px)`;
+          slider.value = String(zoom);
+        };
+        // zooms keeping the point (px, py) of the frame where it is
+        const zoomTo = (z, px = frame.w / 2, py = frame.h / 2) => {
+          const next = Math.min(5, Math.max(1, z));
+          const k = next / zoom;
+          x = px - (px - x) * k;
+          y = py - (py - y) * k;
+          zoom = next;
+          draw();
+        };
+        const measure = () => {
+          const box = stage.getBoundingClientRect();
+          // the frame fills the stage, less a margin, in the picture's proportions
+          const fw = Math.min(box.width - 32, (box.height - 32) * ratio);
+          const old = frame;
+          frame = { w: fw, h: fw / ratio, x: (box.width - fw) / 2, y: (box.height - fw / ratio) / 2 };
+          stage.style.setProperty('--fx', frame.x + 'px');
+          stage.style.setProperty('--fy', frame.y + 'px');
+          stage.style.setProperty('--fw', frame.w + 'px');
+          stage.style.setProperty('--fh', frame.h + 'px');
+          base = Math.max(frame.w / w, frame.h / h);
+          if (!old) {
+            x = (frame.w - w * base) / 2;
+            y = (frame.h - h * base) / 2;
+          } else {
+            x *= frame.w / old.w;
+            y *= frame.w / old.w;
+          }
+          draw();
+        };
+        sheet({
+          headline: kind === 'banner' ? 'Fit your banner' : 'Fit your picture',
+          symbol: 'crop',
+          shape: 'cookie9',
+          className: 'crop-sheet',
+          html:
+            `<div class="crop-stage${kind === 'banner' ? ' banner' : ''}" tabindex="0" role="application" aria-label="The part of the picture to keep. Drag it, or use the arrow keys; + and - zoom.">` +
+            `<img class="crop-img" src="${url}" alt="" draggable="false"><div class="crop-frame"></div></div>` +
+            `<div class="crop-zoom">${icon('zoom_out')}<input type="range" class="crop-slider" min="1" max="5" step="0.01" value="1" aria-label="Zoom">${icon('zoom_in')}</div>` +
+            '<p class="muted crop-hint">Drag to move it. Pinch, scroll or use the slider to zoom.</p>',
+          setup(body) {
+            stage = body.querySelector('.crop-stage');
+            pic = body.querySelector('.crop-img');
+            slider = body.querySelector('.crop-slider');
+            requestAnimationFrame(measure);
+            const ro = new ResizeObserver(() => frame && measure());
+            ro.observe(stage);
+            slider.addEventListener('input', () => zoomTo(Number(slider.value)));
+            // one finger (or the mouse) moves it; two fingers pinch to zoom
+            const pointers = new Map();
+            let pinch = null;
+            stage.addEventListener('pointerdown', (e) => {
+              try {
+                stage.setPointerCapture(e.pointerId);
+              } catch (_) {
+                /* a pointer the browser no longer knows: it still moves the picture while it's down */
+              }
+              pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+              if (pointers.size === 2) {
+                const [a, b] = [...pointers.values()];
+                pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), zoom };
+              }
+            });
+            stage.addEventListener('pointermove', (e) => {
+              const last = pointers.get(e.pointerId);
+              if (!last) return;
+              const now = { x: e.clientX, y: e.clientY };
+              pointers.set(e.pointerId, now);
+              if (pointers.size === 2 && pinch) {
+                const [a, b] = [...pointers.values()];
+                const box = stage.getBoundingClientRect();
+                zoomTo(pinch.zoom * (Math.hypot(a.x - b.x, a.y - b.y) / pinch.d), (a.x + b.x) / 2 - box.left - frame.x, (a.y + b.y) / 2 - box.top - frame.y);
+              } else if (pointers.size === 1) {
+                x += now.x - last.x;
+                y += now.y - last.y;
+                draw();
+              }
+            });
+            const lift = (e) => {
+              pointers.delete(e.pointerId);
+              if (pointers.size < 2) pinch = null;
+            };
+            stage.addEventListener('pointerup', lift);
+            stage.addEventListener('pointercancel', lift);
+            stage.addEventListener(
+              'wheel',
+              (e) => {
+                e.preventDefault();
+                const box = stage.getBoundingClientRect();
+                zoomTo(zoom * Math.exp(-e.deltaY / 400), e.clientX - box.left - frame.x, e.clientY - box.top - frame.y);
+              },
+              { passive: false }
+            );
+            stage.addEventListener('keydown', (e) => {
+              const step = e.shiftKey ? 40 : 10;
+              const moves = { ArrowLeft: [step, 0], ArrowRight: [-step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] };
+              if (moves[e.key]) {
+                x += moves[e.key][0];
+                y += moves[e.key][1];
+                draw();
+              } else if (e.key === '+' || e.key === '=') zoomTo(zoom * 1.15);
+              else if (e.key === '-') zoomTo(zoom / 1.15);
+              else return;
+              e.preventDefault();
+            });
+          },
+          actions: [
+            { label: 'Cancel', value: null },
+            { label: 'Use this', variant: 'filled', run: () => ({ sx: -x / scale(), sy: -y / scale(), sw: frame.w / scale(), sh: frame.h / scale() }) },
+          ],
+        }).then((rect) => {
+          URL.revokeObjectURL(url);
+          resolve(rect);
+        });
+      };
+      img.src = url;
+    });
+  }
+
+  function pictureFrom(file, kind, crop = null) {
     const { width, height, gifMax, maxSide } = PICTURE_SIZES[kind];
     return new Promise((resolve, reject) => {
       if (!file || !/^image\//.test(file.type)) return reject(new Error('That file isn’t an image.'));
@@ -193,10 +345,14 @@
         URL.revokeObjectURL(url);
         if (gif && (w > maxSide || h > maxSide)) return reject(new Error(`That GIF is too large. Try one at most ${maxSide}×${maxSide} pixels.`));
         const scale = Math.max(width / w, height / h);
+        // the part picked in the crop sheet, or the middle
+        const part = crop || { sx: (w - width / scale) / 2, sy: (h - height / scale) / 2, sw: width / scale, sh: height / scale };
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
-        canvas.getContext('2d').drawImage(img, (w - width / scale) / 2, (h - height / scale) / 2, width / scale, height / scale, 0, 0, width, height);
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, part.sx, part.sy, part.sw, part.sh, 0, 0, width, height);
         const still = canvas.toDataURL('image/jpeg', 0.85);
         if (!gif) return resolve({ still, gif: '' });
         const reader = new FileReader();
@@ -219,7 +375,7 @@
     );
   }
 
-  const icon = (name, cls = '') => `<span class="m3-icon ${cls}" aria-hidden="true">${name}</span>`;
+  const icon = (name, cls = '') => `<span translate="no" class="m3-icon ${cls}" aria-hidden="true">${name}</span>`;
 
   // ---- theme ------------------------------------------------------------------------
 
@@ -578,10 +734,14 @@
     return out;
   }
   /** someone's pride flag, small, after their name; '' without one */
+  /** the flags someone wears after their name (up to four, from 1.0; one before) */
+  const flagsOf = (u) => (u ? (u.flags && u.flags.length ? u.flags : u.flag ? [u.flag] : []) : []);
   function prideFlag(u) {
-    const flag = u && FLAGS.get(u.flag);
-    if (!flag) return '';
-    return `<span class="pride-flag" role="img" aria-label="${flag[1]} flag" title="${flag[1]} flag">${flagSVG(flag[0])}</span>`;
+    return flagsOf(u)
+      .map((id) => FLAGS.get(id))
+      .filter(Boolean)
+      .map((flag) => `<span class="pride-flag" role="img" aria-label="${flag[1]} flag" title="${flag[1]} flag">${flagSVG(flag[0])}</span>`)
+      .join('');
   }
 
   // what someone can say they're into, on their profile: [id, label, symbol]
@@ -620,8 +780,8 @@
   const devTag = (u) => (hasBadge(u, 'dev') ? `<span class="tag dev" title="One of Budgie’s developers">${icon('code')}Dev</span>` : '');
 
   Nook.ui = {
-    esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, nookIcon, icon, theme, sheet,
-    NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES, SPECIAL_BADGES, hasBadge, specialBadges, devTag,
+    esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, cropPicture, nookIcon, icon, theme, sheet,
+    NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagsOf, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES, SPECIAL_BADGES, hasBadge, specialBadges, devTag,
     undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
   };
 })();

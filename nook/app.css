@@ -491,7 +491,8 @@ body.bars-hidden .bottom-nav {
 .bottom-nav .create .nav-ind {
   width: 52px;
   height: 36px;
-  margin-top: -2px;
+  /* taller than the others by 4px, half above and half below, so its word lines up with theirs */
+  margin: -2px 0;
   border-radius: 14px;
   background: var(--m3-primary-container);
   color: var(--m3-on-primary-container);
@@ -2013,6 +2014,10 @@ input[type='color'].color-input::-moz-color-swatch {
   width: 100%;
   height: 100%;
 }
+/* a second, third or fourth flag sits closer to the one before */
+.pride-flag + .pride-flag {
+  margin-inline-start: 0.18em;
+}
 /* in a big name it's a touch smaller than the letters, so the name leads */
 h1 .pride-flag,
 .np-text .pride-flag {
@@ -2110,6 +2115,14 @@ h1 .pride-flag,
 .flag-none {
   box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
   color: var(--m3-on-surface-variant);
+}
+/* several flags in the edit-profile row, fanned out like a hand of cards */
+.flag-stack {
+  display: inline-flex;
+  flex: none;
+}
+.flag-stack .flag-big + .flag-big {
+  margin-inline-start: -26px;
 }
 /* four dots of a style's palette: primary, secondary, tertiary and the primary container */
 .scheme-dots {
@@ -4173,7 +4186,12 @@ body:has(.call-screen:not([hidden])) .m3-toaster {
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
 }
 .tag {
-  display: inline-block;
+  /* a row, so an icon in a tag sits level with its word */
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  vertical-align: middle;
+  line-height: 1.4;
   padding: 1px 8px;
   border-radius: var(--m3-r-full);
   background: var(--m3-tertiary-container);
@@ -4622,7 +4640,16 @@ button.chat-who {
   flex: none;
   transition: background-color 200ms, color 200ms;
 }
+/* the buttons sit level with one line of text (44px tall, they're 40), and stay at the bottom as it grows */
+.chat-send,
+.chat-box > .chat-tools {
+  margin-bottom: 2px;
+}
+/* a filled paper plane, nudged right: its weight is in its tail, so the middle of the box looks off without it */
 .chat-send .m3-icon {
+  --m3-icon-fill: 1;
+  --m3-icon-size: 22px;
+  translate: 1.5px 0;
   transition: rotate 320ms var(--m3-ease-emphasized-decel), translate 320ms var(--m3-ease-emphasized-decel);
 }
 .chat-send:disabled {
@@ -6004,4 +6031,68 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
 }
 .call-people .team-row {
   padding: 6px 0;
+}
+
+/* ---- 1.0: choosing the part of a picture to keep (profile pictures and banners) -------------------------- */
+
+.crop-stage {
+  position: relative;
+  height: min(58vh, 420px);
+  overflow: hidden;
+  border-radius: var(--m3-r-large);
+  background: #121014;
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.crop-stage.banner {
+  height: min(38vh, 260px);
+}
+.crop-stage:active {
+  cursor: grabbing;
+}
+.crop-stage:focus-visible {
+  outline: 2px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.crop-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: none;
+  height: auto;
+  pointer-events: none;
+  will-change: transform;
+}
+/* the part that's kept: clear, everything around it dimmed */
+.crop-frame {
+  position: absolute;
+  top: var(--fy);
+  left: var(--fx);
+  width: var(--fw);
+  height: var(--fh);
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 0.58);
+  outline: 2px solid rgb(255 255 255 / 0.9);
+  pointer-events: none;
+}
+.crop-stage.banner .crop-frame {
+  border-radius: 14px;
+}
+.crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--m3-on-surface-variant);
+}
+.crop-slider {
+  flex: 1;
+  accent-color: var(--m3-primary);
+}
+.crop-hint {
+  margin: 6px 0 0;
+  text-align: center;
+  font-size: var(--m3-fs-smaller);
 }

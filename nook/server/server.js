@@ -27,7 +27,7 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 
-const VERSION = '0.9.5';
+const VERSION = '1.0.0';
 const TERMS = '0.9.5, 2026-10-28';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -239,6 +239,14 @@ async function checkText(texts, kind, { strict = false } = {}) {
   return judged.verdict === 'review' ? textmodel.reason(judged) : null;
 }
 
+/** a username, read by the text model too (after the word lists): refused when it's sure the name is hurtful, and
+ * returned as a note for a moderator when it's only doubtful (so a name like "gay_and_proud" isn't turned away) */
+async function checkName(name) {
+  const judged = textmodel.judge(await textmodel.scoreName(name), 'public');
+  if (judged.verdict === 'block') fail(422, 'That username reads as hurtful or rude to an automatic check. Try another one.', { field: 'name', rule: mod.RULES.harassment });
+  return judged.verdict === 'review' ? textmodel.reason(judged).replace('this might be', 'this username might be') : null;
+}
+
 const imageUrl = (id) => (id ? '/api/images/' + id : '');
 // profile pictures and banners: a still (shown in feeds, and when motion is reduced) and, for a GIF, the moving one
 const MEDIA = {
@@ -258,6 +266,7 @@ const INTERESTS = [
   'sports', 'fitness', 'cooking', 'baking', 'plants', 'animals', 'travel', 'nature', 'fashion', 'dance', 'theatre', 'languages',
 ];
 const INTERESTS_MAX = 6;
+const FLAGS_MAX = 4;
 // the colour styles Material 3 makes a scheme in, for someone's profile page
 const PROFILE_SCHEMES = ['tonalSpot', 'vibrant', 'expressive', 'fidelity', 'content', 'rainbow', 'fruitSalad', 'neutral', 'monochrome'];
 const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
@@ -269,7 +278,8 @@ function publicUser(u) {
   return {
     name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
     banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio, font: u.name_font || undefined,
-    pronouns: u.pronouns || undefined, flag: u.pride_flag || undefined, interests: u.interests ? u.interests.split(',') : undefined,
+    // up to four flags (from 1.0); `flag` is the first, for an app from before then
+    pronouns: u.pronouns || undefined, flag: u.pride_flag ? u.pride_flag.split(',')[0] : undefined, flags: u.pride_flag ? u.pride_flag.split(',') : undefined, interests: u.interests ? u.interests.split(',') : undefined,
     scheme: u.profile_scheme || undefined, sticker: u.sticker_shape || undefined, badges: badges.length ? badges : undefined,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
@@ -606,6 +616,7 @@ route('POST', '/api/signup', async ({ body, ip }) => {
   if (!NAME_RE.test(name)) fail(400, 'Usernames are 3–20 letters, numbers or underscores.', { field: 'name' });
   vet([name.replace(/_/g, ' ')], { kind: 'profile' }, { strongNames: true });
   if (db.get('SELECT 1 AS x FROM users WHERE name = ?', name)) fail(409, `u/${name} is taken. Try another name.`, { field: 'name' });
+  const nameDoubt = await checkName(name);
   if (password.length < 8) fail(400, 'Use at least 8 characters for your password.', { field: 'password' });
   if (password.length > 200) fail(400, 'That password is too long.', { field: 'password' });
   if (password.toLowerCase() === name.toLowerCase()) fail(400, 'Your password can’t be your username.', { field: 'password' });
@@ -631,6 +642,7 @@ route('POST', '/api/signup', async ({ body, ip }) => {
     return db.get('SELECT * FROM users WHERE id = ?', id);
   });
   if (badgesOf(user).includes('early')) notify(user.id, Object.assign({ kind: 'badge', href: '#/u/' + user.name }, EARLY_NOTE));
+  if (nameDoubt) autoReport('user', user.name, nameDoubt);
   return { token: newSession(user.id), recovery, me: meOut(user) };
 }, { auth: false });
 
@@ -1301,6 +1313,7 @@ route('POST', '/api/nooks/:id/reports/:rid/dismiss', ({ user, params }) => {
 route('PATCH', '/api/me', async ({ user, body }) => {
   const next = { name: user.name, color: user.color, shape: user.shape, icon: user.icon, bio: user.bio, photo: user.photo, photo_gif: user.photo_gif, banner: user.banner, banner_gif: user.banner_gif, name_font: user.name_font,
     pronouns: user.pronouns, pride_flag: user.pride_flag, interests: user.interests, profile_scheme: user.profile_scheme, sticker_shape: user.sticker_shape };
+  let nameDoubt = null;
   if (body.name != null && body.name !== user.name) {
     limit('rename:' + user.id, 5, DAY, 'You can change your username up to 5 times a day.');
     const name = text(body.name, 40);
@@ -1308,6 +1321,7 @@ route('PATCH', '/api/me', async ({ user, body }) => {
     vet([name.replace(/_/g, ' ')], { kind: 'profile' }, { strongNames: true });
     const taken = db.get('SELECT id FROM users WHERE name = ?', name);
     if (taken && taken.id !== user.id) fail(409, `u/${name} is taken. Try another name.`, { field: 'name' });
+    nameDoubt = await checkName(name);
     next.name = name;
   }
   if (body.bio != null) {
@@ -1326,7 +1340,12 @@ route('PATCH', '/api/me', async ({ user, body }) => {
     if (pronouns) vet([pronouns], { kind: 'profile' }, { strongNames: true });
     next.pronouns = pronouns;
   }
-  if (body.flag != null) {
+  if (Array.isArray(body.flags)) {
+    const flags = [...new Set(body.flags.map(String))];
+    if (flags.some((f) => !PRIDE_FLAGS.includes(f))) fail(400, 'That isn’t one of Budgie’s pride flags.', { field: 'flag' });
+    if (flags.length > FLAGS_MAX) fail(400, `You can wear up to ${FLAGS_MAX} flags.`, { field: 'flag' });
+    next.pride_flag = flags.join(',');
+  } else if (body.flag != null) {
     if (body.flag !== '' && !PRIDE_FLAGS.includes(body.flag)) fail(400, 'That isn’t one of Budgie’s pride flags.', { field: 'flag' });
     next.pride_flag = body.flag;
   }
@@ -1378,6 +1397,7 @@ route('PATCH', '/api/me', async ({ user, body }) => {
       for (const c of db.all('SELECT id FROM comments WHERE author_id = ?', user.id)) db.run('UPDATE comments SET rev = ? WHERE id = ?', db.bump(), c.id);
     }
   });
+  if (nameDoubt) autoReport('user', next.name, nameDoubt);
   if (review) autoReport('user', next.name, 'this profile picture or banner might not be OK for everyone. Please take a look.');
   else if (bioDoubt) autoReport('user', next.name, bioDoubt.replace('this might be', 'this bio might be'));
   return { me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
@@ -2049,7 +2069,9 @@ route('GET', '/api/admin/reports', () => {
 }, { admin: true });
 
 /** an admin takes something down; its author is told what and why */
-function takeDown(kind, id, reason, by = 'A moderator') {
+// what of a profile a moderator can take down, each on its own (from 1.0), and how the owner is told
+const PROFILE_PARTS = { photo: 'profile picture', banner: 'banner', bio: 'bio', pronouns: 'pronouns' };
+function takeDown(kind, id, reason, by = 'A moderator', parts = null) {
   if (kind === 'post') {
     const p = db.get('SELECT * FROM posts WHERE id = ?', id);
     if (!p || p.removed_at) return false;
@@ -2089,12 +2111,23 @@ function takeDown(kind, id, reason, by = 'A moderator') {
     return true;
   }
   if (kind === 'user') {
-    // a profile is "taken down" by clearing its picture, banner, bio and pronouns (what someone writes or uploads)
+    // a profile is "taken down" by clearing its picture, banner, bio and pronouns (what someone writes or uploads),
+    // or just the parts asked for: a picture that breaks the rules goes, and the rest of the profile stays
     const u = db.get('SELECT * FROM users WHERE name = ?', id);
-    if (!u || !(u.photo || u.banner || u.bio || u.pronouns)) return false;
-    for (const img of [u.photo, u.photo_gif, u.banner, u.banner_gif]) if (img) db.run('DELETE FROM images WHERE id = ?', img);
-    db.run("UPDATE users SET photo = '', photo_gif = '', banner = '', banner_gif = '', bio = '', pronouns = '', rev = ? WHERE id = ?", db.bump(), u.id);
-    notify(u.id, { kind: 'moderation', text: `A moderator cleared your profile picture, banner, bio and pronouns. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
+    const asked = Array.isArray(parts) && parts.length ? Object.keys(PROFILE_PARTS).filter((p) => parts.includes(p)) : Object.keys(PROFILE_PARTS);
+    const clearing = u ? asked.filter((p) => u[p]) : [];
+    if (!clearing.length) return false;
+    const sets = [];
+    for (const p of clearing) {
+      if (p === 'photo' || p === 'banner') {
+        for (const img of [u[p], u[p + '_gif']]) if (img) db.run('DELETE FROM images WHERE id = ?', img);
+        sets.push(`${p} = ''`, `${p}_gif = ''`);
+      } else sets.push(`${p} = ''`);
+    }
+    db.run(`UPDATE users SET ${sets.join(', ')}, rev = ? WHERE id = ?`, db.bump(), u.id);
+    const named = clearing.map((p) => PROFILE_PARTS[p]);
+    const list = named.length > 1 ? named.slice(0, -1).join(', ') + ' and ' + named[named.length - 1] : named[0];
+    notify(u.id, { kind: 'moderation', text: `A moderator removed your ${list}. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
   return false;
@@ -2119,8 +2152,8 @@ route('POST', '/api/admin/resolve', ({ body }) => {
   const reason = text(body.reason, 200) || r.reason;
   let resolution = 'dismissed';
   if (body.action === 'remove') {
-    takeDown(r.kind, r.target, reason);
-    resolution = 'removed: ' + reason;
+    takeDown(r.kind, r.target, reason, 'A moderator', body.parts);
+    resolution = 'removed' + (Array.isArray(body.parts) && body.parts.length ? ` (${body.parts.join(', ')})` : '') + ': ' + reason;
   } else if (body.action === 'ban' && r.kind === 'user') {
     ban(r.target, reason, true);
     resolution = 'banned: ' + reason;
@@ -2132,7 +2165,7 @@ route('POST', '/api/admin/resolve', ({ body }) => {
 
 route('POST', '/api/admin/remove', ({ body }) => {
   const reason = text(body.reason, 200) || 'Breaks Budgie’s rules';
-  if (!takeDown(body.kind, text(body.id, 60), reason)) fail(404, 'That’s already gone.');
+  if (!takeDown(body.kind, text(body.id, 60), reason, 'A moderator', body.parts)) fail(404, 'That’s already gone.');
   return { ok: true };
 }, { admin: true });
 

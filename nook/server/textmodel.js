@@ -317,6 +317,8 @@ if (!isMainThread && workerData && workerData.compact) {
 
 if (!isMainThread && workerData && workerData.textModel) {
   const { dir } = workerData;
+  let words = null; // the vocabulary, once it's read
+  let lexicon = null;
   const ready = (async () => {
     if (!fs.existsSync(path.join(dir, SMALL))) {
       await new Promise((resolve, reject) => {
@@ -325,7 +327,9 @@ if (!isMainThread && workerData && workerData.textModel) {
         w.on('exit', (code) => (code === 0 ? resolve() : reject(new Error('The tokenizer couldn’t be prepared.'))));
       });
     }
-    const tokenizer = makeTokenizer(JSON.parse(fs.readFileSync(path.join(dir, SMALL), 'utf8')));
+    const small = JSON.parse(fs.readFileSync(path.join(dir, SMALL), 'utf8'));
+    const tokenizer = makeTokenizer(small);
+    words = small.tokens;
     const ort = require(path.join(VENDOR, 'node_modules', 'onnxruntime-node'));
     const session = await ort.InferenceSession.create(path.join(dir, 'model.onnx'), {
       // all but one of the computer's cores (up to 4), so the server itself stays quick
@@ -334,6 +338,32 @@ if (!isMainThread && workerData && workerData.textModel) {
     });
     return { ort, tokenizer, session };
   })();
+
+  // the model's own vocabulary is a dictionary of words in many languages (a word's id is lower the more
+  // common it is), for pulling run-together words apart: "killallgays" is "kill all gays"
+  function splitWords(run) {
+    if (!lexicon) {
+      lexicon = new Map();
+      words.forEach((t, id) => {
+        if (!t || t.charCodeAt(0) !== 0x2581) return;
+        const w = t.slice(1).toLowerCase();
+        if (/^\p{L}+$/u.test(w) && (w.length > 1 || w === 'a' || w === 'i') && !lexicon.has(w)) lexicon.set(w, id);
+      });
+    }
+    const s = String(run).toLowerCase();
+    // the cheapest way through: common words cost little, and every extra word costs a bit more
+    const best = [{ cost: 0, words: [] }];
+    for (let end = 1; end <= s.length; end++) {
+      best[end] = { cost: Infinity, words: null };
+      for (let start = Math.max(0, end - 24); start < end; start++) {
+        const id = lexicon.get(s.slice(start, end));
+        if (id === undefined || !best[start].words) continue;
+        const cost = best[start].cost + Math.log(id + 100) + 3;
+        if (cost < best[end].cost) best[end] = { cost, words: [...best[start].words, s.slice(start, end)] };
+      }
+    }
+    return best[s.length].words;
+  }
 
   async function read(texts) {
     const { ort, tokenizer, session } = await ready;
@@ -375,7 +405,14 @@ if (!isMainThread && workerData && workerData.textModel) {
     return labels;
   }
 
-  parentPort.on('message', ({ id, texts }) => {
+  parentPort.on('message', ({ id, texts, split }) => {
+    if (split) {
+      ready.then(
+        () => parentPort.postMessage({ id, labels: split.map(splitWords) }),
+        (error) => parentPort.postMessage({ id, error: error.message || String(error) })
+      );
+      return;
+    }
     read(texts).then(
       (labels) => parentPort.postMessage({ id, labels }),
       (error) => parentPort.postMessage({ id, error: error.message || String(error) })
@@ -508,7 +545,7 @@ function start() {
   });
 }
 
-function ask(texts) {
+function ask(texts, what = 'texts') {
   start();
   if (!worker) return Promise.reject(new Error('The text model isn’t running.'));
   return new Promise((resolve, reject) => {
@@ -519,7 +556,7 @@ function ask(texts) {
     }, 60000);
     waiting.set(id, { resolve, reject, timer });
     worker.ref();
-    worker.postMessage({ id, texts });
+    worker.postMessage({ id, [what]: texts });
   });
 }
 
@@ -547,6 +584,31 @@ async function score(text) {
     return { labels: await ask(texts) };
   } catch (error) {
     console.error('text check failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * How harmful a username reads: read as words (split at underscores and capitals, with run-together words
+ * pulled apart, and disguises undone), so "k1ll_allgays" reads as "kill all gays". Null without the model.
+ */
+async function scoreName(name) {
+  const spaced = String(name || '').replace(/_+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').trim();
+  if (!spaced) return null;
+  if (MODE === 'test') return score(spaced.replace(/harmfulname/i, '#harmful').replace(/doubtfulname/i, '#doubtful'));
+  if (state === 'missing') start();
+  if (state !== 'ready' && state !== 'loading') return null;
+  try {
+    const undone = unmask(spaced);
+    const runs = undone.split(' ').filter((w) => w.length >= 6);
+    let reading = undone;
+    if (runs.length) {
+      const split = await ask(runs, 'split');
+      runs.forEach((run, i) => split[i] && split[i].length > 1 && (reading = reading.replace(run, split[i].join(' '))));
+    }
+    return { labels: await ask([...new Set([spaced, undone, reading])]) };
+  } catch (error) {
+    console.error('name check failed:', error.message);
     return null;
   }
 }
@@ -620,4 +682,4 @@ function close() {
   if (worker) worker.terminate();
 }
 
-module.exports = { setup, score, judge, reason, warmUp, ready, status, close, unmask, compact, makeTokenizer, pieces, sentences, LIMITS, HARMS, FILES };
+module.exports = { setup, score, scoreName, judge, reason, warmUp, ready, status, close, unmask, compact, makeTokenizer, pieces, sentences, LIMITS, HARMS, FILES };

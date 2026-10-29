@@ -12,7 +12,18 @@
   const APP = ['js/data.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/pickers.js', 'js/calls.js', 'js/app.js'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const icon = (name) => `<span class="m3-icon" aria-hidden="true">${name}</span>`;
+  const icon = (name) => `<span translate="no" class="m3-icon" aria-hidden="true">${name}</span>`;
+
+  // a symbol's name isn't words: whatever makes an icon, a page translator (like Google Translate) leaves it alone
+  const untranslatable = (node) => {
+    if (node.nodeType !== 1) return;
+    if (node.classList.contains('m3-icon')) node.setAttribute('translate', 'no');
+    for (const el of node.querySelectorAll('.m3-icon:not([translate])')) el.setAttribute('translate', 'no');
+  };
+  untranslatable(document.body);
+  new MutationObserver((records) => {
+    for (const r of records) for (const node of r.addedNodes) untranslatable(node);
+  }).observe(document.body, { childList: true, subtree: true });
 
   let gate = null;
   const landing = document.getElementById('landing');
@@ -38,7 +49,7 @@
     `<label class="gate-field" for="${id}"><span>${label}</span><span class="gate-pass"><input class="m3-field" id="${id}" type="password" autocomplete="${autocomplete}" minlength="8" maxlength="200" required>` +
     `<button type="button" class="m3-icon-btn small" data-show="${id}" aria-label="Show password">${icon('visibility')}</button></span><small class="gate-error" data-for="${id}"></small></label>`;
   const head = (title, text, shape = 'cookie9') =>
-    `<m3-shape class="gate-shape" shape="${shape}" aria-hidden="true"></m3-shape><span class="gate-tag">Early access</span><h1 class="m3-title" id="gate-title">${title}</h1>${text ? `<p class="gate-text">${text}</p>` : ''}`;
+    `<m3-shape class="gate-shape" shape="${shape}" aria-hidden="true"></m3-shape><span class="gate-tag">Free · No email needed</span><h1 class="m3-title" id="gate-title">${title}</h1>${text ? `<p class="gate-text">${text}</p>` : ''}`;
   const legal = '<p class="gate-legal"><a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a></p>';
 
   const SCREENS = {

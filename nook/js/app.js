@@ -746,7 +746,7 @@
       return (
         `<button type="button" class="menu-sheet-item${item.destructive ? ' is-destructive' : ''}" role="${checkable ? 'menuitemcheckbox' : 'menuitem'}"` +
         `${checkable ? ` aria-checked="${item.checked}"` : ''} data-i="${i}"${item.disabled ? ' disabled' : ''} data-m3-ripple>` +
-        `<span class="m3-icon" aria-hidden="true">${symbol}</span><span>${esc(item.label)}</span></button>`
+        `<span translate="no" class="m3-icon" aria-hidden="true">${symbol}</span><span>${esc(item.label)}</span></button>`
       );
     };
     ui.sheet({
@@ -1348,14 +1348,34 @@
   }
   ACTIONS.block = (btn) => blockPerson(btn.dataset.user);
   ACTIONS.unblock = (btn) => unblockPerson(btn.dataset.user);
-  // a chat's More menu: report them, or block them
+  // a moderator takes down just someone's profile picture or banner (from 1.0): no report needed, and no ban
+  async function removePart(name, part) {
+    const what = part === 'photo' ? 'profile picture' : 'banner';
+    const reason = await pickReason(`Remove u/${name}’s ${what}?`, 'hide_image', `Their ${what} is deleted and they’re told why. The rest of their profile and their account stay.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.adminRemove('user', name, reason, [part]);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`${part === 'photo' ? 'Picture' : 'Banner'} removed, and u/${name} told why`, { symbol: 'gavel', shape: 'pixelCircle' });
+    await store.sync().catch(() => {});
+    render();
+  }
+  // someone's More menu (on their profile, or in a chat with them): report them, or block them; for a moderator,
+  // their picture or banner can go too
   ACTIONS['person-menu'] = (btn) => {
     const name = btn.dataset.user;
+    const u = store.user(name);
+    const mod = store.isAdmin() && views.serverAt('1.0.0');
     menu(btn, [
       { label: `Report u/${name}`, symbol: 'flag', onSelect: () => report('user', { name }) },
       store.isBlocked(name)
         ? { label: `Unblock u/${name}`, symbol: 'lock_open', onSelect: () => unblockPerson(name) }
         : { label: `Block u/${name}`, symbol: 'block', destructive: true, onSelect: () => blockPerson(name) },
+      ...(mod && (u.photo || u.banner) ? [{ separator: true }] : []),
+      ...(mod && u.photo ? [{ label: 'Remove their profile picture', symbol: 'hide_image', destructive: true, onSelect: () => removePart(name, 'photo') }] : []),
+      ...(mod && u.banner ? [{ label: 'Remove their banner', symbol: 'hide_image', destructive: true, onSelect: () => removePart(name, 'banner') }] : []),
     ], { placement: 'bottom-end' });
   };
 
@@ -1576,7 +1596,7 @@
         `<div class="field"><span class="field-label">Category</span><div class="chips" style="flex-wrap:wrap">${categories.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === model.category}">${c}</button>`).join('')}</div></div>` +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'nook')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(model.shape)}</div>` +
-        `<div class="field"><span class="field-label">Symbol</span><div class="symbol-grid">${ui.NOOK_SYMBOLS.map((s) => `<button type="button" data-symbol="${s}" aria-pressed="${s === model.symbol}" aria-label="${s.replace(/_/g, ' ')}"><span class="m3-icon">${s}</span></button>`).join('')}</div></div>`,
+        `<div class="field"><span class="field-label">Symbol</span><div class="symbol-grid">${ui.NOOK_SYMBOLS.map((s) => `<button type="button" data-symbol="${s}" aria-pressed="${s === model.symbol}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('')}</div></div>`,
       setup(body) {
         const preview = body.querySelector('#np');
         const npIcon = body.querySelector('#np-icon');
@@ -2048,7 +2068,7 @@
     const me = store.state.me;
     const model = {
       color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '',
-      font: me.font || '', flag: me.flag || '', interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
+      font: me.font || '', flags: [...(me.flags || [])], interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
     };
     const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
     const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
@@ -2059,30 +2079,51 @@
     const fonts = major > 0 || minor >= 6;
     const more = major > 0 || minor >= 7;
     const PRONOUN_PICKS = ['she/her', 'he/him', 'they/them', 'she/they', 'he/they', 'any pronouns', 'ask me'];
-    // the flag you wear, as a row; pressing it brings up every flag to pick from
-    const flagRow = (id) => {
-      const flag = ui.PRIDE_FLAGS.find(([f]) => f === id);
+    // the flags you wear (up to four, from Budgie 1.0; one before), as a row; pressing it brings up every flag
+    const FLAGS_MAX = views.serverAt('1.0.0') ? 4 : 1;
+    const flagRow = (ids) => {
+      const flags = ids.map((id) => ui.PRIDE_FLAGS.find(([f]) => f === id)).filter(Boolean);
       return (
-        (flag ? `<span class="flag-big">${ui.flagSVG(id)}</span>` : `<span class="flag-none">${icon('block')}</span>`) +
-        `<span class="row-text"><b>${flag ? flag[1] : 'None'}</b><small>${flag ? 'Change or remove it' : `Choose from ${ui.PRIDE_FLAGS.length} flags`}</small></span>${icon('chevron_right')}`
+        (flags.length ? `<span class="flag-stack">${flags.map(([id]) => `<span class="flag-big">${ui.flagSVG(id)}</span>`).join('')}</span>` : `<span class="flag-none">${icon('block')}</span>`) +
+        `<span class="row-text"><b>${flags.length ? esc(flags.map((f) => f[1]).join(', ')) : 'None'}</b><small>${
+          flags.length ? 'Change or remove them' : `Choose from ${ui.PRIDE_FLAGS.length} flags${FLAGS_MAX > 1 ? `, up to ${FLAGS_MAX}` : ''}`
+        }</small></span>${icon('chevron_right')}`
       );
     };
-    const flagTile = (id, label, art) => `<button type="button" data-flag="${id}" aria-pressed="${id === model.flag}"${id === model.flag ? ' autofocus' : ''}>${art}<small>${label}</small></button>`;
-    // resolves with the flag picked ('' for none), or null when put away
-    const pickFlag = () =>
-      ui.sheet({
-        headline: 'Pride flag',
+    const flagTile = (id, label, art, on) => `<button type="button" data-flag="${id}" aria-pressed="${on}">${art}<small>${label}</small></button>`;
+    // resolves with the flags picked (none is []), or null when put away
+    const pickFlags = () => {
+      let picked = [...model.flags];
+      return ui.sheet({
+        headline: FLAGS_MAX > 1 ? 'Pride flags' : 'Pride flag',
         symbol: 'flag',
         shape: 'heart',
         className: 'flag-sheet wide',
         html:
+          (FLAGS_MAX > 1 ? `<p class="muted" style="margin-top:0">Pick up to ${FLAGS_MAX}. They show in the order you pick them.</p>` : '') +
           '<div class="flag-grid" role="group" aria-label="Pride flags">' +
-          flagTile('', 'None', `<span class="flag-none">${icon('block')}</span>`) +
-          ui.PRIDE_FLAGS.map(([id, label]) => flagTile(id, label, `<span class="flag-big">${ui.flagSVG(id)}</span>`)).join('') +
+          flagTile('', 'None', `<span class="flag-none">${icon('block')}</span>`, !picked.length) +
+          ui.PRIDE_FLAGS.map(([id, label]) => flagTile(id, label, `<span class="flag-big">${ui.flagSVG(id)}</span>`, picked.includes(id))).join('') +
           '</div>',
-        setup: (sheetBody, close) => sheetBody.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => close(b.dataset.flag))),
-        actions: [{ label: 'Cancel' }],
+        setup: (sheetBody, close) => {
+          const paint = () => sheetBody.querySelectorAll('[data-flag]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.flag ? picked.includes(b.dataset.flag) : !picked.length)));
+          sheetBody.querySelectorAll('[data-flag]').forEach((b) =>
+            b.addEventListener('click', () => {
+              const id = b.dataset.flag;
+              // one flag at a time on a server from before 1.0: picking is choosing
+              if (FLAGS_MAX === 1) return close(id ? [id] : []);
+              if (!id) picked = [];
+              else if (picked.includes(id)) picked = picked.filter((f) => f !== id);
+              else if (picked.length >= FLAGS_MAX) return M3.snackbar(`You can wear up to ${FLAGS_MAX} flags. Take one off first.`);
+              else picked.push(id);
+              paint();
+              fx.pop(b, 0.4);
+            })
+          );
+        },
+        actions: FLAGS_MAX > 1 ? [{ label: 'Cancel' }, { label: 'Done', variant: 'filled', run: () => picked }] : [{ label: 'Cancel' }],
       });
+    };
     const section = (shape, symbol, title) =>
       `<header class="m3-section-header ep-section"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="30" icon-size="16"></m3-shape-icon><h3 class="m3-title">${title}</h3><m3-wavy-line></m3-wavy-line></header>`;
     const BIO_MAX = media ? 300 : 160;
@@ -2102,7 +2143,7 @@
           ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
             `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>` +
             '<div class="field"><span class="field-label" id="ep-flag-label">Pride flag</span>' +
-            `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flag)}</button>` +
+            `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flags)}</button>` +
             '<small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
           : '') +
         (fonts
@@ -2115,7 +2156,7 @@
         (more ? section('flower', 'palette', 'Look') : '') +
         '<div class="field"><span class="field-label">Picture</span>' +
         `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
-        ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span class="m3-icon">${s}</span></button>`).join('') +
+        ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('') +
         '</div>' +
         `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
         `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
@@ -2133,8 +2174,8 @@
             ui.PROFILE_SCHEMES.map(([id, label]) => `<button type="button" data-scheme="${id}" aria-pressed="${id === model.scheme}"><span class="scheme-dots" data-dots="${id}"><i></i><i></i><i></i><i></i></span><small>${label}</small></button>`).join('') +
             '</div><small class="muted">Your profile page wears your colour, worked into a whole Material palette in this style.</small></div>' +
             '<div class="field"><span class="field-label">Background shapes</span><div class="shape-grid sticker-grid" role="group" aria-label="Background shapes">' +
-            `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span class="m3-icon">auto_awesome</span></button>` +
-            `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span class="m3-icon">block</span></button>` +
+            `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span translate="no" class="m3-icon">auto_awesome</span></button>` +
+            `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span translate="no" class="m3-icon">block</span></button>` +
             M3Shapes.names.filter((n) => n !== 'softCookie').map((n) => `<button type="button" data-sticker="${n}" aria-pressed="${n === model.sticker}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('') +
             '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>' +
             section('heart', 'interests', 'Interests') +
@@ -2192,10 +2233,10 @@
           );
           const flagPick = $$('#ep-flag-pick');
           flagPick.addEventListener('click', async () => {
-            const id = await pickFlag();
-            if (id == null || !flagPick.isConnected) return;
-            model.flag = id;
-            flagPick.innerHTML = flagRow(id);
+            const flags = await pickFlags();
+            if (!Array.isArray(flags) || !flagPick.isConnected) return;
+            model.flags = flags;
+            flagPick.innerHTML = flagRow(flags);
             $$('#ep-flag').innerHTML = ui.prideFlag(model);
             fx.pop($$('#ep-flag'), 0.6);
           });
@@ -2263,14 +2304,22 @@
           $$(sel).addEventListener('change', async (e) => {
             const err = $$(errSel);
             err.textContent = '';
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
             try {
-              const picture = await ui.pictureFrom(e.target.files[0], kind);
+              // a still picture: they choose the part to keep (a GIF keeps its middle)
+              let crop = null;
+              if (/^image\//.test(file.type) && file.type !== 'image/gif') {
+                crop = await ui.cropPicture(file, kind);
+                if (!crop) return;
+              }
+              const picture = await ui.pictureFrom(file, kind, crop);
               apply(picture.still, media ? picture.gif : '');
               fx.pop(popEl(), 0.6);
             } catch (error) {
               err.textContent = error.message;
             }
-            e.target.value = '';
           });
         picker('#ep-photo', 'photo', '#ep-photo-err', setPhoto, () => faceEl);
         $$('#ep-photo-remove').addEventListener('click', () => setPhoto('', ''));
@@ -2328,7 +2377,7 @@
                 pronounsErr.textContent = 'Keep those to pronouns.';
                 return false;
               }
-              Object.assign(fields, { pronouns, flag: model.flag, interests: model.interests, scheme: model.scheme, sticker: model.sticker });
+              Object.assign(fields, { pronouns, flag: model.flags[0] || '', flags: model.flags, interests: model.interests, scheme: model.scheme, sticker: model.sticker });
             }
             // pictures only travel when they changed: a new one as data (with its GIF), a removed one as ''
             if (model.photo !== (me.photo || '')) Object.assign(fields, { photo: model.photo, photoGif: model.photoGif });
@@ -2637,7 +2686,7 @@
     const placeholder = inner.innerHTML;
     const showImage = () => {
       if (model.image) {
-        inner.innerHTML = `<img src="${model.image}" alt="Your image"><button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="Remove image"><span class="m3-icon">close</span></button>`;
+        inner.innerHTML = `<img src="${model.image}" alt="Your image"><button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="Remove image"><span translate="no" class="m3-icon">close</span></button>`;
         $('#f-remove', root).addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -2687,7 +2736,7 @@
         .map(
           (text, i) =>
             `<div class="opt"><input class="m3-field" data-opt="${i}" maxlength="80" placeholder="Option ${i + 1}" value="${esc(text)}">` +
-            (model.poll.length > 2 ? `<button type="button" class="m3-icon-btn small" data-drop-opt="${i}" aria-label="Remove option ${i + 1}"><span class="m3-icon">close</span></button>` : '') +
+            (model.poll.length > 2 ? `<button type="button" class="m3-icon-btn small" data-drop-opt="${i}" aria-label="Remove option ${i + 1}"><span translate="no" class="m3-icon">close</span></button>` : '') +
             '</div>'
         )
         .join('');
@@ -3024,7 +3073,7 @@
   fab.className = 'fab-top';
   fab.setAttribute('aria-label', 'Back to top');
   fab.dataset.tooltip = 'Back to top';
-  fab.innerHTML = '<m3-shape shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-icon" aria-hidden="true">arrow_upward</span>';
+  fab.innerHTML = '<m3-shape shape="cookie9" aria-hidden="true"></m3-shape><span translate="no" class="m3-icon" aria-hidden="true">arrow_upward</span>';
   document.body.appendChild(fab);
   fab.addEventListener('click', () => {
     fx.haptic(8);

@@ -1093,6 +1093,8 @@
   function make(tag, className, attributes) {
     const el = doc.createElement(tag);
     if (className) el.className = className;
+    // a symbol's name isn't words: a page translator (Google Translate) mustn't turn "search" into another language
+    if (className && /(^| )m3-icon( |$)/.test(className)) el.setAttribute('translate', 'no');
     if (attributes) for (const name in attributes) el.setAttribute(name, attributes[name]);
     return el;
   }
@@ -2909,6 +2911,7 @@
   function make(tag, className, parent) {
     const el = doc.createElement(tag);
     if (className) el.className = className;
+    if (className && /(^| )m3-icon( |$)/.test(className)) el.setAttribute('translate', 'no');
     if (parent) parent.appendChild(el);
     return el;
   }
