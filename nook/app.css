@@ -460,6 +460,8 @@ body.bars-hidden .bottom-nav {
   position: relative;
   display: flex;
   flex: 1;
+  min-width: 0;
+  text-align: center;
   flex-direction: column;
   align-items: center;
   gap: 4px;
@@ -4303,6 +4305,17 @@ body:has(.call-screen:not([hidden])) .m3-toaster {
   gap: 6px;
   margin-left: auto;
 }
+/* a name always has room: when the buttons are long (in German, say), they move under it */
+.person-row {
+  flex-wrap: wrap;
+}
+.person-row .row-text {
+  flex: 1 1 110px;
+  min-width: 110px;
+}
+.person-row .row-actions {
+  max-width: 100%;
+}
 .add-friend {
   display: grid;
   gap: 8px;
@@ -6271,5 +6284,11 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   .lang-btn {
     min-width: 40px;
     padding: 0 8px;
+  }
+}
+@media (max-width: 420px) {
+  /* a small phone: the bar keeps Join (Sign in is right under the headline), so longer words still fit */
+  .landing-bar [data-gate='signin'] {
+    display: none;
   }
 }

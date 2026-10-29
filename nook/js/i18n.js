@@ -42,19 +42,22 @@
 
   const strings = new Map(Object.entries(pack.strings || {}));
   const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // "Report u/{0}" → /^Report u\/(.+?)$/, and which slot each group fills
+  // "Report u/{0}" → /^Report u\/(.+?)$/, and which slot each group fills. A slot that's a name (after u/ or n/, or
+  // in quotes) is someone's own words, so it's never translated: a person called "Home" stays "Home".
   const patterns = Object.entries(pack.patterns || {}).map(([en, out]) => {
     const order = [];
-    const source = en
-      .split(/(\{\d+\})/)
-      .map((part) => {
+    const raw = new Set();
+    const parts = en.split(/(\{\d+\})/);
+    const source = parts
+      .map((part, i) => {
         const m = /^\{(\d+)\}$/.exec(part);
         if (!m) return escapeRe(part);
         order.push(Number(m[1]));
+        if (/(?:^|[\s(])[un]\/$|[“«„"]\s?$/.test(parts[i - 1] || '') || /^\s?[”»“"]|^[’']s\b/.test(parts[i + 1] || '')) raw.add(Number(m[1]));
         return '(.+?)';
       })
       .join('');
-    return { re: new RegExp('^' + source + '$', 's'), order, out, fixed: en.replace(/\{\d+\}/g, '').length };
+    return { re: new RegExp('^' + source + '$', 's'), order, raw, out, fixed: en.replace(/\{\d+\}/g, '').length };
   });
   // the longest fixed text first, so "Report u/{0} for {1}" wins over "Report {0}"
   patterns.sort((a, b) => b.fixed - a.fixed);
@@ -88,9 +91,23 @@
           if (!m) continue;
           const slots = [];
           p.order.forEach((slot, i) => (slots[slot] = m[i + 1]));
-          out = p.out.replace(/\{(\d+)\}/g, (_, n) => (slots[n] == null ? '' : t(slots[n])));
+          out = p.out.replace(/\{(\d+)\}/g, (_, n) => (slots[n] == null ? '' : p.raw.has(Number(n)) ? slots[n] : t(slots[n])));
           break;
         }
+      }
+      // the same words with a separator or a stop around them ("· 3 new this week ·", "Done.")
+      if (out === undefined) {
+        const edge = /^([·•–—(\s]*)(.*?)([\s.,:;!?·)…]*)$/s.exec(key);
+        if (edge && (edge[1] || edge[3]) && edge[2] && edge[2] !== key) {
+          const core = t(edge[2]);
+          if (core !== edge[2]) out = edge[1] + core + edge[3];
+        }
+      }
+      // a list, when every item in it has a translation ("Transgender, Bisexual")
+      if (out === undefined && key.includes(', ')) {
+        const items = key.split(', ');
+        const done = items.map((item) => t(item));
+        if (done.every((item, i) => item !== items[i] || !/\p{L}/u.test(item))) out = done.join(', ');
       }
       if (out === undefined) out = null;
       if (cache.size > 5000) cache.clear();
@@ -104,7 +121,9 @@
   }
 
   // what's left as it was: icons, and what people wrote
-  const KEEP = '[translate="no"], [data-no-i18n], .md, .post-title, .c-body, .bio, .author, .msg-name, .chat-who b, .tile-name span, .call-title b, .group-name, .peek-post h3, .who-name, .name, script, style, textarea, code, pre, kbd';
+  const KEEP = '[translate="no"], [data-no-i18n], .md, .post-title, .c-body, .bio, .author, .msg-name, .chat-who b, .tile-name span, .call-title b, .group-name, .peek-post h3, .who-name, .name, script, style, code, pre, kbd';
+  // a text box: its label and placeholder are the app's, what's in it is someone's
+  const BOX = 'textarea';
   const ATTRS = ['aria-label', 'placeholder', 'title', 'data-tooltip', 'alt', 'data-title', 'data-description', 'data-tagline', 'data-example', 'aria-description'];
   const kept = (el) => !!(el && el.closest && el.closest(KEEP));
 
@@ -122,7 +141,7 @@
     if (!node) return;
     if (node.nodeType === 3) {
       const parent = node.parentElement;
-      if (parent && !kept(parent)) {
+      if (parent && !kept(parent) && !parent.closest(BOX)) {
         const out = t(node.nodeValue);
         if (out !== node.nodeValue) setData.call(node, out);
       }
@@ -132,9 +151,16 @@
     if (node.nodeType === 1) {
       if (kept(node)) return;
       translateAttrs(node);
+      if (node.matches(BOX)) return;
     }
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
-      acceptNode: (n) => (n.nodeType === 1 && n.matches(KEEP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+      acceptNode: (n) => {
+        if (n.nodeType !== 1) return NodeFilter.FILTER_ACCEPT;
+        if (n.matches(KEEP)) return NodeFilter.FILTER_REJECT;
+        // a text box's attributes, then nothing inside it
+        if (n.matches(BOX)) return translateAttrs(n), NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_ACCEPT;
+      },
     });
     let n = walker.nextNode();
     while (n) {
@@ -172,7 +198,7 @@
     enumerable: textContent.enumerable,
     get: textContent.get,
     set(value) {
-      if (this.nodeType === 1 && !kept(this) && typeof value === 'string') value = t(value);
+      if (this.nodeType === 1 && !kept(this) && !this.closest(BOX) && typeof value === 'string') value = t(value);
       textContent.set.call(this, value);
     },
   });

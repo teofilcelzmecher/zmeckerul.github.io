@@ -305,7 +305,7 @@
     const row = $('#drawer-me');
     row.href = '#/u/' + encodeURIComponent(me.name);
     row.setAttribute('aria-label', `Your profile, u/${me.name}`);
-    row.innerHTML = `${avatar(me, 44)}<span class="row-text"><b>${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
+    row.innerHTML = `${avatar(me, 44)}<span class="row-text"><b translate="no">${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
   }
 
   let lastUnread = -1;
@@ -1744,7 +1744,7 @@
     `<div class="pick-list">${names
       .map((n) => {
         const u = store.user(n);
-        return `<label class="switch-row pick-row">${avatar(u, 36)}<span class="switch-text"><span>${esc(u.name)}</span>${u.pronouns ? `<small>${esc(u.pronouns)}</small>` : ''}</span><input type="checkbox" class="m3-switch" role="switch" data-pick="${esc(u.name)}"></label>`;
+        return `<label class="switch-row pick-row">${avatar(u, 36)}<span class="switch-text"><span translate="no">${esc(u.name)}</span>${u.pronouns ? `<small>${esc(u.pronouns)}</small>` : ''}</span><input type="checkbox" class="m3-switch" role="switch" data-pick="${esc(u.name)}"></label>`;
       })
       .join('')}</div>`;
   const pickedIn = (body) => $$('[data-pick]', body).filter((i) => i.checked).map((i) => i.dataset.pick);
@@ -1843,7 +1843,7 @@
       const u = store.user(m.name);
       const me = store.isMe(m.name);
       return (
-        `<div class="group-member"><button type="button" class="row-link" data-profile="${esc(u.name)}" data-m3-ripple>${avatar(u, 40)}<span class="row-text"><b>${esc(u.name)}${me ? ' <span class="muted">(you)</span>' : ''}</b><small>${m.role === 'owner' ? 'Owner' : 'Member'}</small></span></button>` +
+        `<div class="group-member"><button type="button" class="row-link" data-profile="${esc(u.name)}" data-m3-ripple>${avatar(u, 40)}<span class="row-text"><b><span translate="no">${esc(u.name)}</span>${me ? ' <span class="muted">(you)</span>' : ''}</b><small>${m.role === 'owner' ? 'Owner' : 'Member'}</small></span></button>` +
         (owner && !me ? `<button type="button" class="m3-icon-btn" data-remove="${esc(u.name)}" aria-label="Remove u/${esc(u.name)} from the group" data-tooltip="Remove">${icon('person_remove')}</button>` : '') +
         '</div>'
       );
@@ -1857,7 +1857,7 @@
       shape: g.shape,
       className: 'wide',
       html:
-        `<div class="group-preview">${views.groupIcon(g, 64)}<span class="row-text"><b class="m3-title">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')} · made ${esc(ui.ago(g.createdAt))}</small></span></div>` +
+        `<div class="group-preview">${views.groupIcon(g, 64)}<span class="row-text"><b class="m3-title" translate="no">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')} · made ${esc(ui.ago(g.createdAt))}</small></span></div>` +
         '<div class="toolbar group-tools">' +
         (canAdd && g.members.length < GROUP_MAX ? `<button type="button" class="m3-btn tonal small" data-do="add">${icon('person_add')}Add friends</button>` : '') +
         (owner ? `<button type="button" class="m3-btn tonal small" data-do="edit">${icon('edit')}Edit group</button>` : '') +
@@ -1952,7 +1952,7 @@
       shape: g.shape,
       className: 'wide',
       html:
-        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')}</small></span></div>` +
+        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name" translate="no">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')}</small></span></div>` +
         `<div class="field"><label for="eg-name">Name</label><input class="m3-field" id="eg-name" maxlength="40" value="${esc(g.name)}" autocomplete="off"><span class="error" id="eg-err"></span></div>` +
         `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'group')}</div>` +
         `<div class="field"><span class="field-label">Shape</span>${groupShapesHTML(model.shape)}</div>`,
@@ -2068,7 +2068,7 @@
       store.state.collections
         .map((col) => {
           const on = col.posts.includes(p.id);
-          return `<label class="switch-row"><m3-shape-icon shape="${col.shape}" symbol="collections_bookmark" size="36" icon-size="18" style="--m3-shape-icon-color:${col.color};--m3-shape-icon-on-color:${ui.ink(col.color)}"></m3-shape-icon><span class="switch-text"><span>${esc(col.name)}</span><small>${plural(col.posts.length, 'post')}</small></span><input type="checkbox" class="m3-switch" role="switch" data-col="${col.id}"${on ? ' checked' : ''}></label>`;
+          return `<label class="switch-row"><m3-shape-icon shape="${col.shape}" symbol="collections_bookmark" size="36" icon-size="18" style="--m3-shape-icon-color:${col.color};--m3-shape-icon-on-color:${ui.ink(col.color)}"></m3-shape-icon><span class="switch-text"><span translate="no">${esc(col.name)}</span><small>${plural(col.posts.length, 'post')}</small></span><input type="checkbox" class="m3-switch" role="switch" data-col="${col.id}"${on ? ' checked' : ''}></label>`;
         })
         .join('') || '<p class="muted">No collections yet. Make your first one below.</p>';
     ui.sheet({
@@ -2176,7 +2176,7 @@
       html:
         `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
         `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
-        `<div class="np-text"><b class="m3-title"><span class="${fonts ? ui.nameFont(model).trim() : ''}" id="ep-name">${esc(me.name)}</span><span id="ep-flag">${more ? ui.prideFlag(model) : ''}</span></b>` +
+        `<div class="np-text"><b class="m3-title"><span class="${fonts ? ui.nameFont(model).trim() : ''}" id="ep-name" translate="no">${esc(me.name)}</span><span id="ep-flag">${more ? ui.prideFlag(model) : ''}</span></b>` +
         `<span class="muted" id="ep-sub">${more && me.pronouns ? esc(me.pronouns) : 'Your shape and colour follow you everywhere'}</span></div></div></div>` +
         (more ? section('cookie9', 'person', 'You') : '') +
         `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
@@ -2189,7 +2189,7 @@
           : '') +
         (fonts
           ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
-            ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
+            ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
             '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small></div>'
           : '') +
         `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
@@ -2521,7 +2521,7 @@
   ACTIONS.credits = () => {
     closeDrawer();
     const person = (p, size, role) =>
-      `<li>${avatar(p, size)}<span class="row-text"><b>${esc(p.name)}</b><small>${esc(role)}</small></span></li>`;
+      `<li>${avatar(p, size)}<span class="row-text"><b translate="no">${esc(p.name)}</b><small>${esc(role)}</small></span></li>`;
     ui.sheet({
       headline: 'Credits',
       symbol: 'stars',

@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "description": "Budgie's languages: extract.js finds the app's words, build-lang.js makes js/lang/<code>.js from the translations in tr/",
+  "scripts": {
+    "extract": "node extract.js",
+    "build": "node build-lang.js"
+  },
+  "devDependencies": {
+    "acorn": "^8.12.0",
+    "acorn-walk": "^8.3.0"
+  }
+}

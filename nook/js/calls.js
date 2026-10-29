@@ -1321,7 +1321,7 @@
       tile.innerHTML =
         '<video autoplay playsinline></video>' +
         `<div class="tile-face"><m3-shape class="tile-halo" shape="${esc(u.shape || 'cookie9')}" aria-hidden="true"></m3-shape><span class="tile-pic">${avatar(u, 96)}</span></div>` +
-        `<div class="tile-name"><span>${esc(u.name)}</span><span class="tile-muted" hidden>${icon('mic_off')}</span><small class="tile-state"></small></div>`;
+        `<div class="tile-name"><span translate="no">${esc(u.name)}</span><span class="tile-muted" hidden>${icon('mic_off')}</span><small class="tile-state"></small></div>`;
       box.appendChild(tile);
       fx.play(tile, [{ opacity: 0, transform: 'scale(0.85)' }, { opacity: 1, transform: 'none' }], { duration: fx.lively.duration, easing: fx.lively.easing });
       stage();
@@ -1513,7 +1513,7 @@
           .map((n) => {
             const u = store.user(n);
             const state = here.has(lower(n)) ? 'In the call' : ringing.has(lower(n)) ? 'Ringing…' : 'Not here';
-            return `<div class="team-row">${avatar(u, 40)}<span class="row-text"><b>${esc(u.name)}${store.isMe(n) ? ' <span class="muted">(you)</span>' : ''}</b><small>${state}</small></span>${
+            return `<div class="team-row">${avatar(u, 40)}<span class="row-text"><b><span translate="no">${esc(u.name)}</span>${store.isMe(n) ? ' <span class="muted">(you)</span>' : ''}</b><small>${state}</small></span>${
               here.has(lower(n)) ? '' : `<button type="button" class="m3-btn tonal small" data-ring-name="${esc(u.name)}">${icon('ring_volume')}Ring</button>`
             }</div>`;
           })
@@ -1596,7 +1596,7 @@
     const name = call.group ? call.group.name : 'u/' + (lower(call.from) === lower(store.state.me.name) ? call.with : call.from);
     const bar = makeBar(
       'rejoin',
-      `<span class="pill-dot"></span>${icon(call.media === 'video' ? 'videocam' : 'call')}<span class="call-bar-text">${esc(name)} · you’re still in the call</span>` +
+      `<span class="pill-dot"></span>${icon(call.media === 'video' ? 'videocam' : 'call')}<span class="call-bar-text"><span translate="no">${esc(name)}</span> · you’re still in the call</span>` +
         `<button type="button" class="m3-btn filled small" data-rejoin="go">${icon('call')}Rejoin</button><button type="button" class="m3-icon-btn small call-bar-hang" data-rejoin="leave" aria-label="Hang up" data-tooltip="Hang up">${icon('call_end')}</button>`
     );
     tint(bar, seedFor(call, lower(call.from) === lower(store.state.me.name) ? call.with : call.from));

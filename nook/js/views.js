@@ -377,7 +377,7 @@
       `<div class="c-side">${avatar(removed ? ghost : u, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
       '<div class="c-main">' +
       '<div class="c-head">' +
-      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag((store.post(c.postId) || {}).n, name)}`) +
+      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}" translate="no">${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag((store.post(c.postId) || {}).n, name)}`) +
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
@@ -533,11 +533,11 @@
         `<section class="nook-hero" data-m3-stickers="${c.id}" data-count="6" data-min="50" data-max="170" data-strength="1.3" data-clip-radius="30">` +
         '<div class="nook-hero-main">' +
         `<m3-shape-icon class="nook-avatar" shape="${c.shape}" hover-shape="${c.shape === 'heart' ? 'flower' : 'heart'}" symbol="${c.symbol}" size="104" icon-size="48"></m3-shape-icon>` +
-        `<div class="nook-id"><h1 class="m3-title">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
+        `<div class="nook-id"><h1 class="m3-title" translate="no">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
         (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span translate="no" class="m3-icon">more_horiz</span></button></div></div>` +
-        `<p class="nook-tagline">${esc(c.tagline)}</p>` +
+        `<p class="nook-tagline" translate="no">${esc(c.tagline)}</p>` +
         pulse(c) +
         '</section>' +
         bannedNote(c) +
@@ -639,8 +639,8 @@
           ([c, a]) =>
             `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
-            `<h3 class="m3-title">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
-            `<p>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
+            `<h3 class="m3-title" translate="no">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
+            `<p translate="no">${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
         )
         .join('');
     return {
@@ -717,7 +717,7 @@
         '<div class="page single"><div class="col">' +
         `<div class="back-row"><a class="m3-toolbar-btn" href="#/saved" data-effect="nudge-left" data-shape="cookie7" data-shape-still aria-label="Back to saved"><span translate="no" class="m3-icon">arrow_back</span></a></div>` +
         `<div class="page-head"><m3-shape-icon shape="${col.shape}" symbol="collections_bookmark" size="56" icon-size="28" style="--m3-shape-icon-color:${col.color};--m3-shape-icon-on-color:${ui.ink(col.color)}"></m3-shape-icon>` +
-        `<div><h1 class="m3-title">${esc(col.name)}</h1><span class="muted">${plural(list.length, 'post')}</span></div><span class="spacer"></span>` +
+        `<div><h1 class="m3-title" translate="no">${esc(col.name)}</h1><span class="muted">${plural(list.length, 'post')}</span></div><span class="spacer"></span>` +
         `<button class="m3-btn tonal small" data-act="rename-collection" data-col="${col.id}">${icon('edit')}Rename</button>` +
         `<button class="m3-btn text small" data-act="delete-collection" data-col="${col.id}">${icon('delete')}Delete</button></div>` +
         feedShell() +
@@ -766,7 +766,7 @@
       ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="burst" symbol="military_tech" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Badges</h2><m3-wavy-line></m3-wavy-line><span class="muted">${Object.keys(s.badges).length}/${store.BADGES.length}</span></header>` +
         `<div class="badges">${store.BADGES.map((b) => {
           const got = !!s.badges[b.id];
-          return `<div class="badge-tile${got ? '' : ' locked'}" data-tooltip="${esc(b.desc)}"><m3-shape-icon shape="${b.shape}" symbol="${got ? b.symbol : 'lock'}" size="52" icon-size="24"></m3-shape-icon><b>${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`;
+          return `<div class="badge-tile${got ? '' : ' locked'}" data-tooltip="${esc(b.desc)}"><m3-shape-icon shape="${b.shape}" symbol="${got ? b.symbol : 'lock'}" size="52" icon-size="24"></m3-shape-icon><b translate="no">${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`;
         }).join('')}</div></section>`
       : '';
     const banner = ui.bannerImage(u);
@@ -784,7 +784,7 @@
         (banner
           ? `<section class="profile-hero has-banner"><div class="profile-banner">${banner}</div>`
           : `<section class="profile-hero"${stickers}>`) +
-        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
+        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}" translate="no">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
         `<span class="muted">u/${esc(u.name)}${who.pronouns ? ` · <span class="pronouns">${esc(who.pronouns)}</span>` : ''} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         specialBadges(who) +
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
@@ -817,7 +817,7 @@
         (me ? streakCard() : '') +
         (where.length
           ? `<section class="card"><h3 class="card-title">${icon('location_on')}<span>${me ? 'Where you hang out' : 'Hangs out in'}</span></h3><div class="list">${where
-              .map((c) => `<a class="row-link" href="#/n/${c.id}" data-m3-ripple>${nookIcon(c, 32, 17)}<span class="row-text"><b>n/${esc(c.id)}</b><small>${esc(c.title)}</small></span></a>`)
+              .map((c) => `<a class="row-link" href="#/n/${c.id}" data-m3-ripple>${nookIcon(c, 32, 17)}<span class="row-text"><b>n/${esc(c.id)}</b><small translate="no">${esc(c.title)}</small></span></a>`)
               .join('')}</div></section>`
           : '') +
         footCard() +
@@ -1191,12 +1191,12 @@
       const u = store.user(c.with);
       return (
         `<a class="row-link convo${c.unread ? ' unread' : ''}" href="#/messages/${encodeURIComponent(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 48)}` +
-        `<span class="row-text"><b>${esc(u.name)}</b><small>${esc(preview(c.last))}</small></span>${meta(c.last, c.unread)}</a>`
+        `<span class="row-text"><b translate="no">${esc(u.name)}</b><small>${esc(preview(c.last))}</small></span>${meta(c.last, c.unread)}</a>`
       );
     };
     const groupRow = (g) =>
       `<a class="row-link convo group-convo${g.unread ? ' unread' : ''}" href="#/messages/g/${encodeURIComponent(g.id)}" data-m3-ripple data-m3-hover-root>${groupIcon(g, 48)}` +
-      `<span class="row-text"><b>${esc(g.name)}</b><small>${esc(preview(g.last, true) || plural(g.members.length, 'member'))}</small></span>${meta(g.last, g.unread)}</a>`;
+      `<span class="row-text"><b translate="no">${esc(g.name)}</b><small>${esc(preview(g.last, true) || plural(g.members.length, 'member'))}</small></span>${meta(g.last, g.unread)}</a>`;
     // chats with one friend and group chats, newest news first
     const chats = [
       ...convos.map((c) => ({ at: c.last ? c.last.createdAt : 0, html: () => row(c) })),
@@ -1387,7 +1387,7 @@
     // in a group, each run says who it's from
     const sender = g.mine ? null : inGroup ? store.user(g.who) : them;
     const face = sender ? `<a class="msg-avatar" href="#/u/${encodeURIComponent(sender.name)}" aria-label="u/${esc(sender.name)}">${avatar(sender, 28)}</a>` : '';
-    const name = inGroup && sender ? `<a class="msg-name${nameFont(sender)}" href="#/u/${encodeURIComponent(sender.name)}">${esc(sender.name)}</a>` : '';
+    const name = inGroup && sender ? `<a class="msg-name${nameFont(sender)}" href="#/u/${encodeURIComponent(sender.name)}" translate="no">${esc(sender.name)}</a>` : '';
     return `<div class="msg-group ${g.mine ? 'mine' : 'them'}">${face}<div class="msg-stack">${name}${bubbles}<small class="msg-meta">${meta}</small></div></div>`;
   }
 
@@ -1687,7 +1687,7 @@
     const friends = store.friendStatus(u.name) === 'friends';
     const head =
       `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-      `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
+      `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}" translate="no">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
       (friends ? callButtons(`data-user="${esc(u.name)}"`, 'u/' + u.name) : '') +
       (store.state.canBlock
         ? `<button class="m3-icon-btn chat-report" data-act="person-menu" data-user="${esc(u.name)}" aria-label="More for u/${esc(u.name)}" data-tooltip="More">${icon('more_vert')}</button></div>`
@@ -1728,7 +1728,7 @@
     const sub = () => plural(store.group(id).members.length, 'member');
     const head =
       `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-      `<button type="button" class="chat-who" data-act="group-info" data-group="${esc(id)}" aria-label="About ${esc(g.name)}"><span class="group-icon">${groupIcon(g, 40)}</span><span><b class="group-name">${esc(g.name)}</b><small class="group-sub">${sub()}</small></span></button>` +
+      `<button type="button" class="chat-who" data-act="group-info" data-group="${esc(id)}" aria-label="About ${esc(g.name)}"><span class="group-icon">${groupIcon(g, 40)}</span><span><b class="group-name" translate="no">${esc(g.name)}</b><small class="group-sub">${sub()}</small></span></button>` +
       callButtons(`data-group="${esc(id)}"`, g.name) +
       `<button class="m3-icon-btn" data-act="group-info" data-group="${esc(id)}" aria-label="Group info" data-tooltip="Group info">${icon('info')}</button></div>`;
     return {
@@ -1746,7 +1746,7 @@
           read: () => store.markGroupRead(id),
           reportKind: 'gmessage',
           render: (all) => chatHTML(all, null, true),
-          empty: () => `<div class="chat-empty">${groupIcon(g, 72)}<b>${esc(g.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`,
+          empty: () => `<div class="chat-empty">${groupIcon(g, 72)}<b translate="no">${esc(g.name)}</b><span class="muted">No messages yet. Say hi!</span></div>`,
         });
         // the header keeps up with renames and new members; a group you've left sends you back to your chats
         root._onGroups = () => {
@@ -1965,7 +1965,7 @@
                     const item = r.item || {};
                     return (
                       `<div class="report" data-report="${r.id}"><div class="report-head"><span class="tag">${r.kind === 'post' ? 'Post' : 'Comment'}</span>${r.automatic ? `<span class="tag">${icon('smart_toy')}Automatic check</span>` : ''}<span class="muted">${esc(r.reason)} · ${ago(r.createdAt)}</span></div>` +
-                      `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}</small></div>` +
+                      `<div class="report-item">${item.title ? `<b translate="no">${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}</small></div>` +
                       '<div class="toolbar">' +
                       `<button type="button" class="m3-btn tonal small" data-report-do="remove" data-kind="${r.kind}" data-target="${esc(r.target)}">${icon('delete')}Remove</button>` +
                       `<button type="button" class="m3-btn text small" data-report-do="dismiss" data-id="${r.id}">${icon('check')}Nothing wrong</button>` +
@@ -2175,7 +2175,7 @@
                   const item = r.item;
                   const what = !item
                     ? '<p class="muted">Already gone.</p>'
-                    : `<div class="report-item">${item.title ? `<b>${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
+                    : `<div class="report-item">${item.title ? `<b translate="no">${esc(item.title)}</b>` : ''}${reportPictures(item)}${item.body ? `<p>${esc(plain(item.body, 300))}</p>` : ''}<small>by u/${esc(item.author || '[deleted]')}${item.removed ? ' · already removed' : ''}${item.banned ? ' · banned' : ''}</small></div>`;
                   return (
                     `<article class="card report" data-report="${r.id}"><div class="report-head">${icon('flag')}<b>${esc(r.reason)}</b><span class="muted">a ${esc(r.kind)} · ${r.automatic ? 'flagged by the automatic check' : `reported by u/${esc(r.reporter)}`} · ${ago(r.createdAt)}</span></div>${what}` +
                     '<div class="toolbar">' +
