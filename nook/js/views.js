@@ -1247,6 +1247,7 @@
   function lineText(m, inGroup = false) {
     const d = lineData(m);
     const who = m.mine ? 'You' : m.from ? 'u/' + m.from : 'Someone';
+    if (m.kind === 'theme') return d.color ? `${who} changed the chat’s colour` : `${who} set the chat back to its usual colours`;
     if (m.kind === 'call') {
       const kind = d.media === 'video' ? 'video call' : 'voice call';
       if (inGroup) return `${who} started a ${kind} · ${d.missed ? 'nobody joined' : duration(d.secs)}`;
@@ -1273,6 +1274,7 @@
   }
   function lineIcon(m) {
     const d = lineData(m);
+    if (m.kind === 'theme') return 'palette';
     if (m.kind === 'call') return d.missed && !m.mine ? (d.media === 'video' ? 'missed_video_call' : 'call_missed') : d.media === 'video' ? 'videocam' : 'call';
     return { created: 'groups', added: 'person_add', removed: 'person_remove', left: 'logout', renamed: 'edit', owner: 'shield_person' }[d.type] || 'info';
   }
@@ -1672,9 +1674,12 @@
       (store.state.canBlock
         ? `<button class="m3-icon-btn chat-report" data-act="person-menu" data-user="${esc(u.name)}" aria-label="More for u/${esc(u.name)}" data-tooltip="More">${icon('more_vert')}</button></div>`
         : `<button class="m3-icon-btn chat-report" data-act="report-user" data-user="${esc(u.name)}" aria-label="Report u/${esc(u.name)}" data-tooltip="Report">${icon('flag')}</button></div>`);
+    const theme = store.chatTheme(u.name);
     return {
       title: `Chat with u/${u.name}`,
       brand: u.shape,
+      // the chat's own colour (1.0), whatever the setting for nests' colours says: the two of them picked it
+      wear: theme ? { color: theme, always: true } : undefined,
       html: chatPage(head, {
         placeholder: `Message u/${u.name}`,
         locked: store.isBlocked(u.name)
@@ -1711,6 +1716,8 @@
     return {
       title: g.name,
       brand: g.shape,
+      // a group chat wears its group's colour (1.0)
+      wear: serverAt('1.0.0') ? { color: g.color, always: true } : undefined,
       html: chatPage(head, { placeholder: `Message ${g.name}` }),
       mount(root) {
         g.reading = true;

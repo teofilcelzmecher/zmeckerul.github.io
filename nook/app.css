@@ -6197,3 +6197,27 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   text-align: center;
   font-size: var(--m3-fs-smaller);
 }
+
+/* ---- 1.0: a chat's colour, previewed as two bubbles in the colour picked --------------------------------- */
+
+.chat-swatch-preview {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--m3-surface-container-low);
+  color: var(--m3-on-surface);
+  transition: background-color 300ms;
+}
+.chat-swatch-preview .bubble {
+  justify-self: start;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: var(--m3-surface-container-highest);
+}
+.chat-swatch-preview .bubble.mine {
+  justify-self: end;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}

@@ -218,6 +218,15 @@ CREATE TABLE IF NOT EXISTS videos (
   created_at INTEGER NOT NULL
 );
 
+-- the colour two friends picked for their chat (1.0), the lower user id first
+CREATE TABLE IF NOT EXISTS chat_themes (
+  a INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  b INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  color TEXT NOT NULL,
+  updated_at INTEGER NOT NULL,
+  PRIMARY KEY (a, b)
+);
+
 -- someone you've blocked (0.9.5): no friend requests, messages or calls either way, and they don't ring you
 CREATE TABLE IF NOT EXISTS blocks (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -104,6 +104,8 @@
     canBlock: Array.isArray(BOOT.blocked),
     // whether the server takes videos in posts (from 1.0, when it has ffmpeg)
     videos: !!BOOT.videos,
+    // the colour picked for each chat with a friend (1.0), by their name in lower case
+    chatThemes: BOOT.chatThemes || {},
   });
   for (const [target, value] of Object.entries(BOOT.mine.votes || {})) (target.startsWith('c') ? state.cvotes : state.votes)[target] = value;
 
@@ -640,6 +642,15 @@
 
   // ---- blocking: they can't message, call or befriend you, and what they write is kept out of your way --------------
 
+  /** a chat's colour with a friend (1.0), '' for none */
+  const chatTheme = (name) => state.chatThemes[String(name).toLowerCase()] || '';
+  async function setChatTheme(name, color) {
+    await api.put('/api/chats/' + encodeURIComponent(name) + '/theme', { color });
+    if (color) state.chatThemes[String(name).toLowerCase()] = color;
+    else delete state.chatThemes[String(name).toLowerCase()];
+    emit('chatTheme', name);
+  }
+
   const isBlocked = (name) => !!name && state.blocked.some((n) => n.toLowerCase() === String(name).toLowerCase());
   async function block(name) {
     const r = await api.post('/api/blocks', { name });
@@ -886,6 +897,10 @@
           if (c.removed) news.removed.push(c.id);
         }
         if (d.me) state.me = meFrom(d.me);
+        if (d.chatThemes && JSON.stringify(d.chatThemes) !== JSON.stringify(state.chatThemes)) {
+          state.chatThemes = d.chatThemes;
+          news.chatThemes = true;
+        }
         if (d.blocked && JSON.stringify(d.blocked) !== JSON.stringify(state.blocked)) {
           state.blocked = d.blocked;
           news.blocked = true;
@@ -934,6 +949,7 @@
         emit('synced', news);
         // blocked or unblocked on another device: the page is drawn again without (or with) them
         if (news.blocked) emit('changed');
+        if (news.chatThemes) emit('chatTheme');
       })
       .catch((error) => emit('sync-failed', error))
       .finally(() => (syncing = null));
@@ -952,7 +968,7 @@
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost, uploadVideo,
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
     markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
-    friendStatus, friends, befriend, unfriend, isBlocked, block, unblock, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
+    friendStatus, friends, befriend, unfriend, isBlocked, block, unblock, chatTheme, setChatTheme, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
     NEST_PERMS, NEST_ROLES, ROLE_LABELS, nestPerms, nestCan, nestRole, bannedFrom, manageNest, setNestRole, removeNestRole, editNest, banFromNest, unbanFromNest,
     dismissNestReport, pinPost, nestRemove,
     report, adminReports, resolveReport, adminRemove, ban, sync,

@@ -754,6 +754,7 @@ route('GET', '/api/account/export', ({ user }) => {
     nestRoles: db.all('SELECT nook, role, title, perms, created_at AS since FROM nest_team WHERE user_id = ?', id),
     nestBans: db.all('SELECT nook, reason, created_at AS since, until FROM nest_bans WHERE user_id = ?', id),
     blocked: blockedNames(id),
+    chatThemes: chatThemesOf(id),
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
     videos: db.all('SELECT * FROM videos WHERE owner_id = ?', id).map((v) => Object.assign(videoOut(v), { post: v.post_id || undefined, createdAt: v.created_at })),
   };
@@ -845,6 +846,8 @@ route('GET', '/api/bootstrap', ({ user }) => {
     videos: video.available() || undefined,
     // calls paused until then (the relay's free allowance for the month is used up)
     callsPaused: callsPaused() ? nextMonth() : undefined,
+    // the colours picked for chats with friends (1.0), by their name
+    chatThemes: chatThemesOf(id),
   };
 });
 
@@ -886,6 +889,7 @@ route('GET', '/api/updates', ({ user, query }) => {
     // calls ringing for you, for a device that couldn't keep its event stream open
     ringing: [...calls.values()].filter((c) => c.ringing.has(id)).map(callOut),
     blocked: blockedNames(id),
+    chatThemes: chatThemesOf(id),
   };
 });
 
@@ -1677,6 +1681,31 @@ route('POST', '/api/messages', async ({ user, body }) => {
   else if (doubt) autoReport('message', Number(lastInsertRowid), doubt);
   return { message: messageOut(db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(lastInsertRowid)), user.id) };
 }, { body: 6 * 1024 * 1024 });
+
+// a chat's colour (1.0): either friend picks it, both see the chat wear it, and the chat says who changed it
+const chatThemesOf = (userId) =>
+  Object.fromEntries(
+    db.all('SELECT t.color, ua.id AS ida, ua.name AS na, ub.name AS nb FROM chat_themes t JOIN users ua ON ua.id = t.a JOIN users ub ON ub.id = t.b WHERE t.a = ? OR t.b = ?', userId, userId)
+      .map((r) => [(r.ida === userId ? r.nb : r.na).toLowerCase(), r.color])
+  );
+route('PUT', '/api/chats/:name/theme', ({ user, params, body }) => {
+  limit('theme:' + user.id, 30, HOUR, 'That’s a lot of colour changes. Try again in a little while.');
+  const other = db.get('SELECT * FROM users WHERE name = ?', decodeURIComponent(params.name));
+  if (!other || other.banned_at || other.id === user.id) fail(404, 'There’s nobody by that name.');
+  const f = friendship(user.id, other.id);
+  if (!f || f.status !== 'friends') fail(403, 'You can only change a chat with a friend.');
+  const color = body.color ? (HEX_RE.test(body.color) ? body.color.toLowerCase() : fail(400, 'Pick a colour.')) : '';
+  const [a, b] = user.id < other.id ? [user.id, other.id] : [other.id, user.id];
+  const was = db.get('SELECT color FROM chat_themes WHERE a = ? AND b = ?', a, b);
+  if ((was ? was.color : '') === color) return { color };
+  db.tx(() => {
+    if (color) db.run('INSERT INTO chat_themes (a, b, color, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(a, b) DO UPDATE SET color = excluded.color, updated_at = excluded.updated_at', a, b, color, now());
+    else db.run('DELETE FROM chat_themes WHERE a = ? AND b = ?', a, b);
+    // a line in the chat, already read (it isn't news to wait for)
+    db.run("INSERT INTO messages (from_id, to_id, kind, body, created_at, read_at) VALUES (?, ?, 'theme', ?, ?, ?)", user.id, other.id, JSON.stringify({ color }), now(), now());
+  });
+  return { color };
+});
 
 route('POST', '/api/messages/read', ({ user, body }) => {
   const other = db.get('SELECT id FROM users WHERE name = ?', text(body.with, 40));

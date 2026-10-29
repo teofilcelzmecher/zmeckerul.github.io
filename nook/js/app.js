@@ -84,7 +84,8 @@
   let viewNook = null;
   // the colours the page wears: its nest's, or a profile's in the style its owner picked ({ color, style })
   let viewWear = null;
-  const wearing = () => (viewWear && S().themeNooks ? viewWear : null);
+  // a nest's or profile's colours follow the setting; a chat's own colour (1.0) is worn either way
+  const wearing = () => (viewWear && (S().themeNooks || viewWear.always) ? viewWear : null);
   let navigating = false; // drawing a page inside a view transition
   let pendingShare = null; // what was tapped, to carry over into the next page
   const scrolls = new Map();
@@ -1348,6 +1349,43 @@
   }
   ACTIONS.block = (btn) => blockPerson(btn.dataset.user);
   ACTIONS.unblock = (btn) => unblockPerson(btn.dataset.user);
+  /** a chat's colour, picked from the swatches (or any colour), or back to the usual: both of you see it */
+  function chatColour(name) {
+    const now = store.chatTheme(name);
+    let picked = now || S().seed;
+    ui.sheet({
+      headline: 'Chat colour',
+      symbol: 'palette',
+      shape: store.user(name).shape || 'cookie9',
+      html:
+        `<p class="muted" style="margin-top:0">The chat with u/${esc(name)} wears it, for both of you. The chat says you changed it.</p>` +
+        swatchesHTML(picked, 'chat') +
+        `<div class="chat-swatch-preview" id="cs-preview"><span class="bubble solo">Hi! 👋</span><span class="bubble solo mine">Looks good!</span></div>`,
+      setup(body) {
+        const preview = body.querySelector('#cs-preview');
+        const paint = () => ui.theme.scheme(picked.toLowerCase(), 'tonalSpot').then((colors) => preview.isConnected && M3.color.apply(colors, preview), () => {});
+        paint();
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          picked = seed;
+          paint();
+        });
+      },
+      actions: [
+        ...(now ? [{ label: 'Usual colours', value: '' }] : []),
+        { label: 'Cancel', value: null },
+        { label: 'Use it', variant: 'filled', run: () => picked },
+      ],
+    }).then(async (color) => {
+      if (color == null || color === now) return;
+      try {
+        await store.setChatTheme(name, color);
+      } catch (error) {
+        return showError(error);
+      }
+      fx.haptic(8);
+    });
+  }
+
   // a moderator takes down just someone's profile picture or banner (from 1.0): no report needed, and no ban
   async function removePart(name, part) {
     const what = part === 'photo' ? 'profile picture' : 'banner';
@@ -1368,7 +1406,10 @@
     const name = btn.dataset.user;
     const u = store.user(name);
     const mod = store.isAdmin() && views.serverAt('1.0.0');
+    // in a chat with them (1.0): the chat's colour
+    const inChat = route && route.view === 'thread' && views.serverAt('1.0.0') && store.friendStatus(name) === 'friends';
     menu(btn, [
+      ...(inChat ? [{ label: 'Chat colour', symbol: 'palette', onSelect: () => chatColour(name) }, { separator: true }] : []),
       { label: `Report u/${name}`, symbol: 'flag', onSelect: () => report('user', { name }) },
       store.isBlocked(name)
         ? { label: `Unblock u/${name}`, symbol: 'lock_open', onSelect: () => unblockPerson(name) }
@@ -2985,7 +3026,8 @@
     // a group's chat only listens for its own news
     if (main._onMessages && route && route.view !== 'groupThread') return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
-    if (!last) return;
+    // a chat's new colour shows in the chat itself; it isn't news to pop up about
+    if (!last || last.kind === 'theme') return;
     M3.snackbar(`u/${last.from}: ${said(last)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
   });
 
@@ -3006,6 +3048,11 @@
   store.on('friends', () => {
     renderBadges();
     if (main._onFriends) main._onFriends();
+  });
+
+  // a chat's colour changed (here, or by the friend on the other end): the chat wears it at once
+  store.on('chatTheme', () => {
+    if (route && route.view === 'thread') render();
   });
 
   store.on('synced', (news) => {

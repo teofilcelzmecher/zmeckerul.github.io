@@ -726,6 +726,17 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   await api(D, 'DELETE', '/api/posts/' + vidPost.json.post.id);
   ok((await fetch(BASE + vidPost.json.post.video.url)).status === 404, 'deleting the post deletes the video');
 
+  // a chat's colour (1.0): either friend picks it, both get it, and the chat says who changed it
+  const themed = await api(A, 'PUT', '/api/chats/bob/theme', { color: '#E8467C' });
+  ok(themed.status === 200 && themed.json.color === '#e8467c', 'a friend picks their chat’s colour', themed.json.error);
+  ok((await api(B, 'GET', '/api/bootstrap')).json.chatThemes.alice === '#e8467c', 'the friend’s app gets it too');
+  const themeLine = (await api(B, 'GET', '/api/messages?with=alice')).json.messages.pop();
+  ok(themeLine.kind === 'theme' && JSON.parse(themeLine.body).color === '#e8467c' && themeLine.from === 'alice', 'and the chat says who changed it');
+  ok((await api(A, 'PUT', '/api/chats/bob/theme', { color: 'red' })).status === 400, 'only a colour will do');
+  ok((await api(A, 'PUT', '/api/chats/human_one/theme', { color: '#000000' })).status === 403, 'and only in a chat with a friend');
+  await api(B, 'PUT', '/api/chats/alice/theme', { color: '' });
+  ok(!('bob' in (await api(A, 'GET', '/api/bootstrap')).json.chatThemes), 'either of them can set it back to the usual colours');
+
   // blocking: dora blocks bob
   for (const T of [B, D]) {
     const going = (await api(T, 'GET', '/api/bootstrap')).json.call;
