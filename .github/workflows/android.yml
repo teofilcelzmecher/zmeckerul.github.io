@@ -1,0 +1,91 @@
+# Budgie for Android: builds the app on GitHub's machines and signs it with the upload key, so a new version for
+# Google Play needs no computer. The signed bundle (.aab, for Play) and an .apk (to try on a phone) come out as this
+# run's artifact. See apps/android/README.md for the four secrets it uses; without them, it still builds (unsigned,
+# and without notifications).
+name: Android app
+
+on:
+  push:
+    branches: [claude/community-social-media-app-m1k3uc]
+    paths: ['apps/android/**', 'nook/**', 'm3/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/android/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Firebase's file for this app (for notifications)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > apps/android/android/app/google-services.json
+          else
+            echo "::warning::No GOOGLE_SERVICES_JSON secret, so this build has no notifications"
+          fi
+
+      - name: The upload key
+        env:
+          KEYSTORE: ${{ secrets.BUDGIE_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::warning::No BUDGIE_KEYSTORE_BASE64 secret, so the release comes out unsigned (Google Play won't take it)"
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/budgie-upload.jks"
+          echo "BUDGIE_KEYSTORE=$RUNNER_TEMP/budgie-upload.jks" >> "$GITHUB_ENV"
+
+      - name: Budgie's screens, in the Android project
+        working-directory: apps/android
+        run: |
+          npm ci
+          npm run sync
+
+      - name: Build
+        working-directory: apps/android/android
+        env:
+          BUDGIE_KEYSTORE_PASSWORD: ${{ secrets.BUDGIE_KEYSTORE_PASSWORD }}
+          BUDGIE_KEY_PASSWORD: ${{ secrets.BUDGIE_KEYSTORE_PASSWORD }}
+          BUDGIE_KEY_ALIAS: budgie-upload
+          # every upload to Google Play needs a bigger number than the last
+          BUDGIE_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease assembleRelease --no-daemon
+
+      - name: Name the files
+        run: |
+          mkdir out
+          v=$(node -p "require('./apps/android/package.json').version")
+          cp apps/android/android/app/build/outputs/bundle/release/app-release.aab "out/budgie-$v-$GITHUB_RUN_NUMBER.aab"
+          cp apps/android/android/app/build/outputs/apk/release/app-release*.apk "out/budgie-$v-$GITHUB_RUN_NUMBER.apk"
+          rm -f "$RUNNER_TEMP/budgie-upload.jks" apps/android/android/app/google-services.json
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: budgie-android-${{ github.run_number }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 30

@@ -27,8 +27,9 @@ const mod = require('../js/moderation.js');
 const pictures = require('./pictures');
 const textmodel = require('./textmodel');
 const video = require('./video');
+const makePush = require('./push');
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const TERMS = '1.0.0, 2026-10-30';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -39,6 +40,9 @@ const CONFIG = {
     .map((s) => s.trim().replace(/\/$/, ''))
     .filter(Boolean),
 };
+// Budgie's Android app (1.1) is always let in: its pages are inside the app, at this address
+const APP_ORIGIN = 'https://app.budgiesocial.com';
+if (!CONFIG.origins.includes(APP_ORIGIN)) CONFIG.origins.push(APP_ORIGIN);
 
 const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
@@ -58,6 +62,7 @@ const STARTERS = (() => {
 })();
 
 const db = open(CONFIG.data);
+const push = makePush(db);
 textmodel.setup(CONFIG.data);
 
 // two starter nests were renamed with the app (Nook became Budgie): what was in them moves along, once
@@ -438,13 +443,15 @@ function notify(userId, note) {
   );
   // a long inbox keeps its newest 200
   db.run('DELETE FROM notes WHERE user_id = ? AND id NOT IN (SELECT id FROM notes WHERE user_id = ? ORDER BY id DESC LIMIT 200)', userId, userId);
+  // and it reaches their phone (1.1), but not the notices everyone gets at once (a change to the Terms, say)
+  if (note.kind !== 'system' && !note.quiet) push.send([userId], { kind: 'activity', title: 'Budgie', body: note.text, href: note.href || '#/inbox' });
 }
 
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '1.0.0, 2026-10-30',
-  text: 'Budgie 1.0 is here, and open to everyone. New: short videos and GIFs in posts (checked automatically, like pictures), up to four pride flags, choosing the part of a picture to keep, a colour for each chat, blocking, and Budgie in Romanian, Spanish, French, German and Italian. Calls can go through Cloudflare’s relay, so the others in a call don’t see your IP address, and pause for the rest of the month if its free allowance runs out. The Terms and Privacy Policy say how: read them in Settings → Privacy and legal.',
+  version: '1.1.0, 2026-10-30',
+  text: 'Budgie is coming to Android as an app, with notifications for messages, calls and replies. If you turn them on in the app, they reach your phone through Google’s Firebase Cloud Messaging, so Google gets your phone’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
@@ -477,7 +484,7 @@ function setBadge(u, badge, on, by) {
 }
 // everyone already here is told once that they're an Early Bird
 if (!db.meta('v1-since') && !db.meta('early-told')) {
-  for (const u of db.all('SELECT id, name FROM users')) notify(u.id, Object.assign({ kind: 'badge', href: '#/u/' + u.name }, EARLY_NOTE));
+  for (const u of db.all('SELECT id, name FROM users')) notify(u.id, Object.assign({ kind: 'badge', href: '#/u/' + u.name, quiet: true }, EARLY_NOTE));
   db.meta('early-told', '1');
 }
 // u/teofil, the owner's account, starts out a developer: once, and only while it's an admin, so it's surely theirs
@@ -708,6 +715,26 @@ route('POST', '/api/recover', async ({ body, ip }) => {
   if (user.banned_at) fail(403, 'This account has been banned' + (user.ban_reason ? ': ' + user.ban_reason : '.'), { banned: true });
   return { token: newSession(user.id), recovery, me: meOut(user) };
 }, { auth: false });
+
+// a phone that wants notifications (1.1): its token from Firebase, kept with this sign-in and the app's language
+route('POST', '/api/push', ({ user, session, body }) => {
+  limit('push:' + user.id, 30, HOUR, 'Try again in a little while.');
+  const token = typeof body.token === 'string' ? body.token.trim() : '';
+  if (!/^[\w:.-]{20,4096}$/.test(token)) fail(400, 'That isn’t a device token.');
+  const platform = body.platform === 'ios' ? 'ios' : 'android';
+  const lang = ['en', 'ro', 'es', 'fr', 'de', 'it'].includes(body.lang) ? body.lang : 'en';
+  db.run(
+    'INSERT INTO push_tokens (token, user_id, session, platform, lang, created_at, seen_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(token) DO UPDATE SET user_id = excluded.user_id, session = excluded.session, platform = excluded.platform, lang = excluded.lang, seen_at = excluded.seen_at',
+    token, user.id, session, platform, lang, now(), now()
+  );
+  // someone's ten newest phones
+  db.run('DELETE FROM push_tokens WHERE user_id = ? AND token NOT IN (SELECT token FROM push_tokens WHERE user_id = ? ORDER BY seen_at DESC LIMIT 10)', user.id, user.id);
+  return { ok: true, on: push.on() };
+});
+route('DELETE', '/api/push', ({ user, body }) => {
+  db.run('DELETE FROM push_tokens WHERE token = ? AND user_id = ?', String(body.token || ''), user.id);
+  return { ok: true };
+});
 
 route('POST', '/api/logout', ({ session }) => {
   db.run('DELETE FROM sessions WHERE token = ?', session);
@@ -1690,6 +1717,7 @@ route('POST', '/api/messages', async ({ user, body }) => {
   if (verdict.flag) autoReport('message', Number(lastInsertRowid), verdict.flag.why);
   else if (attached && attached.review === 'review') autoReport('message', Number(lastInsertRowid), 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('message', Number(lastInsertRowid), doubt);
+  push.send([other.id], { kind: 'message', title: 'u/' + user.name, body: messageBody, word: messageBody ? '' : body.gif ? 'gif' : 'picture', href: '#/messages/' + encodeURIComponent(user.name), tag: 'chat-' + user.name });
   return { message: messageOut(db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(lastInsertRowid)), user.id) };
 }, { body: 6 * 1024 * 1024 });
 
@@ -1843,6 +1871,8 @@ route('POST', '/api/groups/:id/messages', async ({ user, params, body }) => {
   if (verdict.flag) autoReport('gmessage', id, verdict.flag.why);
   else if (attached && attached.review === 'review') autoReport('gmessage', id, 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('gmessage', id, doubt);
+  const others = db.all('SELECT user_id FROM group_members WHERE group_id = ? AND user_id != ?', g.id, user.id).map((m) => m.user_id).filter((uid) => !hasBlocked(uid, user.id));
+  push.send(others, { kind: 'message', title: g.name, body: `u/${user.name}: ${messageBody || (body.gif ? 'GIF' : '📷')}`, href: '#/messages/g/' + g.id, tag: 'group-' + g.id });
   return { message: gmessageOut(db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, id), user.id) };
 }, { body: 6 * 1024 * 1024 });
 
@@ -2056,8 +2086,23 @@ function newCall(user, media, { group = null, peer = null, ring }) {
   calls.set(c.id, c);
   const out = callOut(c);
   for (const id of ring) signal(id, 'call-ring', { call: out });
+  pushRing(c, ring);
   c.timer = setTimeout(() => stopRinging(c, ring), RING_MS);
   return c;
+}
+
+/** a call, to the phones of those it rings (1.1): it opens the chat it's in, where the call is waiting to be answered */
+function pushRing(c, ids) {
+  const from = db.get('SELECT name FROM users WHERE id = ?', c.by);
+  const g = c.group ? db.get('SELECT id, name FROM chat_groups WHERE id = ?', c.group) : null;
+  push.send(ids, {
+    kind: 'call',
+    title: g ? g.name : 'u/' + (from ? from.name : ''),
+    body: c.media === 'video' ? 'Video call' : 'Voice call',
+    then: g ? 'join' : 'answer',
+    href: g ? '#/messages/g/' + g.id : '#/messages/' + encodeURIComponent(from ? from.name : ''),
+    tag: 'call-' + c.id,
+  });
 }
 
 /** someone in a group call rings people in the group again; their phones stop after 35 seconds too */
@@ -2067,6 +2112,7 @@ function ringAgain(c, ids) {
     c.ringing.add(id);
     signal(id, 'call-ring', { call: Object.assign({}, out, { ringing: undefined }), again: true });
   }
+  pushRing(c, ids);
   const timer = setTimeout(() => stopRinging(c, ids), RING_MS);
   if (timer.unref) timer.unref();
 }

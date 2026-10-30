@@ -71,6 +71,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook turn-limit GB` | When calls stop for the month (950 GB unless you change it) |
 | `sudo nook turn-usage ACCOUNT_ID TOKEN` / `turn-usage off` | Also checks Cloudflare's own count of the relay's data every hour |
 | `sudo nook gifs KLIPY_APP_KEY` / `gifs off` | Turns GIF search in chats on or off (see below) |
+| `sudo nook push key.json` / `push paste` / `push off` | Turns notifications on phones (the Android app) on or off (see below) |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
@@ -182,6 +183,36 @@ While the key is in KLIPY's testing mode, everyone together gets 100 searches an
 ask for **production access** in the Partner Panel to lift that. KLIPY asks apps to search from the
 person's own browser and to load its GIFs from its own links, so the key is handed to the app (it's
 meant to be public, like the Turnstile site key) and searches don't touch the laptop.
+
+## Notifications on phones (the Android app)
+
+Budgie's Android app (`apps/android`) can show notifications for messages, calls and the inbox while
+it's closed. They go through Google's Firebase Cloud Messaging, which is free. The app asks people
+first, and only then sends the server its phone's notification token; the website itself never does.
+
+1. Sign in at https://console.firebase.google.com and **Create a project** called Budgie (Google
+   Analytics isn't needed: say no).
+2. In the project, **Add app** → **Android**, with the package name `com.budgiesocial.app`. Download
+   `google-services.json` and put it in `apps/android/android/app/` before building the app (it's
+   kept out of the repository; the GitHub build takes it from a secret, see `apps/android/README.md`).
+3. In **Project settings** (the cog) → **Service accounts**, press **Generate new private key**. It
+   downloads a JSON file. It's a password to your Firebase project: never share it or put it in the
+   repository.
+4. On the laptop, either give the server the file:
+
+   ```sh
+   sudo nook push ~/Downloads/budgie-firebase-adminsdk.json
+   ```
+
+   or run `sudo nook push paste` and paste the file's contents (it's read as soon as it's all there,
+   so this works over SSH from a phone too). It checks the key with
+   Google first and works straight away (no restart). Then delete the downloaded file: the key is kept
+   in the database. `sudo nook push` says whether it's on and how many phones signed up;
+   `sudo nook push off` turns it off.
+
+Each phone's token belongs to the sign-in it came from, so signing out (or a sign-in expiring) stops its
+notifications. A notification is written in the language the app is in. What someone wrote in a message
+is sent as it is, so Google carries it; the Privacy Policy says so.
 
 ## Automatic checks
 

@@ -1,0 +1,34 @@
+{
+  "appId": "com.budgiesocial.app",
+  "appName": "Budgie",
+  "webDir": "www",
+  "loggingBehavior": "debug",
+  "server": {
+    "hostname": "app.budgiesocial.com",
+    "androidScheme": "https"
+  },
+  "android": {
+    "backgroundColor": "#141218",
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "cover"
+    },
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#141218",
+      "androidScaleType": "CENTER_INSIDE",
+      "showSpinner": false
+    },
+    "Keyboard": {
+      "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": []
+    }
+  }
+}

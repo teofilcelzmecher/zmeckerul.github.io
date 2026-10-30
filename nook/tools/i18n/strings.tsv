@@ -497,8 +497,8 @@ f0b4035	pattern	js/app.js:3188	You’ve been on Budgie for about {0} minutes. St
 8d607e8	text	js/app.js:3189	Take a break
 43708e1	text	js/app.js:3194	See you soon
 d9c883a	text	js/app.js:3204	Back to top
-505dddc	text	js/app.js:3326	Refreshing
-6f0ebb5	text	js/app.js:3333	You’re up to date
+505dddc	text	js/app.js:3327	Refreshing
+6f0ebb5	text	js/app.js:3334	You’re up to date
 ad60f43	text	js/calls.js:42	Video call
 b8499d4	text	js/calls.js:42	Voice call
 89e6bcb	text	js/calls.js:152	No live connection
@@ -567,36 +567,36 @@ a72f69f	text	js/calls.js:1205	Share your screen
 0e45aee	text	js/calls.js:1205	Stop sharing
 1f28287	pattern	js/calls.js:1205	{3} (Shift+S)
 66be99b	text	js/calls.js:1206	Hang up
-c7d2102	text	js/calls.js:1348	Couldn’t connect
-8a8b956	text	js/calls.js:1348	Reconnecting…
-568fc45	pattern	js/calls.js:1365	{0}’s screen
-94571eb	text	js/calls.js:1390	You’re sharing your screen
-9e25347	text	js/calls.js:1390	Stop
-0132930	text	js/calls.js:1421	Tap to hear the call
-4be25ff	text	js/calls.js:1435	Ringing everyone…
-417814b	text	js/calls.js:1435	Ringing…
-ea7a35c	text	js/calls.js:1435	Waiting for others to join…
-d45b636	pattern	js/calls.js:1436	· {0} in the call
-1d5016c	text	js/calls.js:1468	Your call
-64bf869	pattern	js/calls.js:1485	Back to the call with {0}
-24f096b	text	js/calls.js:1485	Return
-b37554f	text	js/calls.js:1511	People
-03db7a1	text	js/calls.js:1518	In the call
-1f3909b	text	js/calls.js:1518	Not here
-96ddacc	text	js/calls.js:1520	Ring
-8525af8	text	js/calls.js:1532	Ring everyone not here
-9ea63d2	pattern	js/calls.js:1539	Ringing {0}
-8cc5a98	text	js/calls.js:1550	Mute or unmute (Ctrl+D or ⌘D works while you type)
-1403889	text	js/calls.js:1551	Camera on or off (Ctrl+E or ⌘E)
-d950831	text	js/calls.js:1552	Share your screen, or stop
-bc7a739	text	js/calls.js:1553	People: ring someone again (in a group)
-79f7c82	text	js/calls.js:1554	Hide the call, or bring it back
-1f7a4f9	text	js/calls.js:1555	Esc
-5e95636	text	js/calls.js:1555	Hide the call
-de61dea	text	js/calls.js:1556	Answer a call that’s ringing (Esc turns it down)
-99384f9	text	js/calls.js:1560	Keys in a call
-a522dab	text	js/calls.js:1602	· you’re still in the call
-c6240d6	text	js/calls.js:1603	Rejoin
+c7d2102	text	js/calls.js:1355	Couldn’t connect
+8a8b956	text	js/calls.js:1355	Reconnecting…
+568fc45	pattern	js/calls.js:1372	{0}’s screen
+94571eb	text	js/calls.js:1415	You’re sharing your screen
+9e25347	text	js/calls.js:1415	Stop
+0132930	text	js/calls.js:1446	Tap to hear the call
+4be25ff	text	js/calls.js:1460	Ringing everyone…
+417814b	text	js/calls.js:1460	Ringing…
+ea7a35c	text	js/calls.js:1460	Waiting for others to join…
+d45b636	pattern	js/calls.js:1461	· {0} in the call
+1d5016c	text	js/calls.js:1493	Your call
+64bf869	pattern	js/calls.js:1510	Back to the call with {0}
+24f096b	text	js/calls.js:1510	Return
+b37554f	text	js/calls.js:1536	People
+03db7a1	text	js/calls.js:1543	In the call
+1f3909b	text	js/calls.js:1543	Not here
+96ddacc	text	js/calls.js:1545	Ring
+8525af8	text	js/calls.js:1557	Ring everyone not here
+9ea63d2	pattern	js/calls.js:1564	Ringing {0}
+8cc5a98	text	js/calls.js:1575	Mute or unmute (Ctrl+D or ⌘D works while you type)
+1403889	text	js/calls.js:1576	Camera on or off (Ctrl+E or ⌘E)
+d950831	text	js/calls.js:1577	Share your screen, or stop
+bc7a739	text	js/calls.js:1578	People: ring someone again (in a group)
+79f7c82	text	js/calls.js:1579	Hide the call, or bring it back
+1f7a4f9	text	js/calls.js:1580	Esc
+5e95636	text	js/calls.js:1580	Hide the call
+de61dea	text	js/calls.js:1581	Answer a call that’s ringing (Esc turns it down)
+99384f9	text	js/calls.js:1585	Keys in a call
+a522dab	text	js/calls.js:1627	· you’re still in the call
+c6240d6	text	js/calls.js:1628	Rejoin
 931fbc9	text	js/moderation.js:40	NFKD
 069d335	text	js/moderation.js:71	~nigger
 0ab8fb9	text	js/moderation.js:71	~nigga
@@ -1090,325 +1090,327 @@ cf76551	text	js/views.js:1395	Sending…
 0661521	text	js/views.js:1425	Photo or GIF
 01cbdb4	pattern	js/views.js:1435	Voice call {1}
 3cdd912	pattern	js/views.js:1436	Video call {1}
-623acb7	text	js/views.js:1471	Older messages
-3156b97	text	js/views.js:1545	. Add a message, or just send it
-2603f45	pattern	js/views.js:1545	{1} ready to send{2}
-7a3ff77	pattern	js/views.js:1546	Don’t send this {0}
-1145e17	pattern	js/views.js:1660	Open {0}
-babfeaf	text	js/views.js:1661	Report message
-2ce4408	text	js/views.js:1661	Moderators will see it, and who sent it
-ebbc7d3	text	js/views.js:1668	Couldn’t copy that.
-29207df	text	js/views.js:1699	All messages
-08f90a0	pattern	js/views.js:1703	More for u/{1}
-42dc84a	pattern	js/views.js:1707	Chat with u/{0}
-51d0a08	pattern	js/views.js:1712	Message u/{0}
-9e2d4e4	pattern	js/views.js:1714	You blocked u/{0}. Unblock them to be friends and message again.
-8164104	pattern	js/views.js:1717	You can message u/{0} once you’re friends.
-f165127	text	js/views.js:1727	No messages yet. Say hi!
-145422f	text	js/views.js:1736	That group isn’t there any more, or you’re not in it.
-3de899d	pattern	js/views.js:1741	About {1}
-4be5c02	pattern	js/views.js:1749	Message {0}
-ebdb842	text	js/views.js:1765	You’re no longer in that group.
-d4ac74b	text	js/views.js:1783	A video call
-6021bcb	text	js/views.js:1783	A voice call
-4e8d25e	pattern	js/views.js:1783	{0} is going on
-0baaf59	text	js/views.js:1799	Pin posts
-4ec23e0	text	js/views.js:1799	Pin up to 3 posts to the top of the nest
-09ee485	text	js/views.js:1800	Remove posts and comments
-4640296	text	js/views.js:1800	Take down what breaks the rules, and handle reports
-c1c36aa	text	js/views.js:1801	Ban people
-15e76da	text	js/views.js:1801	Stop someone posting and commenting in this nest
-e0018fc	text	js/views.js:1802	Edit the rules
-eeaa230	text	js/views.js:1802	Change the rules, the tagline and the description
-cf2dee3	text	js/views.js:1803	Manage the team
-991ba30	text	js/views.js:1803	Give people roles and take them away
-3a05e08	text	js/views.js:1806	Everything, including the team
-ad3b15c	text	js/views.js:1807	Moderator
-45c3080	text	js/views.js:1807	Pins, removes posts and comments, and bans people
-1e7eebd	text	js/views.js:1808	Helper
-9e733c4	text	js/views.js:1808	Pins, and removes posts and comments
-d5d8448	text	js/views.js:1809	Your own
-dd34741	text	js/views.js:1809	Name it and choose what it can do
-401a6e7	pattern	js/views.js:1815	There’s no nest called n/{0}.
-0a7918e	pattern	js/views.js:1817	Only the people who run n/{0} can see this page.
-bb11a8e	text	js/views.js:1818	Rules
-1057c57	text	js/views.js:1818	Bans
-88bc3fe	text	js/views.js:1818	Reports
-2820a15	pattern	js/views.js:1824	Manage n/{0}
-6e95fcf	text	js/views.js:1829	Back to the nest
-8082827	text	js/views.js:1830	its owner
-474541b	pattern	js/views.js:1830	on its team, as {0}
-afba69b	pattern	js/views.js:1830	You’re {0}
-fa1a3b8	text	js/views.js:1830	You’re one of Budgie’s moderators
-7ff5a6d	text	js/views.js:1832	Sections
-7cd9e1b	text	js/views.js:1870	Owner · can do everything
-4b9f66a	pattern	js/views.js:1877	Take u/{2}’s role away
-c7bc011	text	js/views.js:1877	Take role away
-64fbd99	text	js/views.js:1877	Change
-14be504	text	js/views.js:1878	Step down
-36d1115	text	js/views.js:1883	Add someone
-d6fdb11	text	js/views.js:1884	Nobody yet. Budgie’s own moderators look after this nest.
-679a254	text	js/views.js:1886	What each role can do
-fcbe640	text	js/views.js:1888	A role with a name you choose, that can do only what you pick. People can only give the kinds of access they have themselves, and only the owner can let someone manage the team.
-9c3d74e	text	js/views.js:1897	Everyone sees these on the nest’s page. Keep them short: up to 10, each up to 120 characters.
-d119887	text	js/views.js:1899	Add a rule
-73b79b1	text	js/views.js:1900	About the nest
-b0f7948	text	js/views.js:1901	Tagline
-55f8ebc	text	js/views.js:1902	Description
-78e1790	text	js/views.js:1907	Rule
-cdf3b54	text	js/views.js:1907	Be kind
-b4f57cd	text	js/views.js:1908	Move up
-558f30c	text	js/views.js:1909	Remove this rule
-56a2285	text	js/views.js:1937	Saving…
-45365e3	text	js/views.js:1952	for good
-9438be1	pattern	js/views.js:1954	Banned from n/{0}
-08e80bc	text	js/views.js:1954	Ban someone
-deb7bdd	text	js/views.js:1955	A ban only stops someone posting and commenting here. They can still read the nest, and use the rest of Budgie.
-0d94779	pattern	js/views.js:1960	· by u/{0}
-d2671bf	text	js/views.js:1960	Unban
-9b309d3	text	js/views.js:1963	Nobody is banned.
-9936e42	text	js/views.js:1977	Automatic check
-dc4c613	pattern	js/views.js:1978	by u/{0}
-e4556e9	text	js/views.js:1981	Nothing wrong
-5f378a2	text	js/views.js:1987	No open reports. All quiet.
-3e613a9	pattern	js/views.js:2002	Step down from n/{0}’s team?
-52e10ec	pattern	js/views.js:2002	Take u/{0}’s role away?
-3b67229	text	js/views.js:2005	You won’t be able to do anything here a member can’t. Someone on the team can give you a role again.
-7db04ae	text	js/views.js:2005	They’ll be an ordinary member of the nest again, and they’re told.
-44a7d07	pattern	js/views.js:2016	u/{0} can post here again
-ceda476	pattern	js/views.js:2040	u/{0}’s role
-e6c951d	text	js/views.js:2040	Add someone to the team
-1f9fb8a	pattern	js/views.js:2045	Who (they have to have joined n/{0})
-c3f104d	text	js/views.js:2046	Role
-52f62ef	text	js/views.js:2049	Glaze guru
-376b0e8	text	js/views.js:2049	Its name
-55b45c7	text	js/views.js:2073	Who should it be?
-078c893	text	js/views.js:2078	Give the role a name.
-7f38eaa	text	js/views.js:2079	Pick at least one thing it can do.
-8701ce2	pattern	js/views.js:2085	u/{0} is on the team
-dd54aae	pattern	js/views.js:2107	Ban u/{0} from n/{1}?
-d4ea664	pattern	js/views.js:2107	Ban someone from n/{0}
-7d53161	text	js/views.js:2112	Who
-21e2cae	text	js/views.js:2113	Why
-fe3a541	text	js/views.js:2114	Or say why in your own words
-4286c1f	text	js/views.js:2115	A day
-51e2a8b	text	js/views.js:2115	A week
-6d17c38	text	js/views.js:2115	A month
-a30ccf2	text	js/views.js:2115	For good
-2c8c5a4	text	js/views.js:2115	For how long
-781dac8	text	js/views.js:2116	They’re told, with the reason. They can still read the nest, and use the rest of Budgie.
-bfa1bfb	text	js/views.js:2129	Ban
-b9095bc	text	js/views.js:2136	Who should be banned?
-ed238a0	text	js/views.js:2137	Say why: they’ll be told.
-6744c15	text	js/views.js:2142	a day
-5ba5116	text	js/views.js:2142	any more
-0af579f	pattern	js/views.js:2142	u/{0} can’t post in n/{1} {2}
-e4f0b58	text	js/views.js:2157	The picture
-aeb8371	text	js/views.js:2158	Profile picture
-51af07e	text	js/views.js:2162	Only Budgie’s moderators can see this page.
-093452d	text	js/views.js:2168	Open reports, newest first. Whoever you act on is told what and why.
-1914680	text	js/views.js:2169	Loading reports
-e5fd9dc	text	js/views.js:2170	Reason they’ll see
-740179b	text	js/views.js:2170	Ban an account
-9f734fb	text	js/views.js:2187	Already gone.
-388353f	text	js/views.js:2188	· already removed
-9709093	text	js/views.js:2188	· banned
-1f46b6e	pattern	js/views.js:2188	by u/{0}{1}{2}
-b4d19ad	text	js/views.js:2190	flagged by the automatic check
-3d539d6	pattern	js/views.js:2190	reported by u/{0}
-2ebb22b	text	js/views.js:2195	Remove picture
-dc3ae7e	text	js/views.js:2197	Clear profile
-70afe9e	text	js/views.js:2199	Dismiss
-9ad6472	text	js/views.js:2203	Nothing to review
-42ff611	text	js/views.js:2203	No open reports. Nice and calm.
-3c049f5	text	js/views.js:2213	Report dismissed
-86689c8	text	js/views.js:2214	Account banned
-8150251	text	js/views.js:2215	Removed, and its author told why
-d9f9d87	pattern	js/views.js:2215	{0} removed, and its owner told why
-6bfd4bc	text	js/views.js:2215	Profile cleared, and its owner told why
-83b5b57	text	js/views.js:2233	Banned and signed out
-475c848	text	js/views.js:2245	Not found
-cb02233	text	js/views.js:2247	Nothing to see here
-9cc815b	text	js/views.js:2247	This page doesn’t exist.
-5c53da3	text	js/views.js:2247	Back home
-2734ef0	text	server/server.js:161	Pictures must be JPEG, PNG or GIF.
-18d5fd3	text	server/server.js:161	Pictures must be JPEG or PNG.
-64a8164	pattern	server/server.js:163	That {0} is too big (the limit is {1}).
-9e0f88a	text	server/server.js:168	GIFs can’t go here.
-0c80308	text	server/server.js:171	That GIF looks broken.
-b0e4392	pattern	server/server.js:172	That GIF is too large (at most {0}×{1} pixels).
-9eae0f3	text	server/server.js:173	That isn’t a GIF.
-fd0bdca	text	server/server.js:176	That doesn’t look like a JPEG, PNG or GIF.
-f7f0da7	text	server/server.js:176	That doesn’t look like a JPEG or PNG.
-92bc006	text	server/server.js:188	This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be a profile picture or banner. Try a different one.
-b9034c4	text	server/server.js:189	This picture might not be OK to send (an automatic check flagged it as possibly sexual), so it wasn’t sent.
-77e7be5	text	server/server.js:190	This video might not be OK for everyone on Budgie (an automatic check flagged it as possibly sexual), so it can’t be posted.
-e51cb1a	text	server/server.js:191	This picture looks like it shows nudity or sexual content, which isn’t allowed on Budgie.
-60e1b2b	text	server/server.js:200	That picture couldn’t be read. Try another one.
-6a17353	text	server/server.js:202	Pictures can’t be checked right now, so they can’t be posted. Try again in a minute.
-d870d61	text	server/server.js:206	No sexual content
-4fa37d9	pattern	server/server.js:216	The automatic check flagged a {0} for a look
-8bc1403	text	server/server.js:224	This reads as an attack on someone. Disagree or joke all you like, but not by putting people down.
-c7cf00d	text	server/server.js:225	This reads as an insult aimed at someone. Disagree or joke all you like, but not by putting people down.
-af7faa3	text	server/server.js:226	This reads as a threat, or as wishing harm on someone.
-12acb98	text	server/server.js:227	This reads as attacking people for who they are: where they’re from, their religion, race, gender or sexuality.
-0e301e7	text	server/server.js:228	This reads as sexual. Budgie doesn’t allow sexual messages: everyone here is 13 or older, and many are teenagers.
-1f2834c	text	server/server.js:248	That username reads as hurtful or rude to an automatic check. Try another one.
-6845850	text	server/server.js:386	GIF search is off.
-b07eede	text	server/server.js:389	That GIF can’t be sent.
-d78feba	text	server/server.js:393	That’s a lot of pictures. Try again in a little while.
-61dc137	text	server/server.js:447	Budgie 1.0 is here, and open to everyone. New: short videos and GIFs in posts (checked automatically, like pictures), up to four pride flags, choosing the part of a picture to keep, a colour for each chat, blocking, and Budgie in Romanian, Spanish, French, German and Italian. Calls can go through Cloudflare’s relay, so the others in a call don’t see your IP address, and pause for the rest of the month if its free allowance runs out. The Terms and Privacy Policy say how: read them in Settings → Privacy and legal.
-8efd22e	text	server/server.js:464	You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!
-6833da1	text	server/server.js:466	You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.
-fdce4cb	pattern	server/server.js:467	u/{0} gave you
-dc2bfe2	text	server/server.js:467	You’ve got
-4843950	pattern	server/server.js:467	{0} the Tester badge: it’s on your profile now. Thanks for helping test Budgie!
-283de39	text	server/server.js:471	There’s no badge like that to give.
-7250181	text	server/server.js:516	Keep swearing out of names.
-01bf689	text	server/server.js:516	Keep names clean
-7fefda0	text	server/server.js:544	This account has been banned
-e4e3a53	text	server/server.js:605	The robot check didn’t work, or it ran out of time. Try it again.
-1ac6556	text	server/server.js:618	The robot check isn’t answering right now, so new accounts can’t be made. Try again in a minute.
-c3552a3	text	server/server.js:624	The robot check isn’t set up right on Budgie’s side, so new accounts can’t be made just now. Try again later.
-619a95d	text	server/server.js:628	That robot check was passed on another website. Try it again here.
-fdbd25a	text	server/server.js:638	Lots of people are joining right now. Try again in a little while.
-bd75eaa	text	server/server.js:641	Please confirm your age and agree to the Terms of Use and Privacy Policy.
-9a2dd82	text	server/server.js:646	Too many wrong invite codes. Try again later.
-91b23cf	text	server/server.js:647	Budgie is invite-only right now. That invite code doesn’t work. Check it and try again.
-b789564	text	server/server.js:649	That invite code has already been used.
-facb033	text	server/server.js:651	Usernames are 3–20 letters, numbers or underscores.
-e7a9ce6	pattern	server/server.js:653	u/{0} is taken. Try another name.
-62a8160	text	server/server.js:655	Use at least 8 characters for your password.
-22b6e60	text	server/server.js:656	That password is too long.
-7e5aedb	text	server/server.js:657	Your password can’t be your username.
-85b465b	text	server/server.js:691	Wrong username or password.
-b82846a	text	server/server.js:702	That username and recovery code don’t match.
-59eeb74	text	server/server.js:704	Use at least 8 characters for your new password.
-0a462ca	text	server/server.js:719	Your current password isn’t right.
-f4ba472	text	server/server.js:729	That password isn’t right.
-4f68a7d	text	server/server.js:900	That’s a lot of posts. Take a break and try again later.
-44171c4	text	server/server.js:903	That nest doesn’t exist.
-d620bd1	text	server/server.js:933	That GIF can’t be posted.
-fed3964	text	server/server.js:944	That video is gone. Add it again.
-ef3e267	pattern	server/server.js:961	this {0} might be sexual. Please take a look.
-dd6392c	text	server/server.js:985	Budgie can’t take videos right now.
-87a66ab	text	server/server.js:986	That’s a lot of videos for one day. Try again tomorrow.
-55a0580	pattern	server/server.js:996	Videos can be up to {0} seconds long. Trim it and try again.
-61eb572	text	server/server.js:997	That video is too short.
-53be682	text	server/server.js:1003	That video couldn’t be read. Try another one, or an MP4.
-b155c2f	text	server/server.js:1059	That post is gone.
-cda6baf	text	server/server.js:1060	That isn’t your post.
-a7819d4	text	server/server.js:1066	Only the person who wrote a post can edit it.
-915fce8	text	server/server.js:1089	Moderators remove posts from the moderation page, with a reason.
-7342ae0	text	server/server.js:1097	That’s a lot of comments. Take a break and try again later.
-5ce28d1	text	server/server.js:1099	Write something first.
-cdff26f	text	server/server.js:1105	The comment you’re replying to is gone.
-eea8c2b	pattern	server/server.js:1123	u/{0} replied to your comment
-137c647	pattern	server/server.js:1126	u/{0} commented on your post “{1}”
-c6aa6bf	text	server/server.js:1133	That comment is gone.
-297ca21	text	server/server.js:1134	That isn’t your comment.
-dd8bd4e	text	server/server.js:1164	That’s gone.
-3a1fb51	text	server/server.js:1176	That’s not a Spark.
-69ff781	text	server/server.js:1188	That poll is gone.
-3beff1a	text	server/server.js:1190	That’s not one of the options.
-f205e8e	text	server/server.js:1201	You can create up to 3 nests a day.
-b0117fe	pattern	server/server.js:1259	You can’t {0} in n/{1}.
-d5d7152	pattern	server/server.js:1282	You’re banned from posting and commenting in n/{0}{1}. Reason: {2}
-ff86e3a	text	server/server.js:1291	There’s nobody by that name.
-7a8cb9e	text	server/server.js:1299	You’re not on this nest’s team.
-23c06a3	text	server/server.js:1328	You can’t change your own role.
-00efff2	pattern	server/server.js:1329	u/{0} owns n/{1}.
-720e39a	pattern	server/server.js:1330	u/{0} has to join n/{1} first.
-407b9b7	pattern	server/server.js:1331	u/{0} is banned from n/{1}. Unban them first.
-b22ee57	text	server/server.js:1333	Only the nest’s owner can change the role of someone who manages the team.
-3ab9d32	text	server/server.js:1336	Pick at least one thing they can do.
-7979901	text	server/server.js:1337	Only the nest’s owner can let someone manage the team.
-a916d99	text	server/server.js:1338	You can only give the kinds of access you have yourself.
-b2fcc17	pattern	server/server.js:1342	A nest’s team can have up to {0} people.
-a6fad48	pattern	server/server.js:1352	u/{0} made you {1} in n/{2}
-e7531e9	pattern	server/server.js:1362	u/{0} isn’t on n/{1}’s team.
-fc91cb2	text	server/server.js:1365	Only the nest’s owner can take away the role of someone who manages the team.
-2de7432	pattern	server/server.js:1366	You’re no longer on n/{0}’s team.
-34a702c	text	server/server.js:1379	You can’t ban yourself.
-e79e4c1	pattern	server/server.js:1380	u/{0} can’t be banned from n/{1}.
-de29401	pattern	server/server.js:1381	u/{0} is on the team. Take their role away first.
-7fe1c1e	pattern	server/server.js:1389	You can’t post or comment in n/{0} {1}. Reason: {2}
-3b7357a	pattern	server/server.js:1399	u/{0} isn’t banned from n/{1}.
-b9d029e	pattern	server/server.js:1400	You can post and comment in n/{0} again.
-4125257	pattern	server/server.js:1412	A nest can have up to {0} rules.
-19ddfc6	text	server/server.js:1417	Say in a line what the nest is about.
-f180597	pattern	server/server.js:1436	A nest can have up to {0} pinned posts. Unpin one first.
-c500f0a	text	server/server.js:1449	That isn’t in this nest.
-aacd71b	text	server/server.js:1451	That’s already gone.
-e916dee	text	server/server.js:1462	That report is gone.
-9037608	text	server/server.js:1474	You can change your username up to 5 times a day.
-ef51b16	text	server/server.js:1490	That isn’t one of Budgie’s name fonts.
-45dfd01	text	server/server.js:1495	Pronouns are up to 24 letters, with / or spaces between them (like she/they).
-1e590fe	text	server/server.js:1501	That isn’t one of Budgie’s pride flags.
-649fdb1	pattern	server/server.js:1502	You can wear up to {0} flags.
-bdc8c17	pattern	server/server.js:1510	Pick up to {0} of Budgie’s interests.
-82c5a7d	text	server/server.js:1514	That isn’t one of the colour styles.
-c64a2e6	text	server/server.js:1519	That isn’t a shape.
-826b6e5	text	server/server.js:1527	You can change your picture or banner up to 20 times a day.
-a561fa5	text	server/server.js:1557	this profile picture or banner might not be OK for everyone. Please take a look.
-fd1352a	text	server/server.js:1558	this might be
-08a2997	text	server/server.js:1558	this bio might be
-6b3d03a	text	server/server.js:1564	Only Budgie’s developers can give badges.
-8ddc3fc	text	server/server.js:1566	Developers can give the Tester badge, and only that one.
-f8ecc2a	text	server/server.js:1568	There’s no one by that name.
-9fcc25e	text	server/server.js:1576	Your settings are too big to save.
-0abdfd8	pattern	server/server.js:1599	New report: a {0} for “{1}”
-3e67cbf	text	server/server.js:1610	You’re already your own best friend.
-fff49a3	pattern	server/server.js:1611	You’ve blocked u/{0}. Unblock them first.
-58d52a7	pattern	server/server.js:1612	You can’t send u/{0} a friend request.
-face8fd	pattern	server/server.js:1619	u/{0} accepted your friend request
-ee9c8c2	pattern	server/server.js:1623	u/{0} sent you a friend request
-15d818f	text	server/server.js:1638	You can’t block yourself.
-b9e01f5	text	server/server.js:1675	You’re sending messages very fast. Slow down a little.
-51582d4	text	server/server.js:1679	You can only message friends.
-5961e39	text	server/server.js:1691	this picture might be sexual. Please take a look.
-671ab6b	text	server/server.js:1703	That’s a lot of colour changes. Try again in a little while.
-5ca587f	text	server/server.js:1707	You can only change a chat with a friend.
-56e400c	text	server/server.js:1708	Pick a colour.
-776b69f	pattern	server/server.js:1784	Only the group’s owner can {0}.
-8cb3c1c	pattern	server/server.js:1791	There’s no friend called {0}.
-64fa87c	pattern	server/server.js:1793	You can only add your friends, and u/{0} isn’t one yet.
-b751225	pattern	server/server.js:1794	u/{0} is already in the group.
-a74676c	pattern	server/server.js:1798	u/{0} added you to the group “{1}”
-afbdc63	text	server/server.js:1802	That’s a lot of new groups for one day. Try again tomorrow.
-de99a8e	text	server/server.js:1807	Add at least one friend.
-c3ddf39	text	server/server.js:1877	They’re not in this group.
-2ffbffc	text	server/server.js:1878	To leave the group, use Leave group.
-abc4e83	pattern	server/server.js:1884	You were removed from the group “{0}”
-f901e8a	text	server/server.js:1905	Pick one of the shapes.
-3294dda	text	server/server.js:2091	You’re not in this call.
-3f7c289	text	server/server.js:2093	You’re already in another call. Hang up first.
-7c42145	pattern	server/server.js:2094	This call is full: up to {0} people can be in a call.
-c3a755c	text	server/server.js:2156	That’s a lot of calls. Wait a little and try again.
-56bf70a	text	server/server.js:2159	You’re already in a call. Hang up first.
-cede9b0	text	server/server.js:2172	You can only call friends.
-f9bf6bf	pattern	server/server.js:2173	u/{0} isn’t taking calls.
-c667a89	pattern	server/server.js:2174	u/{0} is on another call. Try again in a bit.
-b529ef8	text	server/server.js:2181	That call has ended.
-163342d	text	server/server.js:2191	They’re not in the call any more.
-e9f1b69	text	server/server.js:2192	That isn’t a call signal.
-da305b6	text	server/server.js:2224	That’s a lot of ringing. Wait a little and try again.
-bea1316	text	server/server.js:2227	Only a group call can ring people again.
-d06a0db	text	server/server.js:2231	They can’t be rung right now (they may have calls turned off).
-3d2b6b1	text	server/server.js:2231	Everyone who can be rung is already in the call.
-4f97120	pattern	server/server.js:2325	{0} removed your post “{1}”. Reason: {2}. If you think this was a mistake, contact Budgie.
-13ccf4a	pattern	server/server.js:2332	{0} removed your comment. Reason: {1}. If you think this was a mistake, contact Budgie.
-f936ed9	pattern	server/server.js:2348	A moderator removed one of your group messages. Reason: {0}. If you think this was a mistake, contact Budgie.
-e182a96	pattern	server/server.js:2376	A moderator removed your {0}. Reason: {1}. If you think this was a mistake, contact Budgie.
-3813e92	text	server/server.js:2385	Admins can’t be banned. Remove their admin role first.
-5518c6b	text	server/server.js:2459	That’s too big to send.
-9152125	text	server/server.js:2471	That request wasn’t valid JSON.
-3457cf4	text	server/server.js:2499	This site isn’t allowed to use Budgie’s server.
-662a485	text	server/server.js:2524	Please sign in again.
-9fdd326	text	server/server.js:2527	Too many requests. Slow down a little.
-a626b4f	text	server/server.js:2528	Only admins can do that.
-af782c4	text	server/server.js:2545	There’s nothing here.
-6e67440	text	server/server.js:2552	Something went wrong on Budgie’s server. Try again in a moment.
+623acb7	text	js/views.js:1472	Older messages
+3156b97	text	js/views.js:1558	. Add a message, or just send it
+2603f45	pattern	js/views.js:1558	{1} ready to send{2}
+7a3ff77	pattern	js/views.js:1559	Don’t send this {0}
+1145e17	pattern	js/views.js:1673	Open {0}
+babfeaf	text	js/views.js:1674	Report message
+2ce4408	text	js/views.js:1674	Moderators will see it, and who sent it
+ebbc7d3	text	js/views.js:1681	Couldn’t copy that.
+29207df	text	js/views.js:1712	All messages
+08f90a0	pattern	js/views.js:1716	More for u/{1}
+42dc84a	pattern	js/views.js:1720	Chat with u/{0}
+51d0a08	pattern	js/views.js:1725	Message u/{0}
+9e2d4e4	pattern	js/views.js:1727	You blocked u/{0}. Unblock them to be friends and message again.
+8164104	pattern	js/views.js:1730	You can message u/{0} once you’re friends.
+f165127	text	js/views.js:1740	No messages yet. Say hi!
+145422f	text	js/views.js:1749	That group isn’t there any more, or you’re not in it.
+3de899d	pattern	js/views.js:1754	About {1}
+4be5c02	pattern	js/views.js:1762	Message {0}
+ebdb842	text	js/views.js:1778	You’re no longer in that group.
+d4ac74b	text	js/views.js:1796	A video call
+6021bcb	text	js/views.js:1796	A voice call
+4e8d25e	pattern	js/views.js:1796	{0} is going on
+0baaf59	text	js/views.js:1812	Pin posts
+4ec23e0	text	js/views.js:1812	Pin up to 3 posts to the top of the nest
+09ee485	text	js/views.js:1813	Remove posts and comments
+4640296	text	js/views.js:1813	Take down what breaks the rules, and handle reports
+c1c36aa	text	js/views.js:1814	Ban people
+15e76da	text	js/views.js:1814	Stop someone posting and commenting in this nest
+e0018fc	text	js/views.js:1815	Edit the rules
+eeaa230	text	js/views.js:1815	Change the rules, the tagline and the description
+cf2dee3	text	js/views.js:1816	Manage the team
+991ba30	text	js/views.js:1816	Give people roles and take them away
+3a05e08	text	js/views.js:1819	Everything, including the team
+ad3b15c	text	js/views.js:1820	Moderator
+45c3080	text	js/views.js:1820	Pins, removes posts and comments, and bans people
+1e7eebd	text	js/views.js:1821	Helper
+9e733c4	text	js/views.js:1821	Pins, and removes posts and comments
+d5d8448	text	js/views.js:1822	Your own
+dd34741	text	js/views.js:1822	Name it and choose what it can do
+401a6e7	pattern	js/views.js:1828	There’s no nest called n/{0}.
+0a7918e	pattern	js/views.js:1830	Only the people who run n/{0} can see this page.
+bb11a8e	text	js/views.js:1831	Rules
+1057c57	text	js/views.js:1831	Bans
+88bc3fe	text	js/views.js:1831	Reports
+2820a15	pattern	js/views.js:1837	Manage n/{0}
+6e95fcf	text	js/views.js:1842	Back to the nest
+8082827	text	js/views.js:1843	its owner
+474541b	pattern	js/views.js:1843	on its team, as {0}
+afba69b	pattern	js/views.js:1843	You’re {0}
+fa1a3b8	text	js/views.js:1843	You’re one of Budgie’s moderators
+7ff5a6d	text	js/views.js:1845	Sections
+7cd9e1b	text	js/views.js:1883	Owner · can do everything
+4b9f66a	pattern	js/views.js:1890	Take u/{2}’s role away
+c7bc011	text	js/views.js:1890	Take role away
+64fbd99	text	js/views.js:1890	Change
+14be504	text	js/views.js:1891	Step down
+36d1115	text	js/views.js:1896	Add someone
+d6fdb11	text	js/views.js:1897	Nobody yet. Budgie’s own moderators look after this nest.
+679a254	text	js/views.js:1899	What each role can do
+fcbe640	text	js/views.js:1901	A role with a name you choose, that can do only what you pick. People can only give the kinds of access they have themselves, and only the owner can let someone manage the team.
+9c3d74e	text	js/views.js:1910	Everyone sees these on the nest’s page. Keep them short: up to 10, each up to 120 characters.
+d119887	text	js/views.js:1912	Add a rule
+73b79b1	text	js/views.js:1913	About the nest
+b0f7948	text	js/views.js:1914	Tagline
+55f8ebc	text	js/views.js:1915	Description
+78e1790	text	js/views.js:1920	Rule
+cdf3b54	text	js/views.js:1920	Be kind
+b4f57cd	text	js/views.js:1921	Move up
+558f30c	text	js/views.js:1922	Remove this rule
+56a2285	text	js/views.js:1950	Saving…
+45365e3	text	js/views.js:1965	for good
+9438be1	pattern	js/views.js:1967	Banned from n/{0}
+08e80bc	text	js/views.js:1967	Ban someone
+deb7bdd	text	js/views.js:1968	A ban only stops someone posting and commenting here. They can still read the nest, and use the rest of Budgie.
+0d94779	pattern	js/views.js:1973	· by u/{0}
+d2671bf	text	js/views.js:1973	Unban
+9b309d3	text	js/views.js:1976	Nobody is banned.
+9936e42	text	js/views.js:1990	Automatic check
+dc4c613	pattern	js/views.js:1991	by u/{0}
+e4556e9	text	js/views.js:1994	Nothing wrong
+5f378a2	text	js/views.js:2000	No open reports. All quiet.
+3e613a9	pattern	js/views.js:2015	Step down from n/{0}’s team?
+52e10ec	pattern	js/views.js:2015	Take u/{0}’s role away?
+3b67229	text	js/views.js:2018	You won’t be able to do anything here a member can’t. Someone on the team can give you a role again.
+7db04ae	text	js/views.js:2018	They’ll be an ordinary member of the nest again, and they’re told.
+44a7d07	pattern	js/views.js:2029	u/{0} can post here again
+ceda476	pattern	js/views.js:2053	u/{0}’s role
+e6c951d	text	js/views.js:2053	Add someone to the team
+1f9fb8a	pattern	js/views.js:2058	Who (they have to have joined n/{0})
+c3f104d	text	js/views.js:2059	Role
+52f62ef	text	js/views.js:2062	Glaze guru
+376b0e8	text	js/views.js:2062	Its name
+55b45c7	text	js/views.js:2086	Who should it be?
+078c893	text	js/views.js:2091	Give the role a name.
+7f38eaa	text	js/views.js:2092	Pick at least one thing it can do.
+8701ce2	pattern	js/views.js:2098	u/{0} is on the team
+dd54aae	pattern	js/views.js:2120	Ban u/{0} from n/{1}?
+d4ea664	pattern	js/views.js:2120	Ban someone from n/{0}
+7d53161	text	js/views.js:2125	Who
+21e2cae	text	js/views.js:2126	Why
+fe3a541	text	js/views.js:2127	Or say why in your own words
+4286c1f	text	js/views.js:2128	A day
+51e2a8b	text	js/views.js:2128	A week
+6d17c38	text	js/views.js:2128	A month
+a30ccf2	text	js/views.js:2128	For good
+2c8c5a4	text	js/views.js:2128	For how long
+781dac8	text	js/views.js:2129	They’re told, with the reason. They can still read the nest, and use the rest of Budgie.
+bfa1bfb	text	js/views.js:2142	Ban
+b9095bc	text	js/views.js:2149	Who should be banned?
+ed238a0	text	js/views.js:2150	Say why: they’ll be told.
+6744c15	text	js/views.js:2155	a day
+5ba5116	text	js/views.js:2155	any more
+0af579f	pattern	js/views.js:2155	u/{0} can’t post in n/{1} {2}
+e4f0b58	text	js/views.js:2170	The picture
+aeb8371	text	js/views.js:2171	Profile picture
+51af07e	text	js/views.js:2175	Only Budgie’s moderators can see this page.
+093452d	text	js/views.js:2181	Open reports, newest first. Whoever you act on is told what and why.
+1914680	text	js/views.js:2182	Loading reports
+e5fd9dc	text	js/views.js:2183	Reason they’ll see
+740179b	text	js/views.js:2183	Ban an account
+9f734fb	text	js/views.js:2200	Already gone.
+388353f	text	js/views.js:2201	· already removed
+9709093	text	js/views.js:2201	· banned
+1f46b6e	pattern	js/views.js:2201	by u/{0}{1}{2}
+b4d19ad	text	js/views.js:2203	flagged by the automatic check
+3d539d6	pattern	js/views.js:2203	reported by u/{0}
+2ebb22b	text	js/views.js:2208	Remove picture
+dc3ae7e	text	js/views.js:2210	Clear profile
+70afe9e	text	js/views.js:2212	Dismiss
+9ad6472	text	js/views.js:2216	Nothing to review
+42ff611	text	js/views.js:2216	No open reports. Nice and calm.
+3c049f5	text	js/views.js:2226	Report dismissed
+86689c8	text	js/views.js:2227	Account banned
+8150251	text	js/views.js:2228	Removed, and its author told why
+d9f9d87	pattern	js/views.js:2228	{0} removed, and its owner told why
+6bfd4bc	text	js/views.js:2228	Profile cleared, and its owner told why
+83b5b57	text	js/views.js:2246	Banned and signed out
+475c848	text	js/views.js:2258	Not found
+cb02233	text	js/views.js:2260	Nothing to see here
+9cc815b	text	js/views.js:2260	This page doesn’t exist.
+5c53da3	text	js/views.js:2260	Back home
+2734ef0	text	server/server.js:166	Pictures must be JPEG, PNG or GIF.
+18d5fd3	text	server/server.js:166	Pictures must be JPEG or PNG.
+64a8164	pattern	server/server.js:168	That {0} is too big (the limit is {1}).
+9e0f88a	text	server/server.js:173	GIFs can’t go here.
+0c80308	text	server/server.js:176	That GIF looks broken.
+b0e4392	pattern	server/server.js:177	That GIF is too large (at most {0}×{1} pixels).
+9eae0f3	text	server/server.js:178	That isn’t a GIF.
+fd0bdca	text	server/server.js:181	That doesn’t look like a JPEG, PNG or GIF.
+f7f0da7	text	server/server.js:181	That doesn’t look like a JPEG or PNG.
+92bc006	text	server/server.js:193	This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be a profile picture or banner. Try a different one.
+b9034c4	text	server/server.js:194	This picture might not be OK to send (an automatic check flagged it as possibly sexual), so it wasn’t sent.
+77e7be5	text	server/server.js:195	This video might not be OK for everyone on Budgie (an automatic check flagged it as possibly sexual), so it can’t be posted.
+e51cb1a	text	server/server.js:196	This picture looks like it shows nudity or sexual content, which isn’t allowed on Budgie.
+60e1b2b	text	server/server.js:205	That picture couldn’t be read. Try another one.
+6a17353	text	server/server.js:207	Pictures can’t be checked right now, so they can’t be posted. Try again in a minute.
+d870d61	text	server/server.js:211	No sexual content
+4fa37d9	pattern	server/server.js:221	The automatic check flagged a {0} for a look
+8bc1403	text	server/server.js:229	This reads as an attack on someone. Disagree or joke all you like, but not by putting people down.
+c7cf00d	text	server/server.js:230	This reads as an insult aimed at someone. Disagree or joke all you like, but not by putting people down.
+af7faa3	text	server/server.js:231	This reads as a threat, or as wishing harm on someone.
+12acb98	text	server/server.js:232	This reads as attacking people for who they are: where they’re from, their religion, race, gender or sexuality.
+0e301e7	text	server/server.js:233	This reads as sexual. Budgie doesn’t allow sexual messages: everyone here is 13 or older, and many are teenagers.
+1f2834c	text	server/server.js:253	That username reads as hurtful or rude to an automatic check. Try another one.
+6845850	text	server/server.js:391	GIF search is off.
+b07eede	text	server/server.js:394	That GIF can’t be sent.
+d78feba	text	server/server.js:398	That’s a lot of pictures. Try again in a little while.
+3688a56	text	server/server.js:454	Budgie is coming to Android as an app, with notifications for messages, calls and replies. If you turn them on in the app, they reach your phone through Google’s Firebase Cloud Messaging, so Google gets your phone’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.
+8efd22e	text	server/server.js:471	You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!
+6833da1	text	server/server.js:473	You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.
+fdce4cb	pattern	server/server.js:474	u/{0} gave you
+dc2bfe2	text	server/server.js:474	You’ve got
+4843950	pattern	server/server.js:474	{0} the Tester badge: it’s on your profile now. Thanks for helping test Budgie!
+283de39	text	server/server.js:478	There’s no badge like that to give.
+7250181	text	server/server.js:523	Keep swearing out of names.
+01bf689	text	server/server.js:523	Keep names clean
+7fefda0	text	server/server.js:551	This account has been banned
+e4e3a53	text	server/server.js:612	The robot check didn’t work, or it ran out of time. Try it again.
+1ac6556	text	server/server.js:625	The robot check isn’t answering right now, so new accounts can’t be made. Try again in a minute.
+c3552a3	text	server/server.js:631	The robot check isn’t set up right on Budgie’s side, so new accounts can’t be made just now. Try again later.
+619a95d	text	server/server.js:635	That robot check was passed on another website. Try it again here.
+fdbd25a	text	server/server.js:645	Lots of people are joining right now. Try again in a little while.
+bd75eaa	text	server/server.js:648	Please confirm your age and agree to the Terms of Use and Privacy Policy.
+9a2dd82	text	server/server.js:653	Too many wrong invite codes. Try again later.
+91b23cf	text	server/server.js:654	Budgie is invite-only right now. That invite code doesn’t work. Check it and try again.
+b789564	text	server/server.js:656	That invite code has already been used.
+facb033	text	server/server.js:658	Usernames are 3–20 letters, numbers or underscores.
+e7a9ce6	pattern	server/server.js:660	u/{0} is taken. Try another name.
+62a8160	text	server/server.js:662	Use at least 8 characters for your password.
+22b6e60	text	server/server.js:663	That password is too long.
+7e5aedb	text	server/server.js:664	Your password can’t be your username.
+85b465b	text	server/server.js:698	Wrong username or password.
+b82846a	text	server/server.js:709	That username and recovery code don’t match.
+59eeb74	text	server/server.js:711	Use at least 8 characters for your new password.
+2563dd7	text	server/server.js:721	Try again in a little while.
+cd99ed7	text	server/server.js:723	That isn’t a device token.
+0a462ca	text	server/server.js:746	Your current password isn’t right.
+f4ba472	text	server/server.js:756	That password isn’t right.
+4f68a7d	text	server/server.js:927	That’s a lot of posts. Take a break and try again later.
+44171c4	text	server/server.js:930	That nest doesn’t exist.
+d620bd1	text	server/server.js:960	That GIF can’t be posted.
+fed3964	text	server/server.js:971	That video is gone. Add it again.
+ef3e267	pattern	server/server.js:988	this {0} might be sexual. Please take a look.
+dd6392c	text	server/server.js:1012	Budgie can’t take videos right now.
+87a66ab	text	server/server.js:1013	That’s a lot of videos for one day. Try again tomorrow.
+55a0580	pattern	server/server.js:1023	Videos can be up to {0} seconds long. Trim it and try again.
+61eb572	text	server/server.js:1024	That video is too short.
+53be682	text	server/server.js:1030	That video couldn’t be read. Try another one, or an MP4.
+b155c2f	text	server/server.js:1086	That post is gone.
+cda6baf	text	server/server.js:1087	That isn’t your post.
+a7819d4	text	server/server.js:1093	Only the person who wrote a post can edit it.
+915fce8	text	server/server.js:1116	Moderators remove posts from the moderation page, with a reason.
+7342ae0	text	server/server.js:1124	That’s a lot of comments. Take a break and try again later.
+5ce28d1	text	server/server.js:1126	Write something first.
+cdff26f	text	server/server.js:1132	The comment you’re replying to is gone.
+eea8c2b	pattern	server/server.js:1150	u/{0} replied to your comment
+137c647	pattern	server/server.js:1153	u/{0} commented on your post “{1}”
+c6aa6bf	text	server/server.js:1160	That comment is gone.
+297ca21	text	server/server.js:1161	That isn’t your comment.
+dd8bd4e	text	server/server.js:1191	That’s gone.
+3a1fb51	text	server/server.js:1203	That’s not a Spark.
+69ff781	text	server/server.js:1215	That poll is gone.
+3beff1a	text	server/server.js:1217	That’s not one of the options.
+f205e8e	text	server/server.js:1228	You can create up to 3 nests a day.
+b0117fe	pattern	server/server.js:1286	You can’t {0} in n/{1}.
+d5d7152	pattern	server/server.js:1309	You’re banned from posting and commenting in n/{0}{1}. Reason: {2}
+ff86e3a	text	server/server.js:1318	There’s nobody by that name.
+7a8cb9e	text	server/server.js:1326	You’re not on this nest’s team.
+23c06a3	text	server/server.js:1355	You can’t change your own role.
+00efff2	pattern	server/server.js:1356	u/{0} owns n/{1}.
+720e39a	pattern	server/server.js:1357	u/{0} has to join n/{1} first.
+407b9b7	pattern	server/server.js:1358	u/{0} is banned from n/{1}. Unban them first.
+b22ee57	text	server/server.js:1360	Only the nest’s owner can change the role of someone who manages the team.
+3ab9d32	text	server/server.js:1363	Pick at least one thing they can do.
+7979901	text	server/server.js:1364	Only the nest’s owner can let someone manage the team.
+a916d99	text	server/server.js:1365	You can only give the kinds of access you have yourself.
+b2fcc17	pattern	server/server.js:1369	A nest’s team can have up to {0} people.
+a6fad48	pattern	server/server.js:1379	u/{0} made you {1} in n/{2}
+e7531e9	pattern	server/server.js:1389	u/{0} isn’t on n/{1}’s team.
+fc91cb2	text	server/server.js:1392	Only the nest’s owner can take away the role of someone who manages the team.
+2de7432	pattern	server/server.js:1393	You’re no longer on n/{0}’s team.
+34a702c	text	server/server.js:1406	You can’t ban yourself.
+e79e4c1	pattern	server/server.js:1407	u/{0} can’t be banned from n/{1}.
+de29401	pattern	server/server.js:1408	u/{0} is on the team. Take their role away first.
+7fe1c1e	pattern	server/server.js:1416	You can’t post or comment in n/{0} {1}. Reason: {2}
+3b7357a	pattern	server/server.js:1426	u/{0} isn’t banned from n/{1}.
+b9d029e	pattern	server/server.js:1427	You can post and comment in n/{0} again.
+4125257	pattern	server/server.js:1439	A nest can have up to {0} rules.
+19ddfc6	text	server/server.js:1444	Say in a line what the nest is about.
+f180597	pattern	server/server.js:1463	A nest can have up to {0} pinned posts. Unpin one first.
+c500f0a	text	server/server.js:1476	That isn’t in this nest.
+aacd71b	text	server/server.js:1478	That’s already gone.
+e916dee	text	server/server.js:1489	That report is gone.
+9037608	text	server/server.js:1501	You can change your username up to 5 times a day.
+ef51b16	text	server/server.js:1517	That isn’t one of Budgie’s name fonts.
+45dfd01	text	server/server.js:1522	Pronouns are up to 24 letters, with / or spaces between them (like she/they).
+1e590fe	text	server/server.js:1528	That isn’t one of Budgie’s pride flags.
+649fdb1	pattern	server/server.js:1529	You can wear up to {0} flags.
+bdc8c17	pattern	server/server.js:1537	Pick up to {0} of Budgie’s interests.
+82c5a7d	text	server/server.js:1541	That isn’t one of the colour styles.
+c64a2e6	text	server/server.js:1546	That isn’t a shape.
+826b6e5	text	server/server.js:1554	You can change your picture or banner up to 20 times a day.
+a561fa5	text	server/server.js:1584	this profile picture or banner might not be OK for everyone. Please take a look.
+fd1352a	text	server/server.js:1585	this might be
+08a2997	text	server/server.js:1585	this bio might be
+6b3d03a	text	server/server.js:1591	Only Budgie’s developers can give badges.
+8ddc3fc	text	server/server.js:1593	Developers can give the Tester badge, and only that one.
+f8ecc2a	text	server/server.js:1595	There’s no one by that name.
+9fcc25e	text	server/server.js:1603	Your settings are too big to save.
+0abdfd8	pattern	server/server.js:1626	New report: a {0} for “{1}”
+3e67cbf	text	server/server.js:1637	You’re already your own best friend.
+fff49a3	pattern	server/server.js:1638	You’ve blocked u/{0}. Unblock them first.
+58d52a7	pattern	server/server.js:1639	You can’t send u/{0} a friend request.
+face8fd	pattern	server/server.js:1646	u/{0} accepted your friend request
+ee9c8c2	pattern	server/server.js:1650	u/{0} sent you a friend request
+15d818f	text	server/server.js:1665	You can’t block yourself.
+b9e01f5	text	server/server.js:1702	You’re sending messages very fast. Slow down a little.
+51582d4	text	server/server.js:1706	You can only message friends.
+5961e39	text	server/server.js:1718	this picture might be sexual. Please take a look.
+671ab6b	text	server/server.js:1731	That’s a lot of colour changes. Try again in a little while.
+5ca587f	text	server/server.js:1735	You can only change a chat with a friend.
+56e400c	text	server/server.js:1736	Pick a colour.
+776b69f	pattern	server/server.js:1812	Only the group’s owner can {0}.
+8cb3c1c	pattern	server/server.js:1819	There’s no friend called {0}.
+64fa87c	pattern	server/server.js:1821	You can only add your friends, and u/{0} isn’t one yet.
+b751225	pattern	server/server.js:1822	u/{0} is already in the group.
+a74676c	pattern	server/server.js:1826	u/{0} added you to the group “{1}”
+afbdc63	text	server/server.js:1830	That’s a lot of new groups for one day. Try again tomorrow.
+de99a8e	text	server/server.js:1835	Add at least one friend.
+c3ddf39	text	server/server.js:1907	They’re not in this group.
+2ffbffc	text	server/server.js:1908	To leave the group, use Leave group.
+abc4e83	pattern	server/server.js:1914	You were removed from the group “{0}”
+f901e8a	text	server/server.js:1935	Pick one of the shapes.
+3294dda	text	server/server.js:2137	You’re not in this call.
+3f7c289	text	server/server.js:2139	You’re already in another call. Hang up first.
+7c42145	pattern	server/server.js:2140	This call is full: up to {0} people can be in a call.
+c3a755c	text	server/server.js:2202	That’s a lot of calls. Wait a little and try again.
+56bf70a	text	server/server.js:2205	You’re already in a call. Hang up first.
+cede9b0	text	server/server.js:2218	You can only call friends.
+f9bf6bf	pattern	server/server.js:2219	u/{0} isn’t taking calls.
+c667a89	pattern	server/server.js:2220	u/{0} is on another call. Try again in a bit.
+b529ef8	text	server/server.js:2227	That call has ended.
+163342d	text	server/server.js:2237	They’re not in the call any more.
+e9f1b69	text	server/server.js:2238	That isn’t a call signal.
+da305b6	text	server/server.js:2270	That’s a lot of ringing. Wait a little and try again.
+bea1316	text	server/server.js:2273	Only a group call can ring people again.
+d06a0db	text	server/server.js:2277	They can’t be rung right now (they may have calls turned off).
+3d2b6b1	text	server/server.js:2277	Everyone who can be rung is already in the call.
+4f97120	pattern	server/server.js:2371	{0} removed your post “{1}”. Reason: {2}. If you think this was a mistake, contact Budgie.
+13ccf4a	pattern	server/server.js:2378	{0} removed your comment. Reason: {1}. If you think this was a mistake, contact Budgie.
+f936ed9	pattern	server/server.js:2394	A moderator removed one of your group messages. Reason: {0}. If you think this was a mistake, contact Budgie.
+e182a96	pattern	server/server.js:2422	A moderator removed your {0}. Reason: {1}. If you think this was a mistake, contact Budgie.
+3813e92	text	server/server.js:2431	Admins can’t be banned. Remove their admin role first.
+5518c6b	text	server/server.js:2505	That’s too big to send.
+9152125	text	server/server.js:2517	That request wasn’t valid JSON.
+3457cf4	text	server/server.js:2545	This site isn’t allowed to use Budgie’s server.
+662a485	text	server/server.js:2570	Please sign in again.
+9fdd326	text	server/server.js:2573	Too many requests. Slow down a little.
+a626b4f	text	server/server.js:2574	Only admins can do that.
+af782c4	text	server/server.js:2591	There’s nothing here.
+6e67440	text	server/server.js:2598	Something went wrong on Budgie’s server. Try again in a moment.
 8b77299	text	server/textmodel.js:327	The tokenizer couldn’t be prepared.
 d01b37f	text	server/textmodel.js:555	The text model took too long.
 ca14ca9	text	server/textmodel.js:617	very hostile

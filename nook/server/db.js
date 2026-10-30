@@ -266,6 +266,19 @@ CREATE TABLE IF NOT EXISTS images (
   data BLOB NOT NULL,
   created_at INTEGER NOT NULL
 );
+
+-- 1.1: the phones that get notifications, each with the sign-in it came from (signing out takes it away) and the
+-- language its app is in
+CREATE TABLE IF NOT EXISTS push_tokens (
+  token TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  session TEXT NOT NULL REFERENCES sessions(token) ON DELETE CASCADE,
+  platform TEXT NOT NULL,
+  lang TEXT NOT NULL DEFAULT 'en',
+  created_at INTEGER NOT NULL,
+  seen_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS push_tokens_user ON push_tokens(user_id);
 `;
 
 const REV_TABLES = ['users', 'nooks', 'posts', 'comments', 'friends', 'chat_groups'];

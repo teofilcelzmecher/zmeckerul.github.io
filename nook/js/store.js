@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '1.0.2';
+  const VERSION = '1.1.0';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [

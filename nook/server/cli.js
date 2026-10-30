@@ -28,6 +28,7 @@ const COMMANDS = {
       '  nook signups [open|invite]       anyone can join (open), or only with an invite code',
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
+      '  nook push [file.json|paste|off]  notifications on phones (the Android app), through Firebase',
       '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
       '  nook turn <key id> <api token>   send calls through Cloudflare\'s TURN relay (they always connect, and nobody sees another\'s IP); nook turn off goes back to direct calls',
       '  nook turn                        whether calls go through the relay, and how much of the month\'s free allowance is used',
@@ -131,6 +132,81 @@ const COMMANDS = {
     db.meta('turn-key', key);
     db.meta('turn-token', token);
     out('Calls now go through Cloudflare\'s TURN relay: they connect on any network, and nobody in a call sees another\'s IP address. The first 1,000 GB a month are free. No restart needed.', 'To go back to direct calls: nook turn off');
+  },
+
+  /**
+   * notifications on phones (1.1): Firebase's service account for Budgie's project, from a file (nook push key.json)
+   * or pasted in (nook push paste, then paste the file's contents). It stays in the database on this laptop.
+   */
+  async push(source) {
+    if (source === 'off') {
+      db.meta('fcm-account', '');
+      return out('Phones won\'t get notifications any more (the app still works). To turn them back on: nook push <file.json>');
+    }
+    if (!source) {
+      const a = (() => {
+        try {
+          return JSON.parse(db.meta('fcm-account') || 'null');
+        } catch (_) {
+          return null;
+        }
+      })();
+      const phones = db.get('SELECT COUNT(*) AS n FROM push_tokens').n;
+      return out(
+        a ? `Notifications go to phones through Firebase project "${a.project_id}". ${phones} phone${phones === 1 ? '' : 's'} signed up for them. Turn them off with: nook push off` : `Phones don't get notifications yet. ${phones} phone${phones === 1 ? '' : 's'} already asked for them.`,
+        a ? '' : 'Turn them on with Firebase\'s service account file: nook push <file.json>   (or: nook push paste, and paste the file\'s contents)'
+      );
+    }
+    let text;
+    if (source === 'paste' || source === '-') {
+      out('Paste the whole file (it starts with { and ends with }). It\'s read as soon as it\'s complete.');
+      text = await new Promise((resolve) => {
+        let got = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => {
+          got += chunk;
+          try {
+            JSON.parse(got);
+            process.stdin.pause();
+            resolve(got);
+          } catch (_) {
+            /* not all of it yet */
+          }
+        });
+        process.stdin.on('end', () => resolve(got));
+      });
+    } else {
+      if (!fs.existsSync(source)) quit(`There's no file at ${source}.`);
+      text = fs.readFileSync(source, 'utf8');
+    }
+    let a;
+    try {
+      a = JSON.parse(text);
+    } catch (_) {
+      quit('That isn\'t the whole file: it should start with { and end with }. Try again.');
+    }
+    if (a.type !== 'service_account' || !a.project_id || !a.client_email || !a.private_key) quit('That isn\'t a Firebase service account file. In Firebase: Project settings → Service accounts → Generate new private key.');
+    // Google is asked for permission to send now, so a wrong file shows up here rather than as silence later
+    if (process.env.NOOK_PUSH !== 'test') {
+      try {
+        const iat = Math.floor(Date.now() / 1000);
+        const b64 = (x) => Buffer.from(JSON.stringify(x)).toString('base64url');
+        const head = b64({ alg: 'RS256', typ: 'JWT' });
+        const claims = b64({ iss: a.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging', aud: a.token_uri || 'https://oauth2.googleapis.com/token', iat, exp: iat + 600 });
+        const signature = crypto.createSign('RSA-SHA256').update(head + '.' + claims).sign(a.private_key).toString('base64url');
+        const res = await fetch(a.token_uri || 'https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${head}.${claims}.${signature}` }),
+          signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) quit(`Google didn't accept that service account (it answered ${res.status}). Make a new key in Firebase and try again.`);
+      } catch (error) {
+        quit(`Couldn't check the service account with Google (${error.message}). Is the laptop online?`);
+      }
+    }
+    db.meta('fcm-account', JSON.stringify({ type: a.type, project_id: a.project_id, client_email: a.client_email, private_key: a.private_key, token_uri: a.token_uri }));
+    out(`Phones now get notifications through Firebase project "${a.project_id}": messages, calls and replies. No restart needed.`, 'You can delete the file now (it\'s kept in Budgie\'s database). To turn them off: nook push off');
   },
 
   /** the most the relay may send in a month before calls stop (Cloudflare's free allowance is 1,000 GB) */

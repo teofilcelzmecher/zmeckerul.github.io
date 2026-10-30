@@ -1,0 +1,26 @@
+{
+  "name": "budgie-android",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Budgie for Android: the app, with Budgie's screens inside and Android's own haptics, notifications and back button around them.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "www": "python3 tools/build-www.py",
+    "sync": "npm run www && npx cap sync android",
+    "build": "npm run sync && cd android && ./gradlew bundleRelease assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/push-notifications": "8.1.3",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.0"
+  }
+}

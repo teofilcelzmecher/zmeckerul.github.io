@@ -1,0 +1,14 @@
+node_modules/
+www/
+# the Android project's build output and local settings
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/build/
+android/local.properties
+android/.idea/
+# never in the repository: the key that signs the app, its passwords, and Firebase's file for this app
+*.jks
+*.keystore
+keystore.properties
+android/app/google-services.json
