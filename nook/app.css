@@ -4771,17 +4771,14 @@ button.chat-who {
 .chat-send .m3-icon {
   --m3-icon-fill: 1;
   --m3-icon-size: 22px;
-  translate: 1.5px 0;
-  transition: rotate 320ms var(--m3-ease-emphasized-decel), translate 320ms var(--m3-ease-emphasized-decel);
+  translate: 1px 0;
 }
+/* nothing to send yet: the same upright plane on a faint circle (Material 3's disabled button), so it fills in where
+   it is once there's something to send, rather than turning from a tilted grey arrow into a button */
 .chat-send:disabled {
-  background: transparent;
-  color: var(--m3-on-surface-variant);
-  opacity: 0.6;
-}
-.chat-send:disabled .m3-icon {
-  rotate: -25deg;
-  translate: -2px 0;
+  background: color-mix(in srgb, var(--m3-on-surface) 10%, transparent);
+  color: color-mix(in srgb, var(--m3-on-surface) 45%, transparent);
+  opacity: 1;
 }
 .chat-locked {
   text-align: center;
@@ -5427,10 +5424,12 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 .call-self.settling {
   transition: left 340ms var(--m3-ease-emphasized-decel), top 340ms var(--m3-ease-emphasized-decel);
 }
-/* a phone on its side: a smaller picture of you, so the others still have room */
+/* a phone on its side: your picture on its side too (a camera held sideways sees wide), so it fits between the
+   title and the buttons */
 @media (max-height: 500px) {
   .call-self {
     width: 150px;
+    aspect-ratio: 4 / 3;
   }
 }
 .call-self[hidden] {
@@ -6201,6 +6200,53 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
 }
 .call-stage.presenting .call-tile:not(.screen-tile) .tile-pic .avatar {
   transform: scale(0.6);
+}
+/* a phone on its side, often turned to see a shared screen bigger: the screen takes the whole height, everyone's
+   faces go in a column beside it (under it, they left the screen a sliver), and the title and buttons get a little
+   more compact */
+@media (max-height: 500px) {
+  .call-top {
+    padding-top: 4px;
+    padding-bottom: 0;
+  }
+  .call-controls {
+    gap: 10px;
+    margin: 2px auto 8px;
+    padding: 8px;
+  }
+  .call-controls .call-btn {
+    width: 52px;
+    height: 52px;
+  }
+  .call-controls .call-btn.wide {
+    width: 72px;
+  }
+  .call-stage.presenting {
+    --faces: 1;
+    grid-template-columns: 136px minmax(0, 1fr) !important;
+    grid-template-rows: repeat(var(--faces), minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+  }
+  .call-stage.presenting[data-count='2'] {
+    --faces: 2;
+  }
+  .call-stage.presenting[data-count='3'] {
+    --faces: 3;
+  }
+  .call-stage.presenting:not([data-count='1'], [data-count='2'], [data-count='3']) {
+    --faces: 4;
+  }
+  .call-stage.presenting .screen-tile {
+    grid-column: 2;
+    grid-row: 1 / -1;
+  }
+  .call-stage.presenting .call-tile:not(.screen-tile) {
+    grid-column: 1;
+  }
+  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile) .tile-face {
+    width: 52px;
+    height: 52px;
+  }
 }
 .call-people .team-row {
   padding: 6px 0;

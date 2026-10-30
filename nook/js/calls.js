@@ -1342,6 +1342,9 @@
       // only a browser that won't play sound needs a tap (a play cut short by the next one is fine)
       speaker.play().catch((error) => error && error.name === 'NotAllowedError' && needsTap());
     }
+    // a camera turned on: its picture should show
+    if (peer.stream && peer.cam && player.readyState < 2 && !player._nudge) nudge(player, () => peer.stream.getVideoTracks());
+    if (!peer.cam) player._nudge = clearTimeout(player._nudge);
     const connected = peer.state === 'connected';
     const camOn = peer.cam && peer.stream && peer.stream.getVideoTracks().length > 0;
     tile.dataset.state = connected ? 'on' : peer.state === 'failed' ? 'failed' : 'wait';
@@ -1370,10 +1373,28 @@
       box.prepend(tile);
     }
     const player = peer.screenTile.querySelector('video');
-    if (player.srcObject !== peer.screenStream) {
+    if (player._stream !== peer.screenStream) {
+      player._stream = peer.screenStream;
       player.srcObject = peer.screenStream;
       player.play().catch(() => {});
+      nudge(player, () => peer.screenStream.getVideoTracks());
     }
+  }
+
+  /** Safari can leave a player that was given a picture before its first frame came showing nothing for good: until
+   *  one shows, it's given the picture again, once a second for a few seconds */
+  function nudge(player, tracks) {
+    clearTimeout(player._nudge);
+    let tries = 0;
+    const check = () => {
+      if (!player.isConnected || player.readyState >= 2 || ++tries > 8) return;
+      const live = tracks().filter((t) => t.readyState === 'live');
+      if (!live.length) return;
+      player.srcObject = new MediaStream(live);
+      player.play().catch(() => {});
+      player._nudge = setTimeout(check, 1000);
+    };
+    player._nudge = setTimeout(check, 1200);
   }
 
   /** how the stage is laid out: faces for voice, tiles once anyone's camera or screen is on */
