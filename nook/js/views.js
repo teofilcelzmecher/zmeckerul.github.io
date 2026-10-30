@@ -1449,6 +1449,7 @@
     let sending = 0; // while one is on its way, its own reply repaints, not the store's news
     const shown = new Set(); // ids already on screen: anything else is new and springs in
     let first = true;
+    let stick = true; // at the newest message: pictures that load after it's drawn don't push it out of sight
 
     const end = () => document.documentElement.scrollHeight - innerHeight;
     const nearEnd = () => scrollY >= end() - 140;
@@ -1478,6 +1479,7 @@
       const theirs = fresh.some((el) => el.closest('.them'));
       if (first || follow || wasNear) {
         const smooth = !first;
+        stick = true;
         requestAnimationFrame(() => toEnd(smooth));
         if (jump) jump.hidden = true;
       } else if (theirs && jump) {
@@ -1510,11 +1512,22 @@
 
     // while a chat is open it listens a little harder
     const quick = setInterval(() => document.visibilityState === 'visible' && store.sync(), 4000);
-    const onScroll = () => jump && !jump.hidden && nearEnd() && (jump.hidden = true);
+    // only going up lets go of the newest message: a page that grew under a scroll that was on its way doesn't
+    let lastY = scrollY;
+    const onScroll = () => {
+      if (scrollY < lastY - 1) stick = nearEnd();
+      else if (nearEnd()) stick = true;
+      lastY = scrollY;
+      if (jump && !jump.hidden && nearEnd()) jump.hidden = true;
+    };
     addEventListener('scroll', onScroll, { passive: true });
+    // pictures and GIFs that load after the words make the list taller: a chat at its newest message stays there
+    const grown = window.ResizeObserver ? new ResizeObserver(() => stick && toEnd(false)) : null;
+    if (grown) grown.observe(list);
     app().onLeave(() => {
       clearInterval(quick);
       removeEventListener('scroll', onScroll);
+      if (grown) grown.disconnect();
     });
 
     const form = root.querySelector('#chat-box');

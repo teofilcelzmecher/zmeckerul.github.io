@@ -3217,9 +3217,10 @@
     const y = scrollY;
     topbar.classList.toggle('scrolled', y > 4);
     fab.classList.toggle('shown', !!main.querySelector('[data-feed]') && y > innerHeight * 1.2);
-    // on a phone the bottom bar steps aside while you read on, and comes back as you go up
+    // on a phone the bottom bar steps aside while you read on, and comes back as you go up; not in a chat, whose
+    // message box sits on top of it
     const delta = y - lastY;
-    if (y < 80 || delta < -6) document.body.classList.remove('bars-hidden');
+    if (y < 80 || delta < -6 || main.querySelector('.chat-page')) document.body.classList.remove('bars-hidden');
     else if (delta > 8) document.body.classList.add('bars-hidden');
     lastY = y;
   }

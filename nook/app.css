@@ -4741,6 +4741,13 @@ button.chat-who {
   background: transparent;
   resize: none;
 }
+/* the hint ("Message Corabia Prostilor") stays on one line, cut short if it must: a long group name made it two */
+.chat-box textarea:placeholder-shown,
+.chat-box textarea::placeholder {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* the whole box shows focus, not the text area inside it */
 .chat-box textarea,
 .chat-box textarea:focus {
@@ -5815,8 +5822,14 @@ html.has-call-bar .topbar {
 .bubble.has-media .md {
   padding: 6px 10px 5px;
 }
+/* a picture on its own is the bubble: the same edges and corners as the words around it */
 .bubble.only-media {
+  padding: 0;
+  overflow: hidden;
   background: transparent;
+}
+.bubble.only-media .msg-media img {
+  border-radius: 0;
 }
 .msg-media {
   position: relative;

@@ -1322,21 +1322,25 @@
       tile = peer.tile = document.createElement('div');
       tile.className = 'call-tile';
       tile.innerHTML =
-        '<video autoplay playsinline></video>' +
+        '<video autoplay playsinline muted></video><audio autoplay></audio>' +
         `<div class="tile-face"><m3-shape class="tile-halo" shape="${esc(u.shape || 'cookie9')}" aria-hidden="true"></m3-shape><span class="tile-pic">${avatar(u, 96)}</span></div>` +
         `<div class="tile-name"><span translate="no">${esc(u.name)}</span><span class="tile-muted" hidden>${icon('mic_off')}</span><small class="tile-state"></small></div>`;
       box.appendChild(tile);
       fx.play(tile, [{ opacity: 0, transform: 'scale(0.85)' }, { opacity: 1, transform: 'none' }], { duration: fx.lively.duration, easing: fx.lively.easing });
       stage();
     }
+    // the sound and the picture each have a player of their own: a player given both waits for a picture before it
+    // plays anything, and a camera that's off never sends one, so nobody would be heard
     const player = tile.querySelector('video');
-    // a camera's picture arriving after the sound is a new track in the same stream: the player is told again
+    const speaker = tile.querySelector('audio');
     const count = peer.stream ? peer.stream.getTracks().length : 0;
-    if (peer.stream && (player.srcObject !== peer.stream || player._tracks !== count)) {
-      player.srcObject = peer.stream;
+    if (peer.stream && player._tracks !== count) {
       player._tracks = count;
+      player.srcObject = new MediaStream(peer.stream.getVideoTracks());
+      speaker.srcObject = new MediaStream(peer.stream.getAudioTracks());
+      player.play().catch(() => {});
       // only a browser that won't play sound needs a tap (a play cut short by the next one is fine)
-      player.play().catch((error) => error && error.name === 'NotAllowedError' && needsTap());
+      speaker.play().catch((error) => error && error.name === 'NotAllowedError' && needsTap());
     }
     const connected = peer.state === 'connected';
     const camOn = peer.cam && peer.stream && peer.stream.getVideoTracks().length > 0;
@@ -1422,7 +1426,7 @@
     active.el.appendChild(b);
   }
   function playAll() {
-    active.el.querySelectorAll('.call-tile video').forEach((m) => m.play().catch(() => {}));
+    active.el.querySelectorAll('.call-tile video, .call-tile audio').forEach((m) => m.play().catch(() => {}));
     sound();
     const b = active.el.querySelector('[data-call="play"]');
     if (b) b.remove();
