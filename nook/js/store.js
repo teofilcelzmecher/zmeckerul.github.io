@@ -513,8 +513,8 @@
     checkBadges();
   }
 
-  async function createPost({ n, title, body, type, flair, link, image, video, poll, spoiler }) {
-    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, video, poll, spoiler });
+  async function createPost({ n, title, body, type, flair, link, image, video, gif, poll, spoiler }) {
+    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, video, gif, poll, spoiler });
     ingestPost(p);
     state.votes[p.id] = 1;
     state.draft = null;

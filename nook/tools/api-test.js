@@ -626,7 +626,20 @@ process.on('exit', () => proc && proc.kill('SIGTERM'));
   ok((await api(A, 'GET', '/api/admin/reports')).json.reports.some((r) => r.kind === 'message' && r.item && r.item.picture === picMsg.json.message.media.url), 'moderators see a reported picture');
   await api(A, 'POST', '/api/admin/remove', { kind: 'message', id: String(picMsg.json.message.id), reason: 'Testing' });
   ok((await fetch(BASE + picMsg.json.message.media.url)).status === 404, 'a removed message’s picture is deleted with it');
+  // a post can be a GIF found with KLIPY's search too (1.0), kept as KLIPY's link
+  const KG = { url: 'https://static.klipy.com/ii/abc/14/af/dance.gif', still: 'https://static1.klipy.com/ii/abc/14/af/dance.jpg', width: 320, height: 240, title: 'Happy dance' };
+  const klipyPost = await api(D, 'POST', '/api/posts', { n: 'askbudgie', title: 'When the bread rises', type: 'gif', gif: KG });
+  ok(klipyPost.status === 200 && klipyPost.json.post.type === 'gif' && klipyPost.json.post.gif.url === KG.url && klipyPost.json.post.gif.still === KG.still && klipyPost.json.post.gif.width === 320, 'a post can be a GIF from KLIPY', klipyPost.json.error);
+  const fakeKlipyPost = await api(D, 'POST', '/api/posts', { n: 'askbudgie', title: 'Not really a GIF', type: 'gif', gif: { url: 'https://evil.example/x.gif' } });
+  ok(fakeKlipyPost.status === 400 && fakeKlipyPost.json.field === 'image', 'only KLIPY’s own links are taken for a GIF post');
+  await api(B, 'POST', '/api/reports', { kind: 'post', id: klipyPost.json.post.id, reason: 'Testing GIF reports' });
+  ok((await api(A, 'GET', '/api/admin/reports')).json.reports.some((r) => r.kind === 'post' && r.item && r.item.picture === KG.url), 'moderators see a reported GIF post’s GIF');
+  await api(A, 'POST', '/api/admin/remove', { kind: 'post', id: klipyPost.json.post.id, reason: 'Testing' });
+  const klipyGone = ((await api(D, 'GET', '/api/bootstrap')).json.posts || []).find((p) => p.id === klipyPost.json.post.id);
+  ok(!klipyGone || (klipyGone.removed && !klipyGone.gif), 'a removed GIF post loses its GIF');
   ok(/GIF search is off/.test(cli('gifs', 'off')), 'and nook gifs off turns GIF search off');
+  const klipyPostOff = await api(D, 'POST', '/api/posts', { n: 'askbudgie', title: 'Another rising loaf', type: 'gif', gif: KG });
+  ok(klipyPostOff.status === 400 && /GIF search is off/.test(klipyPostOff.json.error), 'with GIF search off, GIF posts are refused too');
 
   // nest teams: the owner gives roles; each role can only do its share; bans only stop posting in that nest
   const dJoin = await api(D, 'POST', '/api/joins', { nook: 'pottery_club', on: true });

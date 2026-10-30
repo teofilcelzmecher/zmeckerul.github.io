@@ -101,7 +101,13 @@
       const v = p.video;
       return `<div class="post-art video" style="--ratio:${v.width || 16}/${v.height || 9}"><video src="${esc(v.url)}" poster="${esc(v.poster)}" controls playsinline preload="none" aria-label="Video: ${esc(p.title)}"></video></div>`;
     }
-    if (p.image) return `<div class="post-art photo"><img src="${esc(p.image)}" alt="${esc(p.title)}" loading="lazy"></div>`;
+    // a GIF found with KLIPY's search (1.0): loaded from KLIPY, and still when motion is reduced
+    if (p.gif) {
+      const g = p.gif;
+      const shape = g.width && g.height ? ` style="aspect-ratio:${g.width}/${g.height}"` : '';
+      return `<div class="post-art photo gif"><img src="${esc(ui.motionOff() && g.still ? g.still : g.url)}" alt="${esc(g.title || p.title)}" translate="no" loading="lazy" referrerpolicy="no-referrer"${shape}><span class="gif-tag">GIF</span></div>`;
+    }
+    if (p.image) return `<div class="post-art photo"><img src="${esc(p.image)}" alt="${esc(p.title)}" translate="no" loading="lazy"></div>`;
     if (!p.art) return '';
     const a = p.art;
     return (
@@ -112,6 +118,7 @@
 
   function thumb(p) {
     if (p.video) return `<div class="post-thumb video"><img src="${esc(p.video.poster)}" alt="" loading="lazy">${icon('play_circle')}</div>`;
+    if (p.gif) return `<div class="post-thumb gif"><img src="${esc(p.gif.still || p.gif.url)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="gif-tag">GIF</span></div>`;
     if (p.image) return `<div class="post-thumb"><img src="${esc(p.image)}" alt="" loading="lazy"></div>`;
     if (p.art) return `<div class="post-thumb" style="--a1:${p.art.from};--a2:${p.art.to};--ang:${p.art.angle || 150}deg">${icon(p.art.symbol)}</div>`;
     const symbol = p.type === 'link' ? 'link' : p.type === 'poll' ? 'ballot' : 'notes';
@@ -1096,7 +1103,10 @@
         // image
         `<div class="field" data-for="image"><span class="field-label">${s.videos ? 'A picture, GIF or video' : 'Image'}</span><label class="drop" id="f-drop"><input type="file" id="f-file" accept="${s.videos ? 'image/*,video/*' : 'image/*'}" hidden><span id="f-drop-inner"><m3-shape-icon shape="clover8" symbol="${s.videos ? 'perm_media' : 'add_photo_alternate'}" size="56" icon-size="28"></m3-shape-icon><br>${
           s.videos ? 'Drop a picture, GIF or video here, or click to choose one<br><small class="muted">Videos up to a minute. Everything is checked automatically.</small>' : 'Drop an image here, or click to choose one'
-        }</span></label><span class="error" id="f-image-err"></span></div>` +
+        }</span></label>` +
+        // or a GIF from KLIPY's search (1.0), when the server has it switched on
+        (Nook.pickers && Nook.pickers.gifsOn() && serverAt('1.0.0') ? `<button type="button" class="m3-btn tonal small" id="f-gif" style="justify-self:start">${icon('gif_box')}Find a GIF</button>` : '') +
+        '<span class="error" id="f-image-err"></span></div>' +
         // link
         `<div class="field" data-for="link"><label for="f-url">Link</label><input class="m3-field" id="f-url" type="url" placeholder="https://" value="${esc(draft.url || '')}"><span class="error" id="f-url-err"></span></div>` +
         // poll

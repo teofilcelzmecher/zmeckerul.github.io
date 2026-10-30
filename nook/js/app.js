@@ -2727,17 +2727,20 @@
     const inner = $('#f-drop-inner', root);
     const placeholder = inner.innerHTML;
     const showImage = () => {
-      if (model.image || model.video) {
+      if (model.image || model.video || model.gif) {
         inner.innerHTML =
           (model.video
             ? `<video src="${esc(model.video.url)}" poster="${esc(model.video.poster)}" controls playsinline preload="metadata" aria-label="Your video"></video>`
-            : `<img src="${model.image}" alt="Your image">`) +
+            : model.gif
+              ? `<img class="gif-pick" src="${esc(model.gif.url)}" alt="${esc(model.gif.title || 'GIF')}" translate="no" referrerpolicy="no-referrer"${model.gif.width && model.gif.height ? ` style="aspect-ratio:${model.gif.width}/${model.gif.height}"` : ''}>`
+              : `<img src="${model.image}" alt="Your image">`) +
           `<button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="${model.video ? 'Remove video' : 'Remove image'}"><span translate="no" class="m3-icon">close</span></button>`;
         $('#f-remove', root).addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
           model.image = null;
           model.video = null;
+          model.gif = null;
           showImage();
         });
       } else {
@@ -2764,6 +2767,7 @@
       }
       model.image = null;
       model.video = null;
+      model.gif = null;
       if (isVideo) {
         if (file.size > 100 * 1024 * 1024) {
           err.textContent = 'That video is too big. Try one under 100 MB (or a shorter one).';
@@ -2804,6 +2808,20 @@
       showImage();
     };
     $('#f-file', root).addEventListener('change', (e) => takeFile(e.target.files[0]));
+    // or a GIF from KLIPY's search (1.0): the post keeps KLIPY's link, as a chat does
+    const gifBtn = $('#f-gif', root);
+    if (gifBtn)
+      gifBtn.addEventListener('click', async () => {
+        const g = await Nook.pickers.gif();
+        if (!g) return;
+        sending++;
+        $('#f-submit', root).disabled = false;
+        $('#f-image-err', root).textContent = '';
+        model.image = null;
+        model.video = null;
+        model.gif = g;
+        showImage();
+      });
     drop.addEventListener('dragover', (e) => {
       e.preventDefault();
       drop.classList.add('over');
@@ -2874,7 +2892,7 @@
       const t = title.value.trim();
       if (t.length < 3) fail('#f-title-err', 'Give your post a title (at least 3 characters).', title);
       let link = null;
-      if (model.type === 'image' && !model.image && !model.video) fail('#f-image-err', store.state.videos ? 'Add a picture, GIF or video, or switch to a text post.' : 'Add an image, or switch to a text post.', drop);
+      if (model.type === 'image' && !model.image && !model.video && !model.gif) fail('#f-image-err', store.state.videos ? 'Add a picture, GIF or video, or switch to a text post.' : 'Add an image, or switch to a text post.', drop);
       if (model.type === 'link') {
         try {
           const u = new URL(url.value.trim());
@@ -2898,7 +2916,8 @@
       let p;
       try {
         const video = model.type === 'image' && model.video;
-        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : model.type, flair: model.flair, link, image: video ? null : model.image, video: video ? video.id : undefined, poll: options, spoiler: spoiler.checked });
+        const gif = model.type === 'image' && !video && model.gif;
+        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : gif ? 'gif' : model.type, flair: model.flair, link, image: video || gif ? null : model.image, video: video ? video.id : undefined, gif: gif || undefined, poll: options, spoiler: spoiler.checked });
       } catch (error) {
         submitBtn.disabled = false;
         M3.rollText(status, 'Not posted yet');

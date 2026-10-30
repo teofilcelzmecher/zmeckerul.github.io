@@ -282,8 +282,8 @@ function open(dir) {
     ['messages', 'kind'], ['users', 'calls'],
     // a picture or GIF sent in a chat (JSON), and when a post was pinned to the top of its nest
     ['messages', 'media'], ['group_messages', 'media'], ['posts', 'pinned_at'],
-    // a video post's video (1.0)
-    ['posts', 'video']];
+    // a video post's video, and a GIF post's GIF from KLIPY (JSON) (1.0)
+    ['posts', 'video'], ['posts', 'gif']];
   for (const [table, column] of LATER_COLUMNS) {
     if (!db.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} TEXT NOT NULL DEFAULT ''`);
   }

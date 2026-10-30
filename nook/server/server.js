@@ -324,6 +324,7 @@ function postOut(row) {
     const v = db.get('SELECT * FROM videos WHERE id = ?', row.video);
     if (v) out.video = videoOut(v);
   }
+  if (row.gif) out.gif = JSON.parse(row.gif);
   if (row.poll) out.poll = { options: JSON.parse(row.poll).map((option, i) => [option, a.polls[i] || 0]) };
   return out;
 }
@@ -901,7 +902,7 @@ route('POST', '/api/posts', async ({ user, body }) => {
   const nook = nookData(n);
   if (!nook) fail(404, 'That nest doesn’t exist.');
   notBanned(user, n);
-  const type = ['text', 'image', 'link', 'poll', 'video'].includes(body.type) ? body.type : 'text';
+  const type = ['text', 'image', 'link', 'poll', 'video', 'gif'].includes(body.type) ? body.type : 'text';
   const title = text(body.title, 300);
   const postBody = text(body.body, 10000);
   if (title.length < 3) fail(400, 'Give your post a title (at least 3 characters).', { field: 'title' });
@@ -922,6 +923,16 @@ route('POST', '/api/posts', async ({ user, body }) => {
     poll = (Array.isArray(body.poll) ? body.poll : []).map((o) => text(o, 120)).filter(Boolean).slice(0, 6);
     if (poll.length < 2) fail(400, 'A poll needs at least two options.', { field: 'poll' });
   }
+  // a GIF found with KLIPY's search (1.0): kept as KLIPY's link, as in chats, and loaded from KLIPY by whoever sees it
+  let gif = null;
+  if (type === 'gif') {
+    if (!db.meta('klipy-key')) fail(400, 'GIF search is off.', { field: 'image' });
+    const g = body.gif || {};
+    const url = text(g.url, 600);
+    const still = g.still ? text(g.still, 600) : '';
+    if (!KLIPY_MEDIA_RE.test(url) || (still && !KLIPY_MEDIA_RE.test(still))) fail(400, 'That GIF can’t be posted.', { field: 'image' });
+    gif = Object.assign({ url, still: still || undefined, title: text(g.title, 120) || undefined }, dims(g.width, g.height));
+  }
   vet([title, postBody, ...(poll || []), link && link.url], { kind: 'post', history: history(user.id) });
   // a picture, or (from 1.0) a GIF, checked frame by frame like a profile GIF
   const isGif = type === 'image' && /^data:image\/gif/.test(String(body.image || ''));
@@ -940,8 +951,8 @@ route('POST', '/api/posts', async ({ user, body }) => {
   db.tx(() => {
     const image = picture ? saveImage(picture, user.id) : null;
     db.run(
-      'INSERT INTO posts (id, nook, author_id, type, title, body, flair, link, image, poll, video, spoiler, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      id, n, user.id, type, title, postBody, flair, link ? JSON.stringify(link) : null, image, poll ? JSON.stringify(poll) : null, clip ? clip.id : '', body.spoiler ? 1 : 0, t, db.bump()
+      'INSERT INTO posts (id, nook, author_id, type, title, body, flair, link, image, poll, video, gif, spoiler, created_at, rev) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      id, n, user.id, type, title, postBody, flair, link ? JSON.stringify(link) : null, image, poll ? JSON.stringify(poll) : null, clip ? clip.id : '', gif ? JSON.stringify(gif) : '', body.spoiler ? 1 : 0, t, db.bump()
     );
     if (clip) db.run('UPDATE videos SET post_id = ? WHERE id = ?', id, clip.id);
     // you upvote your own, as tradition demands
@@ -1069,7 +1080,7 @@ function removePost(p, reason) {
   db.tx(() => {
     if (p.image) db.run('DELETE FROM images WHERE id = ?', p.image);
     if (p.video) dropVideo(p.video);
-    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, video = '', pinned_at = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
+    db.run("UPDATE posts SET title = '', body = '', link = NULL, image = NULL, poll = NULL, video = '', gif = '', pinned_at = '', removed_at = ?, removed_reason = ?, rev = ? WHERE id = ?", now(), reason, db.bump(), p.id);
   });
 }
 
@@ -2263,7 +2274,11 @@ setInterval(() => {
 function reportTarget(r) {
   if (r.kind === 'post') {
     const p = db.get(`${POST_SELECT} WHERE p.id = ?`, r.target);
-    return p ? { title: p.title, body: p.body.slice(0, 500), picture: imageUrl(p.image), author: p.author_name, removed: !!p.removed_at, href: `#/n/${p.nook}/p/${p.id}` } : null;
+    if (!p) return null;
+    // what a moderator needs to see: the picture, the GIF, or a video's still
+    const clip = p.video ? db.get('SELECT poster FROM videos WHERE id = ?', p.video) : null;
+    const picture = p.image ? imageUrl(p.image) : p.gif ? JSON.parse(p.gif).url : clip ? imageUrl(clip.poster) : '';
+    return { title: p.title, body: p.body.slice(0, 500), picture, author: p.author_name, removed: !!p.removed_at, href: `#/n/${p.nook}/p/${p.id}` };
   }
   if (r.kind === 'comment') {
     const c = db.get(`${COMMENT_SELECT} WHERE c.id = ?`, r.target);
