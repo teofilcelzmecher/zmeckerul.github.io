@@ -35,7 +35,8 @@ jobs:
         id: xcode
         run: |
           ls -d /Applications/Xcode*.app
-          X=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          # the newest that isn't a beta (a beta can't send apps to the App Store)
+          X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|release_candidate|_rc' | sort -V | tail -1)
           sudo xcode-select -s "$X"
           xcodebuild -version
           V=$(xcodebuild -version | head -1 | awk '{print $2}')

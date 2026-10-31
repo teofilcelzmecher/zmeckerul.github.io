@@ -89,7 +89,7 @@ extension Push: UNUserNotificationCenterDelegate {
         let kind = info["kind"] as? String
         Task { @MainActor in
             Router.shared.broadcast("sync")
-            let open = href != nil && Router.shared.front?.hash == href
+            let open = href != nil && Router.shared.front?.place == href
             completionHandler(kind == "call" || open ? [] : [.banner, .list, .sound])
         }
     }

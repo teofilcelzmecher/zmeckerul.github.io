@@ -24,7 +24,7 @@ struct BrowserView: View {
             .focusedSceneObject(web)
             .navigationTitle(web.title)
             // Handoff: what's open here can be picked up on another iPhone, iPad or Mac (or in a browser there)
-            .userActivity(Handoff.type, element: web.hash) { hash, activity in
+            .userActivity(Handoff.type, element: web.place) { hash, activity in
                 Handoff.describe(activity, hash: hash, title: web.title)
             }
             .onContinueUserActivity(Handoff.type) { activity in

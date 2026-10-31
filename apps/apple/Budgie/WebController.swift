@@ -14,7 +14,7 @@ import AppKit
 @MainActor
 final class WebController: NSObject, ObservableObject {
     @Published var title = "Budgie"
-    @Published private(set) var hash = "#/"
+    @Published private(set) var place = "#/"
     @Published private(set) var canGoBack = false
     @Published private(set) var canGoForward = false
     @Published var captcha: CaptchaRequest?
@@ -198,7 +198,7 @@ final class WebController: NSObject, ObservableObject {
         case "badge":
             Push.shared.setBadge(body["count"] as? Int ?? 0)
         case "route":
-            hash = Route.clean(body["hash"] as? String ?? "#/")
+            place = Route.clean(body["hash"] as? String ?? "#/")
             title = (body["title"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "Budgie"
         case "session":
             Keychain.saveSession(token: body["token"] as? String ?? "", api: body["api"] as? String ?? "")
