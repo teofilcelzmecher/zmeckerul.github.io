@@ -72,6 +72,7 @@ with `sudo nook signups open`. Even when it's open, the server lets only 60 new 
 | `sudo nook turn-usage ACCOUNT_ID TOKEN` / `turn-usage off` | Also checks Cloudflare's own count of the relay's data every hour |
 | `sudo nook gifs KLIPY_APP_KEY` / `gifs off` | Turns GIF search in chats on or off (see below) |
 | `sudo nook push key.json` / `push paste` / `push off` | Turns notifications on phones (the Android app) on or off (see below) |
+| `sudo nook push apple AuthKey.p8 TEAM_ID` / `push apple off` | Turns notifications on iPhone, iPad and Mac on or off (see below) |
 | `sudo nook invite 3 "for school friends"` | Makes 3 new invite codes |
 | `sudo nook invites` | Lists codes, used and unused |
 | `sudo nook users` | Lists accounts |
@@ -213,6 +214,28 @@ first, and only then sends the server its phone's notification token; the websit
 Each phone's token belongs to the sign-in it came from, so signing out (or a sign-in expiring) stops its
 notifications. A notification is written in the language the app is in. What someone wrote in a message
 is sent as it is, so Google carries it; the Privacy Policy says so.
+
+### iPhone, iPad and Mac
+
+Budgie's Apple app (`apps/apple`) gets its notifications straight from Apple's Push Notification service; no
+Firebase is involved. It needs a paid Apple Developer account.
+
+1. On https://developer.apple.com/account open **Certificates, Identifiers & Profiles → Keys → +**. Name it
+   Budgie push, tick **Apple Push Notifications service (APNs)** (environment: Sandbox & Production), and
+   **Register**. Download the key: a file called `AuthKey_XXXXXXXXXX.p8` (the X's are the key's id). Apple lets you
+   download it only once, and it's a password: never share it or put it in the repository.
+2. Your **Team ID** is on https://developer.apple.com/account under **Membership details** (10 letters and digits).
+3. On the laptop:
+
+   ```sh
+   sudo nook push apple ~/Downloads/AuthKey_XXXXXXXXXX.p8 TEAM_ID
+   ```
+
+   or `sudo nook push apple paste KEY_ID TEAM_ID` and paste the key's text. It checks the key with Apple first and
+   works straight away. `sudo nook push` shows both Android and Apple; `sudo nook push apple off` turns Apple's off.
+
+Test builds from Xcode get their notifications through Apple's test service and TestFlight and App Store builds
+through the real one; the app tells the server which, so both work with the same key.
 
 ## Automatic checks
 

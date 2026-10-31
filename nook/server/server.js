@@ -29,7 +29,7 @@ const textmodel = require('./textmodel');
 const video = require('./video');
 const makePush = require('./push');
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const TERMS = '1.0.0, 2026-10-30';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -40,9 +40,9 @@ const CONFIG = {
     .map((s) => s.trim().replace(/\/$/, ''))
     .filter(Boolean),
 };
-// Budgie's Android app (1.1) is always let in: its pages are inside the app, at this address
-const APP_ORIGIN = 'https://app.budgiesocial.com';
-if (!CONFIG.origins.includes(APP_ORIGIN)) CONFIG.origins.push(APP_ORIGIN);
+// Budgie's apps are always let in: their pages are inside the app, at these addresses (Android 1.1; iPhone, iPad and
+// Mac 1.2)
+for (const appOrigin of ['https://app.budgiesocial.com', 'budgie://app']) if (!CONFIG.origins.includes(appOrigin)) CONFIG.origins.push(appOrigin);
 
 const MINUTE = 60000;
 const HOUR = 60 * MINUTE;
@@ -450,8 +450,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '1.1.0, 2026-10-30',
-  text: 'Budgie is coming to Android as an app, with notifications for messages, calls and replies. If you turn them on in the app, they reach your phone through Google’s Firebase Cloud Messaging, so Google gets your phone’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.',
+  version: '1.2.0, 2026-10-31',
+  text: 'Budgie is coming as an app to Android, iPhone, iPad and Mac, with notifications for messages, calls and replies. If you turn them on in an app, they reach your device through Google’s Firebase Cloud Messaging (Android) or Apple’s Push Notification service (iPhone, iPad and Mac), so Google or Apple gets your device’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
@@ -716,12 +716,14 @@ route('POST', '/api/recover', async ({ body, ip }) => {
   return { token: newSession(user.id), recovery, me: meOut(user) };
 }, { auth: false });
 
-// a phone that wants notifications (1.1): its token from Firebase, kept with this sign-in and the app's language
+// a phone that wants notifications (1.1): its token from Firebase (Android) or Apple (iPhone, iPad and Mac, 1.2), kept
+// with this sign-in and the app's language. An Apple app built for testing says so (sandbox): its notifications go
+// through Apple's test service
 route('POST', '/api/push', ({ user, session, body }) => {
   limit('push:' + user.id, 30, HOUR, 'Try again in a little while.');
   const token = typeof body.token === 'string' ? body.token.trim() : '';
   if (!/^[\w:.-]{20,4096}$/.test(token)) fail(400, 'That isn’t a device token.');
-  const platform = body.platform === 'ios' ? 'ios' : 'android';
+  const platform = ['ios', 'macos'].includes(body.platform) ? body.platform + (body.sandbox === true ? '-sandbox' : '') : 'android';
   const lang = ['en', 'ro', 'es', 'fr', 'de', 'it'].includes(body.lang) ? body.lang : 'en';
   db.run(
     'INSERT INTO push_tokens (token, user_id, session, platform, lang, created_at, seen_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(token) DO UPDATE SET user_id = excluded.user_id, session = excluded.session, platform = excluded.platform, lang = excluded.lang, seen_at = excluded.seen_at',
@@ -729,7 +731,7 @@ route('POST', '/api/push', ({ user, session, body }) => {
   );
   // someone's ten newest phones
   db.run('DELETE FROM push_tokens WHERE user_id = ? AND token NOT IN (SELECT token FROM push_tokens WHERE user_id = ? ORDER BY seen_at DESC LIMIT 10)', user.id, user.id);
-  return { ok: true, on: push.on() };
+  return { ok: true, on: push.on(platform) };
 });
 route('DELETE', '/api/push', ({ user, body }) => {
   db.run('DELETE FROM push_tokens WHERE token = ? AND user_id = ?', String(body.token || ''), user.id);

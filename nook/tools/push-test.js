@@ -1,20 +1,26 @@
-// Notifications on phones (1.1), end to end against fake Google and Firebase servers: the Android app's address is let
-// in, phones sign up, and messages, pictures, replies, group messages and calls each reach the right phones, in each
-// phone's language, but not anyone who blocked the sender, not a signed-out phone, and not a phone that's gone.
+// Notifications on phones, end to end against fake Google, Firebase and Apple servers: the apps' addresses are let in,
+// phones sign up, and messages, pictures, replies, group messages and calls each reach the right phones, in each
+// phone's language, but not anyone who blocked the sender, not a signed-out phone, and not a phone that's gone. Then
+// the same through Apple's push service (1.2), for an iPhone and a Mac.
 //   node nook/tools/push-test.js
-const { spawn, execFileSync } = require('node:child_process');
+const { spawn, execFile, execFileSync } = require('node:child_process');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
+const http2 = require('node:http2');
 const os = require('node:os');
 const path = require('node:path');
 
 const SERVER = path.join(__dirname, '..', 'server');
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'budgie-push-'));
 const FAKE = 8798;
-const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8797', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'off', NOOK_TEXT_CHECK: 'off', NOOK_RING_MS: '1500', NOOK_PUSH: 'test', NOOK_FCM_URL: `http://127.0.0.1:${FAKE}` };
+const FAKE_APPLE = 8796;
+const env = { ...process.env, NOOK_DATA: DATA, NOOK_PORT: '8797', NOOK_ORIGINS: 'http://localhost:*', NOOK_PICTURE_CHECK: 'off', NOOK_TEXT_CHECK: 'off', NOOK_RING_MS: '1500', NOOK_PUSH: 'test', NOOK_FCM_URL: `http://127.0.0.1:${FAKE}`, NOOK_APNS_URL: `http://127.0.0.1:${FAKE_APPLE}` };
 const BASE = 'http://127.0.0.1:8797';
 const cli = (...a) => execFileSync('node', ['--disable-warning=ExperimentalWarning', SERVER + '/cli.js', ...a], { env, encoding: 'utf8' });
+// for commands that call the fake servers in this process, which a blocking call would stop from answering
+const cliAsync = (...a) =>
+  new Promise((resolve) => execFile('node', ['--disable-warning=ExperimentalWarning', SERVER + '/cli.js', ...a], { env, encoding: 'utf8' }, (error, stdout, stderr) => resolve({ ok: !error, text: stdout + stderr })));
 let failures = 0;
 const ok = (cond, label, extra = '') => {
   if (!cond) failures++;
@@ -67,8 +73,41 @@ const fake = http.createServer((req, res) => {
   });
 });
 
+// the fake Apple: checks each request's signed token, keeps what it's sent, and knows a made-up device and a gone one
+const apple = crypto.generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+const appleKeyFile = path.join(DATA, 'AuthKey_ABC123DEFG.p8');
+const toApple = [];
+const fakeApple = http2.createServer();
+fakeApple.on('stream', (stream, headers) => {
+  let body = '';
+  stream.setEncoding('utf8');
+  stream.on('data', (c) => (body += c));
+  stream.on('end', () => {
+    const answer = (status, reason) => {
+      stream.respond({ ':status': status, 'content-type': 'application/json' });
+      stream.end(reason ? JSON.stringify({ reason }) : '');
+    };
+    const [h, c, sig] = String(headers.authorization || '').replace(/^bearer /, '').split('.');
+    let head = {};
+    let claims = {};
+    try {
+      head = JSON.parse(Buffer.from(h || '', 'base64url').toString());
+      claims = JSON.parse(Buffer.from(c || '', 'base64url').toString());
+    } catch (_) {}
+    const signed = !!sig && crypto.verify('sha256', Buffer.from(h + '.' + c), { key: apple.publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(sig, 'base64url'));
+    if (!signed || head.alg !== 'ES256' || head.kid !== 'ABC123DEFG' || claims.iss !== 'TEAM123456') return answer(403, 'InvalidProviderToken');
+    if (headers['apns-topic'] !== 'com.budgiesocial.app') return answer(400, 'BadTopic');
+    const device = decodeURIComponent(String(headers[':path']).replace('/3/device/', ''));
+    if (/^0+$/.test(device)) return answer(400, 'BadDeviceToken');
+    toApple.push({ device, headers, payload: JSON.parse(body) });
+    if (device.startsWith('dead')) return answer(410, 'Unregistered');
+    answer(200);
+  });
+});
+
 (async () => {
   await new Promise((r) => fake.listen(FAKE, '127.0.0.1', r));
+  await new Promise((r) => fakeApple.listen(FAKE_APPLE, '127.0.0.1', r));
   const proc = spawn('node', ['--disable-warning=ExperimentalWarning', SERVER + '/server.js'], { env, stdio: ['ignore', 'pipe', 'pipe'] });
   proc.stderr.on('data', (d) => /Warning|notification didn/.test(d) || process.stderr.write('[server] ' + d));
   await new Promise((r) => proc.stdout.once('data', r));
@@ -78,7 +117,9 @@ const fake = http.createServer((req, res) => {
   // the app's own address
   const health = await api(null, 'GET', '/api/health', null, 'https://app.budgiesocial.com');
   ok(health.headers.get('access-control-allow-origin') === 'https://app.budgiesocial.com', 'the Android app’s address may call the server', health.json.version);
-  ok(health.json.version === '1.1.0', 'the server says 1.1.0');
+  ok(health.json.version === '1.2.0', 'the server says 1.2.0');
+  const fromApple = await api(null, 'GET', '/api/health', null, 'budgie://app');
+  ok(fromApple.headers.get('access-control-allow-origin') === 'budgie://app', 'so may the iPhone, iPad and Mac app’s');
 
   const tk = {};
   for (const name of ['alice', 'bob', 'carol']) tk[name] = (await api(null, 'POST', '/api/signup', { name, password: 'correct horse', age: true, terms: true })).json.token;
@@ -173,8 +214,57 @@ const fake = http.createServer((req, res) => {
   await wait();
   ok(sent.length === afterOff, 'and nothing is sent after that');
 
+  // ---- Apple (1.2): an iPhone (a test build, in German) and a Mac, with Firebase off ----
+  const iphone = 'a1'.repeat(32);
+  const mac = 'b2'.repeat(32);
+  const dead = 'dead' + 'd'.repeat(60);
+  const signedUp = await api(tk.alice, 'POST', '/api/push', { token: iphone, platform: 'ios', sandbox: true, lang: 'de' }, 'budgie://app');
+  ok(signedUp.status === 200 && signedUp.json.on === false, 'alice’s iPhone signs up; Apple’s key isn’t set yet', JSON.stringify(signedUp.json));
+  await api(tk.alice, 'POST', '/api/push', { token: mac, platform: 'macos', lang: 'en' }, 'budgie://app');
+  await api(relog, 'POST', '/api/messages', { to: 'alice', body: 'before the key' });
+  await wait();
+  ok(toApple.length === 0, 'without Apple’s key, nothing goes to Apple');
+  fs.writeFileSync(appleKeyFile, apple.privateKey.export({ type: 'pkcs8', format: 'pem' }));
+  const refused = await cliAsync('push', 'apple', appleKeyFile, 'WRONG12345');
+  ok(!refused.ok && /didn't accept that key/.test(refused.text), 'a key with the wrong team is refused when it’s given', refused.text.trim().split('\n').pop());
+  const taken = await cliAsync('push', 'apple', appleKeyFile, 'TEAM123456');
+  ok(taken.ok && /now get notifications through Apple \(key ABC123DEFG, team TEAM123456\)/.test(taken.text), 'nook push apple takes the key (its id from the file’s name) and the team', taken.text.trim().split('\n')[0]);
+  ok(/Apple with key ABC123DEFG.*2 devices/.test(cli('push')), 'nook push says both how Android and Apple are doing');
+  ok((await api(tk.alice, 'POST', '/api/push', { token: iphone, platform: 'ios', sandbox: true, lang: 'de' }, 'budgie://app')).json.on === true, 'and the app hears it’s on');
+  // a message
+  await api(relog, 'POST', '/api/messages', { to: 'alice', body: 'Guten Morgen' });
+  await wait();
+  let a = toApple.find((x) => x.device === iphone);
+  ok(a && a.payload.aps.alert.title === 'u/bob' && a.payload.aps.alert.body === 'Guten Morgen' && a.payload.aps.category === 'MESSAGE' && a.payload.aps['thread-id'] === 'chat-bob' && a.payload.href === '#/messages/bob', 'alice’s iPhone gets bob’s message: a reply-able notification, stacked with his chat, that opens it', a && JSON.stringify(a.payload));
+  ok(a && a.headers['apns-push-type'] === 'alert' && a.headers['apns-priority'] === '10' && a.headers['apns-topic'] === 'com.budgiesocial.app', 'sent as an alert, right away, for Budgie’s app');
+  ok(toApple.some((x) => x.device === mac && x.payload.aps.alert.body === 'Guten Morgen'), 'so does her Mac');
+  ok(sent.length === afterOff, 'and Android’s Firebase, which is off, isn’t used');
+  // a call: it can break through a Focus, and ringing again replaces the ring
+  const ringAt = toApple.length;
+  const call = await api(relog, 'POST', '/api/calls', { to: 'alice', media: 'voice' });
+  await wait();
+  a = toApple.slice(ringAt).find((x) => x.device === iphone);
+  const expires = a && Number(a.headers['apns-expiration']) - Date.now() / 1000;
+  ok(a && a.payload.aps['interruption-level'] === 'time-sensitive' && a.payload.aps.category === 'CALL' && a.headers['apns-collapse-id'] === 'call-' + call.json.call.id && expires > 25 && expires < 40, 'a call is time-sensitive, replaceable, and gone after 35 s', a && JSON.stringify([a.payload.aps, a.headers['apns-collapse-id'], Math.round(expires)]));
+  ok(a && / · Tippe zum Annehmen$/.test(a.payload.aps.alert.body), 'and asks her to answer, in German', a && a.payload.aps.alert.body);
+  await api(relog, 'POST', `/api/calls/${call.json.call.id}/hang`).catch(() => {});
+  await sleep(1700);
+  // a device that's gone is forgotten
+  await api(tk.alice, 'POST', '/api/push', { token: dead, platform: 'ios', lang: 'en' }, 'budgie://app');
+  await api(relog, 'POST', '/api/messages', { to: 'alice', body: 'one' });
+  await wait();
+  await api(relog, 'POST', '/api/messages', { to: 'alice', body: 'two' });
+  await wait();
+  ok(toApple.filter((x) => x.device === dead).length === 1 && toApple.filter((x) => x.device === iphone && /^(one|two)$/.test(x.payload.aps.alert.body)).length === 2, 'Apple says a device is gone: it isn’t tried again; the iPhone gets both');
+  ok(/won't get notifications/.test(cli('push', 'apple', 'off')), 'nook push apple off turns them off');
+  const appleOff = toApple.length;
+  await api(relog, 'POST', '/api/messages', { to: 'alice', body: 'after off' });
+  await wait();
+  ok(toApple.length === appleOff, 'and nothing goes to Apple after that');
+
   proc.kill('SIGTERM');
   fake.close();
+  fakeApple.close();
   fs.rmSync(DATA, { recursive: true, force: true });
   console.log(failures ? `${failures} FAILED` : 'ALL PASSED');
   process.exit(failures ? 1 : 0);

@@ -252,6 +252,8 @@
     else delete root.dataset.vtDir;
     const vt = document.startViewTransition(update);
     active = vt;
+    // a transition cut short by the next one is fine: Safari would otherwise report it as an error
+    vt.ready.catch(() => {});
     vt.finished.finally(() => {
       if (active !== vt) return;
       active = null;

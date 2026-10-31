@@ -1,0 +1,44 @@
+/* Budgie for iPhone, iPhone Duo, iPad and Mac: the few things that are different in the app (see native.js). Loaded
+   only by the app. */
+
+/* a tap on the app's own controls shouldn't flash a grey box, the way a link in a browser does, and holding a button
+   shouldn't select its words or offer to copy them */
+html.app-apple {
+  -webkit-tap-highlight-color: transparent;
+}
+html.app-apple :is(button, [role='button'], [role='tab'], .m3-icon, nav, header) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* the robot check's stand-in on the sign-up form (it opens the real check in a sheet) */
+.apple-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+.apple-check.done {
+  padding: 0 16px;
+  border-radius: 24px;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+  font-weight: 600;
+}
+
+/* iPhone Duo half open, like a laptop: in a call, the faces stay above the fold and the buttons go below it, where
+   a thumb reaches them */
+html.fold-tabletop .call-screen {
+  grid-template-rows: auto minmax(0, 1fr) var(--fold-height, 0px) var(--below-fold, 40%);
+}
+html.fold-tabletop .call-screen > .call-top {
+  grid-row: 1;
+}
+html.fold-tabletop .call-screen > .call-stage {
+  grid-row: 2;
+}
+html.fold-tabletop .call-screen > .call-controls {
+  grid-row: 4;
+  align-self: center;
+}

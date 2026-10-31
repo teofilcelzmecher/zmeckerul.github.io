@@ -1,0 +1,151 @@
+# Budgie for iPhone, iPhone Duo, iPad and Mac: builds the app on GitHub's Macs (no Mac of your own needed), runs it on
+# an iPhone, an iPhone Duo and an iPad in the simulator and on the Mac against a test server, with screenshots, and,
+# once App Store Connect's key is in the repository's secrets, signs it and sends it to TestFlight and App Store
+# Connect for both iOS and macOS. See apps/apple/README.md.
+name: Apple app
+
+on:
+  push:
+    branches: [claude/community-social-media-app-m1k3uc]
+    paths: ['apps/apple/**', 'nook/**', 'm3/**', '.github/workflows/apple.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    outputs:
+      flags: ${{ steps.xcode.outputs.flags }}
+      xcode: ${{ steps.xcode.outputs.path }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: The newest Xcode
+        id: xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          X=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$X"
+          xcodebuild -version
+          V=$(xcodebuild -version | head -1 | awk '{print $2}')
+          echo "path=$X" >> "$GITHUB_OUTPUT"
+          # iPhone Duo's hinge is in the iOS 27.1 SDK
+          if [ "$(printf '%s\n27.1\n' "$V" | sort -V | head -1)" = "27.1" ]; then echo "flags=BUDGIE_HINGE" >> "$GITHUB_OUTPUT"; fi
+          xcrun simctl list runtimes
+
+      - name: XcodeGen
+        run: brew install xcodegen
+
+      - name: Budgie's screens, and the Xcode project
+        run: |
+          python3 apps/apple/tools/build-www.py
+          cd apps/apple
+          xcodegen generate
+          python3 tools/fix-project.py
+
+      - name: Build for iPhone and iPad (simulator)
+        working-directory: apps/apple
+        run: |
+          set -o pipefail
+          xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO BUDGIE_FLAGS="${{ steps.xcode.outputs.flags }}" build 2>&1 | tee build-ios.log | grep -E "error:|warning: .*Budgie/|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build-ios.log
+
+      - name: Build for the Mac
+        working-directory: apps/apple
+        run: |
+          set -o pipefail
+          xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Debug -destination 'platform=macOS' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build-mac.log | grep -E "error:|warning: .*Budgie/|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build-mac.log
+
+      - name: Run it on an iPhone, an iPhone Duo, an iPad and the Mac
+        run: |
+          mkdir -p "$RUNNER_TEMP/budgie-data"
+          NOOK_DATA="$RUNNER_TEMP/budgie-data" NOOK_PORT=8799 NOOK_TEXT_CHECK=off NOOK_PICTURE_CHECK=off \
+            nohup node nook/server/server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          TOKEN=$(node apps/apple/tools/ci-seed.js)
+          bash apps/apple/tools/ci-run.sh "$TOKEN" "$RUNNER_TEMP/screens"
+
+      - name: Keep the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: budgie-apple-checks-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/screens/
+            ${{ runner.temp }}/server.log
+            apps/apple/build-ios.log
+            apps/apple/build-mac.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  release:
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Only with App Store Connect's key
+        id: ready
+        run: |
+          if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No App Store Connect key in the secrets yet, so the app was built and checked but not sent to TestFlight"
+          fi
+
+      - if: steps.ready.outputs.go == 'true'
+        uses: actions/checkout@v5
+
+      - name: Xcode, XcodeGen and the project
+        if: steps.ready.outputs.go == 'true'
+        run: |
+          sudo xcode-select -s "${{ needs.build.outputs.xcode }}"
+          brew install xcodegen
+          python3 apps/apple/tools/build-www.py
+          cd apps/apple
+          xcodegen generate
+          python3 tools/fix-project.py
+          printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Sign and send to App Store Connect (iPhone and iPad, then Mac)
+        if: steps.ready.outputs.go == 'true'
+        working-directory: apps/apple
+        run: |
+          set -eo pipefail
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          for PLATFORM in iOS macOS; do
+            xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Release -destination "generic/platform=$PLATFORM" \
+              -archivePath "$RUNNER_TEMP/Budgie-$PLATFORM.xcarchive" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              CURRENT_PROJECT_VERSION="${{ github.run_number }}" BUDGIE_FLAGS="${{ needs.build.outputs.flags }}" "${AUTH[@]}" archive | tail -40
+            xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Budgie-$PLATFORM.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+              -exportPath "$RUNNER_TEMP/export-$PLATFORM" "${AUTH[@]}" | tail -40
+          done
+          rm -f "$RUNNER_TEMP/AuthKey.p8"

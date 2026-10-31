@@ -29,6 +29,7 @@ const COMMANDS = {
       '  nook invite [count] [note]       make new single-use invite codes',
       '  nook invites                     list invite codes (used and unused)',
       '  nook push [file.json|paste|off]  notifications on phones (the Android app), through Firebase',
+      '  nook push apple <AuthKey.p8> <team id>   notifications on iPhone, iPad and Mac, through Apple (or: paste <key id> <team id>; off)',
       '  nook captcha <site key> <secret key>   turn on Cloudflare Turnstile (the robot check) for new accounts; nook captcha off turns it off',
       '  nook turn <key id> <api token>   send calls through Cloudflare\'s TURN relay (they always connect, and nobody sees another\'s IP); nook turn off goes back to direct calls',
       '  nook turn                        whether calls go through the relay, and how much of the month\'s free allowance is used',
@@ -138,7 +139,8 @@ const COMMANDS = {
    * notifications on phones (1.1): Firebase's service account for Budgie's project, from a file (nook push key.json)
    * or pasted in (nook push paste, then paste the file's contents). It stays in the database on this laptop.
    */
-  async push(source) {
+  async push(source, ...rest) {
+    if (source === 'apple') return COMMANDS.pushApple(...rest);
     if (source === 'off') {
       db.meta('fcm-account', '');
       return out('Phones won\'t get notifications any more (the app still works). To turn them back on: nook push <file.json>');
@@ -151,11 +153,12 @@ const COMMANDS = {
           return null;
         }
       })();
-      const phones = db.get('SELECT COUNT(*) AS n FROM push_tokens').n;
-      return out(
-        a ? `Notifications go to phones through Firebase project "${a.project_id}". ${phones} phone${phones === 1 ? '' : 's'} signed up for them. Turn them off with: nook push off` : `Phones don't get notifications yet. ${phones} phone${phones === 1 ? '' : 's'} already asked for them.`,
-        a ? '' : 'Turn them on with Firebase\'s service account file: nook push <file.json>   (or: nook push paste, and paste the file\'s contents)'
+      const phones = db.get("SELECT COUNT(*) AS n FROM push_tokens WHERE platform NOT LIKE 'ios%' AND platform NOT LIKE 'macos%'").n;
+      out(
+        a ? `Android: notifications go through Firebase project "${a.project_id}". ${phones} phone${phones === 1 ? '' : 's'} signed up for them. Turn them off with: nook push off` : `Android: phones don't get notifications yet. ${phones} phone${phones === 1 ? '' : 's'} already asked for them.`,
+        a ? '' : '  Turn them on with Firebase\'s service account file: nook push <file.json>   (or: nook push paste, and paste the file\'s contents)'
       );
+      return COMMANDS.pushApple();
     }
     let text;
     if (source === 'paste' || source === '-') {
@@ -207,6 +210,79 @@ const COMMANDS = {
     }
     db.meta('fcm-account', JSON.stringify({ type: a.type, project_id: a.project_id, client_email: a.client_email, private_key: a.private_key, token_uri: a.token_uri }));
     out(`Phones now get notifications through Firebase project "${a.project_id}": messages, calls and replies. No restart needed.`, 'You can delete the file now (it\'s kept in Budgie\'s database). To turn them off: nook push off');
+  },
+
+  /**
+   * notifications on iPhone, iPad and Mac (1.2): Apple's push key (a .p8 file from developer.apple.com → Certificates,
+   * Identifiers & Profiles → Keys, with Apple Push Notifications service) and the team it belongs to. The key's id is
+   * in its file name (AuthKey_<key id>.p8). It stays in the database on this laptop.
+   *   nook push apple AuthKey_ABC123DEFG.p8 TEAM_ID     nook push apple paste KEY_ID TEAM_ID     nook push apple off
+   */
+  async pushApple(source, ...rest) {
+    const devices = () => db.get("SELECT COUNT(*) AS n FROM push_tokens WHERE platform LIKE 'ios%' OR platform LIKE 'macos%'").n;
+    if (source === 'off') {
+      db.meta('apns-key', '');
+      return out('iPhones, iPads and Macs won\'t get notifications any more (the app still works). To turn them back on: nook push apple <AuthKey.p8> <team id>');
+    }
+    if (!source) {
+      const k = (() => {
+        try {
+          return JSON.parse(db.meta('apns-key') || 'null');
+        } catch (_) {
+          return null;
+        }
+      })();
+      const n = devices();
+      return out(
+        k ? `iPhone, iPad and Mac: notifications go through Apple with key ${k.keyId} (team ${k.teamId}). ${n} device${n === 1 ? '' : 's'} signed up for them. Turn them off with: nook push apple off` : `iPhone, iPad and Mac: no notifications yet. ${n} device${n === 1 ? '' : 's'} already asked for them.`,
+        k ? '' : '  Turn them on with Apple\'s push key: nook push apple <AuthKey_XXXXXXXXXX.p8> <team id>   (or: nook push apple paste <key id> <team id>, and paste the key)'
+      );
+    }
+    const id = (x) => /^[A-Z0-9]{10}$/.test(x || '');
+    let key, keyId, teamId;
+    if (source === 'paste' || source === '-') {
+      [keyId, teamId] = rest;
+      if (!id(keyId) || !id(teamId)) quit('Usage: nook push apple paste <key id> <team id>   (both are 10 letters and digits, like ABC123DEFG)');
+      out('Paste the whole key (from -----BEGIN PRIVATE KEY----- to -----END PRIVATE KEY-----). It\'s read as soon as it\'s complete.');
+      key = await new Promise((resolve) => {
+        let got = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => {
+          got += chunk;
+          if (/-----END PRIVATE KEY-----/.test(got)) {
+            process.stdin.pause();
+            resolve(got);
+          }
+        });
+        process.stdin.on('end', () => resolve(got));
+      });
+    } else {
+      if (!fs.existsSync(source)) quit(`There's no file at ${source}.`);
+      key = fs.readFileSync(source, 'utf8');
+      const named = /AuthKey_([A-Z0-9]{10})\.p8$/i.exec(path.basename(source));
+      keyId = rest.length > 1 ? rest[0] : named && named[1].toUpperCase();
+      teamId = rest[rest.length - 1];
+      if (!id(keyId)) quit('Which key is it? Give its id too: nook push apple <file.p8> <key id> <team id>');
+      if (!id(teamId)) quit('Add your team id (10 letters and digits, on developer.apple.com → Membership): nook push apple <file.p8> <team id>');
+    }
+    key = String(key).trim().replace(/\r/g, '') + '\n';
+    try {
+      const k = crypto.createPrivateKey(key);
+      if (k.asymmetricKeyType !== 'ec' || (k.asymmetricKeyDetails && k.asymmetricKeyDetails.namedCurve !== 'prime256v1')) throw new Error('not an Apple key');
+    } catch (_) {
+      quit('That isn\'t an Apple push key. On developer.apple.com: Certificates, Identifiers & Profiles → Keys → + → Apple Push Notifications service (APNs), then download the .p8 file.');
+    }
+    const k = { key, keyId, teamId };
+    // Apple is asked now, so a wrong key or team shows up here rather than as silence later
+    let checked;
+    try {
+      checked = await require('./push')(db).checkApple(k);
+    } catch (error) {
+      quit(`Couldn't check the key with Apple (${error.message}). Is the laptop online?`);
+    }
+    if (!checked.ok) quit(`Apple didn't accept that key with team ${teamId} (it answered ${checked.why}). Check the key id and team id, or make a new key.`);
+    db.meta('apns-key', JSON.stringify(k));
+    out(`iPhones, iPads and Macs now get notifications through Apple (key ${keyId}, team ${teamId}): messages, calls and replies. No restart needed.`, 'You can delete the .p8 file now (it\'s kept in Budgie\'s database). To turn them off: nook push apple off');
   },
 
   /** the most the relay may send in a month before calls stop (Cloudflare's free allowance is 1,000 GB) */

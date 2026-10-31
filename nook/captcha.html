@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. -->
+<!--
+  The robot check (Cloudflare Turnstile) for Budgie's app on iPhone, iPad and Mac (1.2). The app's own pages live at
+  an address of its own, which Turnstile doesn't know, so when someone signs up there, the app opens this page from
+  budgiesocial.com in a window over itself, and this page hands the check's one-time answer back to the app. Nothing
+  else happens here: no account, no cookies of Budgie's.
+    captcha.html?k=<site key>&theme=light|dark
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'strict-dynamic' 'sha256-' https: 'unsafe-inline'; style-src 'unsafe-inline'; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com; img-src data:; base-uri 'none'; form-action 'none'">
+  <title>Robot check · Budgie</title>
+  <style>
+    :root { color-scheme: light dark; --bg: #FEF7FF; --ink: #1D1B20; --soft: #49454F; }
+    :root.dark { --bg: #141218; --ink: #E6E0E9; --soft: #CAC4D0; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font: 16px/1.45 -apple-system, system-ui, sans-serif; }
+    main { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; box-sizing: border-box; text-align: center; }
+    h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    p { margin: 0; color: var(--soft); max-width: 22em; }
+    #box { min-height: 70px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="title">One quick check</h1>
+    <p id="say">This keeps fake accounts out of Budgie. It usually passes by itself.</p>
+    <div id="box"></div>
+  </main>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var key = q.get('k') || '';
+      var dark = q.get('theme') === 'dark';
+      if (dark) document.documentElement.classList.add('dark');
+      var app = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.budgieCaptcha;
+      function tell(message) {
+        if (app) app.postMessage(message);
+      }
+      function say(title, text) {
+        document.getElementById('title').textContent = title;
+        document.getElementById('say').textContent = text;
+      }
+      if (!app || !/^[\w-]{10,100}$/.test(key)) return say('Nothing to check here', 'This page is part of Budgie’s app. To join Budgie, open budgiesocial.com.');
+      window.budgieReady = function () {
+        window.turnstile.render('#box', {
+          sitekey: key,
+          theme: dark ? 'dark' : 'light',
+          callback: function (answer) {
+            say('Done', 'Going back to Budgie…');
+            tell({ answer: answer });
+          },
+          'error-callback': function () {
+            tell({ error: 'failed' });
+          },
+          'expired-callback': function () {
+            tell({ error: 'expired' });
+          },
+        });
+      };
+      var script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=budgieReady&render=explicit';
+      script.async = true;
+      script.onerror = function () {
+        say('The check couldn’t load', 'Check your connection and try again.');
+        tell({ error: 'blocked' });
+      };
+      document.head.appendChild(script);
+    })();
+  </script>
+</body>
+</html>

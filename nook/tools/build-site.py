@@ -12,7 +12,7 @@ src, out = sys.argv[1], sys.argv[2]
 for d in ['js', 'm3', 'm3/fonts', 'm3/vendor']:
     os.makedirs(os.path.join(out, d), exist_ok=True)
 fix = lambda text: text.replace('href="../m3/"', 'href="m3/index.html"').replace('../m3/', 'm3/')
-for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html']:
+for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html', 'captcha.html']:
     html = rehash(fix(open(f'{src}/nook/{page}').read()))
     open(f'{out}/{page}', 'w').write(html)
 for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
