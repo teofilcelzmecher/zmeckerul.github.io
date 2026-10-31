@@ -32,6 +32,8 @@ for PATTERN in 'iPhone [0-9]+ Pro Max$' 'iPhone Duo' 'iPad Pro 13'; do
   read -r TYPE NAME < <(xcrun simctl list devicetypes -j | python3 -c "
 import json, re, sys
 t = [x for x in json.load(sys.stdin)['devicetypes'] if re.search(r'$PATTERN', x['name'])]
+# the newest model: the biggest number in its name
+t.sort(key=lambda x: [int(n) for n in re.findall(r'\\d+', x['name'])] or [0])
 print(t[-1]['identifier'], t[-1]['name'].replace(' ', '-')) if t else print('', '')")
   if [ -z "$TYPE" ]; then echo "no simulator like '$PATTERN'"; continue; fi
   echo "== $NAME"
