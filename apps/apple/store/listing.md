@@ -94,7 +94,7 @@ if a page is too cramped).
 
 **Screenshots:** in `store/screenshots/`: `iphone-01…08` (6.9-inch display, 1320×2868), `ipad-01…04` (13-inch,
 2064×2752) and `mac-01…06` (2880×1800). Upload each set in its numbered order: some are one picture across two
-screenshots (iPhone 1–2 and 4–5, iPad 1–2, Mac 1–2 and 4–5), so each pair has to stay side by side. The first three
+screenshots (iPhone 1–2 and 4–5, iPad 1–2, Mac 1–2 and 5–6), so each pair has to stay side by side. The first three
 iPhone ones are what people see in search.
 
 ## App Review information
