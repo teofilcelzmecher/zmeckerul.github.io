@@ -25,6 +25,7 @@ enum QuickActions {
 }
 
 #if os(iOS)
+@MainActor
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         Push.shared.setup()
@@ -46,6 +47,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
+@MainActor
 final class SceneDelegate: NSObject, UIWindowSceneDelegate {
     // a quick action while Budgie was already running
     func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
@@ -54,6 +56,7 @@ final class SceneDelegate: NSObject, UIWindowSceneDelegate {
     }
 }
 #else
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Push.shared.setup()
