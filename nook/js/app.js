@@ -1,0 +1,3366 @@
+// Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
+/*
+ * Nook's app: the router, the shell (drawer, top bar, bottom bar), every
+ * data-act action, the sheets for making nooks, collections and profiles,
+ * the post composer, keyboard shortcuts and the break reminder.
+ */
+(function () {
+  'use strict';
+
+  const Nook = window.Nook;
+  // a second copy of this script would run every button twice
+  if (Nook.app) return;
+  const store = Nook.store;
+  const ui = Nook.ui;
+  const views = Nook.views;
+  const fx = Nook.fx;
+  const { esc, icon, num, plural, avatar, nookIcon } = ui;
+  const S = () => store.state.settings;
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+
+  const main = $('#main');
+  const drawer = $('#drawer');
+  const scrim = $('#scrim');
+  const topbar = $('#topbar');
+  const brandShape = $('#brand-shape');
+  const searchInput = $('#search-input');
+
+  // ---- routing -------------------------------------------------------------------
+
+  function parse() {
+    const raw = location.hash.replace(/^#/, '') || '/';
+    const [path, query] = raw.split('?');
+    const params = Object.fromEntries(new URLSearchParams(query || ''));
+    const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
+    const at = (view, extra) => ({ view, params: Object.assign(params, extra) });
+    switch (parts[0]) {
+      case undefined:
+        return at('home');
+      case 'popular':
+        return at('popular');
+      case 'explore':
+        return at('explore');
+      case 'n': {
+        // the two starter nests renamed with the app (Nook became Budgie): old links still work
+        const id = { nookhq: 'budgiehq', asknook: 'askbudgie' }[parts[1]] || parts[1];
+        if (parts[2] === 'p' && parts[3]) return at('postPage', { nook: id, post: parts[3] });
+        if (parts[2] === 'manage') return at('nestManage', { nook: id });
+        return at('community', { nook: id });
+      }
+      case 'u':
+        return at('profile', { user: parts[1] });
+      case 'saved':
+        return parts[1] ? at('collection', { col: parts[1] }) : at('saved');
+      case 'inbox':
+        return at('inbox');
+      case 'friends':
+        return at('friendsPage');
+      case 'messages':
+        if (parts[1] === 'g' && parts[2]) return at('groupThread', { id: parts[2] });
+        return parts[1] ? at('thread', { user: parts[1] }) : at('messagesPage');
+      case 'admin':
+        return at('adminPage');
+      case 'settings':
+        return at('settingsPage');
+      case 'search':
+        return at('searchPage');
+      case 'submit':
+        return at('submit');
+      default:
+        return at('notFound');
+    }
+  }
+
+  const NAV_FOR = { home: 'home', popular: 'popular', explore: 'explore', saved: 'saved', collection: 'saved', inbox: 'inbox', submit: 'submit', settingsPage: 'settings', friendsPage: 'friends', messagesPage: 'messages', thread: 'messages', groupThread: 'messages', adminPage: 'admin' };
+
+  let leaving = [];
+  let current = location.hash || '#/';
+  let stack = [current];
+  let restoring = null;
+  let replacing = false;
+  let feedShown = () => 0;
+  let route = null;
+  let viewNook = null;
+  // the colours the page wears: its nest's, or a profile's in the style its owner picked ({ color, style })
+  let viewWear = null;
+  // a nest's or profile's colours follow the setting; a chat's own colour (1.0) is worn either way
+  const wearing = () => (viewWear && (S().themeNooks || viewWear.always) ? viewWear : null);
+  let navigating = false; // drawing a page inside a view transition
+  let pendingShare = null; // what was tapped, to carry over into the next page
+  const scrolls = new Map();
+
+  const app = (Nook.app = {
+    onLeave: (fn) => leaving.push(fn),
+    restoreCount: () => (restoring ? restoring.count : 0),
+    trackFeed: (fn) => (feedShown = fn),
+    inTransition: () => navigating,
+  });
+
+  function go(hash, { replace = false } = {}) {
+    const normal = hash === '#' || hash === '' ? '#/' : hash;
+    if ((location.hash || '#/') === normal) {
+      render();
+      return;
+    }
+    if (replace) {
+      replacing = true;
+      location.replace(normal);
+    } else {
+      location.hash = normal;
+    }
+  }
+  app.go = go;
+
+  window.addEventListener('hashchange', () => {
+    const hash = location.hash || '#/';
+    scrolls.set(current, { y: scrollY, count: feedShown() });
+    let direction = 'forward';
+    if (replacing) {
+      stack[stack.length - 1] = hash;
+      replacing = false;
+      restoring = null;
+      direction = 'same';
+    } else if (stack.length > 1 && stack[stack.length - 2] === hash) {
+      stack.pop();
+      restoring = scrolls.get(hash) || null;
+      direction = 'back';
+    } else {
+      stack.push(hash);
+      restoring = null;
+    }
+    current = hash;
+    navigate(direction);
+  });
+
+  // what gets tapped on the way to a new page: a post card grows into the
+  // post, a nook's icon into its banner
+  document.addEventListener(
+    'click',
+    (e) => {
+      const target = e.target instanceof Element ? e.target : null;
+      pendingShare = null;
+      if (!target || e.metaKey || e.ctrlKey) return;
+      const toNook = target.closest('a[href^="#/n/"]:not([href*="/p/"]), [data-href^="#/n/"]:not([data-href*="/p/"])');
+      if (toNook) {
+        const iconEl = toNook.querySelector('m3-shape-icon');
+        if (iconEl) pendingShare = { nookEl: iconEl, at: Date.now() };
+        return;
+      }
+      const card = target.closest('.post[data-href]');
+      if (card && !target.closest('button, input, textarea, label, .author')) pendingShare = { post: card.dataset.post, postEl: card, at: Date.now() };
+    },
+    true
+  );
+
+  /** draws the new page, moving from the old one the way you went */
+  function navigate(direction) {
+    const shared = pendingShare && Date.now() - pendingShare.at < 1500 ? pendingShare : null;
+    pendingShare = null;
+    let postId = shared && shared.post;
+    if (fx.supported()) {
+      if (postId) fx.share(shared.postEl, 'post-hero');
+      // going back, the open post shrinks into its place in the feed
+      const open = direction === 'back' && !postId ? $('.post.is-open', main) : null;
+      if (open) {
+        postId = open.dataset.post;
+        fx.share(open, 'post-hero');
+      }
+      if (shared && shared.nookEl) fx.share(shared.nookEl, 'nook-hero');
+    }
+    fx.transition(
+      'nav',
+      () => {
+        navigating = fx.supported();
+        try {
+          render();
+        } finally {
+          navigating = false;
+        }
+        if (postId) fx.share($(`.post[data-post="${postId}"]`, main), 'post-hero');
+        if (shared && shared.nookEl) fx.share($('.nook-hero .nook-avatar', main), 'nook-hero');
+      },
+      { direction }
+    );
+  }
+
+  app.rerender = () => render();
+
+  function render() {
+    for (const fn of leaving) {
+      try {
+        fn();
+      } catch (_) {
+        /* a page that has gone */
+      }
+    }
+    leaving = [];
+    feedShown = () => 0;
+    closePicker();
+    closeDrawer();
+    topbar.classList.remove('searching');
+
+    route = parse();
+    document.body.dataset.view = route.view;
+    let view;
+    try {
+      view = route.view === 'notFound' ? views.notFound() : views[route.view](route.params);
+    } catch (error) {
+      console.error(error);
+      view = views.notFound('Something went wrong drawing this page.');
+    }
+    viewNook = view.nook || null;
+    viewWear = view.wear || (viewNook ? { color: viewNook.color } : null);
+    // the last page's live hooks go with it
+    main._rerenderComments = main._onMessages = main._onFriends = null;
+    main.innerHTML = view.html;
+    // a view transition moves the page itself; without one it fades up
+    if (main.firstElementChild && !navigating) main.firstElementChild.classList.add('enter');
+    document.title = `${Nook.i18n ? Nook.i18n.t(view.title) : view.title} · Budgie`;
+
+    // the app wears the nook (or the profile) it is in, and the brand takes its shape
+    const wear = wearing();
+    ui.theme.setRoot(wear && wear.color, wear && wear.style);
+    const shape = view.brand || 'cookie9';
+    if (brandShape.showing !== shape) brandShape.transitionTo(shape, { spring: true });
+    ui.favicon(shape, (wear && wear.color) || S().seed);
+
+    const navKey = NAV_FOR[route.view] || '';
+    $$('[data-nav]').forEach((el) => (el.dataset.nav === navKey ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current')));
+
+    if (view.mount) {
+      try {
+        view.mount(main);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+    renderDrawerNooks();
+    ui.theme.tintAll(main);
+
+    // scrolled now, in the same frame, so a view transition captures the page where it will be
+    const target = restoring;
+    restoring = null;
+    if (target) scrollTo(0, target.y);
+    else if (!route.params.c && route.params.focus !== 'comments') scrollTo(0, 0);
+    if (route.view === 'searchPage') searchInput.value = route.params.q || '';
+    onScroll();
+    armPull(!!main.querySelector('[data-feed]'));
+  }
+  app.render = render;
+
+  // ---- the shell -------------------------------------------------------------------
+
+  function renderDrawerNooks() {
+    const s = store.state;
+    const here = viewNook ? viewNook.id : '';
+    const row = (c) =>
+      `<a class="nav-item nav-nook" href="#/n/${c.id}" data-m3-ripple data-tooltip="n/${esc(c.id)}"${c.id === here ? ' aria-current="page"' : ''}>` +
+      `<span class="nav-ind">${nookIcon(c, 28, 16)}</span><span class="nav-label">n/${esc(c.id)}</span></a>`;
+    $('#nav-nooks').innerHTML = s.joined
+      .map(store.community)
+      .filter(Boolean)
+      .map(row)
+      .join('');
+    const recent = s.recent.filter((id) => !s.joined.includes(id)).map(store.community).filter(Boolean).slice(0, 3);
+    $('#nav-recent').innerHTML = recent.length
+      ? `<div class="nav-heading"><span>Recently visited</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>${recent.map(row).join('')}`
+      : '';
+    placeGlide();
+  }
+
+  // in the full drawer the highlight glides from one row to the next
+  const glide = document.createElement('span');
+  glide.className = 'nav-glide';
+  glide.setAttribute('aria-hidden', 'true');
+  drawer.prepend(glide);
+  drawer.classList.add('has-glide');
+
+  function placeGlide() {
+    const here = drawer.querySelector('.nav-item[aria-current="page"]');
+    if (!here || getComputedStyle(glide).display === 'none' || !here.offsetHeight) {
+      glide.style.opacity = '0';
+      return;
+    }
+    // from nowhere it appears in place; from another row it slides
+    const jump = glide.style.opacity !== '1';
+    if (jump) glide.style.transition = 'none';
+    glide.style.transform = `translate(${here.offsetLeft}px, ${here.offsetTop}px)`;
+    glide.style.width = here.offsetWidth + 'px';
+    glide.style.height = here.offsetHeight + 'px';
+    glide.style.opacity = '1';
+    if (jump) {
+      void glide.offsetWidth;
+      glide.style.transition = '';
+    }
+  }
+  addEventListener('resize', () => {
+    glide.style.opacity = '0';
+    placeGlide();
+  });
+
+  function renderMe() {
+    const me = store.user(store.ME);
+    $('#me-btn').innerHTML = avatar(me, 36);
+    const row = $('#drawer-me');
+    row.href = '#/u/' + encodeURIComponent(me.name);
+    row.setAttribute('aria-label', `Your profile, u/${me.name}`);
+    row.innerHTML = `${avatar(me, 44)}<span class="row-text"><b translate="no">${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
+  }
+
+  let lastUnread = -1;
+  function renderBadges() {
+    const n = store.unread();
+    for (const id of ['inbox-badge', 'bottom-badge']) {
+      const el = document.getElementById(id);
+      el.hidden = !n;
+      el.textContent = n > 9 ? '9+' : String(n);
+      // a new arrival makes the badge hop
+      if (lastUnread >= 0 && n > lastUnread) fx.pop(el, 0.3);
+    }
+    lastUnread = n;
+    $('#drawer-unread').textContent = n ? String(n) : '';
+    const m = store.unreadMessages();
+    for (const el of $$('[data-messages-badge]')) {
+      el.hidden = !m;
+      el.textContent = m > 9 ? '9+' : String(m);
+    }
+    const asks = store.friends('incoming').length;
+    const friendsCount = $('#drawer-friends');
+    if (friendsCount) friendsCount.textContent = asks ? String(asks) : '';
+    $$('[data-admin-only]').forEach((el) => (el.hidden = !store.isAdmin()));
+  }
+
+  function openDrawer() {
+    // the menu's logo wears the shape the app wears now
+    $('#drawer-brand').setAttribute('shape', brandShape.showing);
+    drawer.scrollTop = 0;
+    drawer.classList.add('open');
+    scrim.hidden = false;
+    fx.play(scrim, [{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: 'ease-out' });
+    $('#menu-btn').setAttribute('aria-expanded', 'true');
+    glide.style.opacity = '0';
+    requestAnimationFrame(placeGlide);
+    fx.stagger($$('.drawer-me, .nav-item, .nav-heading, .nav-foot', drawer), { y: 12, step: 22, max: 14 });
+    fx.haptic(6);
+    $('#drawer-close').focus({ preventScroll: true });
+  }
+  function closeDrawer() {
+    if (!drawer.classList.contains('open')) return;
+    drawer.classList.remove('open');
+    $('#menu-btn').setAttribute('aria-expanded', 'false');
+    fx.settled(fx.play(scrim, [{ opacity: 1 }, { opacity: 0 }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => {
+      if (!drawer.classList.contains('open')) scrim.hidden = true;
+      scrim.getAnimations().forEach((a) => a.cancel());
+    });
+  }
+
+  $('#menu-btn').addEventListener('click', openDrawer);
+  $('#drawer-close').addEventListener('click', closeDrawer);
+  scrim.addEventListener('click', closeDrawer);
+
+  $('#search-btn').addEventListener('click', () => {
+    topbar.classList.add('searching');
+    searchInput.focus();
+  });
+  $('#search-back').addEventListener('click', () => topbar.classList.remove('searching'));
+  $('#search-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = searchInput.value.trim();
+    if (!q) return;
+    searchInput.blur();
+    go('#/search?q=' + encodeURIComponent(q), { replace: route && route.view === 'searchPage' });
+  });
+  let searchTimer = 0;
+  searchInput.addEventListener('input', () => {
+    // already on the results page, they follow the typing
+    if (!route || route.view !== 'searchPage') return;
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const q = searchInput.value.trim();
+      go('#/search?q=' + encodeURIComponent(q), { replace: true });
+      requestAnimationFrame(() => searchInput.focus());
+    }, 350);
+  });
+
+  // light or dark spreads out from the button in a circle
+  $('#theme-btn').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    fx.haptic(6);
+    fx.reveal(r.left + r.width / 2, r.top + r.height / 2, () => {
+      S().mode = ui.theme.isDark() ? 'light' : 'dark';
+      store.save();
+      return applySettings();
+    });
+  });
+
+  // the brand takes a spin home
+  $('.brand').addEventListener('click', () => {
+    fx.play(brandShape, [{ rotate: '0deg', scale: 1 }, { rotate: '200deg', scale: 1.15, offset: 0.5 }, { rotate: '360deg', scale: 1 }], { duration: 700, easing: 'cubic-bezier(.3,0,.2,1)' });
+  });
+
+  $('#me-btn').addEventListener('click', (e) => {
+    const s = S();
+    menu(e.currentTarget, [
+      { label: 'u/' + store.state.me.name, symbol: 'account_circle', onSelect: () => go('#/u/' + encodeURIComponent(store.state.me.name)) },
+      { label: 'Edit profile', symbol: 'edit', onSelect: editProfile },
+      { label: 'Friends', symbol: 'group', onSelect: () => go('#/friends') },
+      { label: 'Messages', symbol: 'chat', onSelect: () => go('#/messages') },
+      { label: 'Saved', symbol: 'bookmarks', onSelect: () => go('#/saved') },
+      store.isAdmin() ? { label: 'Moderation', symbol: 'shield_person', onSelect: () => go('#/admin') } : null,
+      { label: 'Settings', symbol: 'settings', onSelect: () => go('#/settings') },
+      { separator: true },
+      { label: 'Calm mode', checked: s.calm, onSelect: () => toggleSetting('calm') },
+      { label: 'Compact cards', checked: s.compact, onSelect: () => toggleSetting('compact') },
+      { separator: true },
+      { label: 'Sign out', symbol: 'logout', onSelect: () => ACTIONS['sign-out']() },
+    ], { placement: 'bottom-end' });
+  });
+
+  function toggleSetting(key) {
+    const flip = () => {
+      S()[key] = !S()[key];
+      store.save();
+      return applySettings();
+    };
+    if (key === 'compact') {
+      // each card on screen morphs between its sizes
+      const onScreen = $$('.feed .post', main).filter((card) => {
+        const r = card.getBoundingClientRect();
+        return r.bottom > -200 && r.top < innerHeight + 200;
+      });
+      if (fx.supported()) {
+        onScreen.slice(0, 14).forEach((card) => {
+          fx.share(card, 'post-' + card.dataset.post);
+          card.style.viewTransitionClass = 'card';
+        });
+      }
+      fx.transition('morph', flip).finished.finally(() => onScreen.forEach((card) => (card.style.viewTransitionClass = '')));
+    } else {
+      flip();
+    }
+    if (key === 'calm') M3.toast(S().calm ? 'Calm mode on: no numbers, no streaks, no confetti' : 'Calm mode off', { symbol: 'self_improvement', shape: 'heart' });
+  }
+
+  /** puts the settings into effect; settles once every colour is in place */
+  function applySettings() {
+    const s = S();
+    document.body.classList.toggle('calm', !!s.calm);
+    document.body.classList.toggle('compact', !!s.compact);
+    document.body.classList.toggle('plain-names', s.nameFonts === false);
+    $$('[data-act="compact"]').forEach((b) => b.setAttribute('aria-pressed', String(!!s.compact)));
+    $('#theme-btn .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
+    const wear = wearing();
+    ui.favicon(brandShape.showing, (wear && wear.color) || s.seed);
+    scheduleBreak();
+    return ui.theme.setRoot(wear && wear.color, wear && wear.style).then(() => ui.theme.tintAll(document));
+  }
+  app.applySettings = applySettings;
+  ui.systemDark.addEventListener('change', () => S().mode === 'system' && applySettings());
+
+  // ---- clicks: actions first, then whole-card links -----------------------------------
+
+  const ACTIONS = {};
+  let lastAct = { el: null, at: 0 };
+  const postOf = (el) => store.post((el.closest('[data-post]') || {}).dataset?.post);
+
+  document.addEventListener('click', (e) => {
+    const target = e.target instanceof Element ? e.target : null;
+    if (!target) return;
+
+    const act = target.closest('[data-act]');
+    if (act && !act.matches(':disabled,[aria-disabled="true"]')) {
+      const fn = ACTIONS[act.dataset.act];
+      if (fn) {
+        e.preventDefault();
+        // a double-tap is one press: the same button again within 400 ms is ignored
+        const t = performance.now();
+        if (act === lastAct.el && t - lastAct.at < 400) return;
+        lastAct = { el: act, at: t };
+        fn(act, e);
+        return;
+      }
+    }
+
+    const spoiler = target.closest('.spoiler');
+    if (spoiler && !spoiler.classList.contains('shown')) {
+      e.preventDefault();
+      spoiler.classList.add('shown');
+      return;
+    }
+
+    const collapsedHead = target.closest('.comment.collapsed > .c-main > .c-head');
+    if (collapsedHead && !target.closest('a')) {
+      toggleCollapse(collapsedHead.closest('.comment'));
+      return;
+    }
+
+    const jump = target.closest('[data-jump]');
+    if (jump) {
+      jumpToComment(jump.dataset.jump);
+      return;
+    }
+
+    // clicking the link you're already on takes you to the top
+    const link = target.closest('a[href^="#"]');
+    if (link && !e.metaKey && !e.ctrlKey) {
+      const href = link.getAttribute('href');
+      if ((href === '#/' ? ['', '#/', '#'] : [href]).includes(location.hash)) {
+        e.preventDefault();
+        scrollTo({ top: 0, behavior: 'smooth' });
+        closeDrawer();
+        return;
+      }
+    }
+
+    const card = target.closest('[data-href]');
+    if (card) {
+      const inner = target.closest('a, button, input, textarea, select, label, [role="button"], .poll, video');
+      if (inner && inner !== card && card.contains(inner)) return;
+      if (String(getSelection() || '').length) return;
+      const href = card.dataset.href;
+      if (!href) return;
+      if (e.metaKey || e.ctrlKey) window.open(ui.linkTo(href), '_blank', 'noopener');
+      else go(href);
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target;
+    if (el.classList && el.classList.contains('spoiler')) {
+      e.preventDefault();
+      el.classList.add('shown');
+    } else if (el.matches && el.matches('[data-href][tabindex], [data-jump]') && e.key === 'Enter') {
+      e.preventDefault();
+      el.click();
+    }
+  });
+
+  // ---- votes, sparks, polls, saves ---------------------------------------------------------
+
+  function setVoteBox(box, next, score, dir, pressed) {
+    const was = box.dataset.dir;
+    box.dataset.dir = next || '';
+    box.querySelector('.up').setAttribute('aria-pressed', String(next === 1));
+    box.querySelector('.down').setAttribute('aria-pressed', String(next === -1));
+    M3.rollText(box.querySelector('.score'), num(score), { dx: 0, dy: dir > 0 ? 8 : -8 });
+    // the arrow you pressed jumps the way it points, and a fresh vote makes the pill pop
+    if (pressed) fx.nudge(pressed.querySelector('.m3-icon'), dir > 0 ? -6 : 6);
+    if (next && String(next) !== was) fx.pop(box, 0.86);
+  }
+
+  ACTIONS.vote = (btn) => {
+    const p = postOf(btn);
+    if (!p) return;
+    const dir = +btn.dataset.dir;
+    const next = store.vote(p.id, dir);
+    $$(`.vote[data-post-id="${p.id}"]`).forEach((box) => setVoteBox(box, next, store.score(p), dir, box.contains(btn) ? btn : null));
+    if (next === 1) M3.burst(btn, 'play', { count: 7 });
+    fx.haptic(next ? 10 : 5);
+  };
+
+  ACTIONS.cvote = (btn) => {
+    const box = btn.closest('.vote');
+    const c = store.commentsById.get(box.dataset.commentId);
+    if (!c) return;
+    const dir = +btn.dataset.dir;
+    const next = store.voteComment(c.id, dir);
+    setVoteBox(box, next, store.commentScore(c), dir, btn);
+    if (next === 1) M3.burst(btn, 'play', { count: 5 });
+    fx.haptic(next ? 8 : 4);
+  };
+
+  /** a post's sparks, changed in place: counts roll, a new kind springs in, the last of one shrinks away */
+  function refreshSparks(p, kind, { from = null } = {}) {
+    const spark = store.SPARKS.find((s) => s.id === kind);
+    const now = store.sparks(p).find((s) => s.id === kind);
+    for (const row of $$(`[data-post="${p.id}"] .sparks`)) {
+      const chip = row.querySelector(`.spark[data-kind="${kind}"]`);
+      const redraw = () => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = views.sparksRow(p);
+        if (row.isConnected) row.replaceWith(tmp.firstElementChild);
+      };
+      if (chip && now.count > 0) {
+        chip.setAttribute('aria-pressed', String(now.mine));
+        chip.setAttribute('aria-label', `${spark.label}: ${now.count}`);
+        M3.rollText(chip.querySelector('.n'), num(now.count), { dy: now.mine ? -8 : 8 });
+      } else if (chip) {
+        fx.settled(fx.play(chip, [{ scale: 1, opacity: 1 }, { scale: 0.4, opacity: 0 }], { duration: 180, fill: 'forwards' })).then(redraw);
+      } else {
+        redraw();
+      }
+    }
+    fx.haptic(now.mine ? 12 : 5);
+    if (!now.mine) return;
+    const chip = $(`[data-post="${p.id}"] .spark[data-kind="${kind}"]`);
+    if (!chip) return;
+    const land = () => {
+      chip.style.opacity = '';
+      fx.pop(chip, 0.4);
+      M3.burst(chip, spark.burst, { count: 9 });
+    };
+    // picked from the picker, the spark flies down to its place first
+    if (!from) return land();
+    chip.style.opacity = '0';
+    fx.flyTo(from, chip, { shape: spark.shape, color: fx.tone(chip, '--m3-primary'), size: 30, lift: 60, duration: 560 }).then(land);
+  }
+
+  ACTIONS.react = (btn) => {
+    const p = postOf(btn);
+    if (!p) return;
+    store.react(p.id, btn.dataset.kind);
+    refreshSparks(p, btn.dataset.kind);
+  };
+
+  let picker = null;
+  function closePicker() {
+    if (!picker) return;
+    const el = picker.el;
+    picker.cleanup();
+    picker = null;
+    const out = M3.motion.animate(el, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.85)' }], { duration: 140, fill: 'forwards' });
+    if (out) out.finished.then(() => el.remove(), () => el.remove());
+    else el.remove();
+  }
+
+  ACTIONS['spark-picker'] = (btn) => {
+    const p = postOf(btn);
+    if (!p) return;
+    if (picker && picker.anchor === btn) return closePicker();
+    closePicker();
+    const mine = store.state.reacts[p.id] || {};
+    const el = document.createElement('div');
+    el.className = 'spark-picker';
+    el.setAttribute('role', 'menu');
+    el.setAttribute('aria-label', 'Spark this post');
+    el.innerHTML = store.SPARKS.map(
+      (s) =>
+        `<button role="menuitemcheckbox" aria-checked="${!!mine[s.id]}" aria-pressed="${!!mine[s.id]}" data-kind="${s.id}" aria-label="${s.label}" data-tooltip="${s.label}">` +
+        `<m3-shape-icon shape="${s.shape}" symbol="${s.symbol}" size="40" icon-size="20"></m3-shape-icon></button>`
+    ).join('');
+    document.body.appendChild(el);
+    const r = btn.getBoundingClientRect();
+    const w = el.offsetWidth;
+    const h = el.offsetHeight;
+    const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), innerWidth - w - 8);
+    const top = r.top - h - 8 > 8 ? r.top - h - 8 : r.bottom + 8;
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    // the tinted card's colours come along
+    const card = btn.closest('[data-tint]');
+    if (card) for (const name of ['--m3-primary', '--m3-on-primary', '--m3-tertiary-container', '--m3-on-tertiary-container', '--m3-secondary-container', '--m3-on-secondary-container']) el.style.setProperty(name, getComputedStyle(card).getPropertyValue(name));
+    M3.motion.animate(el, [{ opacity: 0, transform: 'scale(.6) translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 420, ease: 'expressiveFastSpatial' });
+    [...el.children].forEach((child, i) =>
+      M3.motion.animate(child, [{ transform: 'scale(0) rotate(-40deg)' }, { transform: 'scale(1) rotate(0deg)' }], { duration: 520, delay: 40 * i, ease: 'expressiveFastSpatial', fill: 'backwards' })
+    );
+    el.addEventListener('click', (e) => {
+      const choice = e.target.closest('button[data-kind]');
+      if (!choice) return;
+      store.react(p.id, choice.dataset.kind);
+      refreshSparks(p, choice.dataset.kind, { from: choice });
+      closePicker();
+    });
+    const away = (e) => {
+      if (!el.contains(e.target) && !btn.contains(e.target)) closePicker();
+    };
+    const onScroll = () => closePicker();
+    document.addEventListener('pointerdown', away, true);
+    addEventListener('scroll', onScroll, { passive: true });
+    picker = {
+      el,
+      anchor: btn,
+      cleanup() {
+        document.removeEventListener('pointerdown', away, true);
+        removeEventListener('scroll', onScroll);
+      },
+    };
+    el.querySelector('button').focus({ preventScroll: true });
+  };
+
+  ACTIONS.poll = (btn) => {
+    const p = postOf(btn);
+    if (!p || !store.votePoll(p.id, +btn.dataset.i)) return;
+    const box = btn.closest('.poll');
+    const tmp = document.createElement('div');
+    tmp.innerHTML = views.pollBlock(p, true);
+    const fresh = tmp.firstElementChild;
+    box.replaceWith(fresh);
+    void fresh.offsetWidth;
+    // the bars spring out and their percentages count up with them
+    requestAnimationFrame(() => {
+      fresh.classList.add('voted');
+      fresh.querySelectorAll('.poll-pct').forEach((el) => fx.countUp(el, parseInt(el.textContent, 10) || 0, { format: (n) => Math.round(n) + '%' }));
+    });
+    const mine = fresh.querySelector('.poll-opt.mine');
+    if (mine) {
+      M3.burst(mine, 'play', { count: 10 });
+      fx.pop(mine.querySelector('.m3-icon'), 0.2);
+    }
+    fx.haptic([8, 50, 8]);
+    M3.toast('Vote counted', { symbol: 'how_to_vote', shape: 'pill' });
+  };
+
+  ACTIONS.save = (btn) => {
+    const p = postOf(btn);
+    if (!p) return;
+    const on = store.toggleSave(p.id);
+    $$(`[data-post="${p.id}"] [data-act="save"]`).forEach((b) => {
+      b.setAttribute('aria-pressed', String(on));
+      b.dataset.tooltip = on ? 'Saved' : 'Save';
+    });
+    fx.haptic(on ? 10 : 5);
+    // saved, it flies to Saved, which catches it; where Saved isn't in sight, a toast says so
+    const target = on ? savedTarget() : null;
+    if (on) fx.pop(btn.querySelector('.m3-icon'), 0.5);
+    if (target) {
+      fx.flyTo(btn, target, { shape: 'clover4', size: 24 }).then((flew) => {
+        if (!flew) return M3.toast('Saved', { symbol: 'bookmark_added', shape: 'clover4' });
+        fx.pop(target, 0.7);
+        fx.haptic(6);
+      });
+    } else {
+      M3.toast(on ? 'Saved' : 'Removed from saved', { symbol: on ? 'bookmark_added' : 'bookmark_remove', shape: 'clover4' });
+    }
+  };
+
+  /** the Saved tab, wherever it can be seen right now */
+  function savedTarget() {
+    return (
+      $$('[data-nav="saved"] .nav-ind').find((el) => {
+        const r = el.getBoundingClientRect();
+        const bar = el.closest('nav');
+        return r.width > 0 && r.left >= 0 && r.top >= 0 && r.bottom <= innerHeight && getComputedStyle(bar).visibility !== 'hidden';
+      }) || null
+    );
+  }
+
+  // on a phone a menu rises from the bottom as a sheet, where your thumb already is
+  function menu(anchor, items, options) {
+    if (!matchMedia('(max-width: 719px) and (pointer: coarse)').matches) return M3.menu(anchor, items, options);
+    const list = items.filter(Boolean);
+    const row = (item, i) => {
+      if (item.separator) return '<m3-wavy-line class="menu-sheet-line" amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line>';
+      const checkable = typeof item.checked === 'boolean';
+      const symbol = checkable ? (item.checked ? 'check' : '') : item.symbol || '';
+      return (
+        `<button type="button" class="menu-sheet-item${item.destructive ? ' is-destructive' : ''}" role="${checkable ? 'menuitemcheckbox' : 'menuitem'}"` +
+        `${checkable ? ` aria-checked="${item.checked}"` : ''} data-i="${i}"${item.disabled ? ' disabled' : ''} data-m3-ripple>` +
+        `<span translate="no" class="m3-icon" aria-hidden="true">${symbol}</span><span>${esc(item.label)}</span></button>`
+      );
+    };
+    ui.sheet({
+      className: 'menu-sheet',
+      html: `<div class="menu-sheet-list" role="menu">${list.map(row).join('')}</div>`,
+      setup(body, close) {
+        body.addEventListener('click', (e) => {
+          const button = e.target.closest('[data-i]');
+          if (!button) return;
+          close();
+          const item = list[+button.dataset.i];
+          if (typeof item.onSelect === 'function') item.onSelect(item);
+        });
+      },
+    });
+  }
+
+  async function share(hash, what) {
+    const ok = await ui.copy(ui.linkTo(hash));
+    M3.toast(ok ? `Link to ${what} copied` : 'Couldn’t copy the link', { symbol: 'link', shape: 'cookie12' });
+  }
+  ACTIONS.share = (btn) => {
+    const p = postOf(btn);
+    if (p) share(`#/n/${p.n}/p/${p.id}`, 'post');
+  };
+  ACTIONS['comment-share'] = (btn) => {
+    const c = store.commentsById.get(btn.closest('[data-comment]').dataset.comment);
+    const p = c && store.post(c.postId);
+    if (p) share(`#/n/${p.n}/p/${p.id}?c=${c.id}`, 'comment');
+  };
+
+  ACTIONS.unveil = (btn) => {
+    const veil = btn.closest('.post-veil');
+    fx.haptic(6);
+    fx.settled(fx.play(btn, [{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8 }], { duration: 160, fill: 'forwards' })).then(() => veil.classList.remove('is-veiled'));
+  };
+
+  ACTIONS.compact = () => toggleSetting('compact');
+
+  // ---- menus on posts, comments and nooks ----------------------------------------------------
+
+  // a card leaves, then the ones below close the gap
+  const removeCard = (card) => fx.collapseOut(card);
+
+  ACTIONS['post-menu'] = (btn) => {
+    const p = postOf(btn);
+    if (!p) return;
+    const mine = store.isMe(p.author);
+    const saved = store.state.saved.includes(p.id);
+    const card = btn.closest('[data-post]');
+    menu(btn, [
+      { label: 'Add to collection…', symbol: 'collections_bookmark', onSelect: () => collectSheet(p) },
+      { label: saved ? 'Unsave' : 'Save', symbol: saved ? 'bookmark_remove' : 'bookmark_add', onSelect: () => ACTIONS.save(card.querySelector('[data-act="save"]')) },
+      { label: 'Copy link', symbol: 'link', onSelect: () => share(`#/n/${p.n}/p/${p.id}`, 'post') },
+      { label: `Go to n/${p.n}`, symbol: store.community(p.n).symbol, onSelect: () => go('#/n/' + p.n) },
+      { separator: true },
+      card && card.dataset.href
+        ? {
+            label: 'Hide post',
+            symbol: 'visibility_off',
+            onSelect: () => {
+              store.hide(p.id, true);
+              removeCard(card);
+              ui.undoToast('Post hidden', () => {
+                store.hide(p.id, false);
+                render();
+              }, { symbol: 'visibility_off' });
+            },
+          }
+        : null,
+      mine
+        ? { label: 'Delete post', symbol: 'delete', destructive: true, onSelect: () => deletePost(p, card) }
+        : { label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('post', p) },
+      !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('post', p, card) } : null,
+      ...nestItems('post', p, card),
+    ]);
+  };
+
+  /** what a nest's team can do to a post or comment there: pin it, take it down, ban who wrote it */
+  function nestItems(kind, thing, card) {
+    const nook = kind === 'post' ? thing.n : (store.post(thing.postId) || {}).n;
+    const c = nook && store.community(nook);
+    if (!c || !views.serverAt('0.9.5') || !store.nestPerms(c).length) return [];
+    const mine = store.isMe(thing.author);
+    const author = thing.author && thing.author !== '[deleted]' ? thing.author : '';
+    const items = [];
+    if (kind === 'post' && store.nestCan(c, 'pin')) items.push({ label: thing.pinned ? 'Unpin' : `Pin to n/${nook}`, symbol: 'push_pin', onSelect: () => pin(thing) });
+    // Budgie's admins already have "Remove as moderator"
+    if (!mine && !store.isAdmin() && store.nestCan(c, 'remove')) items.push({ label: `Remove from n/${nook}`, symbol: 'delete', destructive: true, onSelect: () => nestTakeDown(kind, thing, c, card) });
+    if (!mine && author && store.nestCan(c, 'ban') && !store.nestRole(c, author)) items.push({ label: `Ban u/${author} from n/${nook}`, symbol: 'block', destructive: true, onSelect: () => views.banSheet(c, author) });
+    return items.length ? [{ separator: true }, ...items] : [];
+  }
+
+  async function pin(p) {
+    try {
+      await store.pinPost(p.id, !p.pinned);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(p.pinned ? `Pinned to the top of n/${p.n}` : 'Unpinned', { symbol: 'push_pin', shape: store.community(p.n).shape });
+    render();
+  }
+
+  async function nestTakeDown(kind, thing, c, card) {
+    const reason = await pickReason(`Remove this ${kind}?`, 'delete', `Its author is told a moderator of n/${esc(c.id)} removed it, and why.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.nestRemove(c.id, kind, thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`Removed: ${reason}`, { symbol: 'delete', shape: c.shape });
+    if (kind === 'post' && route.view === 'postPage') go('#/n/' + c.id, { replace: true });
+    else if (card) removeCard(card);
+    else rerenderComments();
+  }
+
+  /** a moderator takes something down, with the reason its author will be told */
+  async function modRemove(kind, thing, card) {
+    const reason = await pickReason(`Remove this ${kind}?`, 'gavel', `Its author is told it was removed and why. Choose the rule it breaks.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.adminRemove(kind, thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`Removed: ${reason}`, { symbol: 'gavel', shape: 'pixelCircle' });
+    if (kind === 'post' && route.view === 'postPage') go('#/n/' + thing.n, { replace: true });
+    else if (card) removeCard(card);
+    else rerenderComments();
+  }
+
+  async function deletePost(p, card) {
+    const ok = await M3.dialog({
+      headline: 'Delete this post?',
+      symbol: 'delete',
+      iconShape: 'softBoom',
+      body: 'It goes for good, along with its place in your profile. Comments stay with the thread.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.remove(p.id);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast('Post deleted', { symbol: 'delete', shape: 'softBoom' });
+    if (route.view === 'postPage') go('#/n/' + p.n, { replace: true });
+    else removeCard(card);
+  }
+
+  ACTIONS['comment-menu'] = (btn) => {
+    const el = btn.closest('[data-comment]');
+    const c = store.commentsById.get(el.dataset.comment);
+    if (!c) return;
+    const mine = store.isMe(c.author);
+    menu(btn, [
+      { label: 'Copy text', symbol: 'content_copy', onSelect: () => ui.copy(c.body).then((ok) => M3.toast(ok ? 'Copied' : 'Couldn’t copy', { symbol: 'content_copy' })) },
+      { label: 'Collapse thread', symbol: 'unfold_less', onSelect: () => toggleCollapse(el) },
+      { separator: true },
+      ...(mine
+        ? [
+            { label: 'Edit', symbol: 'edit', onSelect: () => editComment(el, c) },
+            { label: 'Delete', symbol: 'delete', destructive: true, onSelect: () => deleteComment(c) },
+          ]
+        : [{ label: 'Report', symbol: 'flag', destructive: true, onSelect: () => report('comment', c) }]),
+      !mine && store.isAdmin() ? { label: 'Remove as moderator', symbol: 'gavel', destructive: true, onSelect: () => modRemove('comment', c) } : null,
+      ...nestItems('comment', c, null),
+    ]);
+  };
+
+  async function deleteComment(c) {
+    const ok = await M3.dialog({
+      headline: 'Delete your comment?',
+      symbol: 'delete',
+      iconShape: 'softBoom',
+      body: 'Replies to it stay, under a “deleted” placeholder.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.remove(c.id);
+    } catch (error) {
+      return showError(error);
+    }
+    rerenderComments();
+    M3.toast('Comment deleted', { symbol: 'delete', shape: 'softBoom' });
+  }
+
+  function editComment(el, c) {
+    const body = el.querySelector(':scope > .c-main > .c-body');
+    const actions = el.querySelector(':scope > .c-main > .c-actions');
+    const box = el.querySelector(':scope > .c-main > .c-reply');
+    body.hidden = true;
+    actions.hidden = true;
+    box.innerHTML = views.replyBox('Edit your comment', 'Save', c.body);
+    const form = box.querySelector('form');
+    const textarea = form.querySelector('textarea');
+    textarea.focus();
+    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = textarea.value.trim();
+      if (!text) return;
+      if (!(await vet([text], { kind: 'comment', postId: c.postId, editing: true }))) return;
+      try {
+        await store.editComment(c.id, text);
+      } catch (error) {
+        return showError(error);
+      }
+      rerenderComments();
+      jumpToComment(c.id);
+    });
+    form.querySelector('[data-act="reply-cancel"]').dataset.restore = '1';
+  }
+
+  ACTIONS['nook-menu'] = (btn) => {
+    const c = store.community(btn.dataset.nook);
+    const joined = store.state.joined.includes(c.id);
+    menu(btn, [
+      ...(store.bannedFrom(c.id) ? [] : [{ label: 'Create a post here', symbol: 'edit', onSelect: () => go('#/submit?n=' + c.id) }]),
+      { label: 'About this nest', symbol: 'info', onSelect: () => nookAbout(c) },
+      { label: 'Copy link', symbol: 'link', onSelect: () => share('#/n/' + c.id, 'nest') },
+      { separator: true },
+      { label: joined ? 'Leave nest' : 'Join nest', symbol: joined ? 'logout' : 'group_add', destructive: joined, onSelect: () => setJoined(c, !joined) },
+    ], { placement: 'bottom-end' });
+  };
+
+  ACTIONS['nook-about'] = (btn) => nookAbout(store.community(btn.dataset.nook));
+
+  function nookAbout(c) {
+    ui.sheet({
+      headline: c.title,
+      symbol: c.symbol,
+      shape: c.shape,
+      className: 'about-sheet',
+      html: views.aboutCard(c) + views.rulesCard(c) + views.modsCard(c),
+      actions: [{ label: 'Close', variant: 'text' }],
+    });
+  }
+
+  /** a sheet of reasons to choose from; resolves with the one picked, or null */
+  function pickReason(headline, symbol, text, verb) {
+    let reason = null;
+    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nest rules', 'Something else'];
+    return ui.sheet({
+      headline,
+      symbol,
+      shape: 'softBoom',
+      html: `<p class="muted">${text}</p><div class="chips" style="flex-wrap:wrap">${reasons.map((r) => `<button type="button" class="chip" data-reason="${r}" aria-pressed="false">${r}</button>`).join('')}</div>`,
+      setup(body) {
+        body.querySelectorAll('[data-reason]').forEach((chip) =>
+          chip.addEventListener('click', () => {
+            reason = chip.dataset.reason;
+            body.querySelectorAll('[data-reason]').forEach((other) => other.setAttribute('aria-pressed', String(other === chip)));
+          })
+        );
+      },
+      actions: [{ label: 'Cancel', value: null }, { label: verb, variant: 'filled', run: () => (reason ? reason : false) }],
+    });
+  }
+
+  async function report(kind, thing) {
+    const reason = await pickReason(`Report this ${{ gmessage: 'message' }[kind] || kind}`, 'flag', 'Reports go to Budgie’s moderators, who will take a look. Thanks for keeping Budgie kind.', 'Report');
+    if (!reason) return;
+    try {
+      await store.report(kind, kind === 'user' ? thing.name : thing.id, reason);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast('Thanks, a moderator will take a look', { symbol: 'shield', shape: 'gem' });
+  }
+  app.report = report;
+  app.pickReason = pickReason;
+
+  // pictures in chats open full size; emoji go where the cursor is
+  ACTIONS['view-media'] = (btn) => Nook.pickers.view(btn.dataset.src, btn.dataset.label);
+  ACTIONS.emoji = (btn) => {
+    const field = btn.closest('form') && btn.closest('form').querySelector('textarea');
+    if (field) Nook.pickers.emoji(btn, (emoji) => Nook.pickers.insertAt(field, emoji));
+  };
+
+  // ---- joining ------------------------------------------------------------------------
+
+  function setJoined(c, on, from) {
+    const joined = store.join(c.id, on);
+    let origin = null;
+    $$(`[data-act="join"][data-nook="${c.id}"]`).forEach((b) => {
+      const width = b.getBoundingClientRect().width;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = views.joinButton(c, b.classList.contains('small'));
+      const fresh = tmp.firstElementChild;
+      b.replaceWith(fresh);
+      if (b === from) origin = fresh;
+      // the button eases to its new width as its words change, and its symbol turns in
+      const to = fresh.getBoundingClientRect().width;
+      if (width && to && Math.abs(width - to) > 1) {
+        fresh.style.overflow = 'hidden';
+        fx.settled(fx.play(fresh, [{ width: width + 'px' }, { width: to + 'px' }], { duration: fx.gentle.duration, easing: fx.gentle.easing })).then(() => (fresh.style.overflow = ''));
+      }
+      fx.play(fresh.querySelector('.m3-icon'), [{ rotate: joined ? '-120deg' : '120deg', scale: 0.2 }, { rotate: '0deg', scale: 1 }], { duration: fx.lively.duration, easing: fx.lively.easing });
+      if (joined && fresh.getBoundingClientRect().width) M3.burst(fresh, 'playlist', { count: 8 });
+    });
+    renderDrawerNooks();
+    fx.haptic(joined ? [10, 40, 10] : 6);
+    // joined, its icon flies into Your nooks, where its new row slides in to catch it
+    const row = joined ? $(`#nav-nooks a[href="#/n/${c.id}"]`) : null;
+    const catcher = row && row.querySelector('m3-shape-icon');
+    if (row) fx.play(row, [{ opacity: 0, transform: 'translateX(-18px)' }, { opacity: 1, transform: 'none' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
+    const flight = origin && catcher ? fx.flyTo(origin, catcher, { shape: c.shape, color: c.color, size: 28 }) : Promise.resolve(false);
+    flight.then((flew) => {
+      if (flew) fx.pop(catcher, 0.3);
+      else M3.toast(joined ? `Joined n/${c.id}` : `Left n/${c.id}`, { symbol: joined ? c.symbol : 'logout', shape: c.shape });
+    });
+  }
+
+  ACTIONS.join = (btn) => {
+    const c = store.community(btn.dataset.nook);
+    if (c) setJoined(c, !store.state.joined.includes(c.id), btn);
+  };
+
+  // ---- moderation: the rules have their say before anything is posted -----------------------------
+
+  let caredThisVisit = false;
+  /** runs the moderation rules over some text; resolves true when posting can go ahead */
+  const ruleHTML = (r) => `<p class="mod-rule">${icon('gavel')}<b>${esc(r.rule)}</b></p><p>${esc(r.why)}</p>`;
+
+  function blockedSheet(block) {
+    fx.haptic([20, 40, 20]);
+    return ui.sheet({
+      headline: 'This can’t be posted',
+      symbol: 'block',
+      shape: 'pixelCircle',
+      html:
+        ruleHTML(block) +
+        '<p class="muted">Budgie checks posts automatically, with word lists and a small AI model on Budgie’s own server, so it can get things wrong. If it did, put it another way or tell us. <a class="md" style="color:var(--m3-primary)" href="terms.html#moderation">How moderation works</a></p>',
+      actions: [{ label: 'Edit it', variant: 'filled' }],
+    });
+  }
+
+  /** the server (or the network) said no: say why, in its own words */
+  function showError(error) {
+    if (!error) return;
+    if (error.rule) return blockedSheet({ rule: error.rule, why: error.message });
+    M3.snackbar(error.message || 'Something went wrong. Try again.');
+  }
+  app.showError = showError;
+
+  async function vet(texts, options) {
+    const verdict = Nook.mod.check(texts, options);
+    const rule = ruleHTML;
+    if (verdict.block) {
+      await blockedSheet(verdict.block);
+      return false;
+    }
+    if (verdict.warn.length) {
+      const choice = await ui.sheet({
+        headline: 'Before you post',
+        symbol: 'flag',
+        shape: 'cookie9',
+        html: verdict.warn.map(rule).join(''),
+        actions: [
+          { label: 'Edit', value: 'edit' },
+          { label: 'Post anyway', variant: 'filled', value: 'post' },
+        ],
+      });
+      if (choice !== 'post') return false;
+    }
+    if (verdict.care && !caredThisVisit) {
+      caredThisVisit = true;
+      setTimeout(careSheet, 900);
+    }
+    return true;
+  }
+
+  function careSheet() {
+    ui.sheet({
+      headline: 'You’re not alone',
+      symbol: 'favorite',
+      shape: 'heart',
+      html:
+        '<p>It sounds like things might be really hard right now. Talking to someone can help, and you don’t have to wait until it’s an emergency.</p>' +
+        '<ul class="care-list"><li>In danger right now? Call <b>112</b> in Europe or <b>911</b> in the US.</li>' +
+        '<li>In the US, call or text <b>988</b> (Suicide & Crisis Lifeline).</li>' +
+        '<li>Anywhere: <a class="md" style="color:var(--m3-primary)" href="https://findahelpline.com" target="_blank" rel="noopener">findahelpline.com</a> lists free, confidential helplines for your country.</li></ul>' +
+        '<p class="muted">Or tell someone you trust: a friend, a parent, a teacher.</p>',
+      actions: [{ label: 'Thanks', variant: 'filled' }],
+    });
+  }
+
+  // ---- comments -----------------------------------------------------------------------------------
+
+  function rerenderComments() {
+    if (main._rerenderComments) main._rerenderComments();
+    const p = route && route.view === 'postPage' ? store.post(route.params.post) : null;
+    if (!p) return;
+    const count = store.commentCount(p.id);
+    const countEl = $('#comment-count');
+    if (countEl) countEl.textContent = num(count);
+    $$(`[data-post="${p.id}"] a[href$="?focus=comments"] .count`).forEach((el) => (el.textContent = num(count)));
+    const none = $('#no-comments');
+    if (none && count) none.remove();
+  }
+
+  function descendants(el) {
+    return el.querySelectorAll('.c-children .comment').length;
+  }
+
+  // a thread folds shut, or opens back up, instead of jumping
+  function toggleCollapse(el) {
+    let collapsed = false;
+    fx.flipHeight(el, () => {
+      collapsed = el.classList.toggle('collapsed');
+      const note = el.querySelector(':scope > .c-main > .c-head .c-hidden');
+      const n = descendants(el);
+      if (note) note.textContent = collapsed ? `· ${n ? plural(n, 'reply', 'replies') + ' hidden' : 'collapsed'}` : '';
+      const thread = el.querySelector(':scope > .c-side > .c-thread');
+      if (thread) thread.setAttribute('aria-label', collapsed ? 'Expand this thread' : 'Collapse this thread');
+    });
+    if (!collapsed) {
+      fx.play(el.querySelector(':scope > .c-main'), [{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 });
+      fx.play(el.querySelector(':scope > .c-children'), [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: fx.decel });
+    }
+    fx.haptic(5);
+  }
+  ACTIONS.collapse = (btn) => toggleCollapse(btn.closest('.comment'));
+
+  function jumpToComment(id) {
+    requestAnimationFrame(() => {
+      const el = document.getElementById('c-' + id);
+      if (!el) return;
+      let up = el.parentElement && el.parentElement.closest('.comment');
+      while (up) {
+        if (up.classList.contains('collapsed')) toggleCollapse(up);
+        up = up.parentElement && up.parentElement.closest('.comment');
+      }
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el.classList.remove('flash');
+      void el.offsetWidth;
+      el.classList.add('flash');
+    });
+  }
+  app.jumpToComment = jumpToComment;
+
+  function wireReplyBox(form, p, parentId) {
+    if (!form) return;
+    const textarea = form.querySelector('textarea');
+    textarea.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = textarea.value.trim();
+      if (!text) {
+        textarea.focus();
+        return;
+      }
+      if (!(await vet([text], { kind: 'comment', postId: p.id }))) return;
+      const send = form.querySelector('button[type="submit"]');
+      if (send) send.disabled = true;
+      let c;
+      try {
+        c = await store.addOwnComment(p.id, parentId, text);
+      } catch (error) {
+        return showError(error);
+      } finally {
+        if (send) send.disabled = false;
+      }
+      textarea.value = '';
+      rerenderComments();
+      // the new comment opens into the thread
+      fx.expand(document.getElementById('c-' + c.id));
+      jumpToComment(c.id);
+      fx.haptic(10);
+      M3.toast(parentId ? 'Reply posted' : 'Comment posted', { symbol: 'chat', shape: 'clover4' });
+    });
+  }
+  app.wireReplyBox = wireReplyBox;
+
+  ACTIONS.reply = (btn) => {
+    const el = btn.closest('[data-comment]');
+    const c = store.commentsById.get(el.dataset.comment);
+    const box = el.querySelector(':scope > .c-main > .c-reply');
+    if (box.firstElementChild) {
+      fx.flipHeight(box, () => (box.innerHTML = ''));
+      return;
+    }
+    box.innerHTML = views.replyBox(`Reply to ${store.userName(c.author)}…`, 'Reply');
+    wireReplyBox(box.querySelector('form'), store.post(c.postId), c.id);
+    fx.expand(box);
+    box.querySelector('textarea').focus({ preventScroll: true });
+  };
+
+  ACTIONS['reply-cancel'] = (btn) => {
+    const form = btn.closest('form');
+    const box = form.parentElement;
+    if (box.id === 'top-reply') {
+      form.querySelector('textarea').value = '';
+      return;
+    }
+    if (btn.dataset.restore) {
+      const main = box.parentElement;
+      main.querySelector(':scope > .c-body').hidden = false;
+      main.querySelector(':scope > .c-actions').hidden = false;
+      box.innerHTML = '';
+      return;
+    }
+    fx.flipHeight(box, () => (box.innerHTML = ''));
+  };
+
+  ACTIONS['hide-highlights'] = (btn) => removeCard(btn.closest('.highlights'));
+
+  ACTIONS['dismiss-hello'] = (btn) => {
+    store.state.tourDone = true;
+    store.save();
+    removeCard(btn.closest('.hello'));
+  };
+
+  ACTIONS.back = () => {
+    if (stack.length > 1) history.back();
+    else go(viewNook ? '#/n/' + viewNook.id : '#/');
+  };
+
+  // ---- friends and messages ---------------------------------------------------------------------------
+
+  ACTIONS.befriend = async (btn) => {
+    const name = btn.dataset.user;
+    btn.disabled = true;
+    let status;
+    try {
+      status = await store.befriend(name);
+    } catch (error) {
+      btn.disabled = false;
+      return showError(error);
+    }
+    fx.haptic(10);
+    if (status === 'friends') {
+      M3.burst(btn, 'hearts', { count: 10 });
+      M3.toast(`You and u/${name} are friends now`, { symbol: 'diversity_1', shape: 'heart' });
+    } else M3.toast(`Friend request sent to u/${name}`, { symbol: 'person_add', shape: 'heart' });
+    renderBadges();
+    render();
+  };
+
+  ACTIONS.unfriend = async (btn) => {
+    const name = btn.dataset.user;
+    const status = store.friendStatus(name);
+    if (status === 'friends') {
+      const ok = await M3.dialog({
+        headline: `Remove u/${name} from your friends?`,
+        symbol: 'person_remove',
+        iconShape: 'softBoom',
+        body: 'You won’t be able to message each other until one of you sends a new request.',
+        actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, variant: 'filled' }],
+      });
+      if (!ok) return;
+    }
+    try {
+      await store.unfriend(name);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(status === 'incoming' ? 'Request declined' : status === 'outgoing' ? 'Request cancelled' : `Removed u/${name}`, { symbol: 'person_remove', shape: 'heart' });
+    renderBadges();
+    render();
+  };
+
+  ACTIONS['report-user'] = (btn) => report('user', { name: btn.dataset.user });
+
+  // ---- blocking ----------------------------------------------------------------------------------------------
+
+  async function blockPerson(name) {
+    const ok = await M3.dialog({
+      headline: `Block u/${name}?`,
+      symbol: 'block',
+      iconShape: 'softBoom',
+      body: 'You won’t be friends any more, and they won’t be able to message you, call you or add you. Their posts and comments are hidden from you, and in groups you share, their messages are folded away. They aren’t told.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Block', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.block(name);
+    } catch (error) {
+      return showError(error);
+    }
+    fx.haptic(10);
+    M3.toast(`You blocked u/${name}`, { symbol: 'block', shape: 'softBoom' });
+  }
+  async function unblockPerson(name) {
+    try {
+      await store.unblock(name);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`You unblocked u/${name}`, { symbol: 'lock_open', shape: 'cookie9' });
+  }
+  ACTIONS.block = (btn) => blockPerson(btn.dataset.user);
+  ACTIONS.unblock = (btn) => unblockPerson(btn.dataset.user);
+  /** a chat's colour, picked from the swatches (or any colour), or back to the usual: both of you see it */
+  function chatColour(name) {
+    const now = store.chatTheme(name);
+    let picked = now || S().seed;
+    ui.sheet({
+      headline: 'Chat colour',
+      symbol: 'palette',
+      shape: store.user(name).shape || 'cookie9',
+      html:
+        `<p class="muted" style="margin-top:0">The chat with u/${esc(name)} wears it, for both of you. The chat says you changed it.</p>` +
+        swatchesHTML(picked, 'chat') +
+        `<div class="chat-swatch-preview" id="cs-preview"><span class="bubble solo">Hi! 👋</span><span class="bubble solo mine">Looks good!</span></div>`,
+      setup(body) {
+        const preview = body.querySelector('#cs-preview');
+        const paint = () => ui.theme.scheme(picked.toLowerCase(), 'tonalSpot').then((colors) => preview.isConnected && M3.color.apply(colors, preview), () => {});
+        paint();
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          picked = seed;
+          paint();
+        });
+      },
+      actions: [
+        ...(now ? [{ label: 'Usual colours', value: '' }] : []),
+        { label: 'Cancel', value: null },
+        { label: 'Use it', variant: 'filled', run: () => picked },
+      ],
+    }).then(async (color) => {
+      if (color == null || color === now) return;
+      try {
+        await store.setChatTheme(name, color);
+      } catch (error) {
+        return showError(error);
+      }
+      fx.haptic(8);
+    });
+  }
+
+  // a moderator takes down just someone's profile picture or banner (from 1.0): no report needed, and no ban
+  async function removePart(name, part) {
+    const what = part === 'photo' ? 'profile picture' : 'banner';
+    const reason = await pickReason(`Remove u/${name}’s ${what}?`, 'hide_image', `Their ${what} is deleted and they’re told why. The rest of their profile and their account stay.`, 'Remove');
+    if (!reason) return;
+    try {
+      await store.adminRemove('user', name, reason, [part]);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`${part === 'photo' ? 'Picture' : 'Banner'} removed, and u/${name} told why`, { symbol: 'gavel', shape: 'pixelCircle' });
+    await store.sync().catch(() => {});
+    render();
+  }
+  // someone's More menu (on their profile, or in a chat with them): report them, or block them; for a moderator,
+  // their picture or banner can go too
+  ACTIONS['person-menu'] = (btn) => {
+    const name = btn.dataset.user;
+    const u = store.user(name);
+    const mod = store.isAdmin() && views.serverAt('1.0.0');
+    // in a chat with them (1.0): the chat's colour
+    const inChat = route && route.view === 'thread' && views.serverAt('1.0.0') && store.friendStatus(name) === 'friends';
+    menu(btn, [
+      ...(inChat ? [{ label: 'Chat colour', symbol: 'palette', onSelect: () => chatColour(name) }, { separator: true }] : []),
+      { label: `Report u/${name}`, symbol: 'flag', onSelect: () => report('user', { name }) },
+      store.isBlocked(name)
+        ? { label: `Unblock u/${name}`, symbol: 'lock_open', onSelect: () => unblockPerson(name) }
+        : { label: `Block u/${name}`, symbol: 'block', destructive: true, onSelect: () => blockPerson(name) },
+      ...(mod && (u.photo || u.banner) ? [{ separator: true }] : []),
+      ...(mod && u.photo ? [{ label: 'Remove their profile picture', symbol: 'hide_image', destructive: true, onSelect: () => removePart(name, 'photo') }] : []),
+      ...(mod && u.banner ? [{ label: 'Remove their banner', symbol: 'hide_image', destructive: true, onSelect: () => removePart(name, 'banner') }] : []),
+    ], { placement: 'bottom-end' });
+  };
+
+  // a developer gives the Tester badge, or takes it away
+  ACTIONS.tester = async (btn) => {
+    const name = btn.dataset.user;
+    const on = btn.getAttribute('aria-pressed') !== 'true';
+    if (!on) {
+      const ok = await M3.dialog({
+        headline: `Take u/${name}’s Tester badge away?`,
+        symbol: 'science',
+        iconShape: 'softBurst',
+        body: 'It comes off their profile. You can give it back any time.',
+        actions: [{ label: 'Cancel', value: false }, { label: 'Take it away', value: true, variant: 'filled' }],
+      });
+      if (!ok) return;
+    }
+    btn.disabled = true;
+    try {
+      await store.giveBadge(name, 'tester', on);
+    } catch (error) {
+      btn.disabled = false;
+      return showError(error);
+    }
+    fx.haptic(10);
+    if (on) M3.burst(btn, 'play', { count: 10 });
+    M3.toast(on ? `u/${name} is a Tester now` : `u/${name} isn’t a Tester any more`, { symbol: 'science', shape: 'softBurst' });
+    render();
+  };
+
+  // ---- your account ------------------------------------------------------------------------------------
+
+  ACTIONS['sign-out'] = async () => {
+    const ok = await M3.dialog({
+      headline: 'Sign out of Budgie?',
+      symbol: 'logout',
+      iconShape: 'cookie9',
+      body: 'You can sign back in any time with your username and password.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Sign out', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    await store.signOut();
+    location.replace(location.pathname);
+  };
+
+  ACTIONS['change-password'] = () => {
+    ui.sheet({
+      headline: 'Change your password',
+      symbol: 'password',
+      shape: 'clover4',
+      html:
+        '<div class="field"><label for="cp-current">Current password</label><input class="m3-field" id="cp-current" type="password" autocomplete="current-password"></div>' +
+        '<div class="field"><label for="cp-new">New password (at least 8 characters)</label><input class="m3-field" id="cp-new" type="password" autocomplete="new-password" minlength="8"><span class="error" id="cp-err"></span></div>' +
+        '<p class="muted">Other devices will be signed out. This one stays signed in.</p>',
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Change password',
+          variant: 'filled',
+          run(close, body) {
+            const err = body.querySelector('#cp-err');
+            const next = body.querySelector('#cp-new').value;
+            if (next.length < 8) {
+              err.textContent = 'Use at least 8 characters.';
+              return false;
+            }
+            store
+              .changePassword(body.querySelector('#cp-current').value, next)
+              .then(() => {
+                close(true);
+                M3.toast('Password changed', { symbol: 'password', shape: 'clover4' });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+
+  ACTIONS['new-recovery'] = () => {
+    ui.sheet({
+      headline: 'New recovery code',
+      symbol: 'key',
+      shape: 'gem',
+      html:
+        '<p>Your old recovery code stops working, and you get a new one to save.</p>' +
+        '<div class="field"><label for="nr-pass">Your password</label><input class="m3-field" id="nr-pass" type="password" autocomplete="current-password"><span class="error" id="nr-err"></span></div>' +
+        '<output class="gate-recovery" id="nr-code" hidden></output>',
+      actions: [
+        { label: 'Close', value: null },
+        {
+          label: 'Make a new code',
+          variant: 'filled',
+          id: 'nr-go',
+          run(close, body) {
+            const err = body.querySelector('#nr-err');
+            store
+              .newRecoveryCode(body.querySelector('#nr-pass').value)
+              .then((code) => {
+                const out = body.querySelector('#nr-code');
+                out.textContent = code;
+                out.hidden = false;
+                err.textContent = 'Save this now: it won’t be shown again.';
+                body.closest('dialog').querySelector('#nr-go').hidden = true;
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+
+  ACTIONS['delete-account'] = () => {
+    ui.sheet({
+      headline: 'Delete your account?',
+      symbol: 'person_remove',
+      shape: 'softBoom',
+      html:
+        '<p>This can’t be undone. Your profile, votes, friends, messages and photos are deleted, and your posts and comments are wiped. Your username becomes free for someone else.</p>' +
+        '<p class="muted">Want a copy first? Use “Export my data” before you delete.</p>' +
+        '<div class="field"><label for="da-pass">Type your password to confirm</label><input class="m3-field" id="da-pass" type="password" autocomplete="current-password"><span class="error" id="da-err"></span></div>',
+      actions: [
+        { label: 'Keep my account', value: null },
+        {
+          label: 'Delete forever',
+          variant: 'filled',
+          run(close, body) {
+            const err = body.querySelector('#da-err');
+            store
+              .deleteAccount(body.querySelector('#da-pass').value)
+              .then(() => {
+                close(true);
+                location.replace(location.pathname);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+
+  // ---- inbox -----------------------------------------------------------------------------------------
+
+  ACTIONS['read-all'] = () => {
+    store.markRead();
+    renderBadges();
+    // the unread ones settle one after another
+    $$('.note.unread', main).forEach((note, i) => setTimeout(() => note.classList.remove('unread'), fx.reduced() ? 0 : i * 70));
+    const count = $('.page-head .muted', main);
+    if (count) M3.rollText(count, plural(0, 'unread notification'));
+    fx.haptic(8);
+    M3.toast('All caught up', { symbol: 'done_all', shape: 'clover4' });
+  };
+
+  ACTIONS['open-note'] = (btn) => {
+    store.markRead(btn.dataset.note);
+    renderBadges();
+    if (btn.dataset.href) go(btn.dataset.href);
+    else btn.classList.remove('unread');
+  };
+
+  // ---- sheets: nooks, collections, profile, shortcuts -----------------------------------------------------
+
+  function swatchesHTML(selected, name) {
+    return (
+      `<div class="swatches" data-swatches="${name}">` +
+      ui.SEEDS.map((seed, i) => `<button type="button" class="swatch" data-seed="${seed}" aria-pressed="${seed === selected}" aria-label="Colour ${seed}"><m3-shape shape="${ui.SEED_SHAPES[i]}" style="color:${seed}"></m3-shape></button>`).join('') +
+      `<input type="color" class="color-input" value="${selected}" aria-label="Pick any colour"></div>`
+    );
+  }
+
+  function wireSwatches(root, onPick) {
+    const input = root.querySelector('.color-input');
+    const pick = (seed) => {
+      root.querySelectorAll('.swatch').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.seed === seed)));
+      input.value = seed;
+      onPick(seed);
+    };
+    root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pick(b.dataset.seed)));
+    input.addEventListener('input', () => pick(input.value));
+  }
+
+  function shapeGridHTML(selected) {
+    return `<div class="shape-grid" role="group" aria-label="Shape">${M3Shapes.names
+      .filter((n) => n !== 'softCookie')
+      .map((n) => `<button type="button" data-shape="${n}" aria-pressed="${n === selected}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`)
+      .join('')}</div>`;
+  }
+
+  function wireGrid(root, attr, onPick) {
+    root.querySelectorAll(`[data-${attr}]`).forEach((b) =>
+      b.addEventListener('click', () => {
+        root.querySelectorAll(`[data-${attr}]`).forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
+        onPick(b.dataset[attr]);
+      })
+    );
+  }
+
+  function newNook() {
+    const pickSeed = ui.SEEDS[Math.floor(Math.random() * ui.SEEDS.length)];
+    const model = { color: pickSeed, shape: 'cookie9', symbol: 'forum', category: 'Hobbies' };
+    const categories = [...new Set(store.allCommunities().map((c) => c.category))].filter((c) => c !== 'Meta');
+    ui.sheet({
+      headline: 'Create a nest',
+      symbol: 'castle',
+      shape: 'softBurst',
+      className: 'wide',
+      html:
+        '<div class="nook-preview" id="np"><m3-shape-icon id="np-icon" shape="cookie9" symbol="forum" size="72" icon-size="34"></m3-shape-icon>' +
+        '<div class="np-text"><b class="m3-title" id="np-title">Your nest</b><span class="muted" id="np-id">n/your_nest</span><span id="np-tag" class="muted">A cosy corner for…</span></div></div>' +
+        '<div class="split">' +
+        '<div class="field"><label for="nn-id">Name (n/…)</label><input class="m3-field" id="nn-id" maxlength="21" placeholder="pottery_club" autocomplete="off"><span class="error" id="nn-id-err"></span></div>' +
+        '<div class="field"><label for="nn-title">Display title</label><input class="m3-field" id="nn-title" maxlength="40" placeholder="Pottery Club"></div></div>' +
+        '<div class="field"><label for="nn-tag">What’s it about?</label><input class="m3-field" id="nn-tag" maxlength="120" placeholder="Wobbly mugs and the people who make them."></div>' +
+        `<div class="field"><span class="field-label">Category</span><div class="chips" style="flex-wrap:wrap">${categories.map((c) => `<button type="button" class="chip" data-cat="${c}" aria-pressed="${c === model.category}">${c}</button>`).join('')}</div></div>` +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'nook')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(model.shape)}</div>` +
+        `<div class="field"><span class="field-label">Symbol</span><div class="symbol-grid">${ui.NOOK_SYMBOLS.map((s) => `<button type="button" data-symbol="${s}" aria-pressed="${s === model.symbol}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('')}</div></div>`,
+      setup(body) {
+        const preview = body.querySelector('#np');
+        const npIcon = body.querySelector('#np-icon');
+        const idInput = body.querySelector('#nn-id');
+        const titleInput = body.querySelector('#nn-title');
+        const tagInput = body.querySelector('#nn-tag');
+        const retint = () => ui.theme.scheme(model.color.toLowerCase()).then((colors) => M3.color.apply(colors, preview), () => {});
+        retint();
+        const slug = () => idInput.value.trim().toLowerCase();
+        const sync = () => {
+          body.querySelector('#np-title').textContent = titleInput.value.trim() || (slug() ? slug().replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : 'Your nest');
+          body.querySelector('#np-id').textContent = 'n/' + (slug() || 'your_nest');
+          body.querySelector('#np-tag').textContent = tagInput.value.trim() || 'A cosy corner for…';
+        };
+        [idInput, titleInput, tagInput].forEach((el) => el.addEventListener('input', sync));
+        idInput.addEventListener('input', () => {
+          idInput.value = idInput.value.replace(/\s+/g, '_').replace(/[^A-Za-z0-9_]/g, '');
+          body.querySelector('#nn-id-err').textContent = '';
+        });
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          retint();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (shape) => {
+          model.shape = shape;
+          npIcon.setAttribute('shape', shape);
+        });
+        wireGrid(body.querySelector('.symbol-grid'), 'symbol', (symbol) => {
+          model.symbol = symbol;
+          npIcon.setAttribute('symbol', symbol);
+        });
+        wireGrid(body, 'cat', (cat) => (model.category = cat));
+        body._model = model;
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Create nest',
+          variant: 'filled',
+          symbol: 'castle',
+          run(close, body) {
+            const id = body.querySelector('#nn-id').value.trim().toLowerCase();
+            const err = body.querySelector('#nn-id-err');
+            if (!/^[a-z0-9_]{3,21}$/.test(id)) {
+              err.textContent = 'Use 3–21 letters, numbers or underscores.';
+              body.querySelector('#nn-id').focus();
+              return false;
+            }
+            if (store.community(id)) {
+              err.textContent = `n/${id} already exists. Try another name.`;
+              body.querySelector('#nn-id').focus();
+              return false;
+            }
+            const title = body.querySelector('#nn-title').value.trim() || id.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+            const tagline = body.querySelector('#nn-tag').value.trim() || `A brand new nest about ${title.toLowerCase()}.`;
+            const verdict = Nook.mod.check([id.replace(/_/g, ' '), title, tagline], { kind: 'nook' });
+            const problem =
+              verdict.block ||
+              (verdict.strong && { why: 'Keep swearing out of a nest’s name and description: everyone sees them.' }) ||
+              verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+            if (problem) {
+              err.textContent = problem.why;
+              return false;
+            }
+            store
+              .createCommunity({ id, title, tagline, description: tagline, category: model.category, color: model.color, shape: model.shape, symbol: model.symbol })
+              .then((c) => {
+                close(c.id);
+                welcomeNook(c);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  function welcomeNook(c) {
+    setTimeout(() => {
+      go('#/n/' + c.id);
+      M3.toast(`Welcome to n/${c.id}, founder!`, { symbol: c.symbol, shape: c.shape });
+      // a nook is born: confetti in its own shape and colours
+      setTimeout(() => {
+        fx.confetti($('.nook-hero .nook-avatar', main) || { x: innerWidth / 2, y: innerHeight / 3 }, { shapes: [c.shape, c.shape, 'sunny', 'heart'], count: 40, power: 1.2 });
+        fx.haptic([12, 60, 12, 60, 20]);
+      }, 450);
+    }, 140);
+  }
+  ACTIONS['new-nook'] = () => {
+    closeDrawer();
+    newNook();
+  };
+
+  // ---- group chats ----------------------------------------------------------------------------------------
+
+  // the shapes a group can wear (the server takes these)
+  const GROUP_SHAPES = ['cookie9', 'heart', 'sunny', 'clover4', 'clover8', 'flower', 'puffy', 'gem', 'softBurst', 'cookie6', 'ghostish', 'pixelCircle'];
+  const GROUP_MAX = 32;
+  const groupShapesHTML = (selected) =>
+    `<div class="shape-grid" role="group" aria-label="Shape">${GROUP_SHAPES.map((n) => `<button type="button" data-shape="${n}" aria-pressed="${n === selected}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('')}</div>`;
+  // friends to choose from, each with a switch
+  const friendPicks = (names) =>
+    `<div class="pick-list">${names
+      .map((n) => {
+        const u = store.user(n);
+        return `<label class="switch-row pick-row">${avatar(u, 36)}<span class="switch-text"><span translate="no">${esc(u.name)}</span>${u.pronouns ? `<small>${esc(u.pronouns)}</small>` : ''}</span><input type="checkbox" class="m3-switch" role="switch" data-pick="${esc(u.name)}"></label>`;
+      })
+      .join('')}</div>`;
+  const pickedIn = (body) => $$('[data-pick]', body).filter((i) => i.checked).map((i) => i.dataset.pick);
+  const friendNames = () => store.friends('friends').map((f) => store.user(f.name).name);
+  const groupNameProblem = (name) => {
+    if (!name) return 'Give your group a name.';
+    const verdict = Nook.mod.check([name], { kind: 'profile' });
+    const problem = verdict.block || (verdict.strong && { why: 'Keep swearing out of a group’s name: everyone in it sees it.' }) || verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+    return problem ? problem.why : '';
+  };
+
+  function newGroup() {
+    const friends = friendNames();
+    if (!friends.length) return M3.snackbar('Add some friends first, then you can make a group with them.', { action: { label: 'Friends', onClick: () => go('#/friends') } });
+    const model = { color: ui.SEEDS[Math.floor(Math.random() * ui.SEEDS.length)], shape: GROUP_SHAPES[Math.floor(Math.random() * GROUP_SHAPES.length)] };
+    ui.sheet({
+      headline: 'New group',
+      symbol: 'group_add',
+      shape: 'clover4',
+      className: 'wide',
+      html:
+        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name">Your group</b><small class="muted" id="gp-count">Just you so far</small></span></div>` +
+        '<div class="field"><label for="ng-name">Name</label><input class="m3-field" id="ng-name" maxlength="40" placeholder="Weekend plans" autocomplete="off"><span class="error" id="ng-err"></span></div>' +
+        `<div class="field"><span class="field-label">Friends to add</span>${friendPicks(friends)}</div>` +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'group')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${groupShapesHTML(model.shape)}</div>` +
+        '<p class="muted sheet-note">Only the people in a group can read it. Anyone in it can add their own friends, and leave whenever they like.</p>',
+      setup(body) {
+        const nameInput = body.querySelector('#ng-name');
+        const err = body.querySelector('#ng-err');
+        const redraw = () => (body.querySelector('#gp-icon').innerHTML = views.groupIcon(model, 64));
+        const count = () => {
+          const n = pickedIn(body).length;
+          body.querySelector('#gp-count').textContent = n ? `You and ${plural(n, 'friend')}` : 'Just you so far';
+          err.textContent = '';
+        };
+        nameInput.addEventListener('input', () => {
+          body.querySelector('#gp-name').textContent = nameInput.value.trim() || 'Your group';
+          err.textContent = '';
+        });
+        body.querySelector('.pick-list').addEventListener('change', count);
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          redraw();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (shape) => {
+          model.shape = shape;
+          redraw();
+        });
+        if (matchMedia('(hover: hover)').matches) setTimeout(() => nameInput.focus(), 60);
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Create group',
+          variant: 'filled',
+          symbol: 'group_add',
+          run(close, body) {
+            const name = body.querySelector('#ng-name').value.trim();
+            const members = pickedIn(body);
+            const err = body.querySelector('#ng-err');
+            const problem = groupNameProblem(name) || (!members.length ? 'Pick at least one friend to add.' : members.length + 1 > GROUP_MAX ? `A group can have up to ${GROUP_MAX} people.` : '');
+            if (problem) {
+              err.textContent = problem;
+              if (!name) body.querySelector('#ng-name').focus();
+              return false;
+            }
+            store
+              .createGroup(name, members, model)
+              .then((g) => {
+                close(g.id);
+                setTimeout(() => {
+                  go('#/messages/g/' + encodeURIComponent(g.id));
+                  M3.toast(`${g.name} is ready`, { symbol: 'groups', shape: g.shape });
+                  fx.haptic([10, 40, 10]);
+                }, 140);
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+  ACTIONS['new-group'] = () => newGroup();
+  ACTIONS['call-look'] = () => Nook.calls && Nook.calls.customise();
+  ACTIONS['ring-preview'] = () => Nook.calls && Nook.calls.preview();
+  ACTIONS.call = (btn) => Nook.calls && Nook.calls.start({ to: btn.dataset.user || '', group: btn.dataset.group || '', media: btn.dataset.media === 'video' ? 'video' : 'voice' });
+
+  /** a group's members and settings: add friends, remove people (the owner), rename it, leave or report it */
+  function groupInfo(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const owner = g.role === 'owner';
+    const member = (m) => {
+      const u = store.user(m.name);
+      const me = store.isMe(m.name);
+      return (
+        `<div class="group-member"><button type="button" class="row-link" data-profile="${esc(u.name)}" data-m3-ripple>${avatar(u, 40)}<span class="row-text"><b><span translate="no">${esc(u.name)}</span>${me ? ' <span class="muted">(you)</span>' : ''}</b><small>${m.role === 'owner' ? 'Owner' : 'Member'}</small></span></button>` +
+        (owner && !me ? `<button type="button" class="m3-icon-btn" data-remove="${esc(u.name)}" aria-label="Remove u/${esc(u.name)} from the group" data-tooltip="Remove">${icon('person_remove')}</button>` : '') +
+        '</div>'
+      );
+    };
+    const canAdd = friendNames().filter((n) => !g.members.some((m) => m.name.toLowerCase() === n.toLowerCase())).length > 0;
+    // the owner first, then everyone else by name
+    const members = [...g.members].sort((a, b) => (b.role === 'owner') - (a.role === 'owner') || a.name.localeCompare(b.name));
+    ui.sheet({
+      headline: 'Group info',
+      symbol: 'groups',
+      shape: g.shape,
+      className: 'wide',
+      html:
+        `<div class="group-preview">${views.groupIcon(g, 64)}<span class="row-text"><b class="m3-title" translate="no">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')} · made ${esc(ui.ago(g.createdAt))}</small></span></div>` +
+        '<div class="toolbar group-tools">' +
+        (canAdd && g.members.length < GROUP_MAX ? `<button type="button" class="m3-btn tonal small" data-do="add">${icon('person_add')}Add friends</button>` : '') +
+        (owner ? `<button type="button" class="m3-btn tonal small" data-do="edit">${icon('edit')}Edit group</button>` : '') +
+        '</div>' +
+        `<div class="field"><span class="field-label">Members</span><div class="group-members">${members.map(member).join('')}</div></div>` +
+        '<div class="toolbar group-tools">' +
+        `<button type="button" class="m3-btn text small danger" data-do="leave">${icon('logout')}Leave group</button>` +
+        `<button type="button" class="m3-btn text small" data-do="report">${icon('flag')}Report group</button></div>`,
+      setup(body, close) {
+        body.addEventListener('click', async (e) => {
+          const profile = e.target.closest('[data-profile]');
+          if (profile) {
+            close(null);
+            return go('#/u/' + encodeURIComponent(profile.dataset.profile));
+          }
+          const remove = e.target.closest('[data-remove]');
+          if (remove) {
+            const name = remove.dataset.remove;
+            const ok = await M3.dialog({
+              headline: `Remove u/${name}?`,
+              symbol: 'person_remove',
+              iconShape: 'softBoom',
+              body: `They’ll stop getting ${g.name}’s messages. Someone can add them again later.`,
+              actions: [{ label: 'Cancel', value: false }, { label: 'Remove', value: true, variant: 'filled' }],
+            });
+            if (!ok) return;
+            try {
+              await store.removeFromGroup(id, name);
+            } catch (error) {
+              return showError(error);
+            }
+            close(null);
+            M3.toast(`Removed u/${name}`, { symbol: 'person_remove', shape: g.shape });
+            return;
+          }
+          const act = e.target.closest('[data-do]');
+          if (!act) return;
+          close(null);
+          if (act.dataset.do === 'add') addToGroup(id);
+          else if (act.dataset.do === 'edit') editGroup(id);
+          else if (act.dataset.do === 'leave') leaveGroup(id);
+          else if (act.dataset.do === 'report') report('group', { id });
+        });
+      },
+      actions: [{ label: 'Done', value: null }],
+    });
+  }
+  ACTIONS['group-info'] = (btn) => groupInfo(btn.dataset.group);
+
+  function addToGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const friends = friendNames().filter((n) => !g.members.some((m) => m.name.toLowerCase() === n.toLowerCase()));
+    if (!friends.length) return M3.snackbar('All your friends are in this group already.');
+    ui.sheet({
+      headline: `Add to ${g.name}`,
+      symbol: 'person_add',
+      shape: g.shape,
+      html: `${friendPicks(friends)}<span class="error" id="ag-err"></span><p class="muted sheet-note">They’ll see the group’s messages from now on, not what was said before they joined.</p>`,
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Add',
+          variant: 'filled',
+          symbol: 'person_add',
+          run(close, body) {
+            const names = pickedIn(body);
+            const err = body.querySelector('#ag-err');
+            if (!names.length) return (err.textContent = 'Pick at least one friend to add.'), false;
+            if (g.members.length + names.length > GROUP_MAX) return (err.textContent = `A group can have up to ${GROUP_MAX} people.`), false;
+            store
+              .addToGroup(id, names)
+              .then(() => {
+                close(true);
+                M3.toast(names.length === 1 ? `Added u/${names[0]}` : `Added ${plural(names.length, 'friend')}`, { symbol: 'person_add', shape: g.shape });
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  function editGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const model = { color: g.color, shape: GROUP_SHAPES.includes(g.shape) ? g.shape : GROUP_SHAPES[0] };
+    ui.sheet({
+      headline: 'Edit group',
+      symbol: 'edit',
+      shape: g.shape,
+      className: 'wide',
+      html:
+        `<div class="group-preview"><span id="gp-icon">${views.groupIcon(model, 64)}</span><span class="row-text"><b class="m3-title" id="gp-name" translate="no">${esc(g.name)}</b><small class="muted">${plural(g.members.length, 'member')}</small></span></div>` +
+        `<div class="field"><label for="eg-name">Name</label><input class="m3-field" id="eg-name" maxlength="40" value="${esc(g.name)}" autocomplete="off"><span class="error" id="eg-err"></span></div>` +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(model.color, 'group')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${groupShapesHTML(model.shape)}</div>`,
+      setup(body) {
+        const nameInput = body.querySelector('#eg-name');
+        const redraw = () => (body.querySelector('#gp-icon').innerHTML = views.groupIcon(model, 64));
+        nameInput.addEventListener('input', () => {
+          body.querySelector('#gp-name').textContent = nameInput.value.trim() || 'Your group';
+          body.querySelector('#eg-err').textContent = '';
+        });
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          redraw();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (shape) => {
+          model.shape = shape;
+          redraw();
+        });
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Save',
+          variant: 'filled',
+          symbol: 'check',
+          run(close, body) {
+            const name = body.querySelector('#eg-name').value.trim();
+            const err = body.querySelector('#eg-err');
+            const problem = name === g.name ? '' : groupNameProblem(name);
+            if (problem) return (err.textContent = problem), false;
+            store
+              .renameGroup(id, { name, color: model.color, shape: model.shape })
+              .then(() => close(true))
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  }
+
+  async function leaveGroup(id) {
+    const g = store.group(id);
+    if (!g) return;
+    const ok = await M3.dialog({
+      headline: `Leave ${g.name}?`,
+      symbol: 'logout',
+      iconShape: 'softBoom',
+      body: g.role === 'owner' && g.members.length > 1 ? 'You’ll stop getting its messages, and whoever has been in it longest becomes its owner.' : 'You’ll stop getting its messages. Someone in it can add you again later.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Leave', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    try {
+      await store.leaveGroup(id);
+    } catch (error) {
+      return showError(error);
+    }
+    M3.toast(`You left ${g.name}`, { symbol: 'logout', shape: g.shape });
+    if (route && route.view === 'groupThread' && route.params.id === id) go('#/messages', { replace: true });
+  }
+
+  async function askName(headline, value, label) {
+    let input = null;
+    return ui.sheet({
+      headline,
+      symbol: 'collections_bookmark',
+      shape: 'gem',
+      html: `<div class="field"><label for="col-name">${label}</label><input class="m3-field" id="col-name" maxlength="40" value="${esc(value || '')}" placeholder="Recipes to try" autofocus></div>`,
+      setup(body, close) {
+        input = body.querySelector('input');
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && input.value.trim()) close(input.value.trim());
+        });
+      },
+      actions: [{ label: 'Cancel', value: null }, { label: 'Save', variant: 'filled', run: () => (input.value.trim() ? input.value.trim() : false) }],
+    });
+  }
+
+  ACTIONS['new-collection'] = async () => {
+    const name = await askName('New collection', '', 'Name');
+    if (!name) return;
+    const col = store.createCollection(name);
+    M3.toast(`Made “${col.name}”`, { symbol: 'collections_bookmark', shape: col.shape });
+    if (route.view === 'saved') render();
+  };
+
+  ACTIONS['rename-collection'] = async (btn) => {
+    const col = store.state.collections.find((c) => c.id === btn.dataset.col);
+    const name = await askName('Rename collection', col.name, 'Name');
+    if (!name) return;
+    col.name = name;
+    store.save();
+    render();
+  };
+
+  ACTIONS['delete-collection'] = async (btn) => {
+    const col = store.state.collections.find((c) => c.id === btn.dataset.col);
+    const ok = await M3.dialog({
+      headline: `Delete “${col.name}”?`,
+      symbol: 'delete',
+      iconShape: 'softBoom',
+      body: 'The posts stay saved; only the collection goes.',
+      actions: [{ label: 'Cancel', value: false }, { label: 'Delete', value: true, variant: 'filled' }],
+    });
+    if (!ok) return;
+    store.state.collections = store.state.collections.filter((c) => c !== col);
+    store.save();
+    go('#/saved', { replace: true });
+  };
+
+  function collectSheet(p) {
+    const rows = () =>
+      store.state.collections
+        .map((col) => {
+          const on = col.posts.includes(p.id);
+          return `<label class="switch-row"><m3-shape-icon shape="${col.shape}" symbol="collections_bookmark" size="36" icon-size="18" style="--m3-shape-icon-color:${col.color};--m3-shape-icon-on-color:${ui.ink(col.color)}"></m3-shape-icon><span class="switch-text"><span translate="no">${esc(col.name)}</span><small>${plural(col.posts.length, 'post')}</small></span><input type="checkbox" class="m3-switch" role="switch" data-col="${col.id}"${on ? ' checked' : ''}></label>`;
+        })
+        .join('') || '<p class="muted">No collections yet. Make your first one below.</p>';
+    ui.sheet({
+      headline: 'Add to collection',
+      symbol: 'collections_bookmark',
+      shape: 'gem',
+      html: `<div class="setting-card" id="col-list" style="display:grid;gap:14px">${rows()}</div><form class="toolbar" id="col-new"><input class="m3-field" style="flex:1" maxlength="40" placeholder="New collection name" aria-label="New collection name"><button class="m3-btn tonal" type="submit">${icon('add')}Create</button></form>`,
+      setup(body) {
+        const list = body.querySelector('#col-list');
+        const wire = () =>
+          list.querySelectorAll('[data-col]').forEach((sw) =>
+            sw.addEventListener('change', () => {
+              store.collect(sw.dataset.col, p.id, sw.checked);
+              $$(`[data-post="${p.id}"] [data-act="save"]`).forEach((b) => b.setAttribute('aria-pressed', 'true'));
+            })
+          );
+        wire();
+        body.querySelector('#col-new').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const input = e.target.querySelector('input');
+          const name = input.value.trim();
+          if (!name) return;
+          const col = store.createCollection(name);
+          store.collect(col.id, p.id, true);
+          input.value = '';
+          list.innerHTML = rows();
+          wire();
+          $$(`[data-post="${p.id}"] [data-act="save"]`).forEach((b) => b.setAttribute('aria-pressed', 'true'));
+        });
+      },
+      actions: [{ label: 'Done', variant: 'filled' }],
+    }).then(() => {
+      if (route.view === 'saved' || route.view === 'collection') render();
+    });
+  }
+
+  function editProfile() {
+    const me = store.state.me;
+    const model = {
+      color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '',
+      font: me.font || '', flags: [...(me.flags || [])], interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
+    };
+    const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
+    const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
+    // banners, moving GIFs and longer bios need the server from Budgie 0.4.0 on; an older one gets the old editor
+    const [major, minor] = (Nook.serverVersion || '0.0').split('.').map(Number);
+    const media = major > 0 || minor >= 4;
+    // and a font for your name needs it from 0.6.0 on; pronouns, a flag, interests, colours and shapes from 0.7.0
+    const fonts = major > 0 || minor >= 6;
+    const more = major > 0 || minor >= 7;
+    const PRONOUN_PICKS = ['she/her', 'he/him', 'they/them', 'she/they', 'he/they', 'any pronouns', 'ask me'];
+    // the flags you wear (up to four, from Budgie 1.0; one before), as a row; pressing it brings up every flag
+    const FLAGS_MAX = views.serverAt('1.0.0') ? 4 : 1;
+    const flagRow = (ids) => {
+      const flags = ids.map((id) => ui.PRIDE_FLAGS.find(([f]) => f === id)).filter(Boolean);
+      return (
+        (flags.length ? `<span class="flag-stack">${flags.map(([id]) => `<span class="flag-big">${ui.flagSVG(id)}</span>`).join('')}</span>` : `<span class="flag-none">${icon('block')}</span>`) +
+        `<span class="row-text"><b>${flags.length ? esc(flags.map((f) => f[1]).join(', ')) : 'None'}</b><small>${
+          flags.length ? 'Change or remove them' : `Choose from ${ui.PRIDE_FLAGS.length} flags${FLAGS_MAX > 1 ? `, up to ${FLAGS_MAX}` : ''}`
+        }</small></span>${icon('chevron_right')}`
+      );
+    };
+    const flagTile = (id, label, art, on) => `<button type="button" data-flag="${id}" aria-pressed="${on}">${art}<small>${label}</small></button>`;
+    // resolves with the flags picked (none is []), or null when put away
+    const pickFlags = () => {
+      let picked = [...model.flags];
+      return ui.sheet({
+        headline: FLAGS_MAX > 1 ? 'Pride flags' : 'Pride flag',
+        symbol: 'flag',
+        shape: 'heart',
+        className: 'flag-sheet wide',
+        html:
+          (FLAGS_MAX > 1 ? `<p class="muted" style="margin-top:0">Pick up to ${FLAGS_MAX}. They show in the order you pick them.</p>` : '') +
+          '<div class="flag-grid" role="group" aria-label="Pride flags">' +
+          flagTile('', 'None', `<span class="flag-none">${icon('block')}</span>`, !picked.length) +
+          ui.PRIDE_FLAGS.map(([id, label]) => flagTile(id, label, `<span class="flag-big">${ui.flagSVG(id)}</span>`, picked.includes(id))).join('') +
+          '</div>',
+        setup: (sheetBody, close) => {
+          const paint = () => sheetBody.querySelectorAll('[data-flag]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.flag ? picked.includes(b.dataset.flag) : !picked.length)));
+          sheetBody.querySelectorAll('[data-flag]').forEach((b) =>
+            b.addEventListener('click', () => {
+              const id = b.dataset.flag;
+              // one flag at a time on a server from before 1.0: picking is choosing
+              if (FLAGS_MAX === 1) return close(id ? [id] : []);
+              if (!id) picked = [];
+              else if (picked.includes(id)) picked = picked.filter((f) => f !== id);
+              else if (picked.length >= FLAGS_MAX) return M3.snackbar(`You can wear up to ${FLAGS_MAX} flags. Take one off first.`);
+              else picked.push(id);
+              paint();
+              fx.pop(b, 0.4);
+            })
+          );
+        },
+        actions: FLAGS_MAX > 1 ? [{ label: 'Cancel' }, { label: 'Done', variant: 'filled', run: () => picked }] : [{ label: 'Cancel' }],
+      });
+    };
+    const section = (shape, symbol, title) =>
+      `<header class="m3-section-header ep-section"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="30" icon-size="16"></m3-shape-icon><h3 class="m3-title">${title}</h3><m3-wavy-line></m3-wavy-line></header>`;
+    const BIO_MAX = media ? 300 : 160;
+    let saving = false;
+    ui.sheet({
+      headline: 'Edit profile',
+      symbol: 'face',
+      shape: me.shape,
+      html:
+        `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
+        `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
+        `<div class="np-text"><b class="m3-title"><span class="${fonts ? ui.nameFont(model).trim() : ''}" id="ep-name" translate="no">${esc(me.name)}</span><span id="ep-flag">${more ? ui.prideFlag(model) : ''}</span></b>` +
+        `<span class="muted" id="ep-sub">${more && me.pronouns ? esc(me.pronouns) : 'Your shape and colour follow you everywhere'}</span></div></div></div>` +
+        (more ? section('cookie9', 'person', 'You') : '') +
+        `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
+        (more
+          ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
+            `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>` +
+            '<div class="field"><span class="field-label" id="ep-flag-label">Pride flag</span>' +
+            `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flags)}</button>` +
+            '<small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
+          : '') +
+        (fonts
+          ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
+            ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
+            '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small></div>'
+          : '') +
+        `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
+        `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
+        (more ? section('flower', 'palette', 'Look') : '') +
+        '<div class="field"><span class="field-label">Picture</span>' +
+        `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
+        ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('') +
+        '</div>' +
+        `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
+        `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
+        `<span class="error" id="ep-photo-err"></span><small class="muted">${media ? 'A photo from your gallery, or a GIF up to 2 MB that moves on your profile.' : 'A photo from your gallery.'} Everyone on Budgie can see it.</small></div>` +
+        (media
+          ? '<div class="field"><span class="field-label">Banner</span>' +
+            `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_photo_alternate')}<span id="ep-banner-label">${model.banner ? 'Change banner' : 'Upload a banner'}</span><input type="file" id="ep-banner-file" accept="image/*"></label>` +
+            `<button type="button" class="m3-btn text small" id="ep-banner-remove"${model.banner ? '' : ' hidden'}>${icon('delete')}Remove banner</button></div>` +
+            '<span class="error" id="ep-banner-err"></span><small class="muted">A wide picture across the top of your profile (3:1 fits best), or a GIF up to 4 MB. Everyone on Budgie can see it.</small></div>'
+          : '') +
+        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
+        `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>` +
+        (more
+          ? '<div class="field"><span class="field-label">Profile colours</span><div class="scheme-grid" role="group" aria-label="Profile colours">' +
+            ui.PROFILE_SCHEMES.map(([id, label]) => `<button type="button" data-scheme="${id}" aria-pressed="${id === model.scheme}"><span class="scheme-dots" data-dots="${id}"><i></i><i></i><i></i><i></i></span><small>${label}</small></button>`).join('') +
+            '</div><small class="muted">Your profile page wears your colour, worked into a whole Material palette in this style.</small></div>' +
+            '<div class="field"><span class="field-label">Background shapes</span><div class="shape-grid sticker-grid" role="group" aria-label="Background shapes">' +
+            `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span translate="no" class="m3-icon">auto_awesome</span></button>` +
+            `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span translate="no" class="m3-icon">block</span></button>` +
+            M3Shapes.names.filter((n) => n !== 'softCookie').map((n) => `<button type="button" data-sticker="${n}" aria-pressed="${n === model.sticker}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('') +
+            '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>' +
+            section('heart', 'interests', 'Interests') +
+            `<div class="field"><span class="field-label">What you’re into <small class="muted" id="ep-int-count">${model.interests.length}/${ui.INTERESTS_MAX}</small></span>` +
+            `<div class="chips wrap" role="group" aria-label="Interests">${ui.INTERESTS.map(([id, label, symbol]) => `<button type="button" class="chip" data-interest="${id}" aria-pressed="${model.interests.includes(id)}">${icon(symbol)}${label}</button>`).join('')}</div>` +
+            '<span class="error" id="ep-int-err"></span></div>'
+          : ''),
+      setup(body) {
+        const $$ = (sel) => body.querySelector(sel);
+        const av = $$('#ep-avatar');
+        const shape = $$('#ep-shape');
+        const input = $$('#ep-input');
+        const faceEl = $$('#ep-face');
+        const bio = $$('#ep-bio');
+        const paint = () => (faceEl.innerHTML = face(input.value || '?'));
+        const count = () => {
+          $$('#ep-bio-count').textContent = `${bio.value.length}/${BIO_MAX}`;
+        };
+        count();
+        bio.addEventListener('input', count);
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
+          $$('#ep-name').textContent = input.value || '…';
+          body.querySelectorAll('.font-sample').forEach((el) => (el.textContent = input.value || '…'));
+          $$('#ep-err').textContent = '';
+          paint();
+        });
+        const fontGrid = body.querySelector('.font-grid');
+        if (fontGrid) {
+          fontGrid.querySelectorAll('[data-font]').forEach((b) =>
+            b.addEventListener('click', () => {
+              model.font = b.dataset.font;
+              fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
+              $$('#ep-name').className = ui.nameFont(model).trim();
+              fx.pop($$('#ep-name'), 0.4);
+            })
+          );
+        }
+        // pronouns, a flag, colours, shapes and interests (from 0.7.0)
+        let paintDots = () => {};
+        let previewScheme = () => {};
+        if (more) {
+          const pronouns = $$('#ep-pronouns');
+          const showPronouns = () => {
+            $$('#ep-sub').textContent = pronouns.value.trim() || 'Your shape and colour follow you everywhere';
+            $$('#ep-pronouns-err').textContent = '';
+          };
+          pronouns.addEventListener('input', showPronouns);
+          body.querySelectorAll('[data-pronouns]').forEach((chip) =>
+            chip.addEventListener('click', () => {
+              pronouns.value = chip.dataset.pronouns;
+              showPronouns();
+              fx.pop($$('#ep-sub'), 0.4);
+            })
+          );
+          const flagPick = $$('#ep-flag-pick');
+          flagPick.addEventListener('click', async () => {
+            const flags = await pickFlags();
+            if (!Array.isArray(flags) || !flagPick.isConnected) return;
+            model.flags = flags;
+            flagPick.innerHTML = flagRow(flags);
+            $$('#ep-flag').innerHTML = ui.prideFlag(model);
+            fx.pop($$('#ep-flag'), 0.6);
+          });
+          // each style's colours, from your colour, as four dots; the preview at the top wears the one picked
+          paintDots = () =>
+            body.querySelectorAll('[data-dots]').forEach((dots) =>
+              ui.theme.scheme(model.color.toLowerCase(), dots.dataset.dots).then(
+                (colors) => [colors.primary, colors.secondary, colors.tertiary, colors.primaryContainer].forEach((c, i) => (dots.children[i].style.background = M3.color.css(c))),
+                () => {}
+              )
+            );
+          previewScheme = () =>
+            ui.theme.scheme(model.color.toLowerCase(), model.scheme).then(
+              (colors) => $$('#ep-top').isConnected && M3.color.apply(colors, $$('#ep-top')),
+              () => {}
+            );
+          paintDots();
+          previewScheme();
+          wireGrid(body.querySelector('.scheme-grid'), 'scheme', (id) => {
+            model.scheme = id;
+            previewScheme();
+          });
+          wireGrid(body.querySelector('.sticker-grid'), 'sticker', (id) => (model.sticker = id));
+          body.querySelectorAll('[data-interest]').forEach((chip) =>
+            chip.addEventListener('click', () => {
+              const id = chip.dataset.interest;
+              const err = $$('#ep-int-err');
+              err.textContent = '';
+              if (model.interests.includes(id)) model.interests = model.interests.filter((x) => x !== id);
+              else if (model.interests.length >= ui.INTERESTS_MAX) {
+                err.textContent = `Up to ${ui.INTERESTS_MAX}: take one off to add another.`;
+                return;
+              } else model.interests.push(id);
+              chip.setAttribute('aria-pressed', String(model.interests.includes(id)));
+              $$('#ep-int-count').textContent = `${model.interests.length}/${ui.INTERESTS_MAX}`;
+            })
+          );
+        }
+        const faces = body.querySelector('.face-grid');
+        const pressFace = (value) => faces.querySelectorAll('[data-face]').forEach((b) => b.setAttribute('aria-pressed', String(!model.photo && b.dataset.face === value)));
+        const setPhoto = (still, gif) => {
+          model.photo = still;
+          model.photoGif = gif;
+          $$('#ep-photo-remove').hidden = !still;
+          $$('#ep-photo-label').textContent = still ? 'Change photo' : 'Upload a photo';
+          pressFace(still ? null : model.icon);
+          paint();
+        };
+        const setBanner = (still, gif) => {
+          model.banner = still;
+          model.bannerGif = gif;
+          $$('#ep-banner-remove').hidden = !still;
+          $$('#ep-banner-label').textContent = still ? 'Change banner' : 'Upload a banner';
+          $$('#ep-banner').innerHTML = bannerPreview();
+        };
+        faces.querySelectorAll('[data-face]').forEach((b) =>
+          b.addEventListener('click', () => {
+            model.icon = b.dataset.face;
+            setPhoto('', '');
+            fx.pop(faceEl, 0.6);
+          })
+        );
+        // a picked picture or banner: stills are cut to size here; a GIF is kept as it is so it moves
+        const picker = (sel, kind, errSel, apply, popEl) =>
+          $$(sel).addEventListener('change', async (e) => {
+            const err = $$(errSel);
+            err.textContent = '';
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            try {
+              // a still picture: they choose the part to keep (a GIF keeps its middle)
+              let crop = null;
+              if (/^image\//.test(file.type) && file.type !== 'image/gif') {
+                crop = await ui.cropPicture(file, kind);
+                if (!crop) return;
+              }
+              const picture = await ui.pictureFrom(file, kind, crop);
+              apply(picture.still, media ? picture.gif : '');
+              fx.pop(popEl(), 0.6);
+            } catch (error) {
+              err.textContent = error.message;
+            }
+          });
+        picker('#ep-photo', 'photo', '#ep-photo-err', setPhoto, () => faceEl);
+        $$('#ep-photo-remove').addEventListener('click', () => setPhoto('', ''));
+        if (media) {
+          picker('#ep-banner-file', 'banner', '#ep-banner-err', setBanner, () => $$('#ep-banner'));
+          $$('#ep-banner-remove').addEventListener('click', () => setBanner('', ''));
+        }
+        wireSwatches(body.querySelector('[data-swatches]'), (seed) => {
+          model.color = seed;
+          av.style.setProperty('--av', seed);
+          av.style.setProperty('--av-ink', ui.ink(seed));
+          $$('#ep-top').style.setProperty('--av', seed);
+          paintDots();
+          previewScheme();
+        });
+        wireGrid(body.querySelector('.shape-grid'), 'shape', (name) => {
+          model.shape = name;
+          shape.transitionTo(name, { spring: true });
+          if (model.photo) paint();
+        });
+      },
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Save',
+          variant: 'filled',
+          run(close, body) {
+            if (saving) return false;
+            const name = body.querySelector('#ep-input').value.trim();
+            const err = body.querySelector('#ep-err');
+            if (!/^[A-Za-z0-9_]{3,20}$/.test(name)) {
+              err.textContent = 'Use 3–20 letters, numbers or underscores.';
+              return false;
+            }
+            const bio = body.querySelector('#ep-bio').value.trim();
+            const verdict = Nook.mod.check([name.replace(/_/g, ' '), bio], { kind: 'profile' });
+            const problem =
+              verdict.block ||
+              (Nook.mod.check([name.replace(/_/g, ' ')], { kind: 'profile' }).strong && { why: 'Keep swearing out of your username.' }) ||
+              verdict.warn.find((w) => w.rule === Nook.mod.RULES.personal);
+            if (problem) {
+              err.textContent = problem.why;
+              return false;
+            }
+            const fields = { name, bio, color: model.color, shape: model.shape, icon: model.icon };
+            if (fonts) fields.font = model.font;
+            if (more) {
+              const pronouns = body.querySelector('#ep-pronouns').value.trim().replace(/\s+/g, ' ');
+              const pronounsErr = body.querySelector('#ep-pronouns-err');
+              if (pronouns && !/^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u.test(pronouns)) {
+                pronounsErr.textContent = 'Up to 24 letters, with / or spaces between them (like she/they).';
+                return false;
+              }
+              if (pronouns && (Nook.mod.check([pronouns], { kind: 'profile' }).block || Nook.mod.check([pronouns], { kind: 'profile' }).strong)) {
+                pronounsErr.textContent = 'Keep those to pronouns.';
+                return false;
+              }
+              Object.assign(fields, { pronouns, flag: model.flags[0] || '', flags: model.flags, interests: model.interests, scheme: model.scheme, sticker: model.sticker });
+            }
+            // pictures only travel when they changed: a new one as data (with its GIF), a removed one as ''
+            if (model.photo !== (me.photo || '')) Object.assign(fields, { photo: model.photo, photoGif: model.photoGif });
+            if (model.banner !== (me.banner || '')) Object.assign(fields, { banner: model.banner, bannerGif: model.bannerGif });
+            const uploading = fields.photoGif || fields.bannerGif || fields.photo || fields.banner;
+            saving = true;
+            err.textContent = uploading ? 'Uploading…' : '';
+            store
+              .updateProfile(fields)
+              .then((updated) => {
+                close(true);
+                renderMe();
+                if (route.view === 'profile') go('#/u/' + encodeURIComponent(updated.name), { replace: true });
+                else render();
+                M3.toast('Profile updated', { symbol: 'face', shape: model.shape });
+              })
+              .catch((error) => {
+                saving = false;
+                err.textContent = error.message;
+              });
+            return false;
+          },
+        },
+      ],
+    });
+  }
+  ACTIONS['edit-profile'] = editProfile;
+
+  function shortcuts() {
+    // each key list reads as written: words between keys are shown as words
+    const keys = [
+      [['j', 'k'], 'Next / previous post'],
+      [['a', 'z'], 'Upvote / downvote'],
+      [['x'], 'Spark the post'],
+      [['s'], 'Save the post'],
+      [['o', 'or', 'Enter'], 'Open the post'],
+      [['n'], 'New post'],
+      [['/'], 'Search'],
+      [['g', 'then', 'h'], 'Go home (or p, e, s, i for popular, explore, saved, inbox)'],
+      [['t'], 'Light or dark'],
+      [['?'], 'This help'],
+      // in a call (calls.js listens for these first)
+      [['m'], 'In a call: mute or unmute'],
+      [['v'], 'In a call: camera on or off'],
+      [['Shift+S'], 'In a call: share your screen'],
+      [['r'], 'In a group call: ring people again'],
+      [['c'], 'In a call: hide it, or bring it back'],
+      [['Ctrl+D', 'or', 'Ctrl+E'], 'In a call: mute, or camera, even while typing'],
+    ];
+    const WORDS = ['or', 'then'];
+    ui.sheet({
+      headline: 'Keyboard shortcuts',
+      symbol: 'keyboard',
+      shape: 'squircle',
+      html: `<div class="keys">${keys
+        .map(([parts, what]) => `<span>${parts.map((k) => (WORDS.includes(k) ? `<span class="muted"> ${k} </span>` : `<kbd>${esc(k)}</kbd>`)).join(' ')}</span><span>${what}</span>`)
+        .join('')}</div>`,
+      actions: [{ label: 'Got it', variant: 'filled' }],
+    });
+  }
+  ACTIONS.shortcuts = () => {
+    closeDrawer();
+    shortcuts();
+  };
+
+  ACTIONS['about-nook'] = () => {
+    closeDrawer();
+    const points = [
+      ['forum', 'cookie6', 'Everything here is written by people. No bots, no made-up posts, no padded numbers.'],
+      ['favorite', 'heart', 'Vote, add Sparks to what you love, and save the good stuff into collections.'],
+      ['palette', 'flower', 'Every nest has its own colour and shape, and Budgie wears them as you move around.'],
+      ['add_circle', 'clover4', 'Can’t find your people? Start a nest of your own.'],
+      Nook.ads.on
+        ? ['lock', 'pixelCircle', 'Ads only ever sit between posts: never in your chats or on top of what you read. Your account lives on Budgie’s own small server, not a big company’s.']
+        : ['lock', 'pixelCircle', 'No ads, no trackers, no cookies. Your account lives on Budgie’s own small server, not a big company’s.'],
+    ];
+    ui.sheet({
+      headline: 'What’s Budgie?',
+      symbol: 'diversity_3',
+      shape: 'cookie9',
+      html:
+        '<p class="muted" style="margin-top:0">A home for communities, called nests.</p><ul class="about-nook">' +
+        points.map(([symbol, shape, text]) => `<li><m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon><span>${text}</span></li>`).join('') +
+        '</ul>',
+      actions: [
+        { label: 'Close', variant: 'text' },
+        { label: 'Find your nests', variant: 'filled', run: () => { go('#/explore'); } },
+      ],
+    });
+  };
+
+  const CREDITS = {
+    creator: { name: 'Teofil Ionescu-Mihai', role: 'Creator and main developer', color: '#6750a4', shape: 'sunny' },
+    testers: [
+      { name: 'Alex Vochin', color: '#3d7bff', shape: 'cookie9' },
+      { name: 'Petcu David Andrei', color: '#00a6a6', shape: 'clover4' },
+      { name: 'Crisu Radu', color: '#ff8a3d', shape: 'flower' },
+    ],
+  };
+  ACTIONS.credits = () => {
+    closeDrawer();
+    const person = (p, size, role) =>
+      `<li>${avatar(p, size)}<span class="row-text"><b translate="no">${esc(p.name)}</b><small>${esc(role)}</small></span></li>`;
+    ui.sheet({
+      headline: 'Credits',
+      symbol: 'stars',
+      shape: 'sunny',
+      className: 'credits-sheet',
+      html:
+        `<ul class="credits credits-lead">${person(CREDITS.creator, 56, CREDITS.creator.role)}</ul>` +
+        '<h3 class="credits-heading">Testers and supporters</h3>' +
+        `<ul class="credits">${CREDITS.testers.map((p) => person(p, 40, 'Tester and supporter')).join('')}</ul>` +
+        `<p class="muted credits-foot">Budgie ${esc(store.VERSION)} · Thank you for helping make it.</p>`,
+      setup(body) {
+        fx.stagger([...body.querySelectorAll('li')], { y: 10, step: 60 });
+      },
+      actions: [{ label: 'Close', variant: 'filled' }],
+    });
+  };
+
+  // ---- storage and cookies: said once, plainly ----------------------------------------------------
+
+  function storageNotice({ banner = false } = {}) {
+    const ads = Nook.ads.on;
+    const text = ads
+      ? 'Budgie keeps you signed in with a small key in this browser’s storage, and your posts and profile live on Budgie’s server. Budgie itself uses no cookies or tracking. The ads between posts come from Google, which uses cookies for them only as far as you allow.'
+      : 'Budgie keeps you signed in with a small key in this browser’s storage. Your posts and profile live on Budgie’s server. No cookies, no ads, no tracking.';
+    if (!banner) {
+      ui.sheet({
+        headline: 'Storage and cookies',
+        symbol: 'cookie',
+        shape: 'cookie9',
+        html:
+          `<p>${text}</p><p class="muted">The sign-in key is needed to keep you signed in, so there’s nothing to switch off. Signing out removes it.</p>` +
+          (ads ? '<p class="muted">Ads aren’t personalised. In the EU, the UK and Switzerland, Google asks before using cookies for ads, and you can change your answer any time.</p>' : '') +
+          '<p><a class="md" style="color:var(--m3-primary)" href="privacy.html">Read the Privacy Policy</a></p>',
+        actions: ads
+          ? [{ label: 'Ad cookie choices', variant: 'text', run: () => Nook.ads.choices() }, { label: 'Got it', variant: 'filled' }]
+          : [{ label: 'Got it', variant: 'filled' }],
+      });
+      return;
+    }
+    // shown once, and once more when ads arrive, since that changes what Budgie does
+    if (ads ? store.state.noticeSeen === 'ads' : store.state.noticeSeen) return;
+    const el = document.createElement('aside');
+    el.className = 'storage-notice';
+    el.setAttribute('aria-label', 'Storage and cookies');
+    el.innerHTML =
+      `<m3-shape-icon shape="cookie9" symbol="cookie" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
+      (ads
+        ? '<p>New: Budgie now shows ads from Google between posts, never in chats. They aren’t personalised. <a href="privacy.html">What changed</a></p>'
+        : '<p>No cookies, no ads, no tracking: Budgie only keeps a sign-in key on this device. <a href="privacy.html">Privacy Policy</a></p>') +
+      '<button class="m3-btn filled small" type="button">Got it</button>';
+    el.querySelector('button').addEventListener('click', () => {
+      store.state.noticeSeen = ads ? 'ads' : true;
+      store.save();
+      fx.settled(fx.play(el, [{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: '0 16px' }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => el.remove());
+    });
+    document.body.appendChild(el);
+    fx.play(el, [{ opacity: 0, translate: '0 16px' }, { opacity: 1, translate: '0 0' }], { duration: 320, easing: fx.decel });
+  }
+  ACTIONS['storage-notice'] = () => storageNotice();
+  ACTIONS['ad-choices'] = () => Nook.ads.choices();
+
+  ACTIONS.export = async () => {
+    let data;
+    try {
+      data = await store.exportData();
+    } catch (error) {
+      return showError(error);
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `budgie-${store.state.me.name}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    M3.toast('Exported', { symbol: 'download', shape: 'pixelCircle' });
+  };
+
+  // ---- sort controls, used by the feed pages ---------------------------------------------------------
+
+  app.onSort = (root, fn) => {
+    const el = root.querySelector('#sort');
+    if (el) el.addEventListener('change', (e) => fn(e.detail.value));
+  };
+
+  // ---- the composer -------------------------------------------------------------------------------------
+
+  function shrinkImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('read'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('decode'));
+        img.onload = () => {
+          const max = 1280;
+          const scale = Math.min(1, max / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.84));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  app.mountSubmit = (root, startNook, startType, draft) => {
+    const form = $('#submit-form', root);
+    const model = {
+      nook: startNook,
+      type: startType,
+      flair: draft.flair || null,
+      image: null,
+      video: null, // a video already sent and checked (1.0): { id, url, poster, … }
+      poll: draft.poll && draft.poll.length >= 2 ? draft.poll : ['', ''],
+    };
+    const title = $('#f-title', root);
+    const body = $('#f-body', root);
+    const url = $('#f-url', root);
+    const spoiler = $('#f-spoiler', root);
+    const status = $('#f-status', root);
+
+    // the nook you're posting in: the app wears its colours while you write
+    const setNook = (c) => {
+      model.nook = c;
+      if (!(c.flairs || []).includes(model.flair)) model.flair = null;
+      $('#nook-picker', root).innerHTML = `${nookIcon(c, 32, 18)}<span>n/${esc(c.id)}</span>${icon('expand_more')}`;
+      $('#f-flairs', root).innerHTML = (c.flairs || []).map((f) => `<button type="button" class="chip" data-flair="${esc(f)}" aria-pressed="${f === model.flair}">${esc(f)}</button>`).join('') || '<span class="muted">This nest has no flairs.</span>';
+      $('#submit-rail', root).innerHTML = views.submitRail(c);
+      viewNook = c;
+      viewWear = { color: c.color };
+      ui.theme.setRoot(S().themeNooks ? c.color : null);
+      if (brandShape.showing !== c.shape) brandShape.transitionTo(c.shape, { spring: true });
+      renderDrawerNooks();
+    };
+    setNook(startNook);
+
+    $('#nook-picker', root).addEventListener('click', (e) => {
+      const joined = store.state.joined.map(store.community).filter(Boolean);
+      const others = store.allCommunities().filter((c) => !store.state.joined.includes(c.id));
+      menu(e.currentTarget, [
+        ...joined.map((c) => ({ label: `n/${c.id}`, symbol: c.symbol, onSelect: () => (setNook(c), saveDraft()) })),
+        others.length ? { separator: true } : null,
+        ...others.map((c) => ({ label: `n/${c.id}`, symbol: c.symbol, onSelect: () => (setNook(c), saveDraft()) })),
+      ]);
+    });
+
+    $('#f-flairs', root).addEventListener('click', (e) => {
+      const chip = e.target.closest('[data-flair]');
+      if (!chip) return;
+      model.flair = model.flair === chip.dataset.flair ? null : chip.dataset.flair;
+      $$('[data-flair]', root).forEach((other) => other.setAttribute('aria-pressed', String(other.dataset.flair === model.flair)));
+      saveDraft();
+    });
+
+    const showType = () => {
+      $$('[data-for]', root).forEach((el) => (el.hidden = el.dataset.for !== model.type));
+      $('#f-body-optional', root).hidden = false;
+    };
+    showType();
+    $('#post-type', root).addEventListener('change', (e) => {
+      model.type = e.detail.value;
+      showType();
+      saveDraft();
+    });
+
+    const count = () => ($('#f-title-count', root).textContent = `${title.value.length}/300`);
+    count();
+    title.addEventListener('input', () => {
+      count();
+      $('#f-title-err', root).textContent = '';
+    });
+
+    // formatting buttons wrap the selection
+    $$('.format-bar [data-wrap-a]', root).forEach((b) =>
+      b.addEventListener('click', () => {
+        const a = b.dataset.wrapA;
+        const z = b.dataset.wrapB;
+        const { selectionStart: s, selectionEnd: t, value } = body;
+        const picked = value.slice(s, t) || (z ? 'text' : '');
+        const lineStart = !z ? value.lastIndexOf('\n', s - 1) + 1 : s;
+        if (!z) body.value = value.slice(0, lineStart) + a + value.slice(lineStart);
+        else body.value = value.slice(0, s) + a + picked + z + value.slice(t);
+        body.focus();
+        const at = !z ? t + a.length : s + a.length;
+        body.setSelectionRange(at, at + (z ? picked.length : 0));
+        saveDraft();
+      })
+    );
+
+    $('#body-mode', root).addEventListener('change', (e) => {
+      const preview = e.detail.value === 'preview';
+      $('#f-write', root).hidden = preview;
+      const box = $('#f-preview', root);
+      box.hidden = !preview;
+      box.innerHTML = body.value.trim() ? ui.md(body.value) : '<p class="muted">Nothing to preview yet.</p>';
+    });
+
+    // the image: chosen or dropped, then shrunk to fit in local storage
+    const drop = $('#f-drop', root);
+    const inner = $('#f-drop-inner', root);
+    const placeholder = inner.innerHTML;
+    const showImage = () => {
+      if (model.image || model.video || model.gif) {
+        inner.innerHTML =
+          (model.video
+            ? `<video src="${esc(model.video.url)}" poster="${esc(model.video.poster)}" controls playsinline preload="metadata" aria-label="Your video"></video>`
+            : model.gif
+              ? `<img class="gif-pick" src="${esc(model.gif.url)}" alt="${esc(model.gif.title || 'GIF')}" translate="no" referrerpolicy="no-referrer"${model.gif.width && model.gif.height ? ` style="aspect-ratio:${model.gif.width}/${model.gif.height}"` : ''}>`
+              : `<img src="${model.image}" alt="Your image">`) +
+          `<button type="button" class="m3-icon-btn filled remove" id="f-remove" aria-label="${model.video ? 'Remove video' : 'Remove image'}"><span translate="no" class="m3-icon">close</span></button>`;
+        $('#f-remove', root).addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          model.image = null;
+          model.video = null;
+          model.gif = null;
+          showImage();
+        });
+      } else {
+        inner.innerHTML = placeholder;
+      }
+    };
+    // a GIF goes as it is (made smaller, it would stop moving); a video is sent at once, and made ready and checked
+    // on the server while you write the rest
+    const readGif = (file) =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('read'));
+        reader.readAsDataURL(file);
+      });
+    let sending = 0;
+    const takeFile = async (file) => {
+      const err = $('#f-image-err', root);
+      err.textContent = '';
+      const isVideo = !!file && store.state.videos && (file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|3gp|mkv)$/i.test(file.name));
+      if (!file || (!file.type.startsWith('image/') && !isVideo)) {
+        err.textContent = store.state.videos ? 'That doesn’t look like a picture or a video.' : 'That doesn’t look like an image.';
+        return;
+      }
+      model.image = null;
+      model.video = null;
+      model.gif = null;
+      if (isVideo) {
+        if (file.size > 100 * 1024 * 1024) {
+          err.textContent = 'That video is too big. Try one under 100 MB (or a shorter one).';
+          return showImage();
+        }
+        const ticket = ++sending;
+        inner.innerHTML = `<span class="upload-progress"><m3-loading></m3-loading><b id="f-up-text">Sending your video… 0%</b><span class="upload-bar"><span id="f-up-bar"></span></span></span>`;
+        const submitBtn = $('#f-submit', root);
+        submitBtn.disabled = true;
+        try {
+          const video = await store.uploadVideo(file, (p) => {
+            if (ticket !== sending || !$('#f-up-text', root)) return;
+            $('#f-up-bar', root).style.width = Math.round(p * 100) + '%';
+            $('#f-up-text', root).textContent = p < 1 ? `Sending your video… ${Math.round(p * 100)}%` : 'Getting it ready and checking it…';
+          });
+          if (ticket !== sending) return;
+          model.video = video;
+        } catch (error) {
+          if (ticket !== sending) return;
+          err.textContent = error.message;
+        }
+        submitBtn.disabled = false;
+        return showImage();
+      }
+      inner.innerHTML = '<m3-loading></m3-loading>';
+      try {
+        if (file.type === 'image/gif' && store.state.videos) {
+          if (file.size > 6 * 1024 * 1024) throw Object.assign(new Error('big'), { tooBig: true });
+          model.image = await readGif(file);
+        } else {
+          model.image = await shrinkImage(file);
+          if (model.image.length > 2_400_000) throw Object.assign(new Error('big'), { tooBig: true });
+        }
+      } catch (error) {
+        model.image = null;
+        err.textContent = error.tooBig ? (file.type === 'image/gif' ? 'That GIF is too big. Try one under 6 MB.' : 'That image is too big. Try a smaller one.') : 'Couldn’t read that image.';
+      }
+      showImage();
+    };
+    $('#f-file', root).addEventListener('change', (e) => takeFile(e.target.files[0]));
+    // or a GIF from KLIPY's search (1.0): the post keeps KLIPY's link, as a chat does
+    const gifBtn = $('#f-gif', root);
+    if (gifBtn)
+      gifBtn.addEventListener('click', async () => {
+        const g = await Nook.pickers.gif();
+        if (!g) return;
+        sending++;
+        $('#f-submit', root).disabled = false;
+        $('#f-image-err', root).textContent = '';
+        model.image = null;
+        model.video = null;
+        model.gif = g;
+        showImage();
+      });
+    drop.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      drop.classList.add('over');
+    });
+    drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+    drop.addEventListener('drop', (e) => {
+      e.preventDefault();
+      drop.classList.remove('over');
+      takeFile(e.dataTransfer.files[0]);
+    });
+
+    // poll options
+    const pollBox = $('#f-poll', root);
+    const drawPoll = () => {
+      pollBox.innerHTML = model.poll
+        .map(
+          (text, i) =>
+            `<div class="opt"><input class="m3-field" data-opt="${i}" maxlength="80" placeholder="Option ${i + 1}" value="${esc(text)}">` +
+            (model.poll.length > 2 ? `<button type="button" class="m3-icon-btn small" data-drop-opt="${i}" aria-label="Remove option ${i + 1}"><span translate="no" class="m3-icon">close</span></button>` : '') +
+            '</div>'
+        )
+        .join('');
+      $('#f-poll-add', root).hidden = model.poll.length >= 6;
+    };
+    drawPoll();
+    pollBox.addEventListener('input', (e) => {
+      const i = e.target.dataset.opt;
+      if (i != null) model.poll[+i] = e.target.value;
+      saveDraft();
+    });
+    pollBox.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-drop-opt]');
+      if (!b) return;
+      model.poll.splice(+b.dataset.dropOpt, 1);
+      drawPoll();
+      saveDraft();
+    });
+    $('#f-poll-add', root).addEventListener('click', () => {
+      model.poll.push('');
+      drawPoll();
+      pollBox.querySelector(`[data-opt="${model.poll.length - 1}"]`).focus();
+    });
+
+    // drafts keep themselves
+    let draftTimer = 0;
+    function saveDraft() {
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => {
+        store.state.draft = { n: model.nook.id, type: model.type, title: title.value, body: body.value, url: url.value, flair: model.flair, spoiler: spoiler.checked, poll: model.poll };
+        store.save();
+        status.textContent = 'Draft saved';
+        M3.rollText(status, 'Draft saved · ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      }, 500);
+    }
+    [title, body, url].forEach((el) => el.addEventListener('input', saveDraft));
+    spoiler.addEventListener('change', saveDraft);
+    app.onLeave(() => clearTimeout(draftTimer));
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let ok = true;
+      const fail = (id, text, el) => {
+        $(id, root).textContent = text;
+        if (ok && el) el.focus();
+        ok = false;
+      };
+      ['#f-title-err', '#f-image-err', '#f-url-err', '#f-poll-err'].forEach((id) => ($(id, root).textContent = ''));
+      const t = title.value.trim();
+      if (t.length < 3) fail('#f-title-err', 'Give your post a title (at least 3 characters).', title);
+      let link = null;
+      if (model.type === 'image' && !model.image && !model.video && !model.gif) fail('#f-image-err', store.state.videos ? 'Add a picture, GIF or video, or switch to a text post.' : 'Add an image, or switch to a text post.', drop);
+      if (model.type === 'link') {
+        try {
+          const u = new URL(url.value.trim());
+          if (!/^https?:$/.test(u.protocol)) throw new Error('scheme');
+          link = { url: u.href, domain: u.hostname.replace(/^www\./, ''), title: t };
+        } catch (_) {
+          fail('#f-url-err', 'That link doesn’t look right. It should start with https://', url);
+        }
+      }
+      const options = model.poll.map((o) => o.trim()).filter(Boolean);
+      if (model.type === 'poll' && options.length < 2) fail('#f-poll-err', 'A poll needs at least two options.', pollBox.querySelector('input'));
+      if (!ok) {
+        M3.motion.animate(form, [{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(0)' }], { duration: 260 });
+        return;
+      }
+      if (!(await vet([t, body.value, ...options, link && link.url], { kind: 'post' }))) return;
+      clearTimeout(draftTimer);
+      const submitBtn = $('#f-submit', root);
+      submitBtn.disabled = true;
+      M3.rollText(status, 'Posting…');
+      let p;
+      try {
+        const video = model.type === 'image' && model.video;
+        const gif = model.type === 'image' && !video && model.gif;
+        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : gif ? 'gif' : model.type, flair: model.flair, link, image: video || gif ? null : model.image, video: video ? video.id : undefined, gif: gif || undefined, poll: options, spoiler: spoiler.checked });
+      } catch (error) {
+        submitBtn.disabled = false;
+        M3.rollText(status, 'Not posted yet');
+        if (error.field && $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root)) $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root).textContent = error.message;
+        else showError(error);
+        return;
+      }
+      go(`#/n/${p.n}/p/${p.id}`, { replace: true });
+      M3.toast(`Posted to n/${p.n}`, { symbol: 'send', shape: model.nook.shape });
+      // the new post lands with a little confetti in its nook's shape
+      setTimeout(() => {
+        const card = $('.post.is-open', main);
+        if (!card) return;
+        fx.pop(card, 0.94);
+        fx.confetti(card.querySelector('.post-title') || card, { shapes: [model.nook.shape, 'sunny', 'heart', 'cookie9'], count: 26 });
+        fx.haptic([10, 60, 20]);
+      }, 380);
+    });
+  };
+
+  // ---- keyboard shortcuts ---------------------------------------------------------------------------------
+
+  let gPending = 0;
+  function focusedPost() {
+    return $('.post.kb-focus', main) || null;
+  }
+  function moveFocus(step) {
+    const posts = $$('.post', main);
+    if (!posts.length) return;
+    const now = focusedPost();
+    let i = now ? posts.indexOf(now) + step : step > 0 ? 0 : posts.length - 1;
+    i = Math.max(0, Math.min(posts.length - 1, i));
+    if (now) now.classList.remove('kb-focus');
+    posts[i].classList.add('kb-focus');
+    posts[i].scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target;
+    if (t.closest && t.closest('input, textarea, select, [contenteditable="true"], dialog')) {
+      if (e.key === 'Escape' && t.blur && !t.closest('dialog')) t.blur();
+      return;
+    }
+    // enter belongs to whatever has focus
+    if (e.key === 'Enter' && t !== document.body && t !== main) return;
+    if (e.key === 'Escape') {
+      closePicker();
+      closeDrawer();
+      topbar.classList.remove('searching');
+      return;
+    }
+    if (gPending) {
+      clearTimeout(gPending);
+      gPending = 0;
+      const dest = { h: '#/', p: '#/popular', e: '#/explore', s: '#/saved', i: '#/inbox' }[e.key];
+      if (dest) go(dest);
+      return;
+    }
+    const post = focusedPost() || (e.key === 'o' || e.key === 'Enter' ? null : $('.post.is-open', main));
+    const click = (sel) => {
+      const target = post && post.querySelector(sel);
+      if (target) target.click();
+    };
+    switch (e.key) {
+      case 'j':
+        moveFocus(1);
+        break;
+      case 'k':
+        moveFocus(-1);
+        break;
+      case 'a':
+        click('.post-actions .vote .up');
+        break;
+      case 'z':
+        click('.post-actions .vote .down');
+        break;
+      case 's':
+        click('[data-act="save"]');
+        break;
+      case 'x':
+        click('[data-act="spark-picker"]');
+        break;
+      case 'o':
+      case 'Enter':
+        if (post && post.dataset.href) go(post.dataset.href);
+        else return;
+        break;
+      case 'n':
+        go('#/submit');
+        break;
+      case 't':
+        $('#theme-btn').click();
+        break;
+      case '/':
+        if (getComputedStyle(searchInput.closest('form')).display === 'none') topbar.classList.add('searching');
+        searchInput.focus();
+        searchInput.select();
+        break;
+      case '?':
+        shortcuts();
+        break;
+      case 'g':
+        gPending = setTimeout(() => (gPending = 0), 1200);
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+  });
+
+  // ---- notifications ------------------------------------------------------------------------------------
+
+  store.on('notify', (note) => {
+    renderBadges();
+    // what someone else did gets a toast; badges have their own celebration
+    if (['reply', 'friend', 'moderation', 'report', 'nest'].includes(note.kind)) M3.toast(note.text, { symbol: note.symbol, shape: note.shape, timeout: 3600 });
+  });
+
+  // ---- live: what the server says changed ------------------------------------------------------------
+
+  const said = (m, inGroup) => (m.kind ? views.lineText(m, inGroup) : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70));
+  store.on('messages', (incoming = []) => {
+    renderBadges();
+    // a group's chat only listens for its own news
+    if (main._onMessages && route && route.view !== 'groupThread') return main._onMessages(incoming);
+    const last = incoming[incoming.length - 1];
+    // a chat's new colour shows in the chat itself; it isn't news to pop up about
+    if (!last || last.kind === 'theme') return;
+    M3.snackbar(`u/${last.from}: ${said(last)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
+  });
+
+  store.on('gmessages', (incoming = []) => {
+    renderBadges();
+    if (main._onMessages && route && (route.view === 'groupThread' || route.view === 'messagesPage')) return main._onMessages(incoming);
+    const last = incoming[incoming.length - 1];
+    const g = last && store.group(last.group);
+    if (!g || (last.from && store.isBlocked(last.from))) return;
+    M3.snackbar(`${g.name} · ${last.from && !last.kind ? 'u/' + last.from + ': ' : ''}${said(last, true)}`, { timeout: 6000, action: { label: 'Open', onClick: () => go('#/messages/g/' + encodeURIComponent(g.id)) } });
+  });
+
+  store.on('groups', () => {
+    renderBadges();
+    if (main._onGroups) main._onGroups();
+  });
+
+  store.on('friends', () => {
+    renderBadges();
+    if (main._onFriends) main._onFriends();
+  });
+
+  // a chat's colour changed (here, or by the friend on the other end): the chat wears it at once
+  store.on('chatTheme', () => {
+    if (route && route.view === 'thread') render();
+  });
+
+  store.on('synced', (news) => {
+    renderBadges();
+    offline = 0;
+    if (!route) return;
+    // other people's votes and Sparks show up on the cards already on screen
+    for (const id of news.changed) {
+      const p = store.post(id);
+      if (!p) continue;
+      for (const card of $$(`.post[data-post="${id}"]`, main)) {
+        const score = card.querySelector('.post-actions .score');
+        if (score && score.textContent !== num(store.score(p))) {
+          score.textContent = num(store.score(p));
+          fx.pop(score, 0.7);
+        }
+        const row = card.querySelector('.sparks');
+        if (row) row.outerHTML = views.sparksRow(p);
+      }
+    }
+    if (route.view === 'postPage') {
+      const id = route.params.post;
+      if (news.removed.includes(id)) {
+        M3.snackbar('This post was just removed.');
+        return go('#/n/' + route.params.nook, { replace: true });
+      }
+      // new comments slide in, unless you're in the middle of writing one
+      const typing = $$('.reply-box textarea', main).some((t) => t.value.trim());
+      const touched = news.touched.some((cid) => {
+        const c = store.commentsById.get(cid);
+        return c && c.postId === id;
+      });
+      if (!typing && (news.comments.some((c) => c.postId === id) || news.removed.length || touched)) rerenderComments();
+      return;
+    }
+    const fits = (p) => (route.view === 'home' ? store.state.joined.includes(p.n) : route.view === 'community' ? p.n === route.params.nook : route.view === 'popular');
+    const fresh = news.posts.filter(fits);
+    if (fresh.length) newPostsPill(fresh.length);
+  });
+
+  /** "3 new posts": a pill at the top of a feed that brings them in */
+  function newPostsPill(count) {
+    let pill = $('.new-posts', main);
+    const total = (pill ? Number(pill.dataset.count) : 0) + count;
+    if (!pill) {
+      pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'm3-btn filled new-posts';
+      pill.addEventListener('click', () => {
+        pill.remove();
+        render();
+        scrollTo({ top: 0, behavior: fx.reduced() ? 'auto' : 'smooth' });
+      });
+      main.prepend(pill);
+      fx.play(pill, [{ opacity: 0, translate: '-50% -12px' }, { opacity: 1, translate: '-50% 0' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
+    }
+    pill.dataset.count = String(total);
+    pill.innerHTML = `${icon('arrow_upward')}${plural(total, 'new post')}`;
+  }
+
+  let offline = 0;
+  store.on('sync-failed', (error) => {
+    offline++;
+    if (offline === 2) M3.snackbar(error.offline ? 'Can’t reach Budgie’s server right now. Your changes may not save until it’s back.' : error.message);
+  });
+  store.on('error', (error) => showError(error));
+  store.on('changed', () => render());
+  Nook.api.onSignedOut(() => {
+    M3.snackbar('You’ve been signed out. Sign in again to carry on.');
+    setTimeout(() => location.replace(location.pathname), 1800);
+  });
+
+  // the language you picked on another device (kept with your settings) is the one here too
+  if (Nook.i18n && S().lang && S().lang !== Nook.i18n.lang && Nook.i18n.LANGS[S().lang]) {
+    let tried = false;
+    try {
+      tried = sessionStorage.getItem('nook-lang-followed') === S().lang;
+      sessionStorage.setItem('nook-lang-followed', S().lang);
+    } catch (_) {
+      tried = true;
+    }
+    if (!tried) Nook.i18n.choose(S().lang);
+  }
+
+  // calm mode (1.0): the little bursts of shapes on votes, Sparks and joins stay away too
+  const burstAway = M3.burst;
+  M3.burst = (...args) => (S().calm ? null : burstAway(...args));
+
+  store.on('badge', (badge) => {
+    // in calm mode a badge arrives quietly: it's on your profile, with no fanfare
+    if (S().calm) return;
+    setTimeout(() => {
+      M3.toast(`Badge unlocked: ${badge.name}`, { symbol: badge.symbol, shape: badge.shape, timeout: 3200 });
+      fx.confetti({ x: innerWidth / 2, y: innerHeight - (innerWidth < 720 ? 130 : 60) }, { shapes: [badge.shape, badge.shape, 'sunny'], count: 24, power: 0.9 });
+      fx.haptic([8, 50, 8]);
+    }, 600);
+  });
+
+  // the break reminder counts time you actually spend looking
+  let looked = 0;
+  let nudgeAt = 0;
+  function scheduleBreak() {
+    nudgeAt = S().breakMinutes ? Math.max(looked, 0) + S().breakMinutes * 60 : 0;
+  }
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    looked += 15;
+    if (!nudgeAt || looked < nudgeAt || document.querySelector('dialog[open]')) return;
+    nudgeAt = 0;
+    M3.dialog({
+      headline: 'Time for a breather?',
+      symbol: 'self_improvement',
+      iconShape: 'heart',
+      body: `You’ve been on Budgie for about ${S().breakMinutes} minutes. Stretch, sip some water, look at something far away. The nests will still be here.`,
+      actions: [{ label: '5 more minutes', value: 'snooze' }, { label: 'Take a break', value: 'break', variant: 'filled' }],
+    }).then((choice) => {
+      if (choice === 'snooze') nudgeAt = looked + 5 * 60;
+      else {
+        scheduleBreak();
+        if (choice === 'break') M3.toast('See you soon', { symbol: 'spa', shape: 'flower' });
+      }
+    });
+  }, 15000);
+
+  // ---- scrolling: a lifted top bar, a bottom bar that steps aside, a way back up ------------------------
+
+  const fab = document.createElement('button');
+  fab.type = 'button';
+  fab.className = 'fab-top';
+  fab.setAttribute('aria-label', 'Back to top');
+  fab.dataset.tooltip = 'Back to top';
+  fab.innerHTML = '<m3-shape shape="cookie9" aria-hidden="true"></m3-shape><span translate="no" class="m3-icon" aria-hidden="true">arrow_upward</span>';
+  document.body.appendChild(fab);
+  fab.addEventListener('click', () => {
+    fx.haptic(8);
+    fx.play(fab.querySelector('m3-shape'), [{ rotate: '0deg' }, { rotate: '360deg' }], { duration: 800, easing: 'cubic-bezier(.3,0,.2,1)' });
+    scrollTo({ top: 0, behavior: fx.reduced() ? 'auto' : 'smooth' });
+  });
+
+  let lastY = scrollY;
+  let ticking = false;
+  function onScroll() {
+    const y = scrollY;
+    topbar.classList.toggle('scrolled', y > 4);
+    fab.classList.toggle('shown', !!main.querySelector('[data-feed]') && y > innerHeight * 1.2);
+    // on a phone the bottom bar steps aside while you read on, and comes back as you go up; not in a chat, whose
+    // message box sits on top of it
+    const delta = y - lastY;
+    if (y < 80 || delta < -6 || main.querySelector('.chat-page')) document.body.classList.remove('bars-hidden');
+    else if (delta > 8) document.body.classList.add('bars-hidden');
+    lastY = y;
+  }
+  addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        onScroll();
+      });
+    },
+    { passive: true }
+  );
+
+  // ---- pull to refresh, on touch screens ------------------------------------------------------------
+
+  const ptr = document.createElement('div');
+  ptr.className = 'ptr';
+  ptr.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(ptr);
+  const PULL = 80;
+  let pull = null;
+  let pullArmed = false;
+
+  // typing, or the keyboard up: the page must scroll freely, so a pull never starts
+  const typing = () => !!document.activeElement && document.activeElement.matches('input, textarea, select, [contenteditable="true"]');
+  const keyboardUp = () => !!window.visualViewport && visualViewport.height < innerHeight - 120;
+
+  // a touchmove listener that can cancel makes every scroll wait for this page, so it's only
+  // there on feeds, where pulling down refreshes
+  function armPull(on) {
+    if (on === pullArmed) return;
+    pullArmed = on;
+    if (on) addEventListener('touchmove', onPullMove, { passive: false });
+    else removeEventListener('touchmove', onPullMove, { passive: false });
+    if (!on) pull = null;
+  }
+
+  function resetPull() {
+    ptr.classList.remove('pulling', 'refreshing');
+    ptr.style.translate = '';
+    ptr.style.opacity = '';
+    ptr.innerHTML = '<m3-shape shape="cookie9"></m3-shape>';
+  }
+  resetPull();
+
+  addEventListener(
+    'touchstart',
+    (e) => {
+      pull = null;
+      if (!pullArmed || e.touches.length !== 1 || scrollY > 0 || ptr.classList.contains('refreshing')) return;
+      if (typing() || keyboardUp() || drawer.classList.contains('open') || document.querySelector('dialog[open]')) return;
+      pull = { x: e.touches[0].clientX, y: e.touches[0].clientY, d: 0, active: false, armed: false };
+    },
+    { passive: true }
+  );
+  function onPullMove(e) {
+    if (!pull) return;
+    const dy = e.touches[0].clientY - pull.y;
+    const dx = e.touches[0].clientX - pull.x;
+    if (!pull.active) {
+      // only a pull that heads straight down
+      if (dy < 6 || Math.abs(dx) > dy) {
+        if (dy < -4 || Math.abs(dx) > 12) pull = null;
+        return;
+      }
+      pull.active = true;
+      ptr.classList.add('pulling');
+    }
+    if (scrollY > 0 || typing()) {
+      pull = null;
+      return resetPull();
+    }
+    e.preventDefault();
+    pull.d = Math.min(150, dy * 0.55);
+    const t = Math.min(1, pull.d / PULL);
+    const shape = ptr.querySelector('m3-shape');
+    ptr.style.translate = `0 ${pull.d - 64}px`;
+    ptr.style.opacity = String(Math.min(1, t * 1.5));
+    if (shape) {
+      shape.angle = pull.d * 3;
+      shape.style.scale = String(0.6 + t * 0.4);
+    }
+    // far enough: it changes shape and taps once, so you know letting go will refresh
+    if (t >= 1 && !pull.armed) {
+      pull.armed = true;
+      fx.haptic(8);
+      if (shape) shape.transitionTo('softBurst', { spring: true });
+    } else if (t < 1 && pull.armed) {
+      pull.armed = false;
+      if (shape) shape.transitionTo('cookie9', { spring: true });
+    }
+  }
+  addEventListener('touchend', () => {
+    if (!pull) return;
+    const armed = pull.active && pull.armed;
+    pull = null;
+    if (!armed) return resetPull();
+    ptr.classList.remove('pulling');
+    ptr.classList.add('refreshing');
+    ptr.style.translate = '0 18px';
+    ptr.innerHTML = '<m3-loading aria-label="Refreshing"></m3-loading>';
+    // really asks the server, and shows the spinner at least a moment so it doesn't flicker
+    const wait = new Promise((r) => setTimeout(r, 700));
+    Promise.all([store.sync(), wait]).then(() => {
+      render();
+      resetPull();
+      fx.haptic(6);
+      M3.toast('You’re up to date', { symbol: 'refresh', shape: 'cookie9' });
+    });
+  });
+
+  // ---- the on-screen keyboard -----------------------------------------------------------------------
+
+  // phones: how much of the window the keyboard covers, so what's pinned to the bottom (the chat
+  // box) can sit on top of it, and while you type the bottom bar steps aside
+  if (window.visualViewport) {
+    const vv = window.visualViewport;
+    const fitKeyboard = () => {
+      const covered = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+      document.documentElement.style.setProperty('--kb', (covered > 80 ? covered : 0) + 'px');
+      document.body.classList.toggle('keyboard', covered > 80 || (typing() && keyboardUp()));
+    };
+    vv.addEventListener('resize', fitKeyboard);
+    vv.addEventListener('scroll', fitKeyboard);
+  }
+  document.addEventListener('focusin', () => document.body.classList.toggle('typing', typing()));
+  document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', typing()), 0));
+
+  // ---- start ---------------------------------------------------------------------------------------
+
+  M3.spin.subscribe((value) => (brandShape.angle = value * 30));
+  store.touchStreak();
+  renderMe();
+  applySettings();
+  render();
+  renderBadges();
+  setTimeout(() => storageNotice({ banner: true }), 900);
+  // badges for a first visit (and streaks) arrive once the page has settled
+  setTimeout(() => store.checkBadges(), 1200);
+})();

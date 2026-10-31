@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Only the two scripts written into this page may run (their fingerprints are below; `python3
+       nook/tools/csp.py nook/index.html` refreshes them), and whatever those load: Budgie's own files,
+       and Google's ad code when ads are switched on. Ads show in frames, so frames may come from https. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-6B+8LVKVAqUpcyRWFB5gbVsjS8Luoq4i8Q9+Ew+rtW4=' 'sha256-CnMYptf+kJZulADqFKAA4oYqEMxVhKQ0kmT3wb4ehnE=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; media-src 'self' blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Budgie</title>
+  <meta name="description" content="Budgie is a friendly home for communities, called nests. Each nest has its own colour and shape. Post, comment, add friends, chat in groups and call. Free, and no email needed.">
+  <link rel="canonical" href="https://budgiesocial.com/">
+  <!-- the card a link shows on Discord, WhatsApp, iMessage and the like -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Budgie">
+  <meta property="og:title" content="Budgie: find your nest">
+  <meta property="og:description" content="A friendly home for communities. Every community is a nest with its own colour and shape. Post, comment, add friends, chat in groups and call. Free, and no email needed.">
+  <meta property="og:url" content="https://budgiesocial.com/">
+  <meta property="og:image" content="https://budgiesocial.com/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Budgie: find your nest">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#fdf7ff">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="../m3/fonts/fonts.css">
+  <link rel="stylesheet" href="../m3/m3.css">
+  <link rel="stylesheet" href="app.css">
+  <!-- first: hide the app until signing in decides what to show (someone not signed in sees the
+       welcome page), and refuse to run inside another site's frame, where someone could trick you into
+       tapping things -->
+  <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');</script>
+</head>
+<body class="m3-base">
+  <a class="skip" href="#main" id="skip">Skip to content</a>
+
+  <!-- what someone who isn't signed in sees first: what Budgie is, and the way in -->
+  <section class="landing" id="landing" aria-labelledby="landing-title">
+    <header class="landing-bar">
+      <span class="landing-brand" translate="no"><m3-shape shape="cookie9" aria-hidden="true"></m3-shape>budgie</span>
+      <span class="landing-bar-actions"><button type="button" class="m3-btn text lang-btn" id="lang-btn" aria-label="Language" aria-haspopup="menu" data-no-i18n><span translate="no" class="m3-icon" aria-hidden="true">translate</span><span id="lang-name" translate="no">English</span></button><button type="button" class="m3-btn text" data-gate="signin">Sign in</button><button type="button" class="m3-btn filled" data-gate="signup">Join</button></span>
+    </header>
+
+    <div class="landing-hero">
+      <div class="landing-hero-text">
+        <h1 id="landing-title">Find your nest.</h1>
+        <p class="landing-lead">Budgie is a friendly home for communities. Every community is a <b>nest</b>, with its own colour and shape, and the whole app changes to match the nest you’re in.</p>
+        <div class="landing-cta"><button type="button" class="m3-btn filled big" data-gate="signup"><span translate="no" class="m3-icon" aria-hidden="true">person_add</span>Join Budgie, it’s free</button><button type="button" class="m3-btn tonal big" data-gate="signin">Sign in</button></div>
+        <p class="landing-fine">No email or phone number needed. For ages 13 and up.</p>
+      </div>
+      <div class="landing-art" aria-hidden="true">
+        <m3-shape id="landing-shape" shape="cookie9"></m3-shape>
+        <span translate="no" class="m3-icon" id="landing-symbol">campaign</span>
+        <span class="landing-art-name" id="landing-name">n/budgiehq</span>
+      </div>
+    </div>
+
+    <section class="landing-section" aria-labelledby="landing-nests">
+      <h2 id="landing-nests">Communities are nests</h2>
+      <p>Tap one and watch Budgie change around it. Join the nests you like, or start your own.</p>
+      <div class="landing-chips">
+          <button type="button" class="nest-chip" data-nest="budgiehq" data-title="Budgie HQ" data-color="#6750a4" data-shape="cookie9" data-symbol="campaign" data-tagline="Ideas, feedback and questions about Budgie itself." data-example="Idea: let us pin our favourite nests to the top of the menu" aria-pressed="true"><m3-shape-icon shape="cookie9" symbol="campaign" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#6750a4;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/budgiehq</button>
+          <button type="button" class="nest-chip" data-nest="nightsky" data-title="Night Sky" data-color="#4b5bd6" data-shape="verySunny" data-symbol="rocket_launch" data-tagline="Looking up since forever." data-example="Saw the Moon and Jupiter side by side tonight. Did anyone else catch it?" aria-pressed="false"><m3-shape-icon shape="verySunny" symbol="rocket_launch" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#4b5bd6;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/nightsky</button>
+          <button type="button" class="nest-chip" data-nest="cozygames" data-title="Cozy Games" data-color="#8b5cf6" data-shape="ghostish" data-symbol="sports_esports" data-tagline="Farming, fishing, decorating. Zero jump scares." data-example="What’s the coziest game you’ve played this year?" aria-pressed="false"><m3-shape-icon shape="ghostish" symbol="sports_esports" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#8b5cf6;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/cozygames</button>
+          <button type="button" class="nest-chip" data-nest="houseplants" data-title="Plant Parenthood" data-color="#3f8f4f" data-shape="clover4" data-symbol="potted_plant" data-tagline="For people whose windowsills are slowly becoming jungles." data-example="My monstera just grew its first split leaf! Show me yours" aria-pressed="false"><m3-shape-icon shape="clover4" symbol="potted_plant" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#3f8f4f;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/houseplants</button>
+          <button type="button" class="nest-chip" data-nest="homecooking" data-title="Home Cooking" data-color="#ff8a3d" data-shape="cookie6" data-symbol="soup_kitchen" data-tagline="Recipes from real kitchens with real mess." data-example="Easy weeknight dinners that aren’t pasta? Go" aria-pressed="false"><m3-shape-icon shape="cookie6" symbol="soup_kitchen" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#ff8a3d;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/homecooking</button>
+          <button type="button" class="nest-chip" data-nest="webdev" data-title="Web Dev" data-color="#3d7bff" data-shape="pixelCircle" data-symbol="code" data-tagline="HTML, CSS, JS, and the endless argument about all three." data-example="Finally centred a div without looking it up. Ask me anything" aria-pressed="false"><m3-shape-icon shape="pixelCircle" symbol="code" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#3d7bff;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/webdev</button>
+          <button type="button" class="nest-chip" data-nest="bookclub" data-title="Book Nest" data-color="#b98c00" data-shape="clamShell" data-symbol="menu_book" data-tagline="Reading together, one chapter at a time." data-example="What’s a book you couldn’t put down?" aria-pressed="false"><m3-shape-icon shape="clamShell" symbol="menu_book" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#b98c00;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/bookclub</button>
+          <button type="button" class="nest-chip" data-nest="askbudgie" data-title="Ask Budgie" data-color="#c2185b" data-shape="softBurst" data-symbol="forum" data-tagline="Ask anything. Seriously, anything." data-example="What’s a small thing that made your day better?" aria-pressed="false"><m3-shape-icon shape="softBurst" symbol="forum" size="32" icon-size="17" aria-hidden="true" style="--m3-shape-icon-color:#c2185b;--m3-shape-icon-on-color:#fff"></m3-shape-icon>n/askbudgie</button>
+      </div>
+      <div class="nest-peek" id="nest-peek">
+        <div class="peek-head">
+          <m3-shape-icon id="peek-icon" shape="cookie9" symbol="campaign" size="56" icon-size="28" aria-hidden="true" style="--m3-shape-icon-color:#6750a4;--m3-shape-icon-on-color:#fff"></m3-shape-icon>
+          <div class="peek-name"><b id="peek-title">Budgie HQ</b><span id="peek-id">n/budgiehq</span></div>
+        </div>
+        <p class="peek-tag" id="peek-tag">Ideas, feedback and questions about Budgie itself.</p>
+        <article class="peek-post" aria-label="An example post">
+          <div class="peek-meta"><span id="peek-where">n/budgiehq</span> · u/you · <span class="peek-label">Example</span></div>
+          <h3 id="peek-example">Idea: let us pin our favourite nests to the top of the menu</h3>
+          <div class="peek-actions" aria-hidden="true"><span class="peek-act vote"><span translate="no" class="m3-icon">arrow_upward</span><span translate="no" class="m3-icon">arrow_downward</span></span><span class="peek-act"><span translate="no" class="m3-icon">chat_bubble</span></span><span class="peek-act"><span translate="no" class="m3-icon">add_reaction</span></span><span class="peek-act"><span translate="no" class="m3-icon">ios_share</span></span></div>
+        </article>
+        <div class="peek-foot"><span>This could be your first post.</span><button type="button" class="m3-btn filled" data-gate="signup"><span translate="no" class="m3-icon" aria-hidden="true">edit</span>Join to post</button></div>
+      </div>
+    </section>
+
+    <section class="landing-section" aria-labelledby="landing-features">
+      <h2 id="landing-features">What you can do</h2>
+      <div class="landing-grid">
+          <article class="landing-feature"><m3-shape-icon shape="cookie9" symbol="edit_note" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Post anything</h3><p>Text, pictures, GIFs, short videos, links and polls, with flairs and spoiler tags.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="heart" symbol="favorite" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Spark what you love</h3><p>Upvote, or add a Spark when something is lovely, clever, funny or wild.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="clover4" symbol="chat" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Friends, chats and calls</h3><p>Chat with friends one to one or in groups, send pictures and GIFs, and call them by voice or video.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="flower" symbol="self_improvement" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Calm when you want it</h3><p>Calm mode hides every number and streak. Break reminders, dark mode and compact cards too.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="pixelCircle" symbol="gavel" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Kind by design</h3><p>Word lists and small AI checks on Budgie’s own server stop bullying, nudity and scams. Swearing gets dotted out, and real people read every report.</p></article>
+          <article class="landing-feature"><m3-shape-icon shape="gem" symbol="lock" size="48" icon-size="24" aria-hidden="true"></m3-shape-icon><h3>Private by default</h3><p>No email or phone number to sign up. Budgie doesn’t track you or sell your data.</p></article>
+      </div>
+    </section>
+
+    <section class="landing-section landing-end" aria-labelledby="landing-new">
+      <h2 id="landing-new">Budgie 1.0 is here</h2>
+      <p>Built from scratch by one developer, and open to everyone. Something not right? Say so in n/budgiehq and it gets fixed.</p>
+      <button type="button" class="m3-btn filled big" data-gate="signup"><span translate="no" class="m3-icon" aria-hidden="true">egg</span>Find your nest</button>
+    </section>
+
+    <footer class="landing-foot"><a href="terms.html">Terms of Use</a><a href="privacy.html">Privacy Policy</a><a href="licenses.html">Open-source licenses</a></footer>
+  </section>
+
+
+  <header class="topbar" id="topbar">
+    <button class="m3-toolbar-btn only-narrow" id="menu-btn" data-effect="nudge-right" data-shape="cookie7" aria-label="Open navigation" aria-controls="drawer" aria-expanded="false"><span translate="no" class="m3-icon">menu</span></button>
+    <button class="m3-toolbar-btn" id="search-back" data-effect="nudge-left" data-shape="cookie7" aria-label="Close search"><span translate="no" class="m3-icon">arrow_back</span></button>
+    <a class="brand" href="#/" aria-label="Budgie home">
+      <m3-shape id="brand-shape" shape="cookie9" aria-hidden="true"></m3-shape>
+      <span class="m3-title brand-word" translate="no">budgie</span>
+    </a>
+    <form class="m3-search topbar-search" id="search-form" role="search">
+      <span translate="no" class="m3-icon">search</span>
+      <input type="search" id="search-input" placeholder="Search posts, nests and people" autocomplete="off" enterkeyhint="search">
+      <button type="button" class="m3-icon-btn small m3-search-clear" aria-label="Clear search"><span translate="no" class="m3-icon">close</span></button>
+    </form>
+    <div class="topbar-actions">
+      <button class="m3-toolbar-btn only-narrow" id="search-btn" data-shape="clover4" aria-label="Search" data-tooltip="Search"><span translate="no" class="m3-icon">search</span></button>
+      <a class="m3-btn filled create-btn only-wide" href="#/submit" data-tooltip="Create a post (n)"><span translate="no" class="m3-icon">add</span>Create</a>
+      <a class="m3-toolbar-btn only-wide" href="#/messages" data-shape="clover4" aria-label="Messages" data-tooltip="Messages"><span translate="no" class="m3-icon">chat</span><span class="badge" data-messages-badge hidden></span></a>
+      <a class="m3-toolbar-btn only-wide" id="inbox-btn" href="#/inbox" data-shape="clover4" aria-label="Inbox" data-tooltip="Inbox"><span translate="no" class="m3-icon">notifications</span><span class="badge" id="inbox-badge" hidden></span></a>
+      <button class="m3-toolbar-btn" id="theme-btn" data-effect="spin" data-shape="sunny" aria-label="Switch light or dark" data-tooltip="Light or dark"><span translate="no" class="m3-icon">dark_mode</span></button>
+      <button class="me-btn" id="me-btn" aria-label="Your account" data-tooltip="You"></button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="drawer" id="drawer" aria-label="Main navigation">
+      <div class="drawer-head">
+        <a class="brand" href="#/" aria-label="Budgie home"><m3-shape id="drawer-brand" shape="cookie9" aria-hidden="true"></m3-shape><span class="m3-title brand-word" translate="no">budgie</span></a>
+        <button class="m3-toolbar-btn" id="drawer-close" data-effect="spin" data-shape="cookie7" aria-label="Close navigation"><span translate="no" class="m3-icon">close</span></button>
+      </div>
+      <a class="drawer-me" id="drawer-me" href="#/" data-m3-ripple></a>
+      <div class="nav-main">
+      <a class="nav-item" href="#/" data-nav="home" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span><span class="nav-label">Home</span></a>
+      <a class="nav-item" href="#/popular" data-nav="popular" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">local_fire_department</span></span><span class="nav-label">Popular</span></a>
+      <a class="nav-item" href="#/explore" data-nav="explore" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">explore</span></span><span class="nav-label">Explore</span></a>
+      <a class="nav-item" href="#/friends" data-nav="friends" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">group</span></span><span class="nav-label">Friends</span><span class="nav-count" id="drawer-friends"></span></a>
+      <a class="nav-item" href="#/messages" data-nav="messages" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">chat</span></span><span class="nav-label">Messages</span><span class="nav-count" data-messages-badge hidden></span></a>
+      <a class="nav-item" href="#/saved" data-nav="saved" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">bookmarks</span></span><span class="nav-label">Saved</span></a>
+      <a class="nav-item" href="#/inbox" data-nav="inbox" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">notifications</span></span><span class="nav-label">Inbox</span><span class="nav-count" id="drawer-unread"></span></a>
+      <a class="nav-item" href="#/admin" data-nav="admin" data-admin-only hidden data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">shield_person</span></span><span class="nav-label">Moderation</span></a>
+      <a class="nav-item only-phone" href="#/settings" data-nav="settings" data-m3-ripple><span class="nav-ind"><span translate="no" class="m3-icon">settings</span></span><span class="nav-label">Settings</span></a>
+      </div>
+      <div class="nav-heading"><span>Your nests</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
+      <div id="nav-nooks"></div>
+      <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nest"><span class="nav-ind"><span translate="no" class="m3-icon">add_circle</span></span><span class="nav-label">Create a nest</span></button>
+      <div class="recent-block" id="nav-recent"></div>
+      <div class="nav-foot">
+        <a href="#/settings" class="not-phone">Settings</a>
+        <button type="button" data-act="shortcuts" class="not-phone">Shortcuts</button>
+        <button type="button" data-act="about-nook">What’s Budgie?</button>
+        <a href="../m3/">Design system</a>
+      </div>
+    </nav>
+    <div class="scrim" id="scrim" hidden></div>
+    <main class="main" id="main" tabindex="-1"></main>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Main navigation">
+    <a href="#/" data-nav="home"><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span>Home</a>
+    <a href="#/explore" data-nav="explore"><span class="nav-ind"><span translate="no" class="m3-icon">explore</span></span>Explore</a>
+    <a href="#/submit" data-nav="submit" class="create"><span class="nav-ind"><span translate="no" class="m3-icon">add</span></span>Create</a>
+    <a href="#/messages" data-nav="messages"><span class="nav-ind"><span translate="no" class="m3-icon">chat</span><span class="badge" data-messages-badge hidden></span></span>Chats</a>
+    <a href="#/inbox" data-nav="inbox"><span class="nav-ind"><span translate="no" class="m3-icon">notifications</span><span class="badge" id="bottom-badge" hidden></span></span>Inbox</a>
+  </nav>
+
+  <!-- the design system, then signing in, which fetches what the app needs and then starts it -->
+  <script>(function(){var L=['ro','es','fr','de','it'],l='';try{l=localStorage.getItem('nook-lang')||''}catch(e){}if(!l){var n=navigator.languages||[navigator.language||''];for(var i=0;i<n.length&&!l;i++){var c=String(n[i]).slice(0,2).toLowerCase();if(c==='en'||L.indexOf(c)>=0)l=c}}var list=['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js'];if(L.indexOf(l)>=0)list.push('js/lang/'+l+'.js');list.push('js/i18n.js','js/account.js');list.forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});})();</script>
+</body>
+</html>

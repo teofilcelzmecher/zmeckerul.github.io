@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open-source licenses · Budgie</title>
+  <meta name="description" content="The open-source work Budgie is built on, and its licenses.">
+  <link rel="stylesheet" href="../m3/fonts/fonts.css">
+  <link rel="stylesheet" href="../m3/m3.css">
+  <link rel="stylesheet" href="legal.css">
+</head>
+<body class="m3-base">
+  <main class="legal">
+    <div class="legal-top">
+      <a class="brand" href="./"><m3-shape shape="cookie9" aria-hidden="true"></m3-shape>budgie</a>
+      <a href="terms.html">Terms of Use</a>
+    </div>
+
+    <h1>Open-source licenses</h1>
+    <p class="meta">Budgie 1.0.0 · Last updated 30 October 2026</p>
+    <p>Budgie is built on other people’s open work. Thank you to all of them. The full text of each license ships with the site.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What</th><th>By</th><th>License</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Budgie’s design system (colours, shapes, motion and components), ported with permission from Swiftify</td>
+            <td><a href="https://github.com/swiftify-org/swiftify">Swiftify</a>: Copyright (C) 2026 shredos67, thefoxyydev and the Swiftify contributors; the port: Copyright (C) 2026 teofilcelzmecher. Swiftify follows end-4’s <a href="https://github.com/end-4/dots-hyprland">dots-hyprland</a>.</td>
+            <td>GNU GPL 3.0 or later (<a href="../m3/LICENSE">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Shapes and morphing</td>
+            <td><a href="https://github.com/end-4/rounded-polygon-qmljs">rounded-polygon-qmljs</a> by end-4, a port of Android’s graphics-shapes library by The Android Open Source Project</td>
+            <td>Apache License 2.0 (<a href="../m3/LICENSE-shapes.txt">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Colour schemes</td>
+            <td><a href="https://github.com/material-foundation/material-color-utilities">material-color-utilities</a>, Copyright 2021 Google LLC</td>
+            <td>Apache License 2.0 (<a href="../m3/vendor/LICENSE-material-color-utilities.txt">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Typeface</td>
+            <td><a href="https://github.com/googlefonts/googlesans-flex">Google Sans Flex</a>, Copyright 2015 The Google Sans Flex Authors</td>
+            <td>SIL Open Font License 1.1 (<a href="../m3/fonts/OFL-google-sans-flex.txt">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Name fonts, each cut down to the letters, numbers and symbols a username can have</td>
+            <td><a href="https://github.com/hafontia/Fredoka-One">Fredoka</a> (Copyright 2016 The Fredoka Project Authors); <a href="https://github.com/googlefonts/caveat">Caveat</a> (Copyright 2014 The Caveat Project Authors); <a href="https://github.com/undercasetype/Fraunces">Fraunces</a> (Copyright 2018 The Fraunces Project Authors); <a href="https://github.com/googlefonts/silkscreen">Silkscreen</a> (Copyright 2001 The Silkscreen Project Authors); <a href="https://github.com/googlefonts/spacemono">Space Mono</a> (Copyright 2016 The Space Mono Project Authors); <a href="https://github.com/djrrb/Bungee">Bungee</a> (Copyright 2023 The Bungee Project Authors); <a href="https://github.com/googlefonts/Pacifico">Pacifico</a> (Copyright 2018 The Pacifico Project Authors); <a href="https://github.com/crozynski/comicneue">Comic Neue</a> (Copyright 2014 The Comic Neue Project Authors)</td>
+            <td>SIL Open Font License 1.1 (texts: <a href="fonts/OFL-fredoka.txt">Fredoka</a>, <a href="fonts/OFL-caveat.txt">Caveat</a>, <a href="fonts/OFL-fraunces.txt">Fraunces</a>, <a href="fonts/OFL-silkscreen.txt">Silkscreen</a>, <a href="fonts/OFL-spacemono.txt">Space Mono</a>, <a href="fonts/OFL-bungee.txt">Bungee</a>, <a href="fonts/OFL-pacifico.txt">Pacifico</a>, <a href="fonts/OFL-comicneue.txt">Comic Neue</a>)</td>
+          </tr>
+          <tr>
+            <td>Emoji names and their order, for the emoji picker (the emoji themselves are drawn by your device)</td>
+            <td><a href="https://www.unicode.org/Public/emoji/15.1/">Unicode emoji data</a> (emoji-test.txt), Copyright © 1991–2026 Unicode, Inc.</td>
+            <td>Unicode License v3 (<a href="js/LICENSE-unicode.txt">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Icons</td>
+            <td><a href="https://github.com/google/material-design-icons">Material Symbols</a> by Google</td>
+            <td>Apache License 2.0 (<a href="../m3/fonts/LICENSE-material-symbols.txt">text</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>On Budgie’s server</h2>
+    <p>Budgie’s server checks pictures, videos and text, and prepares videos, with these, on its own computer (see <a href="terms.html#moderation">How moderation works</a>).</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What</th><th>By</th><th>License</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>The text model: multilingual-toxicity-small, downloaded by the server from Hugging Face</td>
+            <td><a href="https://huggingface.co/Horizon-Labs/multilingual-toxicity-small">Horizon Labs</a>, built on <a href="https://huggingface.co/jhu-clsp/mmBERT-small">mmBERT-small</a> by the Johns Hopkins University Center for Language and Speech Processing (MIT License), and trained on Civil Comments</td>
+            <td>Apache License 2.0 (on its page)</td>
+          </tr>
+          <tr>
+            <td>Running the text model</td>
+            <td><a href="https://github.com/microsoft/onnxruntime">ONNX Runtime</a>, Copyright (c) Microsoft Corporation</td>
+            <td>MIT License (<a href="server/vendor/node_modules/onnxruntime-node/LICENSE">text</a>, <a href="server/vendor/node_modules/onnxruntime-node/ThirdPartyNotices.txt">third-party notices</a>)</td>
+          </tr>
+          <tr>
+            <td>The picture models: MobileNetV2 and MobileNetV2 Mid</td>
+            <td><a href="https://github.com/infinitered/nsfwjs">NSFWJS</a>, Copyright (c) 2019 Infinite Red, Inc.</td>
+            <td>MIT License (<a href="server/vendor/nsfw/LICENSE">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Running the picture models</td>
+            <td><a href="https://github.com/tensorflow/tfjs">TensorFlow.js</a> (core, layers, converter and WebAssembly backend), Copyright Google LLC, with <a href="https://github.com/davidbau/seedrandom">seedrandom</a>, Copyright 2019 David Bau (MIT License, <a href="server/vendor/node_modules/seedrandom/LICENSE">text</a>)</td>
+            <td>Apache License 2.0 (<a href="server/vendor/node_modules/@tensorflow/tfjs-core/LICENSE">text</a>)</td>
+          </tr>
+          <tr>
+            <td>Reading JPEG, PNG and GIF pictures</td>
+            <td><a href="https://github.com/jpeg-js/jpeg-js">jpeg-js</a> by Eugene Ware, with a decoder by notmasteryet (Apache License 2.0); <a href="https://github.com/pngjs/pngjs">pngjs</a> by Luke Page and Kuba Niegowski; <a href="https://github.com/deanm/omggif">omggif</a> by Dean McNamee</td>
+            <td>BSD 3-Clause (<a href="server/vendor/node_modules/jpeg-js/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/pngjs/LICENSE">text</a>), MIT (<a href="server/vendor/node_modules/omggif/omggif.js">in its file</a>)</td>
+          </tr>
+          <tr>
+            <td>Converting videos and taking frames from them to check, run as a separate program installed on the server’s computer (it isn’t part of Budgie)</td>
+            <td><a href="https://ffmpeg.org">FFmpeg</a>, Copyright the FFmpeg developers</td>
+            <td>GNU LGPL 2.1 or later, or GNU GPL as built (<a href="https://ffmpeg.org/legal.html">details</a>)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Source code</h2>
+    <p>Budgie’s design system is free software. You can use, study, share and change it under the GNU General Public License, version 3 or (at your option) any later version. Its source is the <code>m3</code> folder of <a href="https://github.com/teofilcelzmecher/nook-early-access-website/tree/main/m3">Budgie’s public repository</a>, and the same files are served unminified by this site. It comes with no warranty. The rest of Budgie is kept separate from it and isn’t covered by that license.</p>
+    <p>Budgie’s own code, text and design are Copyright (C) 2026 teofilcelzmecher, all rights reserved: you can read them, but not copy or reuse them without permission. Found a security problem? Please report it privately (see <a href="SECURITY.md">SECURITY.md</a>).</p>
+
+    <p>Material Design is a design system by Google. Budgie isn’t made by, endorsed by or affiliated with Google, Swiftify or end-4.</p>
+
+    <footer>
+      <p><a href="./">Back to Budgie</a> · <a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a></p>
+    </footer>
+  </main>
+  <script src="../m3/m3-shapes.js"></script>
+  <script src="../m3/m3.js"></script>
+</body>
+</html>

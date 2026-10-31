@@ -1,0 +1,11 @@
+/* Budgie for Android: the few things that are different in the app (see native.js). Loaded only by the app. */
+
+/* a tap on the app's own controls shouldn't flash a grey box, the way a link in a browser does */
+html.app-android {
+  -webkit-tap-highlight-color: transparent;
+}
+/* the app has its own back button and pull to refresh: the page itself doesn't bounce or glow past its ends */
+html.app-android,
+html.app-android body {
+  overscroll-behavior-y: none;
+}

@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.budgiesocial.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.budgiesocial.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        // every upload to Google Play needs a higher versionCode than the one before (the build machine can set it)
+        versionCode((System.getenv('BUDGIE_VERSION_CODE') ?: '1') as int)
+        versionName "1.1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // The key that signs the app for Google Play (the "upload key"). It's never in the repository: on a computer it's
+    // named in android/keystore.properties (see apps/android/README.md), on GitHub's build machines it comes from the
+    // repository's secrets. Without either, the release build comes out unsigned.
+    def keys = new Properties()
+    def keysFile = rootProject.file('keystore.properties')
+    if (keysFile.exists()) keysFile.withInputStream { keys.load(it) }
+    def key = { name, env -> keys.getProperty(name) ?: System.getenv(env) }
+    signingConfigs {
+        if (key('storeFile', 'BUDGIE_KEYSTORE')) {
+            upload {
+                storeFile file(key('storeFile', 'BUDGIE_KEYSTORE'))
+                storePassword key('storePassword', 'BUDGIE_KEYSTORE_PASSWORD')
+                keyAlias key('keyAlias', 'BUDGIE_KEY_ALIAS')
+                keyPassword key('keyPassword', 'BUDGIE_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (signingConfigs.findByName('upload')) signingConfig signingConfigs.upload
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

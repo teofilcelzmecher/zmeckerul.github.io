@@ -1,0 +1,9 @@
+# made by tools/build-www.py, xcodegen and xcodebuild
+www/
+Budgie.xcodeproj/
+Budgie/Info.plist
+build/
+build-*.log
+.icon.html
+# never in the repository: App Store Connect's key, Apple's push key
+*.p8

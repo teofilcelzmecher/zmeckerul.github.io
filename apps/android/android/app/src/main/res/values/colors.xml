@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Budgie's purple, and the surfaces the app opens onto (light and dark: values-night) -->
+    <color name="colorPrimary">#6750A4</color>
+    <color name="colorPrimaryDark">#4F378A</color>
+    <color name="colorAccent">#6750A4</color>
+    <color name="budgie_notification">#6750A4</color>
+    <color name="budgie_surface">#FEF7FF</color>
+</resources>
