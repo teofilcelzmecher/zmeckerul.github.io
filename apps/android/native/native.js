@@ -121,10 +121,10 @@
         if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
         return;
       }
-      // a call on the whole screen: back to Budgie, and the call carries on in its bar
+      // a call on the whole screen: as Esc would, a stream out of full screen (or the reactions closed) first, then
+      // back to Budgie, and the call carries on in its bar
       const call = document.querySelector('.call-screen:not([hidden])');
-      const min = call && call.querySelector('[data-call="min"]');
-      if (min) return min.click();
+      if (call && !call.classList.contains('ended')) return void call.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       // a text box being typed in: the keyboard goes first (Android does that itself), then this
       if (location.hash && location.hash !== '#/' && location.hash !== '#' && history.length > 1) return history.back();
       quiet(App.minimizeApp());

@@ -122,7 +122,139 @@
       tone(523.25, 0.13, 0.18, 0.07);
       tone(392, 0.26, 0.4, 0.07);
     },
+    // someone started sharing their screen: three quick rising notes
+    stream() {
+      tone(659.25, 0, 0.1, 0.05);
+      tone(783.99, 0.08, 0.1, 0.05);
+      tone(1046.5, 0.16, 0.22, 0.05);
+    },
+    // deafened: everyone goes quiet (a falling pair); back: a rising pair
+    deafen() {
+      tone(587.33, 0, 0.12, 0.06, 'triangle');
+      tone(392, 0.08, 0.2, 0.06, 'triangle');
+    },
+    undeafen() {
+      tone(392, 0, 0.12, 0.06, 'triangle');
+      tone(587.33, 0.08, 0.2, 0.06, 'triangle');
+    },
   };
+
+  /** a burst of noise through a filter: a clap, a cymbal, a hiss */
+  function noise(at, length, gain, { type = 'bandpass', freq = 1500, q = 1 } = {}) {
+    const a = sound();
+    if (!a || a.state !== 'running') return;
+    const t = a.currentTime + at;
+    const frames = Math.ceil(a.sampleRate * (length + 0.02));
+    const buffer = a.createBuffer(1, frames, a.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+    const src = a.createBufferSource();
+    src.buffer = buffer;
+    const filter = a.createBiquadFilter();
+    filter.type = type;
+    filter.frequency.value = freq;
+    filter.Q.value = q;
+    const env = a.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(gain, t + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    src.connect(filter).connect(env).connect(a.destination);
+    src.start(t);
+    src.stop(t + length + 0.02);
+  }
+  /** a note that slides from one pitch to another, through a soft filter (a brass or a horn when it's a sawtooth),
+   *  wobbling if asked */
+  function glide(from, to, at, length, gain = 0.08, { type = 'sine', wobble = 0, bright = 2600 } = {}) {
+    const a = sound();
+    if (!a || a.state !== 'running') return;
+    const t = a.currentTime + at;
+    const osc = a.createOscillator();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, t);
+    osc.frequency.exponentialRampToValueAtTime(to, t + length);
+    const filter = a.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = bright;
+    const env = a.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(gain, t + 0.03);
+    env.gain.setValueAtTime(gain, t + length * 0.7);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + length);
+    osc.connect(filter).connect(env).connect(a.destination);
+    if (wobble) {
+      const lfo = a.createOscillator();
+      const depth = a.createGain();
+      lfo.frequency.value = 6;
+      depth.gain.value = wobble;
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(t);
+      lfo.stop(t + length + 0.05);
+    }
+    osc.start(t);
+    osc.stop(t + length + 0.05);
+  }
+  // the soundboard: little sounds anyone in a call can play for everyone, made here like the ringtones
+  const BOARD = {
+    applause: {
+      label: 'Applause',
+      emoji: '👏',
+      play() {
+        for (let i = 0; i < 70; i++) noise(Math.random() * 2.2 * Math.random() ** 0.3, 0.06 + Math.random() * 0.05, 0.03 + Math.random() * 0.05, { freq: 900 + Math.random() * 1800, q: 0.9 });
+      },
+    },
+    tada: {
+      label: 'Ta-da',
+      emoji: '🎉',
+      play() {
+        for (const f of [523.25, 659.25, 783.99]) glide(f, f, 0, 0.13, 0.035, { type: 'sawtooth' });
+        for (const f of [523.25, 659.25, 783.99, 1046.5]) glide(f, f * 1.003, 0.17, 1.1, 0.035, { type: 'sawtooth', wobble: 4 });
+      },
+    },
+    rimshot: {
+      label: 'Ba-dum-tss',
+      emoji: '🥁',
+      play() {
+        glide(240, 110, 0, 0.16, 0.2);
+        glide(170, 80, 0.2, 0.2, 0.22);
+        noise(0.48, 1.1, 0.06, { type: 'highpass', freq: 7000, q: 0.7 });
+        noise(0.48, 0.12, 0.08, { freq: 2500, q: 1.5 });
+      },
+    },
+    boing: {
+      label: 'Boing',
+      emoji: '🌀',
+      play() {
+        glide(110, 440, 0, 0.12, 0.12, { type: 'triangle' });
+        glide(440, 220, 0.12, 0.6, 0.1, { type: 'triangle', wobble: 40 });
+      },
+    },
+    trombone: {
+      label: 'Sad trombone',
+      emoji: '😢',
+      play() {
+        [[293.66, 0], [277.18, 0.42], [261.63, 0.84]].forEach(([f, at]) => glide(f, f * 0.98, at, 0.38, 0.06, { type: 'sawtooth', bright: 1400 }));
+        glide(246.94, 233.08, 1.26, 1.3, 0.06, { type: 'sawtooth', bright: 1400, wobble: 6 });
+      },
+    },
+    airhorn: {
+      label: 'Air horn',
+      emoji: '📯',
+      play() {
+        for (const [at, length] of [[0, 0.16], [0.22, 0.16], [0.44, 0.8]]) {
+          for (const f of [466.16, 554.37, 698.46]) glide(f, f * 1.01, at, length, 0.028, { type: 'sawtooth', bright: 4200 });
+        }
+      },
+    },
+    crickets: {
+      label: 'Crickets',
+      emoji: '🦗',
+      play() {
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) tone(4400, i * 0.55 + j * 0.06, 0.04, 0.025);
+      },
+    },
+  };
+  // the reactions anyone in a call can send: they float up from whoever sent them
+  const EMOJI = ['❤️', '😂', '👍', '🔥', '😮', '😢', '🎉', '💀'];
   let looping = 0;
   function loop(name, every) {
     unloop();
@@ -394,14 +526,32 @@
     }
   }
   const camChip = (on) => `${icon(on ? 'videocam' : 'videocam_off')}<span>Camera ${on ? 'on' : 'off'}</span>`;
-  const AUDIO = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+
+  // how you're heard and what you hear with (this device remembers): the microphone and speaker picked, whether
+  // background noise is taken out, and push to talk
+  const HEAR = 'nook-call-audio';
+  function hearPrefs(patch) {
+    let p = {};
+    try {
+      p = JSON.parse(localStorage.getItem(HEAR) || '{}') || {};
+      if (patch) localStorage.setItem(HEAR, JSON.stringify((p = Object.assign(p, patch))));
+    } catch (_) {
+      if (patch) p = Object.assign(p, patch);
+    }
+    return p;
+  }
+  /** what's asked of the microphone: the one picked (any, if it's gone), with the noise taken out unless that's off */
+  const audioWanted = () => {
+    const p = hearPrefs();
+    return Object.assign({ echoCancellation: true, noiseSuppression: p.clean !== false, autoGainControl: true }, p.mic ? { deviceId: { ideal: p.mic } } : {});
+  };
   const VIDEO = (facing) => ({ facingMode: facing, width: { ideal: 960 }, height: { ideal: 540 }, frameRate: { ideal: 24, max: 30 } });
 
   /** your microphone, and your camera for a video call (unless it's to be off): sound only when the camera can't be had */
   async function media(kind, { cam = true } = {}) {
     if (kind === 'video' && !cam) kind = 'voice';
     try {
-      return await navigator.mediaDevices.getUserMedia({ audio: AUDIO, video: kind === 'video' ? VIDEO('user') : false });
+      return await navigator.mediaDevices.getUserMedia({ audio: audioWanted(), video: kind === 'video' ? VIDEO('user') : false });
     } catch (error) {
       if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
         M3.snackbar(`Budgie needs your microphone${kind === 'video' ? ' and camera' : ''} for calls. Allow ${kind === 'video' ? 'them' : 'it'} in your browser’s settings for this site, then try again.`, { timeout: 8000 });
@@ -409,7 +559,7 @@
       }
       if (kind === 'video') {
         try {
-          const sound = await navigator.mediaDevices.getUserMedia({ audio: AUDIO });
+          const sound = await navigator.mediaDevices.getUserMedia({ audio: audioWanted() });
           M3.snackbar('Couldn’t use your camera, so you’re on with sound only.');
           return sound;
         } catch (_) {
@@ -464,7 +614,7 @@
     const me = store.user(store.state.me.name);
     const get = async () => {
       try {
-        local = await navigator.mediaDevices.getUserMedia({ audio: AUDIO, video: cam ? VIDEO('user') : false });
+        local = await navigator.mediaDevices.getUserMedia({ audio: audioWanted(), video: cam ? VIDEO('user') : false });
       } catch (error) {
         if (cam && !['NotAllowedError', 'SecurityError'].includes(error.name)) {
           cam = false;
@@ -572,6 +722,17 @@
       // a camera can be turned on in any call, a voice call too
       canCam: true,
       screen: null, // your screen's picture, while you share it
+      screenSound: null, // and its sound, when the browser gives it (a tab's, or a whole screen's on Windows)
+      quality: 'smooth', // how your screen goes: 'smooth' (30 frames a second) or 'sharp' (text stays crisp)
+      deaf: false, // you hear nobody, and nobody hears you
+      micBeforeDeaf: mic,
+      // push to talk (on a computer): your microphone is on only while you hold the space bar
+      ptt: !touchOnly() && hearPrefs().ptt === true,
+      talking: false,
+      focus: null, // the tile in the big spot: a stream ('screen:<name>'), a person ('person:<name>'), or none (a grid)
+      theater: null, // the tile filling the whole screen
+      reactId: 0,
+      reacts: [],
       facing: 'user',
       peers: new Map(),
       startedAt: 0,
@@ -580,7 +741,7 @@
       other: call.group ? '' : to || (lower(call.from) === lower(store.state.me.name) ? call.with : call.from),
       minimised: false,
     };
-    local.getAudioTracks().forEach((t) => (t.enabled = mic));
+    micLive();
     drawScreen();
     changed();
     // whoever arrives calls everyone already there, and they answer
@@ -666,25 +827,83 @@
   }
 
   function addPeer(name) {
-    const peer = { name: store.user(name).name || name, pc: null, stream: null, screenStream: null, queue: [], outbox: [], flush: 0, sending: Promise.resolve(), mic: true, cam: false, sharing: false, state: 'new', restarts: 0, offerer: false };
+    const kept = volumes()[lower(name)] || {};
+    const peer = {
+      name: store.user(name).name || name,
+      pc: null,
+      stream: null,
+      screenStream: null,
+      screenAudio: null, // the sound of their shared screen
+      queue: [],
+      outbox: [],
+      flush: 0,
+      sending: Promise.resolve(),
+      mic: true,
+      cam: false,
+      sharing: false,
+      deaf: false,
+      sound: false, // their shared screen has sound
+      watching: false, // you're watching their shared screen
+      watchesMe: null, // they're watching yours (null: an older app, which always shows it)
+      volume: typeof kept.v === 'number' ? Math.min(1, Math.max(0, kept.v)) : 1,
+      hushed: kept.m === true, // muted for you alone
+      streamVolume: typeof kept.sv === 'number' ? Math.min(1, Math.max(0, kept.sv)) : 1,
+      streamHushed: false,
+      reactSeen: 0,
+      reactTimes: [],
+      state: 'new',
+      restarts: 0,
+      offerer: false,
+    };
     active.peers.set(lower(name), peer);
     drawTile(peer);
     return peer;
   }
+
+  // the volume you set for each person (and for their shared screen), remembered on this device
+  const VOLUMES = 'nook-call-volumes';
+  function volumes() {
+    try {
+      return JSON.parse(localStorage.getItem(VOLUMES) || '{}') || {};
+    } catch (_) {
+      return {};
+    }
+  }
+  function keepVolume(name, patch) {
+    try {
+      const all = volumes();
+      all[lower(name)] = Object.assign(all[lower(name)] || {}, patch);
+      localStorage.setItem(VOLUMES, JSON.stringify(all));
+    } catch (_) {
+      /* for this call only */
+    }
+  }
+  // an iPhone or iPad plays everything at the device's own volume: there, a person can only be muted
+  const volumeWorks = (() => {
+    try {
+      const a = document.createElement('audio');
+      a.volume = 0.5;
+      return a.volume === 0.5;
+    } catch (_) {
+      return false;
+    }
+  })();
 
   function connect(name, offerer) {
     const peer = active.peers.get(lower(name)) || addPeer(name);
     if (peer.pc) return peer;
     peer.offerer = offerer;
     const pc = (peer.pc = new RTCPeerConnection({ iceServers: active.ice.iceServers, iceTransportPolicy: active.ice.relay ? 'relay' : 'all' }));
-    // three ways each way, always in this order: sound, camera, screen. A camera or a screen that's off sends nothing,
-    // and turning one on later swaps a picture in, with nothing to negotiate again. The one answering takes the
-    // same three from the offer (wire, below).
+    // four ways each way, always in this order: sound, camera, screen, and the screen's sound (1.3; an older app
+    // opens the first three). A camera or a screen that's off sends nothing, and turning one on later swaps a picture
+    // in, with nothing to negotiate again. The one answering takes the same ways from the offer (wire, below).
     if (offerer) {
       peer.audio = pc.addTransceiver(micTrack() || 'audio', { direction: 'sendrecv', streams: [active.local] }).sender;
       peer.video = pc.addTransceiver(camTrack() || 'video', { direction: 'sendrecv', streams: [active.local] }).sender;
       peer.screen = pc.addTransceiver(active.screen || 'video', { direction: 'sendrecv' }).sender;
+      peer.screenSound = pc.addTransceiver('audio', { direction: 'sendrecv' }).sender;
       peer.wired = true;
+      feedScreen(peer);
     }
     pc.onicecandidate = (e) => {
       if (!e.candidate) return;
@@ -694,8 +913,10 @@
       peer.flush = setTimeout(() => peer.outbox.length && send(peer, 'candidate', peer.outbox.splice(0)), 80);
     };
     pc.ontrack = (e) => {
-      // the third way in is their screen; sound and camera go together
-      if (e.track.kind === 'video' && pc.getTransceivers().indexOf(e.transceiver) === 2) peer.screenStream = new MediaStream([e.track]);
+      // the third way in is their screen, the fourth its sound; their voice and camera go together
+      const way = pc.getTransceivers().indexOf(e.transceiver);
+      if (e.track.kind === 'video' && way === 2) peer.screenStream = new MediaStream([e.track]);
+      else if (e.track.kind === 'audio' && way === 3) peer.screenAudio = new MediaStream([e.track]);
       else {
         if (!peer.stream) peer.stream = new MediaStream();
         if (!peer.stream.getTracks().includes(e.track)) peer.stream.addTrack(e.track);
@@ -731,7 +952,7 @@
       const description = await peer.pc.createOffer(restart ? { iceRestart: true } : undefined);
       await peer.pc.setLocalDescription(description);
       send(peer, 'offer', { type: 'offer', sdp: peer.pc.localDescription.sdp });
-      send(peer, 'media', mediaState());
+      send(peer, 'media', mediaState(peer));
     } catch (_) {
       peer.state = 'failed';
       drawTile(peer);
@@ -749,7 +970,7 @@
       const description = await peer.pc.createAnswer();
       await peer.pc.setLocalDescription(description);
       send(peer, 'answer', { type: 'answer', sdp: peer.pc.localDescription.sdp });
-      send(peer, 'media', mediaState());
+      send(peer, 'media', mediaState(peer));
     } else if (type === 'answer') {
       if (peer && peer.pc && peer.pc.signalingState === 'have-local-offer') {
         await peer.pc.setRemoteDescription(data);
@@ -762,18 +983,34 @@
       else for (const c of list) await peer.pc.addIceCandidate(c).catch(() => {});
     } else if (type === 'media') {
       if (!peer) return;
-      peer.mic = !data || data.mic !== false;
-      peer.cam = !data || data.cam !== false;
-      peer.sharing = !!(data && data.screen);
+      const d = data || {};
+      peer.mic = d.mic !== false;
+      peer.cam = d.cam !== false;
+      const was = peer.sharing;
+      peer.sharing = !!d.screen;
+      peer.deaf = d.deaf === true;
+      peer.sound = d.sound === true;
+      // they stopped sharing: watching it is over (sharing again shows the card to join again)
+      if (was && !peer.sharing) stopWatching(peer);
+      // whether they're watching your screen: an older app doesn't say, and always shows it
+      const watches = d.v >= 3 ? d.watch === true : null;
+      if (watches !== peer.watchesMe) {
+        peer.watchesMe = watches;
+        feedScreen(peer);
+      }
+      if (d.react && d.react.id !== peer.reactSeen) {
+        peer.reactSeen = d.react.id;
+        reacted(peer, d.react);
+      }
       drawTile(peer);
     }
   }
 
   const micTrack = () => active.local.getAudioTracks()[0] || null;
   const camTrack = () => (active.cam ? active.local.getVideoTracks()[0] || null : null);
-  /** the one answering sends on the three ways the offer opened: sound, camera, screen */
+  /** the one answering sends on the ways the offer opened: sound, camera, screen, and the screen's sound */
   async function wire(peer) {
-    const [a, v, sc] = peer.pc.getTransceivers();
+    const [a, v, sc, ss] = peer.pc.getTransceivers();
     const use = async (t, track) => {
       if (!t) return null;
       t.direction = 'sendrecv';
@@ -783,7 +1020,9 @@
     peer.audio = await use(a, micTrack());
     peer.video = await use(v, camTrack());
     peer.screen = await use(sc, active.screen);
+    peer.screenSound = ss && ss.receiver.track.kind === 'audio' ? await use(ss, null) : null;
     peer.wired = true;
+    feedScreen(peer);
   }
 
   async function flushCandidates(peer) {
@@ -796,8 +1035,11 @@
     // in order, one after another, so an answer never overtakes its offer
     peer.sending = peer.sending.then(() => api.post(`/api/calls/${encodeURIComponent(id)}/signal`, { to: peer.name, type, data })).catch(() => {});
   }
-  const broadcast = (type, data) => active && active.peers.forEach((peer) => peer.pc && send(peer, type, data));
-  const mediaState = () => ({ mic: active.mic, cam: active.cam, screen: !!active.screen });
+  /** what you're doing, told to one person: your microphone, camera and screen, whether you've deafened, and whether
+   *  you're watching their shared screen (v: what this app says; an older one says only the first three) */
+  const mediaState = (peer) => ({ v: 3, mic: active.mic, cam: active.cam, screen: !!active.screen, sound: !!active.screenSound, deaf: active.deaf, watch: !!(peer && peer.watching) });
+  /** tells everyone (each their own) what you're doing, and anything else with it: a reaction */
+  const tell = (extra) => active && active.peers.forEach((peer) => peer.pc && send(peer, 'media', Object.assign(mediaState(peer), extra)));
 
   function closePeer(peer) {
     clearTimeout(peer.flush);
@@ -809,45 +1051,113 @@
     }
   }
 
-  /** with more people, each picture is sent smaller, so everyone's connection keeps up. A shared screen gets the most
-   *  room, and moves smoothly (30 frames a second): when the connection is tight, it gets a little less sharp rather
-   *  than jerky (a game or a video stutters otherwise) */
+  /** whether someone sees your shared screen in full: they asked to watch it (an older app always shows it) */
+  const sees = (peer) => peer.watchesMe !== false;
+
+  /** with more people, each picture is sent smaller, so everyone's connection keeps up. A shared screen goes in full
+   *  only to those watching it, smoothly (30 frames a second; when the connection is tight, a little less sharp rather
+   *  than jerky) or sharp (text stays crisp, fewer frames). Everyone else gets a small picture every so often, for the
+   *  card that says you're sharing, which costs your computer next to nothing */
   function fitBitrate() {
+    if (!active) return;
     const n = active.peers.size;
-    const camera = (n <= 1 ? 1500000 : n <= 2 ? 800000 : 450000) / (active.screen ? 2 : 1);
-    const screen = n <= 1 ? 4000000 : n <= 2 ? 2500000 : 1800000;
-    // in a call of more than three, the screen is made for each person separately: 720p each keeps the sharer's computer
-    // up to it (1080p for one or two)
+    const peers = [...active.peers.values()];
+    const watchers = active.screen ? peers.filter(sees).length : 0;
     const tall = active.screen && active.screen.getSettings ? active.screen.getSettings().height || 0 : 0;
-    const most = n <= 2 ? 1080 : 720;
-    const limit = (sender, max, smooth) => {
+    const sharp = active.quality === 'sharp';
+    // each watcher gets a copy made for them: 1080p for one or two, 720p for more, so your computer keeps up
+    const most = watchers <= 2 ? 1080 : 720;
+    const screenMax = watchers <= 1 ? 4000000 : watchers <= 2 ? 2500000 : 1800000;
+    const set = (sender, change) => {
       if (!sender || !sender.getParameters) return;
       const params = sender.getParameters();
       if (!params.encodings || !params.encodings.length) return;
-      params.encodings[0].maxBitrate = max;
-      if (smooth) {
-        params.encodings[0].maxFramerate = 30;
-        params.encodings[0].scaleResolutionDownBy = tall > most ? tall / most : 1;
-        params.degradationPreference = 'balanced';
-      }
+      change(params.encodings[0], params);
       sender.setParameters(params).catch(() => {});
     };
-    active.peers.forEach((peer) => {
-      limit(peer.video, camera);
-      limit(peer.screen, screen, true);
+    peers.forEach((peer) => {
+      const looking = !!active.screen && sees(peer);
+      set(peer.video, (e) => (e.maxBitrate = (n <= 1 ? 1500000 : n <= 2 ? 800000 : 450000) / (looking ? 2 : 1)));
+      set(peer.screen, (e, params) => {
+        if (looking || !active.screen) {
+          e.maxBitrate = screenMax;
+          e.maxFramerate = sharp ? 15 : 30;
+          e.scaleResolutionDownBy = tall > most ? tall / most : 1;
+          params.degradationPreference = sharp ? 'maintain-resolution' : 'balanced';
+        } else {
+          e.maxBitrate = 150000;
+          e.maxFramerate = 3;
+          e.scaleResolutionDownBy = tall > 180 ? tall / 180 : 1;
+          params.degradationPreference = 'balanced';
+        }
+      });
     });
+  }
+
+  /** your shared screen's sound goes only to those watching it; the picture's size follows (fitBitrate) */
+  function feedScreen(peer) {
+    if (!active || !peer) return;
+    if (peer.screenSound) peer.screenSound.replaceTrack(active.screen && active.screenSound && sees(peer) ? active.screenSound : null).catch(() => {});
+    if (peer.screen) fitBitrate();
   }
 
   // ---- your controls -------------------------------------------------------------------------------------
 
+  /** your microphone sends only when it's on, and, with push to talk, while you hold the space bar */
+  function micLive() {
+    if (!active) return;
+    const on = active.mic && (!active.ptt || active.talking);
+    active.local.getAudioTracks().forEach((t) => (t.enabled = on));
+  }
+
   function toggleMic() {
     if (!active) return;
     active.mic = !active.mic;
-    active.local.getAudioTracks().forEach((t) => (t.enabled = active.mic));
-    broadcast('media', mediaState());
+    // turning your microphone on while deafened brings the sound back too (you'd want to hear the answer)
+    if (active.mic && active.deaf) {
+      active.deaf = false;
+      hearAll();
+      SOUNDS.undeafen();
+    }
+    micLive();
+    tell();
     controls();
     fx.haptic(8);
   }
+
+  /** deafen: you hear nobody (nor their shared screens' sound, nor the soundboard), and your microphone goes off too.
+   *  Undeafened, your microphone is back as it was */
+  function toggleDeaf() {
+    if (!active) return;
+    active.deaf = !active.deaf;
+    if (active.deaf) {
+      active.micBeforeDeaf = active.mic;
+      active.mic = false;
+    } else active.mic = active.micBeforeDeaf;
+    micLive();
+    hearAll();
+    tell();
+    controls();
+    (active.deaf ? SOUNDS.deafen : SOUNDS.undeafen)();
+    fx.haptic(8);
+  }
+
+  /** what you hear of someone: their voice (unless you've deafened or muted them for yourself) at the volume you set,
+   *  and their shared screen's sound while you watch it */
+  function hearing(peer) {
+    if (!active) return;
+    if (peer.tile) {
+      const speaker = peer.tile.querySelector('audio');
+      speaker.muted = !!(active.deaf || peer.hushed);
+      if (volumeWorks) speaker.volume = peer.volume;
+    }
+    if (peer.screenTile) {
+      const speaker = peer.screenTile.querySelector('audio');
+      speaker.muted = !!(active.deaf || !peer.watching || peer.streamHushed);
+      if (volumeWorks) speaker.volume = peer.streamVolume;
+    }
+  }
+  const hearAll = () => active && active.peers.forEach(hearing);
 
   async function toggleCam() {
     if (!active || !active.canCam) return;
@@ -866,7 +1176,7 @@
       active.local.addTrack(track);
       active.peers.forEach((peer) => peer.video && peer.video.replaceTrack(track).catch(() => {}));
     }
-    broadcast('media', mediaState());
+    tell();
     selfView();
     controls();
     layout();
@@ -882,32 +1192,72 @@
     let stream;
     try {
       // up to 1080p at 30 frames a second: a bigger screen is scaled down, which costs little sharpness and keeps it smooth
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } }, audio: false });
+      // with its sound, where the browser can (a tab's, or the whole screen's on Windows), but not the call's own
+      // (restrictOwnAudio), or everyone would hear themselves back; and not Budgie's own tab, which would show itself
+      // forever
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: SCREEN,
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, restrictOwnAudio: true, suppressLocalAudioPlayback: false },
+        systemAudio: 'include',
+        selfBrowserSurface: 'exclude',
+        surfaceSwitching: 'include',
+      });
     } catch (error) {
-      if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') M3.snackbar('Couldn’t share your screen.');
-      return;
+      if (error.name === 'NotAllowedError' || error.name === 'AbortError') return;
+      // a browser that can't share sound (Safari, Firefox) may say no to being asked: the picture alone, then
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: SCREEN, audio: false });
+      } catch (again) {
+        if (again.name !== 'NotAllowedError' && again.name !== 'AbortError') M3.snackbar('Couldn’t share your screen.');
+        return;
+      }
     }
     const track = stream.getVideoTracks()[0];
     if (!active || !track) return stopTracks(stream);
     // what's shared is often moving (a game, a video, scrolling): the browser keeps it smooth
-    if ('contentHint' in track) track.contentHint = 'motion';
+    if ('contentHint' in track) track.contentHint = active.quality === 'sharp' ? 'detail' : 'motion';
     // the browser's own "Stop sharing" button ends it too
     track.addEventListener('ended', stopShare);
+    const sound = stream.getAudioTracks()[0] || null;
+    if (sound && 'contentHint' in sound) sound.contentHint = 'music';
     active.screen = track;
-    active.peers.forEach((peer) => peer.screen && peer.screen.replaceTrack(track).catch(() => {}));
+    active.screenSound = sound;
+    // nobody's watching yet: everyone sees the card, and joins it if they want to (an older app shows it straight away)
+    active.peers.forEach((peer) => {
+      if (peer.watchesMe) peer.watchesMe = false;
+      if (peer.screen) peer.screen.replaceTrack(track).catch(() => {});
+      feedScreen(peer);
+    });
     fitBitrate();
-    broadcast('media', mediaState());
+    tell();
     controls();
+    layout();
+  }
+  // up to 1080p at 30 frames a second: a bigger screen is scaled down, which costs little sharpness and keeps it smooth
+  const SCREEN = { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } };
+
+  /** smooth (for games, videos, scrolling) or sharp (for text and code): changes as you share */
+  function shareQuality(quality) {
+    if (!active || active.quality === quality) return;
+    active.quality = quality;
+    if (active.screen && 'contentHint' in active.screen) active.screen.contentHint = quality === 'sharp' ? 'detail' : 'motion';
+    fitBitrate();
     layout();
   }
   function stopShare() {
     if (!active || !active.screen) return;
     const track = active.screen;
+    const sound = active.screenSound;
     active.screen = null;
+    active.screenSound = null;
     track.stop();
-    active.peers.forEach((peer) => peer.screen && peer.screen.replaceTrack(null).catch(() => {}));
+    if (sound) sound.stop();
+    active.peers.forEach((peer) => {
+      if (peer.screen) peer.screen.replaceTrack(null).catch(() => {});
+      feedScreen(peer);
+    });
     fitBitrate();
-    broadcast('media', mediaState());
+    tell();
     controls();
     layout();
   }
@@ -923,7 +1273,7 @@
     old.forEach((t) => active.local.removeTrack(t));
     if (!track) {
       active.cam = false;
-      broadcast('media', mediaState());
+      tell();
     } else {
       active.facing = facing;
       active.local.addTrack(track);
@@ -972,7 +1322,13 @@
     was.peers.forEach(closePeer);
     stopTracks(was.local);
     if (was.screen) was.screen.stop();
+    if (was.screenSound) was.screenSound.stop();
     if (was.bar) dropBar(was.bar);
+    if (document.fullscreenElement && was.el && document.fullscreenElement === was.el) document.exitFullscreen().catch(() => {});
+    if (was.el) {
+      was.el.classList.remove('theater');
+      was.el.querySelectorAll('.call-react').forEach((pop) => pop.remove());
+    }
     wake(false);
     poll.needed();
     SOUNDS.end();
@@ -1068,7 +1424,7 @@
         const el = key === 'me' ? active.el && active.el.querySelector('[data-call="mic"]') : key.tile;
         if (!el) continue;
         el.style.setProperty('--level', still ? 0 : m.level.toFixed(3));
-        el.classList.toggle('speaking', m.level > 0.12 && (key === 'me' ? active.mic : key.mic));
+        el.classList.toggle('speaking', m.level > 0.12 && (key === 'me' ? active.mic && (!active.ptt || active.talking) : key.mic));
       }
     },
   };
@@ -1162,7 +1518,7 @@
       `<button type="button" class="m3-icon-btn call-min" data-call="min" aria-label="Back to Budgie (the call carries on)" data-tooltip="Minimise (Esc)">${icon('picture_in_picture_alt')}</button>` +
       `<div class="call-title"><b>${esc(title())}</b><small class="call-status" aria-live="polite">${active.outgoing ? 'Calling…' : 'Connecting…'}</small></div>` +
       (active.call.group && server095() ? `<button type="button" class="m3-icon-btn" data-call="people" aria-label="People: ring them again" data-tooltip="People (R)">${icon('group_add')}</button>` : '') +
-      `<button type="button" class="m3-icon-btn" data-call="look" aria-label="Call look" data-tooltip="Call look">${icon('palette')}</button>` +
+      `<button type="button" class="m3-icon-btn" data-call="settings" aria-label="Call settings: sound and look" data-tooltip="Sound and look">${icon('tune')}</button>` +
       (keys ? `<button type="button" class="m3-icon-btn" data-call="keys" aria-label="Keyboard shortcuts" data-tooltip="Shortcuts (?)">${icon('keyboard')}</button>` : '') +
       `<span class="call-lock" data-tooltip="Encrypted between devices, never recorded">${icon('lock')}</span></div>` +
       '<div class="call-stage"></div>' +
@@ -1185,9 +1541,33 @@
       else if (act === 'share') toggleShare();
       else if (act === 'people') people();
       else if (act === 'look') customise();
+      else if (act === 'settings') callSettings();
       else if (act === 'keys') shortcutsSheet();
+      else if (act === 'deaf') toggleDeaf();
+      else if (act === 'react') reactions();
     });
-    el.addEventListener('keydown', (e) => e.key === 'Escape' && minimise());
+    // the stage: a stream's buttons, and a tap on someone or on a stream
+    el.querySelector('.call-stage').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-stream], [data-quality]');
+      if (b) return void (b.dataset.quality ? shareQuality(b.dataset.quality) : streamAct(b.dataset.stream, b.closest('.call-tile')));
+      if (e.target.closest('button, a, input')) return;
+      const tile = e.target.closest('.call-tile');
+      if (tile) tileTap(tile);
+    });
+    el.querySelector('.call-stage').addEventListener('keydown', (e) => {
+      const tile = e.target.classList && e.target.classList.contains('call-tile') ? e.target : null;
+      if (tile && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        tileTap(tile);
+      }
+    });
+    // Esc: out of full screen first, then the call hides
+    el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (active.theater) closeTheater();
+      else if (closeReact()) return;
+      else minimise();
+    });
     stage();
     selfView();
     controls();
@@ -1211,12 +1591,16 @@
     const box = active.el.querySelector('.call-controls');
     const toggle = (act, on, onIcon, offIcon, onLabel, offLabel, key) =>
       `<button type="button" class="call-btn toggle${on ? '' : ' off'}" data-call="${act}" aria-pressed="${!on}" aria-label="${on ? onLabel : offLabel}" data-tooltip="${on ? onLabel : offLabel}${key ? ` (${key})` : ''}">${icon(on ? onIcon : offIcon)}</button>`;
+    const open = !!active.el.querySelector('.call-react');
     box.innerHTML =
-      toggle('mic', active.mic, 'mic', 'mic_off', 'Mute', 'Unmute', 'M') +
+      toggle('mic', active.mic, 'mic', 'mic_off', active.ptt ? 'Mute (hold Space to talk)' : 'Mute', 'Unmute', 'M') +
+      toggle('deaf', !active.deaf, 'headphones', 'headset_off', 'Deafen', 'Undeafen', 'D') +
       (active.canCam ? toggle('cam', active.cam, 'videocam', 'videocam_off', 'Turn camera off', 'Turn camera on', 'V') : '') +
       (active.flips && active.cam ? `<button type="button" class="call-btn toggle" data-call="flip" aria-label="Switch camera" data-tooltip="Switch camera">${icon('flip_camera_ios')}</button>` : '') +
       (canShare() ? `<button type="button" class="call-btn toggle${active.screen ? ' sharing' : ''}" data-call="share" aria-pressed="${!!active.screen}" aria-label="${active.screen ? 'Stop sharing your screen' : 'Share your screen'}" data-tooltip="${active.screen ? 'Stop sharing' : 'Share your screen'} (Shift+S)">${icon(active.screen ? 'stop_screen_share' : 'present_to_all')}</button>` : '') +
+      `<button type="button" class="call-btn toggle${open ? ' sharing' : ''}" data-call="react" aria-expanded="${open}" aria-label="Reactions and sounds" data-tooltip="Reactions and sounds (E)">${icon('add_reaction')}</button>` +
       `<button type="button" class="call-btn hang wide" data-call="hang" aria-label="Hang up" data-tooltip="Hang up">${icon('call_end')}</button>`;
+    box.dataset.n = String(box.children.length);
     if (active.bar) barText(true);
     requestAnimationFrame(() => placeSelf());
   }
@@ -1334,10 +1718,15 @@
       const u = store.user(peer.name);
       tile = peer.tile = document.createElement('div');
       tile.className = 'call-tile';
+      tile.dataset.key = 'person:' + lower(peer.name);
+      // a tap on someone: their volume, muting them for yourself, and showing their camera big
+      tile.tabIndex = 0;
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('aria-label', `u/${u.name}: volume and more`);
       tile.innerHTML =
         '<video autoplay playsinline muted></video><audio autoplay></audio>' +
         `<div class="tile-face"><m3-shape class="tile-halo" shape="${esc(u.shape || 'cookie9')}" aria-hidden="true"></m3-shape><span class="tile-pic">${avatar(u, 96)}</span></div>` +
-        `<div class="tile-name"><span translate="no">${esc(u.name)}</span><span class="tile-muted" hidden>${icon('mic_off')}</span><small class="tile-state"></small></div>`;
+        `<div class="tile-name"><span translate="no">${esc(u.name)}</span><span class="tile-muted" hidden>${icon('mic_off')}</span><span class="tile-deaf" hidden>${icon('headset_off')}</span><span class="tile-hushed" hidden>${icon('volume_off')}</span><small class="tile-state"></small></div>`;
       box.appendChild(tile);
       fx.play(tile, [{ opacity: 0, transform: 'scale(0.85)' }, { opacity: 1, transform: 'none' }], { duration: fx.lively.duration, easing: fx.lively.easing });
       stage();
@@ -1362,35 +1751,124 @@
     const camOn = peer.cam && peer.stream && peer.stream.getVideoTracks().length > 0;
     tile.dataset.state = connected ? 'on' : peer.state === 'failed' ? 'failed' : 'wait';
     tile.classList.toggle('has-video', !!camOn && connected);
-    tile.querySelector('.tile-muted').hidden = peer.mic;
+    // deafened says more than muted (it's both)
+    tile.querySelector('.tile-muted').hidden = peer.mic || peer.deaf;
+    tile.querySelector('.tile-deaf').hidden = !peer.deaf;
+    tile.querySelector('.tile-hushed').hidden = !peer.hushed;
     tile.querySelector('.tile-state').textContent = connected
       ? ''
       : peer.state === 'failed' ? 'Couldn’t connect' : peer.state === 'disconnected' || peer.state === 'away' ? 'Reconnecting…' : 'Connecting…';
     screenTile(peer, connected);
+    hearing(peer);
     layout();
   }
 
-  /** someone sharing their screen: it gets the big tile, and everyone's faces go in a row beneath */
+  /** someone sharing their screen: a card that says so, with a small picture of it, until you choose to watch it
+   *  (then it's sent to you in full, with its sound, and goes in the big spot) */
   function screenTile(peer, connected) {
     const box = active.el.querySelector('.call-stage');
     const showing = peer.sharing && peer.screenStream && connected;
     if (!showing) {
-      if (peer.screenTile) peer.screenTile.remove();
+      if (peer.screenTile) {
+        if (active.theater === peer.screenTile) closeTheater();
+        peer.screenTile.remove();
+      }
       peer.screenTile = null;
       return;
     }
     if (!peer.screenTile) {
       const tile = (peer.screenTile = document.createElement('div'));
       tile.className = 'call-tile screen-tile has-video';
-      tile.innerHTML = `<video autoplay playsinline muted></video><div class="tile-name">${icon('present_to_all')}<span>${esc(peer.name)}’s screen</span></div>`;
+      tile.dataset.key = 'screen:' + lower(peer.name);
+      tile.tabIndex = 0;
+      tile.setAttribute('role', 'button');
+      tile.innerHTML =
+        '<video autoplay playsinline muted></video><audio autoplay></audio>' +
+        `<button type="button" class="stream-watch" data-stream="watch">${icon('visibility')}<span>Watch stream</span></button>` +
+        `<div class="tile-name">${icon('present_to_all')}<b class="tile-what">${esc(peer.name)}’s screen</b><b class="live-chip">Live</b></div>` +
+        '<div class="stream-tools"></div>';
       box.prepend(tile);
+      fx.play(tile, [{ opacity: 0, transform: 'scale(0.9)' }, { opacity: 1, transform: 'none' }], { duration: fx.lively.duration, easing: fx.lively.easing });
+      SOUNDS.stream();
     }
-    const player = peer.screenTile.querySelector('video');
+    const tile = peer.screenTile;
+    const player = tile.querySelector('video');
     if (player._stream !== peer.screenStream) {
       player._stream = peer.screenStream;
       player.srcObject = peer.screenStream;
       player.play().catch(() => {});
       nudge(player, () => peer.screenStream.getVideoTracks());
+    }
+    const speaker = tile.querySelector('audio');
+    if (peer.screenAudio && speaker._stream !== peer.screenAudio) {
+      speaker._stream = peer.screenAudio;
+      speaker.srcObject = peer.screenAudio;
+      speaker.play().catch(() => {});
+    }
+    tile.dataset.watching = String(!!peer.watching);
+    tile.setAttribute('aria-label', peer.watching ? `${peer.name}’s screen: full screen` : `${peer.name}’s screen: watch stream`);
+    streamTools(peer);
+  }
+
+  /** the buttons on a stream you watch: its sound, everyone (out of the big spot), full screen, and stop watching */
+  function streamTools(peer) {
+    const tile = peer.screenTile;
+    if (!tile) return;
+    const box = tile.querySelector('.stream-tools');
+    const theater = active.theater === tile;
+    const big = tile.classList.contains('focused');
+    const sig = [peer.watching, peer.sound, peer.streamHushed, theater, big].join();
+    if (box._sig === sig) return;
+    box._sig = sig;
+    const tool = (act, symbol, label) => `<button type="button" class="stream-tool" data-stream="${act}" aria-label="${label}" data-tooltip="${label}">${icon(symbol)}</button>`;
+    box.innerHTML = !peer.watching
+      ? ''
+      : (peer.sound ? tool('sound', peer.streamHushed ? 'volume_off' : 'volume_up', peer.streamHushed ? 'Unmute the stream' : 'Mute the stream') : '') +
+        (big && !theater ? tool('grid', 'grid_view', 'Show everyone') : '') +
+        tool('full', theater ? 'fullscreen_exit' : 'fullscreen', theater ? 'Exit full screen' : 'Full screen') +
+        (theater ? '' : tool('stop', 'visibility_off', 'Stop watching'));
+  }
+
+  /** your own screen, while you share it: a dim picture of it (shown in full it would repeat itself forever), what
+   *  it's like (smooth or sharp, with or without sound), and a way to stop */
+  function myScreenTile() {
+    const box = active.el.querySelector('.call-stage');
+    let tile = box.querySelector('.my-screen');
+    if (!active.screen) {
+      if (tile) {
+        if (active.theater === tile) closeTheater();
+        tile.remove();
+      }
+      return;
+    }
+    if (!tile) {
+      tile = document.createElement('div');
+      tile.className = 'call-tile screen-tile my-screen has-video';
+      tile.dataset.key = 'screen:me';
+      tile.innerHTML =
+        '<video autoplay playsinline muted></video>' +
+        `<div class="my-screen-note"><b>${icon('present_to_all')}<span>You’re sharing your screen</span></b><small class="my-screen-sound"></small>` +
+        `<div class="chips"><button type="button" class="chip" data-quality="smooth">${icon('speed')}Smooth</button><button type="button" class="chip" data-quality="sharp">${icon('hd')}Sharp text</button></div>` +
+        `<button type="button" class="m3-btn tonal small" data-call="share">${icon('stop_screen_share')}Stop</button></div>` +
+        `<div class="tile-name">${icon('present_to_all')}<b class="tile-what">Your screen</b><b class="live-chip">Live</b></div>`;
+      box.prepend(tile);
+    }
+    const player = tile.querySelector('video');
+    if (player._track !== active.screen) {
+      player._track = active.screen;
+      player.srcObject = new MediaStream([active.screen]);
+      player.play().catch(() => {});
+    }
+    tile.querySelectorAll('[data-quality]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.quality === active.quality)));
+    // with sound or without (and how to have it), and how many are watching
+    const watching = [...active.peers.values()].filter((p) => p.watchesMe === true).length;
+    const note = tile.querySelector('.my-screen-sound');
+    const said = `${!!active.screenSound} ${watching}`;
+    if (note._said !== said) {
+      note._said = said;
+      note.innerHTML =
+        (active.screenSound ? `${icon('volume_up')}<span>With sound</span>` : `${icon('no_sound')}<span>No sound. To share it, share a tab (or your whole screen, on Windows) with its audio on.</span>`) +
+        (watching ? `<b>${watching === 1 ? '1 watching' : `${watching} watching`}</b>` : '');
     }
   }
 
@@ -1410,31 +1888,204 @@
     player._nudge = setTimeout(check, 1200);
   }
 
-  /** how the stage is laid out: faces for voice, tiles once anyone's camera or screen is on */
+  // ---- watching a stream, the big spot, and full screen ---------------------------------------------------------
+
+  const peerFor = (key) => active && active.peers.get(String(key || '').replace(/^(screen|person):/, '')) || null;
+
+  /** you start (or stop) watching someone's shared screen: they're told, so it comes to you in full (or not) */
+  function watch(peer, on = true) {
+    if (!active || !peer || !peer.screenTile) return;
+    peer.watching = on;
+    send(peer, 'media', mediaState(peer));
+    const key = 'screen:' + lower(peer.name);
+    if (on) {
+      active.focus = key;
+      // a tap is what lets an iPhone play sound: the stream's sound starts here
+      const speaker = peer.screenTile.querySelector('audio');
+      if (speaker.srcObject) speaker.play().catch(() => {});
+      peer.screenTile.querySelector('video').play().catch(() => {});
+    } else if (active.focus === key) active.focus = nextFocus(key);
+    if (!on && active.theater === peer.screenTile) closeTheater();
+    drawTile(peer);
+    fx.haptic(6);
+  }
+  /** they stopped sharing, so you stopped watching */
+  function stopWatching(peer) {
+    peer.watching = false;
+    const key = 'screen:' + lower(peer.name);
+    if (active.focus === key) active.focus = nextFocus(key);
+  }
+  /** after the stream in the big spot, the next one you're watching, or none (everyone in a grid) */
+  function nextFocus(not) {
+    const next = [...active.peers.values()].find((p) => p.watching && p.screenTile && 'screen:' + lower(p.name) !== not);
+    return next ? 'screen:' + lower(next.name) : null;
+  }
+
+  function tileTap(tile) {
+    const key = tile.dataset.key || '';
+    if (key === 'screen:me') return;
+    const peer = peerFor(key);
+    if (!peer) return;
+    if (key.startsWith('screen:')) {
+      if (!peer.watching) return watch(peer, true);
+      // full screen shows its buttons, or hides them, with a tap
+      if (active.theater === tile) return void tile.classList.toggle('bare');
+      active.focus = key;
+      layout();
+      return theater(tile);
+    }
+    personSheet(peer);
+  }
+
+  function streamAct(act, tile) {
+    const peer = tile && peerFor(tile.dataset.key);
+    if (!peer) return;
+    if (act === 'watch') watch(peer, true);
+    else if (act === 'stop') watch(peer, false);
+    else if (act === 'full') {
+      if (active.theater === tile) closeTheater();
+      else {
+        active.focus = tile.dataset.key;
+        layout();
+        theater(tile);
+      }
+    } else if (act === 'grid') {
+      active.focus = null;
+      layout();
+    } else if (act === 'sound') {
+      peer.streamHushed = !peer.streamHushed;
+      hearing(peer);
+      streamTools(peer);
+    }
+  }
+
+  /** full screen: the stream fills the whole screen. Budgie does it itself (an iPhone has no full screen for a page),
+   *  and asks the browser for its own too where there is one, so nothing else shows */
+  function theater(tile) {
+    if (!active || !tile) return;
+    if (active.theater && active.theater !== tile) closeTheater();
+    active.theater = tile;
+    tile.classList.add('theater');
+    tile.classList.remove('bare');
+    active.el.classList.add('theater');
+    closeReact();
+    const el = active.el;
+    if (document.fullscreenEnabled && el.requestFullscreen && !document.fullscreenElement) {
+      active.fsAt = Date.now();
+      el.requestFullscreen({ navigationUI: 'hide' })
+        .then(() => {
+          // a phone turns to the stream's shape
+          const v = tile.querySelector('video');
+          if (touchOnly() && v && v.videoWidth > v.videoHeight && screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+        })
+        .catch(() => {});
+    }
+    active.peers.forEach((p) => p.screenTile && streamTools(p));
+    fx.haptic(6);
+  }
+  function closeTheater() {
+    if (!active || !active.theater) return;
+    const tile = active.theater;
+    active.theater = null;
+    tile.classList.remove('theater', 'bare');
+    active.el.classList.remove('theater');
+    if (document.fullscreenElement === active.el && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    try {
+      if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    } catch (_) {
+      /* it was never turned */
+    }
+    active.peers.forEach((p) => p.screenTile && streamTools(p));
+    layout();
+  }
+  // the browser's full screen ended (Esc, or its own way out): Budgie's goes too. Unless the browser gave it up the
+  // moment it began (Android's app does), when Budgie's own carries on
+  document.addEventListener('fullscreenchange', () => {
+    if (!active || !active.theater || document.fullscreenElement) return;
+    if (Date.now() - (active.fsAt || 0) > 900) closeTheater();
+  });
+
+  /** how the stage is laid out: faces for a voice call; once anyone's camera or screen is on, tiles in a grid, as big
+   *  as they can be; and with something in the big spot (a stream you're watching, someone you chose), it, with
+   *  everyone else in a strip under it or beside it, whichever leaves it bigger */
   function layout() {
     if (!active || !active.el) return;
     const peers = [...active.peers.values()];
-    const presenting = peers.some((p) => p.screenTile);
-    const pictures = presenting || active.cam || peers.some((p) => p.tile && p.tile.classList.contains('has-video'));
-    active.el.dataset.media = pictures ? 'video' : 'voice';
     const box = active.el.querySelector('.call-stage');
-    box.classList.toggle('presenting', presenting);
+    myScreenTile();
+    const tiles = [...box.children].filter((t) => t.classList.contains('call-tile'));
+    let focused = active.focus ? tiles.find((t) => t.dataset.key === active.focus) || null : null;
+    if (active.focus && !focused) active.focus = null;
+    // someone shown big has to have something to show: a stream you watch, or a camera that's on
+    if (focused && !focused.classList.contains('has-video')) focused = active.focus = null;
+    const pictures = focused || active.screen || active.cam || tiles.some((t) => t.classList.contains('has-video'));
+    active.el.dataset.media = pictures ? 'video' : 'voice';
+    box.classList.toggle('focus', !!focused);
+    tiles.forEach((t) => t.classList.toggle('focused', t === focused));
     box.dataset.count = String(peers.length);
-    // what you're sharing yourself isn't shown back to you (it would repeat forever), just said
-    let note = active.el.querySelector('.share-note');
-    if (active.screen && !note) {
-      note = document.createElement('div');
-      note.className = 'share-note';
-      note.innerHTML = `${icon('present_to_all')}<span>You’re sharing your screen</span><button type="button" class="m3-btn tonal small" data-call="share">Stop</button>`;
-      active.el.querySelector('.call-top').after(note);
-    } else if (!active.screen && note) note.remove();
+    box.dataset.tiles = String(tiles.length);
+    if (pictures) arrange(box, tiles, focused);
+    peers.forEach((p) => p.screenTile && streamTools(p));
+    speakers();
   }
+
+  function arrange(box, tiles, focused) {
+    const gap = 8;
+    const W = box.clientWidth - 16;
+    const H = box.clientHeight - 16;
+    if (W <= 0 || H <= 0) return;
+    if (focused) {
+      const k = tiles.length - 1;
+      if (!k) return void (box.dataset.strip = 'none');
+      const phone = Math.min(innerWidth, innerHeight) < 560;
+      const under = phone ? 104 : 150;
+      const beside = phone ? 132 : 232;
+      // the area of a 16:9 picture that fits w × h
+      const fit = (w, h) => {
+        const ww = Math.max(0, Math.min(w, (h * 16) / 9));
+        return (ww * ww * 9) / 16;
+      };
+      const side = fit(W - beside - gap, H) > fit(W, H - under - gap);
+      const length = side ? H : W;
+      const least = side ? 60 : 76;
+      const most = Math.max(1, Math.floor((length + gap) / (least + gap)));
+      const lines = Math.min(2, Math.ceil(k / most));
+      box.dataset.strip = side ? 'side' : 'under';
+      box.style.setProperty('--per', String(Math.ceil(k / lines)));
+      box.style.setProperty('--lines', String(lines));
+      box.style.setProperty('--strip', Math.round((side ? beside : under) * (lines > 1 ? 0.78 : 1)) + 'px');
+      return;
+    }
+    delete box.dataset.strip;
+    // the grid: as many to a row as makes each tile as big as it can be (squarish on a phone, wider on a computer)
+    const n = tiles.length;
+    const aspect = W >= H ? 4 / 3 : 1;
+    let cols = 1;
+    let best = 0;
+    for (let c = 1; c <= n; c++) {
+      const r = Math.ceil(n / c);
+      const w = (W - gap * (c - 1)) / c;
+      const h = (H - gap * (r - 1)) / r;
+      const bw = Math.min(w, h * aspect);
+      const area = (bw * bw) / aspect;
+      if (area > best + 1) {
+        best = area;
+        cols = c;
+      }
+    }
+    box.style.setProperty('--cols', String(cols));
+  }
+  addEventListener('resize', () => active && layout());
 
   function removeTile(peer, quick = false) {
     const tile = peer.tile;
     peer.tile = null;
-    if (peer.screenTile) peer.screenTile.remove();
+    if (peer.screenTile) {
+      if (active && active.theater === peer.screenTile) closeTheater();
+      peer.screenTile.remove();
+    }
     peer.screenTile = null;
+    if (active && active.focus && peerFor(active.focus) === peer) active.focus = null;
     if (!tile) return;
     if (quick) return void tile.remove();
     const out = fx.play(tile, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.85)' }], { duration: 180, easing: 'ease-in', fill: 'forwards' });
@@ -1447,6 +2098,243 @@
     };
     if (out) fx.settled(out).then(done);
     else done();
+  }
+
+  // ---- someone in the call: their volume, muting them for yourself, their camera big --------------------------------
+
+  function personSheet(peer) {
+    const u = store.user(peer.name);
+    const key = 'person:' + lower(peer.name);
+    const camera = !!(peer.tile && peer.tile.classList.contains('has-video'));
+    const pct = (v) => Math.round(v * 100) + '%';
+    return ui.sheet({
+      headline: 'u/' + u.name,
+      symbol: 'graphic_eq',
+      shape: u.shape || 'cookie9',
+      className: 'call-person',
+      html:
+        (volumeWorks
+          ? `<div class="setting-row"><span class="label">Volume</span><div class="slider-row"><m3-slider data-vol="voice" min="0" max="100" step="5" value="${Math.round(peer.volume * 100)}" label="Volume"></m3-slider><output>${pct(peer.volume)}</output></div></div>` +
+            (peer.sharing && peer.sound ? `<div class="setting-row"><span class="label">Their screen’s sound</span><div class="slider-row"><m3-slider data-vol="stream" min="0" max="100" step="5" value="${Math.round(peer.streamVolume * 100)}" label="Their screen’s sound"></m3-slider><output>${pct(peer.streamVolume)}</output></div></div>` : '')
+          : '') +
+        `<label class="switch-row">${icon('volume_off')}<span class="switch-text"><span>Mute for me</span><small>Only you stop hearing them (and their sounds). They aren’t told.</small></span><input type="checkbox" class="m3-switch" role="switch" data-hush${peer.hushed ? ' checked' : ''}></label>` +
+        (camera ? `<label class="switch-row">${icon('open_in_full')}<span class="switch-text"><span>Show big</span><small>Their camera in the big spot, everyone else beside it</small></span><input type="checkbox" class="m3-switch" role="switch" data-pin${active.focus === key ? ' checked' : ''}></label>` : ''),
+      setup(body) {
+        body.addEventListener('input', (e) => {
+          const slider = e.target.closest('[data-vol]');
+          if (!slider) return;
+          const v = Number(slider.value) / 100;
+          if (slider.dataset.vol === 'voice') peer.volume = v;
+          else peer.streamVolume = v;
+          slider.closest('.slider-row').querySelector('output').textContent = pct(v);
+          hearing(peer);
+        });
+        body.addEventListener('change', (e) => {
+          const t = e.target;
+          if (t.matches('[data-vol]')) keepVolume(peer.name, t.dataset.vol === 'voice' ? { v: peer.volume } : { sv: peer.streamVolume });
+          else if (t.matches('[data-hush]')) {
+            peer.hushed = t.checked;
+            keepVolume(peer.name, { m: peer.hushed });
+            drawTile(peer);
+          } else if (t.matches('[data-pin]')) {
+            active.focus = t.checked ? key : null;
+            layout();
+          }
+        });
+      },
+      actions: [{ label: 'Done', variant: 'filled' }],
+    });
+  }
+
+  // ---- reactions and the soundboard -----------------------------------------------------------------------------
+
+  /** the little panel over the buttons: a reaction everyone sees float up from you, or a sound everyone hears */
+  function reactions() {
+    if (!active || closeReact()) return;
+    const pop = document.createElement('div');
+    pop.className = 'call-react';
+    pop.setAttribute('role', 'group');
+    pop.setAttribute('aria-label', 'Reactions and sounds');
+    pop.innerHTML =
+      `<div class="react-row">${EMOJI.map((e) => `<button type="button" class="react-emoji" data-emoji="${e}" aria-label="${e}">${e}</button>`).join('')}</div>` +
+      `<span class="react-label">${icon('music_note')}Sounds everyone hears</span>` +
+      `<div class="react-sounds">${Object.entries(BOARD)
+        .map(([id, b]) => `<button type="button" class="chip" data-board="${id}"><span class="react-mini" aria-hidden="true">${b.emoji}</span>${esc(b.label)}</button>`)
+        .join('')}</div>`;
+    active.el.appendChild(pop);
+    // just above the buttons, however tall they are
+    const buttons = active.el.querySelector('.call-controls').getBoundingClientRect();
+    pop.style.bottom = Math.round(active.el.getBoundingClientRect().bottom - buttons.top + 10) + 'px';
+    fx.play(pop, [{ opacity: 0, transform: 'translate(-50%, 12px) scale(0.96)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: fx.gentle.duration, easing: fx.gentle.easing });
+    pop.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-emoji], [data-board]');
+      if (!b) return;
+      react(b.dataset.board ? { s: b.dataset.board } : { e: b.dataset.emoji });
+      fx.pop(b, 0.8);
+    });
+    // a tap anywhere else closes it
+    pop._away = (e) => !pop.contains(e.target) && !e.target.closest('[data-call="react"]') && closeReact();
+    document.addEventListener('pointerdown', pop._away, true);
+    controls();
+  }
+  function closeReact() {
+    const pop = active && active.el && active.el.querySelector('.call-react');
+    if (!pop) return false;
+    document.removeEventListener('pointerdown', pop._away, true);
+    pop.remove();
+    controls();
+    return true;
+  }
+
+  /** you react: everyone sees it (a few at a time; a flood of them would only be noise) */
+  function react(what) {
+    if (!active) return;
+    const now = Date.now();
+    active.reacts = active.reacts.filter((t) => now - t < 10000);
+    if (active.reacts.length >= 6) return fx.haptic(20);
+    active.reacts.push(now);
+    const r = Object.assign({ id: ++active.reactId + '-' + now.toString(36) }, what);
+    tell({ react: r });
+    reacted(null, r);
+  }
+
+  /** a reaction, from someone (or you): only the ones Budgie has are shown, never anything else */
+  function reacted(peer, r) {
+    if (!active || !active.el || !r) return;
+    const board = typeof r.s === 'string' && Object.prototype.hasOwnProperty.call(BOARD, r.s) ? BOARD[r.s] : null;
+    const emoji = board ? board.emoji : EMOJI.includes(r.e) ? r.e : null;
+    if (!emoji) return;
+    if (peer) {
+      // someone sending more than a few at once: the rest are let go
+      const now = Date.now();
+      peer.reactTimes = peer.reactTimes.filter((t) => now - t < 10000);
+      if (peer.reactTimes.length >= 8 || peer.hushed) return;
+      peer.reactTimes.push(now);
+    }
+    floatUp(emoji, peer ? peer.tile : null);
+    if (board && !active.deaf) board.play();
+  }
+
+  /** a reaction floats up from whoever sent it (yours from your buttons) */
+  function floatUp(emoji, tile) {
+    const host = active.el;
+    const from = tile && tile.isConnected && !host.hidden ? tile : host.querySelector('.call-controls');
+    if (!from || host.hidden) return;
+    const r = from.getBoundingClientRect();
+    const b = host.getBoundingClientRect();
+    const el = document.createElement('span');
+    el.className = 'call-float';
+    el.setAttribute('aria-hidden', 'true');
+    el.textContent = emoji;
+    el.style.left = r.left - b.left + r.width / 2 + (Math.random() - 0.5) * Math.min(80, r.width * 0.5) + 'px';
+    el.style.top = r.top - b.top + Math.min(r.height * 0.55, 90) + 'px';
+    host.appendChild(el);
+    const rise = Math.min(220, Math.max(120, r.height * 0.8));
+    const a = fx.play(
+      el,
+      [
+        { transform: 'translate(-50%, 0) scale(0.5)', opacity: 0 },
+        { transform: 'translate(-50%, -24px) scale(1.2)', opacity: 1, offset: 0.14 },
+        { transform: `translate(-50%, -${rise}px) scale(1)`, opacity: 0 },
+      ],
+      { duration: 2000, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'forwards' }
+    );
+    if (a) fx.settled(a).then(() => el.remove());
+    else setTimeout(() => el.remove(), 1400);
+  }
+
+  // ---- sound settings: microphone, speaker, noise, push to talk -------------------------------------------------
+
+  async function callSettings() {
+    if (!active) return;
+    const p = hearPrefs();
+    let devices = [];
+    try {
+      devices = await navigator.mediaDevices.enumerateDevices();
+    } catch (_) {
+      /* only the defaults, then */
+    }
+    if (!active) return;
+    const mics = devices.filter((d) => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'communications');
+    const outs = 'setSinkId' in HTMLMediaElement.prototype ? devices.filter((d) => d.kind === 'audiooutput' && d.deviceId && d.deviceId !== 'communications') : [];
+    const now = (micTrack() && micTrack().getSettings && micTrack().getSettings().deviceId) || p.mic || 'default';
+    const option = (d, picked, i, fallback) => `<option value="${esc(d.deviceId)}"${d.deviceId === picked ? ' selected' : ''}>${esc(d.label || `${fallback} ${i + 1}`)}</option>`;
+    const keys = !touchOnly();
+    ui.sheet({
+      headline: 'Sound and look',
+      symbol: 'tune',
+      shape: 'clover8',
+      className: 'call-settings',
+      html:
+        (mics.length > 1 ? `<label class="field"><span class="field-label">Microphone</span><select class="m3-field call-select" data-pick="mic" data-no-i18n translate="no">${mics.map((d, i) => option(d, now, i, 'Microphone')).join('')}</select></label>` : '') +
+        (outs.length > 1 ? `<label class="field"><span class="field-label">Speaker</span><select class="m3-field call-select" data-pick="speaker" data-no-i18n translate="no">${outs.map((d, i) => option(d, p.speaker || 'default', i, 'Speaker')).join('')}</select></label>` : '') +
+        `<label class="switch-row">${icon('noise_aware')}<span class="switch-text"><span>Take out background noise</span><small>Keyboards, fans and traffic. Turn it off for music.</small></span><input type="checkbox" class="m3-switch" role="switch" data-set="clean"${p.clean !== false ? ' checked' : ''}></label>` +
+        (keys ? `<label class="switch-row">${icon('keyboard')}<span class="switch-text"><span>Push to talk</span><small>Your microphone is on only while you hold the space bar</small></span><input type="checkbox" class="m3-switch" role="switch" data-set="ptt"${active.ptt ? ' checked' : ''}></label>` : '') +
+        `<button type="button" class="m3-btn tonal" data-set="look">${icon('palette')}Call look: colours, background, ringtone</button>`,
+      setup(body, close) {
+        body.addEventListener('change', async (e) => {
+          const t = e.target;
+          if (!active) return;
+          if (t.dataset.pick === 'mic') {
+            if (await useMic(t.value)) hearPrefs({ mic: t.value });
+          } else if (t.dataset.pick === 'speaker') {
+            hearPrefs({ speaker: t.value });
+            speakers();
+          } else if (t.dataset.set === 'clean') {
+            hearPrefs({ clean: t.checked });
+            useMic(hearPrefs().mic);
+          } else if (t.dataset.set === 'ptt') {
+            hearPrefs({ ptt: t.checked });
+            active.ptt = t.checked;
+            active.talking = false;
+            micLive();
+            controls();
+            if (t.checked) M3.snackbar('Hold the space bar to talk.');
+          }
+        });
+        body.addEventListener('click', (e) => {
+          if (!e.target.closest('[data-set="look"]')) return;
+          close(null);
+          customise();
+        });
+      },
+      actions: [{ label: 'Done', variant: 'filled' }],
+    });
+  }
+
+  /** a microphone picked (or the noise setting changed): a fresh one, sent to everyone in place of the old */
+  async function useMic(device) {
+    const want = audioWanted();
+    if (device) want.deviceId = { exact: device };
+    let s;
+    try {
+      s = await navigator.mediaDevices.getUserMedia({ audio: want });
+    } catch (_) {
+      M3.snackbar('Couldn’t use that microphone.');
+      return false;
+    }
+    const track = s.getAudioTracks()[0];
+    if (!active || !track) {
+      stopTracks(s);
+      return false;
+    }
+    for (const old of active.local.getAudioTracks()) {
+      old.stop();
+      active.local.removeTrack(old);
+    }
+    active.local.addTrack(track);
+    micLive();
+    active.peers.forEach((peer) => peer.audio && peer.audio.replaceTrack(track).catch(() => {}));
+    meters.unwatch('me');
+    meters.add('me', active.local);
+    return true;
+  }
+
+  /** everything you hear plays from the speaker you picked (on a computer whose browser can choose) */
+  function speakers() {
+    const id = hearPrefs().speaker;
+    if (!active || !active.el || !id) return;
+    active.el.querySelectorAll('audio').forEach((a) => a.setSinkId && a.sinkId !== id && a.setSinkId(id).catch(() => {}));
   }
 
   // a browser that wouldn't play sound on its own gets a button that does
@@ -1500,6 +2388,8 @@
 
   function minimise() {
     if (!active || active.minimised) return;
+    closeTheater();
+    closeReact();
     active.minimised = true;
     active.el.hidden = true;
     active.bar = makeBar('', '');
@@ -1508,6 +2398,7 @@
       const b = e.target.closest('[data-bar]');
       if (!b) return;
       if (b.dataset.bar === 'mic') toggleMic();
+      else if (b.dataset.bar === 'deaf') toggleDeaf();
       else if (b.dataset.bar === 'hang') hangUp();
       else restore();
     });
@@ -1522,6 +2413,7 @@
       bar.innerHTML =
         `<button type="button" class="call-bar-main" data-bar="back" aria-label="Back to the call with ${esc(title())}"><span class="pill-dot"></span>${icon(active.cam ? 'videocam' : 'call')}<span class="call-bar-text"></span><b>Return</b></button>` +
         `<button type="button" class="m3-icon-btn small" data-bar="mic" aria-label="${active.mic ? 'Mute' : 'Unmute'}" data-tooltip="${active.mic ? 'Mute' : 'Unmute'} (M)">${icon(active.mic ? 'mic' : 'mic_off')}</button>` +
+        `<button type="button" class="m3-icon-btn small" data-bar="deaf" aria-label="${active.deaf ? 'Undeafen' : 'Deafen'}" data-tooltip="${active.deaf ? 'Undeafen' : 'Deafen'} (D)">${icon(active.deaf ? 'headset_off' : 'headphones')}</button>` +
         `<button type="button" class="m3-icon-btn small call-bar-hang" data-bar="hang" aria-label="Hang up" data-tooltip="Hang up">${icon('call_end')}</button>`;
     }
     bar.querySelector('.call-bar-text').textContent = words;
@@ -1532,6 +2424,7 @@
     active.bar = null;
     active.minimised = false;
     active.el.hidden = false;
+    layout();
     playAll();
     if (matchMedia('(hover: hover)').matches) active.el.querySelector('[data-call="hang"]').focus({ preventScroll: true });
   }
@@ -1586,8 +2479,12 @@
 
   const SHORTCUTS = [
     [['M'], 'Mute or unmute (Ctrl+D or ⌘D works while you type)'],
+    [['D'], 'Deafen or undeafen (Ctrl+Shift+D or ⌘⇧D)'],
     [['V'], 'Camera on or off (Ctrl+E or ⌘E)'],
     [['Shift', 'S'], 'Share your screen, or stop'],
+    [['F'], 'Full screen for the stream you’re watching'],
+    [['E'], 'Reactions and sounds'],
+    [['Space'], 'Hold to talk, with push to talk on'],
     [['R'], 'People: ring someone again (in a group)'],
     [['C'], 'Hide the call, or bring it back'],
     [['Esc'], 'Hide the call'],
@@ -1612,10 +2509,24 @@
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
       let act = null;
-      if (mod && !e.shiftKey && key === 'd') act = toggleMic;
+      // push to talk: the space bar, held (and never a press of the button that has focus)
+      if (active.ptt && e.key === ' ' && !mod && !typing && !inSheet) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (!active.talking) {
+          active.talking = true;
+          micLive();
+        }
+        return;
+      }
+      if (mod && e.shiftKey && key === 'd') act = toggleDeaf;
+      else if (mod && !e.shiftKey && key === 'd') act = toggleMic;
       else if (mod && !e.shiftKey && key === 'e') act = toggleCam;
       else if (!mod && !typing && !inSheet) {
         if (key === 'm' && !e.shiftKey) act = toggleMic;
+        else if (key === 'd' && !e.shiftKey) act = toggleDeaf;
+        else if (key === 'e' && !e.shiftKey && !active.minimised) act = reactions;
+        else if (key === 'f' && !e.shiftKey && !active.minimised) act = fullKey;
         else if (key === 'v' && !e.shiftKey) act = toggleCam;
         else if (key === 's' && e.shiftKey && canShare()) act = toggleShare;
         else if (key === 'r' && !e.shiftKey && active.call.group && server095()) act = people;
@@ -1629,6 +2540,28 @@
     },
     true
   );
+  // the space bar let go (or the window left while holding it): push to talk stops
+  const quiet = (e) => {
+    if (!active || !active.ptt || !active.talking || (e.type === 'keyup' && e.key !== ' ')) return;
+    if (e.type === 'keyup') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+    active.talking = false;
+    micLive();
+  };
+  addEventListener('keyup', quiet, true);
+  addEventListener('blur', quiet);
+  /** F: the stream in the big spot (or the one you're watching) fills the screen, or stops filling it */
+  function fullKey() {
+    if (active.theater) return closeTheater();
+    const big = active.focus && active.focus.startsWith('screen:') ? peerFor(active.focus) : null;
+    const peer = big && big.watching ? big : [...active.peers.values()].find((p) => p.watching && p.screenTile);
+    if (!peer || !peer.screenTile || !peer.watching) return;
+    active.focus = 'screen:' + lower(peer.name);
+    layout();
+    theater(peer.screenTile);
+  }
 
   // ---- a page reloaded mid-call: the call is still going, and this device can go back to it ----------------
 

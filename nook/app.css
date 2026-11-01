@@ -5342,21 +5342,11 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 /* video: everyone in rounded tiles, as many to a row as fits */
 .call-screen[data-media='video'] .call-stage {
   display: grid;
-  grid-template-columns: 1fr;
+  /* as many to a row as makes each tile as big as it can be: worked out as the call changes (calls.js, arrange) */
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
   grid-auto-rows: minmax(0, 1fr);
   gap: 8px;
   padding: 8px;
-}
-.call-screen[data-media='video'] .call-stage:is([data-count='3'], [data-count='4'], [data-count='5']) {
-  grid-template-columns: 1fr 1fr;
-}
-@media (min-aspect-ratio: 1/1) {
-  .call-screen[data-media='video'] .call-stage[data-count='2'] {
-    grid-template-columns: 1fr 1fr;
-  }
-  .call-screen[data-media='video'] .call-stage[data-count='5'] {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
 }
 .call-screen[data-media='video'] .call-tile {
   width: auto;
@@ -5365,6 +5355,8 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   border-radius: 28px;
   background: var(--m3-surface-container);
   transition: box-shadow 150ms;
+  /* what's in a tile (a face, a name, a stream's buttons) sizes itself to the tile */
+  container-type: size;
 }
 .call-screen[data-media='video'] .call-tile video {
   position: absolute;
@@ -6030,7 +6022,9 @@ html.has-call-bar .topbar {
   position: relative;
 }
 .call-screen > .call-self,
-.call-screen > .call-play {
+.call-screen > .call-play,
+.call-screen > .call-react,
+.call-screen > .call-float {
   position: absolute;
 }
 .call-bg m3-shape {
@@ -6161,52 +6155,7 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   background: var(--m3-primary);
   color: var(--m3-on-primary);
 }
-.call-screen > .share-note {
-  position: absolute;
-  top: calc(64px + env(safe-area-inset-top, 0px));
-  left: 50%;
-  z-index: 3;
-  transform: translateX(-50%);
-}
-.share-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: max-content;
-  max-width: calc(100% - 24px);
-  padding: 4px 6px 4px 14px;
-  border-radius: 20px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 0.3);
-  background: var(--m3-primary-container);
-  color: var(--m3-on-primary-container);
-  font-weight: 650;
-}
-.call-stage.presenting {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
-  grid-template-rows: minmax(0, 1fr) 130px;
-  grid-auto-rows: 130px;
-}
-.call-stage.presenting .screen-tile {
-  grid-column: 1 / -1;
-  background: #000;
-}
-.call-screen .call-stage .screen-tile video {
-  object-fit: contain;
-  opacity: 1;
-}
-.screen-tile .tile-name .m3-icon {
-  font-size: 18px;
-}
-.call-stage.presenting .call-tile:not(.screen-tile) .tile-face {
-  width: 72px;
-  height: 72px;
-}
-.call-stage.presenting .call-tile:not(.screen-tile) .tile-pic .avatar {
-  transform: scale(0.6);
-}
-/* a phone on its side, often turned to see a shared screen bigger: the screen takes the whole height, everyone's
-   faces go in a column beside it (under it, they left the screen a sliver), and the title and buttons get a little
-   more compact */
+/* a phone on its side: the title and buttons a little more compact */
 @media (max-height: 500px) {
   .call-top {
     padding-top: 4px;
@@ -6224,49 +6173,436 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   .call-controls .call-btn.wide {
     width: 72px;
   }
-  .call-stage.presenting {
-    --faces: 1;
-    grid-template-columns: 136px minmax(0, 1fr) !important;
-    grid-template-rows: repeat(var(--faces), minmax(0, 1fr));
-    grid-auto-rows: minmax(0, 1fr);
+}
+/* six buttons on a narrow phone (with deafen, reactions and a camera to switch): a little smaller, still one row */
+@media (max-width: 420px) {
+  .call-controls:is([data-n='6'], [data-n='7']) {
+    gap: 6px;
+    padding: 8px;
   }
-  .call-stage.presenting[data-count='2'] {
-    --faces: 2;
+  .call-controls:is([data-n='6'], [data-n='7']) .call-btn {
+    width: 48px;
+    height: 48px;
   }
-  .call-stage.presenting[data-count='3'] {
-    --faces: 3;
+  .call-controls:is([data-n='6'], [data-n='7']) .call-btn.wide {
+    width: 62px;
   }
-  .call-stage.presenting:not([data-count='1'], [data-count='2'], [data-count='3']) {
-    --faces: 4;
+  .call-controls:is([data-n='6'], [data-n='7']) .call-btn .m3-icon {
+    font-size: 24px;
   }
-  .call-stage.presenting .screen-tile {
-    grid-column: 2;
-    grid-row: 1 / -1;
+}
+
+/* ---- 1.3: everyone in a call, streams to join, the big spot, full screen, reactions --------------------------- */
+
+/* a tap on someone: their volume and more */
+.call-tile {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.call-tile:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.tile-deaf,
+.tile-hushed {
+  display: inline-grid;
+}
+.tile-deaf[hidden],
+.tile-hushed[hidden] {
+  display: none;
+}
+.tile-deaf .m3-icon,
+.tile-hushed .m3-icon {
+  font-size: 18px;
+}
+.tile-deaf .m3-icon {
+  color: var(--m3-error);
+}
+
+/* a face in a small tile is smaller, so it stays in the middle of its shape */
+@container (max-height: 170px) {
+  .tile-face {
+    width: 76px;
+    height: 76px;
   }
-  .call-stage.presenting .call-tile:not(.screen-tile) {
-    grid-column: 1;
+  .tile-pic .avatar {
+    transform: scale(0.62);
   }
-  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile) .tile-face {
-    width: 52px;
-    height: 52px;
+}
+@container (max-height: 116px) {
+  .tile-face {
+    width: 54px;
+    height: 54px;
   }
-  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile) .tile-pic .avatar {
+  .tile-pic .avatar {
     transform: scale(0.44);
   }
-  /* a face without a camera: its name beside it, rather than over it, in a tile this small */
-  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile, .has-video) {
-    grid-template-columns: 52px minmax(0, 1fr);
-    justify-items: start;
-    align-items: center;
-    column-gap: 6px;
-    padding: 0 8px;
+  .call-screen[data-media='video'] .call-tile .tile-name {
+    bottom: 4px;
+    left: 4px;
+    max-width: calc(100% - 8px);
+    padding: 2px 7px;
+    border-radius: 9px;
+    font-size: 0.75rem;
   }
-  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile, .has-video) .tile-name {
-    position: static;
-    max-width: 100%;
-    padding: 3px 8px;
-    font-size: 0.8125rem;
+}
+/* small but wide (in the strip beside a stream, a phone on its side): the name beside the face, not over it */
+@container (max-height: 116px) and (min-width: 128px) {
+  .call-tile:not(.has-video, .screen-tile) .tile-face {
+    position: absolute;
+    top: 50%;
+    left: 8px;
+    translate: 0 -50%;
   }
+  .call-screen[data-media='video'] .call-tile:not(.has-video, .screen-tile) .tile-name {
+    top: 50%;
+    bottom: auto;
+    left: 66px;
+    max-width: calc(100% - 72px);
+    translate: 0 -50%;
+  }
+}
+/* very small (a strip of many): only the face */
+@container (max-width: 74px) {
+  .call-screen[data-media='video'] .call-tile:not(.screen-tile) .tile-name {
+    display: none;
+  }
+}
+
+/* a stream: someone's shared screen, shown whole */
+.call-screen[data-media='video'] .call-tile.screen-tile {
+  background: #000;
+}
+.call-screen .call-stage .screen-tile video {
+  object-fit: contain;
+  opacity: 1;
+}
+.screen-tile .tile-name {
+  flex-wrap: nowrap;
+}
+.screen-tile .tile-name .m3-icon {
+  font-size: 18px;
+}
+.tile-what {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.live-chip {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #e5484d;
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+/* not watching it yet: a dim, blurred look at it, and a button to join */
+.screen-tile[data-watching='false'] video {
+  filter: blur(12px) brightness(0.5) saturate(1.2);
+  scale: 1.1;
+}
+.stream-watch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 22px;
+  translate: -50% -50%;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+  background: var(--m3-inverse-surface);
+  color: var(--m3-inverse-on-surface);
+  font: inherit;
+  font-weight: 720;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: scale 120ms;
+}
+.stream-watch:hover {
+  scale: 1.04;
+}
+.stream-watch:active {
+  scale: 0.96;
+}
+.screen-tile[data-watching='true'] .stream-watch {
+  display: none;
+}
+@container (max-width: 180px) {
+  .stream-watch {
+    justify-content: center;
+    width: 44px;
+    padding: 0;
+  }
+  .stream-watch span:not(.m3-icon) {
+    display: none;
+  }
+  .screen-tile .tile-name .live-chip {
+    display: none;
+  }
+}
+/* watching it: its sound, everyone, full screen, stop watching */
+.stream-tools {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 160ms;
+}
+.stream-tool {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 20px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.stream-tool:hover {
+  background: rgb(0 0 0 / 0.78);
+}
+.stream-tool .m3-icon {
+  font-size: 22px;
+}
+.screen-tile:is(:hover, :focus-within, .focused, .theater) .stream-tools {
+  opacity: 1;
+}
+@media (hover: none) {
+  .screen-tile[data-watching='true'] .stream-tools {
+    opacity: 1;
+  }
+}
+@container (max-height: 116px) {
+  .stream-tools {
+    display: none;
+  }
+}
+
+/* your own screen while you share it */
+.call-screen[data-media='video'] .call-tile.my-screen video {
+  opacity: 0.35;
+  filter: blur(3px) saturate(0.6);
+}
+.my-screen-note {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.25));
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 12px;
+  color: #fff;
+  text-align: center;
+}
+.my-screen-note > b {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 1.05rem;
+}
+.my-screen-sound {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 6px;
+  max-width: 36ch;
+  color: rgb(255 255 255 / 0.82);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+.my-screen-sound .m3-icon {
+  font-size: 16px;
+}
+.my-screen-sound b {
+  flex-basis: 100%;
+  color: #fff;
+}
+.my-screen-note .chips {
+  justify-content: center;
+}
+.my-screen-note .chip {
+  border-color: rgb(255 255 255 / 0.4);
+  background: transparent;
+  color: #fff;
+}
+.my-screen-note .chip[aria-pressed='true'] {
+  border-color: transparent;
+  background: #fff;
+  color: #111;
+}
+.my-screen .tile-name {
+  display: none;
+}
+@container (max-height: 240px) {
+  .my-screen-sound,
+  .my-screen-note .chips {
+    display: none;
+  }
+}
+@container (max-height: 130px) {
+  .my-screen-note > b {
+    display: none;
+  }
+}
+
+/* the big spot: a stream you're watching (or someone's camera), with everyone else in a strip under it or beside it */
+.call-stage.focus[data-strip='under'] {
+  grid-template-columns: repeat(var(--per, 1), minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr) repeat(var(--lines, 1), var(--strip, 104px));
+  grid-auto-rows: var(--strip, 104px);
+}
+.call-stage.focus[data-strip='under'] .focused {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+.call-stage.focus[data-strip='side'] {
+  grid-template-columns: repeat(var(--lines, 1), var(--strip, 132px)) minmax(0, 1fr);
+  grid-template-rows: repeat(var(--per, 1), minmax(0, 1fr));
+  grid-auto-flow: column;
+}
+.call-stage.focus[data-strip='side'] .focused {
+  grid-row: 1 / -1;
+  grid-column: -2 / -1;
+}
+.call-stage.focus[data-strip='none'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+.call-stage.focus .call-tile:not(.focused) {
+  border-radius: 20px;
+}
+
+/* full screen: the stream fills it all; a tap shows or hides its buttons */
+.call-screen.theater .call-tile.theater {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  border-radius: 0;
+}
+.call-screen.theater :is(.call-top, .call-controls, .call-self, .call-react, .call-play) {
+  visibility: hidden;
+}
+.call-screen:fullscreen {
+  background: #000;
+}
+.call-tile.theater .tile-name {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  left: calc(16px + env(safe-area-inset-left, 0px));
+  transition: opacity 160ms;
+}
+.call-tile.theater .stream-tools {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(12px + env(safe-area-inset-right, 0px));
+  display: flex;
+}
+.call-tile.theater.bare :is(.stream-tools, .tile-name) {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* reactions and the soundboard, over the buttons */
+.call-react {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  z-index: 6;
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100% - 24px));
+  padding: 12px;
+  border-radius: 28px;
+  transform: translate(-50%, 0);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.35);
+  background: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
+}
+.react-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 2px;
+}
+.react-emoji {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms, scale 120ms;
+}
+.react-emoji:hover {
+  background: var(--m3-surface-container-highest);
+}
+.react-emoji:active {
+  scale: 0.88;
+}
+.react-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+}
+.react-label .m3-icon {
+  font-size: 18px;
+}
+.react-sounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.react-mini {
+  margin-right: 4px;
+  font-size: 1.1em;
+}
+.call-float {
+  position: absolute;
+  z-index: 8;
+  font-size: 38px;
+  line-height: 1;
+  transform: translate(-50%, 0);
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.35));
+  pointer-events: none;
+}
+
+/* the sheets: someone's volume, and sound settings */
+.call-person .slider-row output,
+.call-settings .slider-row output {
+  min-width: 48px;
+}
+.call-settings .field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.call-settings .call-select {
+  width: 100%;
+}
+.call-settings .m3-btn {
+  margin-top: 8px;
 }
 .call-people .team-row {
   padding: 6px 0;

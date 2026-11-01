@@ -103,6 +103,14 @@
           if (core !== edge[2]) out = edge[1] + core + edge[3];
         }
       }
+      // a tooltip with its key ("Mute (M)", "Deafen (D)"): the words translated, the key as it is
+      if (out === undefined) {
+        const hint = /^(.*\S)(\s\((?:[A-Z?]|Esc|Space|Shift\+[A-Z])\))$/s.exec(key);
+        if (hint) {
+          const core = t(hint[1]);
+          if (core !== hint[1]) out = core + hint[2];
+        }
+      }
       // a list, when every item in it has a translation ("Transgender, Bisexual")
       if (out === undefined && key.includes(', ')) {
         const items = key.split(', ');
