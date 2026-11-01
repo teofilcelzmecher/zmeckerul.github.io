@@ -1,0 +1,91 @@
+# Budgie for Windows and Linux
+
+Budgie in a window of its own, for Windows 10 and 11 and for Linux (x64 and ARM). Its screens are budgiesocial.com's,
+as they are, so the app is always the newest Budgie: a change to the website reaches the app at once, with nothing to
+install. Around the website, the app adds what a computer can do:
+
+- **Calls ring, always.** Closing the window keeps Budgie running in the tray, and it starts with the computer (in
+  the tray, without a window), so a call rings even when nobody has opened it: a small window pops up over everything
+  in the corner of the screen, with Answer and Decline, as the ringtone plays. Starting with the computer can be
+  turned off from the tray icon; **Quit Budgie** there (or Ctrl+Q) stops it.
+- **Notifications** for new messages, group messages, replies and the rest of the inbox, while Budgie isn't in front.
+  A click opens what it's about.
+- **Unread**: a count on the taskbar button (Windows) or in the dock (Linux, where the dock supports it), and a dot on
+  the tray icon.
+- **Sharing a screen**: a picker for a screen or a window, and on Windows the computer's sound with it (everything the
+  computer plays, the call included).
+- **The rest**: right-click to cut, copy, paste and fix spelling (Windows' own spelling); links to other sites open in
+  the browser; no ads; the window remembers its size and place; a page that says so when there's no internet.
+- **A newer app?** The app checks GitHub twice a day and says so once (the tray then has a link).
+
+The app's own words (tray menu, ringing window, picker, offline page) are in Budgie's six languages, following the
+language the website is in.
+
+## How it's made
+
+[Electron](https://www.electronjs.org) 44: Chromium, so calls and screen sharing work as in Chrome, on every Linux.
+
+| File | What it does |
+|---|---|
+| `main.js` | the window, the tray, starting with the computer, the ringing window, notifications, the screen picker, permissions, links |
+| `preload.js` | the only thing the website sees of the app: `window.BUDGIE_DESKTOP` (notify, unread count, language), and it notices a call ringing in the page |
+| `desktop.js` | run inside the website by the app: turns new messages and inbox items into notifications, counts unread, keeps checking while the window is closed |
+| `pages/` | the app's own small pages: the ringing window, the screen picker, the offline page |
+| `strings.js` | the app's own words in six languages |
+| `tools/make-icons.js` | the icons, drawn from the design system (Playwright) |
+| `tools/aur.py` | the Arch User Repository package (PKGBUILD and .SRCINFO) for a release |
+
+The website knows nothing about the app except that it shows no ads inside it (`nook/js/ads.js`) and doesn't offer
+it for download there (`nook/js/views.js`).
+
+Security: the website runs sandboxed, with context isolation and no Node.js; the app's windows only show
+budgiesocial.com and its own pages (anything else opens in the browser); the website may use the microphone, camera,
+screen sharing, notifications and full screen, and nothing else.
+
+## Try it
+
+```sh
+cd apps/desktop
+npm install
+npm start                               # the real website
+BUDGIE_SITE=http://localhost:8790/ npm start   # a Budgie running on your own computer
+```
+
+## Releases
+
+`.github/workflows/desktop.yml` builds everything on GitHub's machines on each push that changes `apps/desktop`:
+
+| | File |
+|---|---|
+| Windows 10 and 11 (installs for one person, no administrator) | `Budgie-Setup.exe` |
+| Debian, Ubuntu, Linux Mint, Pop!_OS, Zorin, elementary | `budgie-social-amd64.deb`, `budgie-social-arm64.deb` |
+| Fedora, openSUSE, Nobara | `budgie-social-x86_64.rpm`, `budgie-social-aarch64.rpm` |
+| Arch, Manjaro, EndeavourOS, CachyOS | `budgie-social-x64.pacman`, `budgie-social-aarch64.pacman`, and the AUR |
+| Any Linux | `Budgie-x86_64.AppImage`, `Budgie-arm64.AppImage`, `budgie-social-x64.tar.gz`, `budgie-social-arm64.tar.gz` |
+
+When `version` in `package.json` hasn't been released yet, it publishes them as the release `desktop-v<version>`,
+with the AUR files and every file's checksum. budgiesocial.com/download.html links to the newest release's files, so
+the links never change. A release is never changed afterwards: for a new app, raise the version.
+
+The Linux package is called **budgie-social** (its command too), because `budgie` is already the name of a Linux
+desktop (Budgie Desktop, as in Ubuntu Budgie).
+
+## The Arch User Repository (once)
+
+Arch people expect `yay -S budgie-social-bin`. To put Budgie there (an AUR account is free):
+
+1. Make an account on [aur.archlinux.org](https://aur.archlinux.org) and add your SSH public key in *My Account*.
+2. From the newest release, download `PKGBUILD` and `SRCINFO`.
+3. `git clone ssh://aur@aur.archlinux.org/budgie-social-bin.git`, copy `PKGBUILD` in, and `SRCINFO` in as
+   `.SRCINFO`; then `git add PKGBUILD .SRCINFO && git commit -m "Budgie 1.3.0" && git push`.
+
+For each later release, do steps 2 and 3 again (the clone is already there). Then add the AUR line back to the
+download page.
+
+## Windows' warning
+
+The installer isn't signed with a code-signing certificate yet, so Windows SmartScreen says *Windows protected your
+PC* (More info → Run anyway) until enough people have installed it. The ways to lose the warning: publish Budgie in
+the Microsoft Store (Microsoft signs it; it needs a Partner Center account, which needs an adult, so a parent or
+guardian would sign up), or a certificate (Azure Trusted Signing, or a certificate from a certificate
+authority, both paid).

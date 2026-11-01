@@ -12,7 +12,7 @@ src, out = sys.argv[1], sys.argv[2]
 for d in ['js', 'm3', 'm3/fonts', 'm3/vendor']:
     os.makedirs(os.path.join(out, d), exist_ok=True)
 fix = lambda text: text.replace('href="../m3/"', 'href="m3/index.html"').replace('../m3/', 'm3/')
-for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html', 'captcha.html']:
+for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html', 'captcha.html', 'download.html']:
     html = rehash(fix(open(f'{src}/nook/{page}').read()))
     open(f'{out}/{page}', 'w').write(html)
 for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
@@ -49,7 +49,7 @@ SITE = 'https://budgiesocial.com/'
 open(f'{out}/robots.txt', 'w').write(f'User-agent: *\nAllow: /\nDisallow: /server/\n\nSitemap: {SITE}sitemap.xml\n')
 open(f'{out}/sitemap.xml', 'w').write(
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + ''.join(f'  <url><loc>{SITE}{page}</loc></url>\n' for page in ['', 'terms.html', 'privacy.html', 'licenses.html'])
+    + ''.join(f'  <url><loc>{SITE}{page}</loc></url>\n' for page in ['', 'download.html', 'terms.html', 'privacy.html', 'licenses.html'])
     + '</urlset>\n')
 # AdSense wants this file at the root of the site, naming the publisher allowed to sell its ad space
 pub = re.search(r"client: '(ca-pub-\d+)'", open(f'{src}/nook/js/config.js').read())

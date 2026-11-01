@@ -1,0 +1,180 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: file:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>Budgie</title>
+    <link rel="stylesheet" href="page.css" />
+    <style>
+      body {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 20px 24px 8px;
+      }
+      header img {
+        width: 36px;
+        height: 36px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 720;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        padding: 8px 24px 4px;
+      }
+      .tab {
+        min-height: 34px;
+        padding: 0 16px;
+        border: 1px solid var(--outline);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--on-variant);
+        font-weight: 600;
+      }
+      .tab[aria-selected='true'] {
+        border-color: transparent;
+        background: var(--primary-container);
+        color: var(--on-primary-container);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        align-content: start;
+        gap: 14px;
+        overflow: auto;
+        padding: 12px 24px 16px;
+      }
+      .card {
+        display: grid;
+        gap: 8px;
+        padding: 8px;
+        border: 2px solid transparent;
+        border-radius: 18px;
+        background: var(--surface-high);
+        color: inherit;
+        text-align: left;
+      }
+      .card:hover {
+        background: var(--surface-highest);
+      }
+      .card[aria-pressed='true'] {
+        border-color: var(--primary);
+        background: var(--primary-container);
+        color: var(--on-primary-container);
+      }
+      .shot {
+        display: grid;
+        place-items: center;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        border-radius: 12px;
+        background: #000;
+      }
+      .shot img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .name span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .name img {
+        width: 16px;
+        height: 16px;
+      }
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 24px 20px;
+        border-top: 1px solid var(--surface-highest);
+      }
+      .sound {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: center;
+        gap: 2px 12px;
+        flex: 1;
+        min-width: 260px;
+        cursor: pointer;
+      }
+      .sound small {
+        grid-column: 2;
+        color: var(--on-variant);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .switch {
+        position: relative;
+        width: 52px;
+        height: 32px;
+        margin: 0;
+        border: 2px solid var(--outline);
+        border-radius: 16px;
+        background: var(--surface-highest);
+        appearance: none;
+        cursor: pointer;
+        transition: background 150ms;
+      }
+      .switch::after {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--outline);
+        transition: all 150ms;
+      }
+      .switch:checked {
+        border-color: var(--primary);
+        background: var(--primary);
+      }
+      .switch:checked::after {
+        top: 2px;
+        left: 22px;
+        width: 24px;
+        height: 24px;
+        background: var(--on-primary);
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-left: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <header><img src="../icons/logo-128.png" alt="" /><h1 id="title"></h1></header>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" id="tab-screens" aria-selected="true"></button>
+      <button type="button" class="tab" role="tab" id="tab-windows" aria-selected="false"></button>
+    </div>
+    <div class="grid" id="grid" role="listbox"></div>
+    <footer>
+      <label class="sound" id="sound-row" hidden><input type="checkbox" class="switch" id="sound" role="switch" /><b id="sound-label"></b><small id="sound-note"></small></label>
+      <div class="actions"><button type="button" class="btn text" id="cancel"></button><button type="button" class="btn filled" id="go" disabled></button></div>
+    </footer>
+    <script src="picker.js"></script>
+  </body>
+</html>

@@ -16,7 +16,8 @@
   const client = String(config.client || '');
   const slot = String(config.slot || '');
   const layoutKey = String(config.layoutKey || '');
-  const on = /^ca-pub-\d{10,20}$/.test(client) && /^\d{5,15}$/.test(slot) && /^[-+\w]{4,40}$/.test(layoutKey);
+  // none in Budgie's desktop app (Google's ads are for websites, not apps)
+  const on = !window.BUDGIE_DESKTOP && /^ca-pub-\d{10,20}$/.test(client) && /^\d{5,15}$/.test(slot) && /^[-+\w]{4,40}$/.test(layoutKey);
   // the first ad comes after this many posts, then one every so many more
   const FIRST = Math.max(3, config.first || 4);
   const EVERY = Math.max(5, config.every || 8);
