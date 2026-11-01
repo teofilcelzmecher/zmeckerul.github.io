@@ -5264,6 +5264,9 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 .tile-face {
   position: relative;
   display: grid;
+  /* one cell the face's own size: a picture made smaller with a transform (as in a call with a shared screen) keeps its
+     full size for the layout, and would otherwise stretch the cell and sit off the middle of its shape */
+  grid-template: 100% / 100%;
   place-items: center;
   width: 136px;
   height: 136px;
@@ -6246,6 +6249,23 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile) .tile-face {
     width: 52px;
     height: 52px;
+  }
+  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile) .tile-pic .avatar {
+    transform: scale(0.44);
+  }
+  /* a face without a camera: its name beside it, rather than over it, in a tile this small */
+  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile, .has-video) {
+    grid-template-columns: 52px minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    column-gap: 6px;
+    padding: 0 8px;
+  }
+  .call-stage.presenting:not([data-count='1']) .call-tile:not(.screen-tile, .has-video) .tile-name {
+    position: static;
+    max-width: 100%;
+    padding: 3px 8px;
+    font-size: 0.8125rem;
   }
 }
 .call-people .team-row {

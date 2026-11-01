@@ -809,21 +809,32 @@
     }
   }
 
-  /** with more people, each picture is sent smaller, so everyone's connection keeps up; a screen stays sharp */
+  /** with more people, each picture is sent smaller, so everyone's connection keeps up. A shared screen gets the most
+   *  room, and moves smoothly (30 frames a second): when the connection is tight, it gets a little less sharp rather
+   *  than jerky (a game or a video stutters otherwise) */
   function fitBitrate() {
     const n = active.peers.size;
     const camera = (n <= 1 ? 1500000 : n <= 2 ? 800000 : 450000) / (active.screen ? 2 : 1);
-    const limit = (sender, max, sharp) => {
+    const screen = n <= 1 ? 4000000 : n <= 2 ? 2500000 : 1800000;
+    // in a call of more than three, the screen is made for each person separately: 720p each keeps the sharer's computer
+    // up to it (1080p for one or two)
+    const tall = active.screen && active.screen.getSettings ? active.screen.getSettings().height || 0 : 0;
+    const most = n <= 2 ? 1080 : 720;
+    const limit = (sender, max, smooth) => {
       if (!sender || !sender.getParameters) return;
       const params = sender.getParameters();
       if (!params.encodings || !params.encodings.length) return;
       params.encodings[0].maxBitrate = max;
-      if (sharp) params.degradationPreference = 'maintain-resolution';
+      if (smooth) {
+        params.encodings[0].maxFramerate = 30;
+        params.encodings[0].scaleResolutionDownBy = tall > most ? tall / most : 1;
+        params.degradationPreference = 'balanced';
+      }
       sender.setParameters(params).catch(() => {});
     };
     active.peers.forEach((peer) => {
       limit(peer.video, camera);
-      limit(peer.screen, n <= 2 ? 1500000 : 900000, true);
+      limit(peer.screen, screen, true);
     });
   }
 
@@ -870,14 +881,16 @@
     if (active.screen) return stopShare();
     let stream;
     try {
-      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false });
+      // up to 1080p at 30 frames a second: a bigger screen is scaled down, which costs little sharpness and keeps it smooth
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } }, audio: false });
     } catch (error) {
       if (error.name !== 'NotAllowedError' && error.name !== 'AbortError') M3.snackbar('Couldn’t share your screen.');
       return;
     }
     const track = stream.getVideoTracks()[0];
     if (!active || !track) return stopTracks(stream);
-    if ('contentHint' in track) track.contentHint = 'detail';
+    // what's shared is often moving (a game, a video, scrolling): the browser keeps it smooth
+    if ('contentHint' in track) track.contentHint = 'motion';
     // the browser's own "Stop sharing" button ends it too
     track.addEventListener('ended', stopShare);
     active.screen = track;
