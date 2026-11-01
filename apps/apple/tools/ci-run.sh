@@ -20,12 +20,21 @@ r.sort(key=lambda x: [int(p) for p in x['version'].split('.')])
 print(r[-1]['identifier'] if r else '')")
 echo "iOS runtime: $RUNTIME"
 
-shoot() { # udid, name, phase
-  sleep 16
-  xcrun simctl io "$1" screenshot "$OUT/$2-$3.png" >/dev/null 2>&1
+# where the app writes what the page reported (each launch writes it again)
+report() { # udid
   local data
-  data=$(xcrun simctl get_app_container "$1" com.budgiesocial.app data 2>/dev/null)
-  [ -f "$data/Documents/budgie-diagnostics.json" ] && cp "$data/Documents/budgie-diagnostics.json" "$OUT/$2-$3.json"
+  data=$(xcrun simctl get_app_container "$1" com.budgiesocial.app data 2>/dev/null) && echo "$data/Documents/budgie-diagnostics.json"
+}
+# the page reports 9 seconds after it starts; a simulator's first start can take much longer than that, so this waits
+# for this launch's report (the last one is removed before each launch, so it's never read again by mistake), then
+# takes the screenshot
+shoot() { # udid, name, phase
+  local file
+  file=$(report "$1")
+  for _ in $(seq 1 90); do [ -n "$file" ] && [ -f "$file" ] && break; sleep 1; done
+  sleep 2
+  xcrun simctl io "$1" screenshot "$OUT/$2-$3.png" >/dev/null 2>&1
+  if [ -n "$file" ] && [ -f "$file" ]; then cp "$file" "$OUT/$2-$3.json"; else echo "no report from $2 ($3)"; fi
 }
 
 for PATTERN in 'iPhone [0-9]+ Pro Max$' 'iPhone Duo' 'iPad Pro 13'; do
@@ -41,17 +50,21 @@ print(t[-1]['identifier'], t[-1]['name'].replace(' ', '-')) if t else print('', 
   xcrun simctl boot "$UDID"
   xcrun simctl bootstatus "$UDID" -b >/dev/null
   xcrun simctl install "$UDID" "$APP_IOS"
+  rm -f "$(report "$UDID")"
   xcrun simctl launch "$UDID" com.budgiesocial.app -BudgieAPI "$API" -BudgieQuiet YES -BudgieDiagnostics 1 >/dev/null
   shoot "$UDID" "$NAME" welcome
   xcrun simctl terminate "$UDID" com.budgiesocial.app
+  rm -f "$(report "$UDID")"
   xcrun simctl launch "$UDID" com.budgiesocial.app -BudgieAPI "$API" -BudgieToken "$TOKEN" -BudgieQuiet YES -BudgieDiagnostics 1 >/dev/null
   shoot "$UDID" "$NAME" home
   xcrun simctl shutdown "$UDID"
 done
 
 echo "== Mac"
+rm -f "$OUT/Mac-home.json"
 open -n "$APP_MAC" --args -BudgieAPI "$API" -BudgieToken "$TOKEN" -BudgieQuiet YES -BudgieDiagnostics "$OUT/Mac-home.json"
-sleep 20
+for _ in $(seq 1 90); do [ -f "$OUT/Mac-home.json" ] && break; sleep 1; done
+sleep 2
 screencapture -x "$OUT/Mac-home.png" || echo "no screenshot of the Mac's screen"
 osascript -e 'quit app "Budgie"' >/dev/null 2>&1 || pkill -x Budgie
 
