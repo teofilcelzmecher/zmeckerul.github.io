@@ -34,7 +34,7 @@ All of this can be done from an iPhone, in Safari, at https://play.google.com/co
 > Post photos, short videos, GIFs, polls or just words. Vote, add Sparks to what you love, talk about it in the comments and save the good stuff into collections.
 >
 > CHAT AND CALL
-> Message your friends one to one or in group chats, with pictures, GIFs and emoji, and a colour for each chat. Call them with voice or video, with up to six people in a group call, and share your screen. Calls are encrypted between the devices in them and never recorded.
+> Message your friends one to one or in group chats, with pictures, GIFs and emoji, and a colour for each chat. Call them with voice or video, with up to six people in a group call. Watch a friend's shared screen with its sound, full screen if you like, send reactions and soundboard sounds, and deafen with one tap. Calls are encrypted between the devices in them and never recorded.
 >
 > MAKE IT YOURS
 > Pick your colours, your shape, a font for your name, your pronouns, your interests and up to four pride flags. Light or dark, calm or lively.
