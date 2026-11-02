@@ -992,7 +992,7 @@
   /** a sheet of reasons to choose from; resolves with the one picked, or null */
   function pickReason(headline, symbol, text, verb) {
     let reason = null;
-    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nest rules', 'Something else'];
+    const reasons = ['Spam', 'Harassment or bullying', 'Hate or slurs', 'Threats or violence', 'Sexual content', 'Child safety', 'Personal information', 'Misinformation', 'Off topic', 'Breaks nest rules', 'Something else'];
     return ui.sheet({
       headline,
       symbol,
