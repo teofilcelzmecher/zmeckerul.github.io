@@ -7,8 +7,7 @@ if a page is too cramped).
 
 ## Before you start
 
-- **The Apple Developer Program** costs $99 a year. Apple wants the account holder to be an adult, so if you're
-  younger, a parent or guardian enrolls in their own name. On an individual account, the App Store shows the account
+- **The Apple Developer Program** costs $99 a year. On an individual account, the App Store shows the account
   holder's legal name as the seller.
 - **Europe:** App Store Connect asks whether you're a *trader* (a business). If you are, your address, phone number
   and email are shown on the App Store in the EU. Read Apple's explanation there and answer honestly.

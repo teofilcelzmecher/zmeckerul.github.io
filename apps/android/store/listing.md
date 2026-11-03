@@ -4,9 +4,7 @@ All of this can be done from an iPhone, in Safari, at https://play.google.com/co
 
 ## Before you start
 
-- **The developer account** costs $25, once. Google asks for the account holder's government ID and wants them to be
-  18 or older, so if you're younger, a parent or guardian makes the account in their name and adds you to it
-  (Play Console → Users and permissions). The developer name shown on Google Play can be "Budgie".
+- **The developer account** costs $25, once. Google asks for the account holder's government ID. The developer name shown on Google Play can be "Budgie".
 - **A contact email** is shown on the listing. Use one made for Budgie, not a personal one.
 - **A new personal account has to test first:** a closed test with at least 12 people who opt in and keep the app
   for 14 days in a row, before Google lets you publish to everyone. Friends from Budgie can be the testers: Play

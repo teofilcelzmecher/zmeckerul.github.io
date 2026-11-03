@@ -86,6 +86,5 @@ download page.
 
 The installer isn't signed with a code-signing certificate yet, so Windows SmartScreen says *Windows protected your
 PC* (More info → Run anyway) until enough people have installed it. The ways to lose the warning: publish Budgie in
-the Microsoft Store (Microsoft signs it; it needs a Partner Center account, which needs an adult, so a parent or
-guardian would sign up), or a certificate (Azure Trusted Signing, or a certificate from a certificate
+the Microsoft Store (Microsoft signs it; it needs a Partner Center account), or a certificate (Azure Trusted Signing, or a certificate from a certificate
 authority, both paid).
