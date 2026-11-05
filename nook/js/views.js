@@ -150,8 +150,9 @@
       '<header class="post-head">' +
       (inNook
         ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`) +
-      `<span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time>` +
+        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="by"><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a></span>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`) +
+      // the dot travels with what follows it, so a line that wraps never ends in a lone "·"
+      `<span class="when"><span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time></span>` +
       (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
       (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '') +
       `<button class="m3-icon-btn small post-more" data-act="post-menu" aria-label="More options"><span translate="no" class="m3-icon">more_horiz</span></button>` +

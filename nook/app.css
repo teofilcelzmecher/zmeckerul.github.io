@@ -8,7 +8,9 @@
   --nook-rail: 320px;
   --nook-bar: 64px;
   --nook-surface-fade: background-color 450ms var(--m3-ease-standard), color 450ms var(--m3-ease-standard);
-  scroll-padding-top: calc(var(--nook-bar) + 16px);
+  /* the phone's status bar: in Budgie's apps the page goes under it (edge to edge), so the top bar makes room */
+  --nook-top: env(safe-area-inset-top, 0px);
+  scroll-padding-top: calc(var(--nook-bar) + var(--nook-top) + 16px);
 }
 
 * {
@@ -85,8 +87,8 @@ p {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: var(--nook-bar);
-  padding: 0 12px 0 14px;
+  height: calc(var(--nook-bar) + var(--nook-top));
+  padding: var(--nook-top) 12px 0 14px;
   background: color-mix(in srgb, var(--m3-background) 84%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   backdrop-filter: blur(16px) saturate(1.3);
@@ -192,7 +194,7 @@ p {
 
 .main {
   min-width: 0;
-  min-height: calc(100dvh - var(--nook-bar));
+  min-height: calc(100dvh - var(--nook-bar) - var(--nook-top));
   padding: 8px 28px 120px;
   outline: none;
 }
@@ -259,11 +261,11 @@ p {
 
 .rail {
   position: sticky;
-  top: calc(var(--nook-bar) + 8px);
+  top: calc(var(--nook-bar) + var(--nook-top) + 8px);
   display: grid;
   gap: 16px;
   align-content: start;
-  max-height: calc(100dvh - var(--nook-bar) - 24px);
+  max-height: calc(100dvh - var(--nook-bar) - var(--nook-top) - 24px);
   padding: 2px 4px 24px;
   margin: -2px -4px 0;
   overflow-y: auto;
@@ -277,11 +279,11 @@ p {
 
 .drawer {
   position: sticky;
-  top: var(--nook-bar);
+  top: calc(var(--nook-bar) + var(--nook-top));
   display: flex;
   flex-direction: column;
   gap: 2px;
-  height: calc(100dvh - var(--nook-bar));
+  height: calc(100dvh - var(--nook-bar) - var(--nook-top));
   padding: 8px 12px 20px;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -728,6 +730,17 @@ body.bars-hidden .bottom-nav {
 }
 .post-head .dot::before {
   content: '·';
+}
+.post-head :is(.by, .when) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.post-head .by .author {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .post-head .post-more {
   position: absolute;
@@ -2680,6 +2693,8 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   display: grid;
   flex: 1;
   gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .note small {
   color: var(--m3-on-surface-variant);
@@ -2963,7 +2978,7 @@ kbd {
     display: none !important;
   }
   .topbar {
-    padding: 0 6px;
+    padding: var(--nook-top) 6px 0;
   }
   .brand-word {
     font-size: 22px;
@@ -5481,8 +5496,9 @@ html.has-call-bar {
   --nook-bar: calc(64px + var(--call-bar));
 }
 html.has-call-bar .topbar {
-  top: var(--call-bar);
+  top: calc(var(--call-bar) + var(--nook-top));
   height: 64px;
+  padding-top: 0;
 }
 .call-bar {
   position: sticky;
@@ -5491,8 +5507,8 @@ html.has-call-bar .topbar {
   display: flex;
   align-items: center;
   gap: 4px;
-  height: var(--call-bar, 44px);
-  padding: 0 8px 0 4px;
+  height: calc(var(--call-bar, 44px) + var(--nook-top));
+  padding: var(--nook-top) 8px 0 4px;
   background: var(--m3-primary-container);
   color: var(--m3-on-primary-container);
   font-weight: 650;
