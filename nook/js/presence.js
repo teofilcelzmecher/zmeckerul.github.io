@@ -232,8 +232,9 @@
       next.innerHTML = slot === 'music' ? musicCard(x, own) : gameCard(x, own);
       const fresh = next.firstElementChild;
       fresh.dataset.sig = sig;
+      fresh.dataset.key = slot === 'music' ? JSON.stringify([x.title, x.artist || '']) : x.name;
       // the same song, only dressed (its art or genres arrived): no entrance
-      const sameThing = card && JSON.parse(card.dataset.sig || '[]')[0] === JSON.parse(sig)[0];
+      const sameThing = !!card && card.dataset.key === fresh.dataset.key;
       if (card) card.replaceWith(fresh);
       else if (slot === 'music') el.prepend(fresh);
       else el.append(fresh);
@@ -252,7 +253,8 @@
       changed = true;
     }
     el.hidden = !el.children.length;
-    if (changed) el.setAttribute('aria-label', spoken(act) || '');
+    if (changed && act) el.setAttribute('aria-label', spoken(act));
+    else if (changed) el.removeAttribute('aria-label');
   }
 
   function paintLine(el) {

@@ -738,6 +738,18 @@
   font-size: var(--m3-fs-smallie);
 }
 
+/* what went wrong, in the error colour, right under what it's about */
+.pres-settings .error,
+.pres-sheet .error {
+  color: var(--m3-error);
+  font-size: var(--m3-fs-smallie);
+  font-weight: 560;
+}
+.pres-settings .error:empty,
+.pres-sheet .error:empty {
+  display: none;
+}
+
 /* the sheet to type a status */
 .pres-sheet .sheet-body {
   display: grid;
