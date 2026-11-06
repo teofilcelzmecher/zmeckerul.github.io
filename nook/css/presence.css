@@ -185,6 +185,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* someone else's card answers a tap with a little burst */
+.pres-card:not([data-pres-act]) {
+  -webkit-tap-highlight-color: transparent;
+  transition: scale var(--m3-motion-bounce, 300ms ease), background-color 400ms ease, color 400ms ease;
+}
+.pres-card:not([data-pres-act]):active {
+  scale: 0.98;
+}
 /* your own card is a button: it opens Change / Clear */
 .pres-card[data-pres-act] {
   cursor: pointer;
@@ -713,6 +721,15 @@
 .pres-off {
   margin: 2px 0 0;
   font-size: var(--m3-fs-smallie);
+}
+.pres-get {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pres-get a {
+  color: var(--m3-primary);
+  font-weight: 650;
 }
 .pres-privacy {
   margin: 0;

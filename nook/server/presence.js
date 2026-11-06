@@ -382,8 +382,23 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     return job;
   }
 
+  // what one person's songs may ask Apple and Last.fm for, so nobody can use up everyone's budget by sending
+  // song after made-up song: 40 new songs looked up an hour each (what's already kept costs nothing)
+  const lookupsBy = new Map();
+  function mayLookUp(userId, m) {
+    const key = artKey(songKey(m));
+    if (keptArt(key) !== null || lookups.has(key)) return true;
+    const t = now();
+    const mine = (lookupsBy.get(userId) || []).filter((at) => at > t - HOUR);
+    if (mine.length >= 40) return false;
+    mine.push(t);
+    lookupsBy.set(userId, mine);
+    return true;
+  }
+
   /** once a song's picture and genres are known, the song wears them (if it's still playing) */
   function dressSong(userId, m, image) {
+    if (!mayLookUp(userId, m)) return;
     lookup(m, image)
       .then(({ art, genres }) => {
         const cur = live(parse((rowOf(userId) || {}).music));
@@ -854,8 +869,11 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     db.run("UPDATE presence SET game = '' WHERE game != '' AND COALESCE(json_extract(game, '$.until'), 0) < ?", t);
     db.run("DELETE FROM presence WHERE music = '' AND game = '' AND lastfm = '' AND steam_id = '' AND visibility = 'friends'");
     db.run("DELETE FROM presence_art WHERE file = '' AND fetched_at < ?", t - 7 * DAY);
+    db.run('DELETE FROM presence_genres WHERE fetched_at < ?', t - 90 * DAY);
     for (const [id, tr] of tracks) if (Math.max(tr.music.at, tr.game.at, tr.music.desktopAt || 0, tr.game.desktopAt || 0) < t - HOUR) tracks.delete(id);
     for (const [id] of lastfmNext) if ((lastSeen.get(id) || 0) < t - SEEN) lastfmNext.delete(id);
+    for (const key of dismissed.keys()) if (!tracks.has(Number(key.split(':')[0]))) dismissed.delete(key);
+    for (const [id, list] of lookupsBy) if (!list.some((at) => at > t - HOUR)) lookupsBy.delete(id);
   }
 
   if (serving) {

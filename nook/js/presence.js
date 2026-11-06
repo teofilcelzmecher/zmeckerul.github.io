@@ -474,6 +474,13 @@
     }
   });
   document.addEventListener('click', (e) => {
+    // someone else's card answers a tap: a little burst of notes (or pixels) and a buzz, just for fun
+    const card = !e.target.closest('[data-pres-act]') && e.target.closest('.pres-card');
+    if (card) {
+      haptic(card.dataset.slot === 'music' ? [6, 30, 6] : 10);
+      if (!still()) M3.burst(card.querySelector('.pres-cover, .pres-pad') || card, card.dataset.slot === 'music' ? 'playlist' : 'play', { count: 12 });
+      return;
+    }
     const target = e.target.closest('[data-pres-act]');
     if (!target) return;
     const act = target.dataset.presAct;
@@ -537,6 +544,10 @@
     return D && typeof D.onActivity === 'function' && typeof D.setActivityOptions === 'function' ? D : null;
   };
   let options = { music: true, games: true };
+  // on a Windows or Linux computer's browser, the desktop app is worth a mention (it finds music and games by itself)
+  const offerDesktop = () =>
+    !window.BUDGIE_DESKTOP && !window.BUDGIE_APPLE && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) &&
+    /Windows|Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && matchMedia('(pointer: fine)').matches;
 
   Nook.hook('settingsSections', (header) =>
     off ? '' : `<section id="activity-settings">${header('cookie12', 'graphic_eq', 'Activity')}<div class="card setting-card pres-settings" data-pres-settings><m3-loading class="pres-loading"></m3-loading></div></section>`
@@ -616,6 +627,7 @@
               `<label class="switch-row"><span class="switch-text"><span>Show what I’m playing</span><small>Games running on this computer</small></span><input type="checkbox" class="m3-switch" role="switch" id="pres-d-games"${options.games !== false ? ' checked' : ''}></label>`
           )
         : '') +
+      (offerDesktop() ? `<p class="muted pres-off pres-get">${icon('computer')}<span>Budgie for Windows and Linux can show what your computer plays and runs by itself. <a href="download.html">Get it</a></span></p>` : '') +
       '<p class="muted pres-privacy">Budgie keeps what you’re listening to and playing right now, and counts the songs, artists, genres and games you play for your achievements and your profile’s Lately. Album art is fetched by Budgie’s own server, so no other company sees who’s looking.</p>';
 
     // who can see it
