@@ -249,6 +249,7 @@
     document.body.classList.remove('bars-hidden');
     onScroll();
     armPull(!!main.querySelector('[data-feed]'));
+    Nook.runHooks('afterRender', route, main);
   }
   app.render = render;
 

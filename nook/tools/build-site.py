@@ -17,6 +17,10 @@ for page in ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.h
     open(f'{out}/{page}', 'w').write(html)
 for f in ['app.css', 'legal.css', 'LICENSE', 'SECURITY.md', 'og.png']:
     shutil.copy(f'{src}/nook/{f}', f'{out}/{f}')
+# css/: the styles of the parts added in 1.4, one file each
+os.makedirs(f'{out}/css', exist_ok=True)
+for f in os.listdir(f'{src}/nook/css'):
+    shutil.copy(f'{src}/nook/css/{f}', f'{out}/css/{f}')
 # the fonts people can pick for their names, with their licences
 os.makedirs(f'{out}/fonts', exist_ok=True)
 for f in os.listdir(f'{src}/nook/fonts'):

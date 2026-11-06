@@ -801,6 +801,7 @@
         `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}" translate="no">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
         `<span class="muted">u/${esc(u.name)}${who.pronouns ? ` · <span class="pronouns">${esc(who.pronouns)}</span>` : ''} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         specialBadges(who) +
+        Nook.hooksHTML('profileHero', u, who, me) +
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
         (interests.length ? `<div class="interests" aria-label="Into">${interests.map(([, label, symbol]) => `<span class="chip static">${icon(symbol)}${label}</span>`).join('')}</div>` : '') +
         '</div>' +
@@ -810,7 +811,7 @@
           ? ''
           : store.isBlocked(u.name)
           ? `<div class="toolbar profile-actions"><button class="m3-btn tonal" data-act="unblock" data-user="${esc(u.name)}">${icon('lock_open')}Unblock</button></div><p class="muted blocked-note">${icon('block')}You blocked u/${esc(u.name)}. They can’t message you, call you or add you, and their posts and comments are hidden from you.</p>`
-          : `<div class="toolbar profile-actions">${friendButtons(u.name)}${store.isDev() ? testerButton(u) : ''}` +
+          : `<div class="toolbar profile-actions">${friendButtons(u.name)}${store.isDev() ? testerButton(u) : ''}${Nook.hooksHTML('profileActions', u, who, me)}` +
             // Report and Block, under one button so the row fits a phone
             (store.state.canBlock
               ? `<button class="m3-icon-btn tonal" data-act="person-menu" data-user="${esc(u.name)}" aria-label="More for u/${esc(u.name)}: report or block" data-tooltip="Report or block">${icon('more_vert')}</button>`
@@ -823,12 +824,14 @@
         (me && !s.settings.calm ? `<div class="stat"><b>${plural(s.streak.count, 'day')}</b><span>Streak</span></div>` : '') +
         '</div></section>' +
         badges +
+        Nook.hooksHTML('profileSections', u, who, me) +
         `<div class="toolbar">${segmented('profile-tab', [['posts', 'Posts', 'article'], ['comments', 'Comments', 'forum']], 'posts', 'Show')}</div>` +
         '<div id="profile-list">' +
         feedShell() +
         '</div>' +
         '</div><aside class="rail">' +
         (me ? streakCard() : '') +
+        Nook.hooksHTML('profileRail', u, who, me) +
         (where.length
           ? `<section class="card"><h3 class="card-title">${icon('location_on')}<span>${me ? 'Where you hang out' : 'Hangs out in'}</span></h3><div class="list">${where
               .map((c) => `<a class="row-link" href="#/n/${c.id}" data-m3-ripple>${nookIcon(c, 32, 17)}<span class="row-text"><b>n/${esc(c.id)}</b><small translate="no">${esc(c.title)}</small></span></a>`)
@@ -862,6 +865,7 @@
         };
         show('posts');
         root.querySelector('#profile-tab').addEventListener('change', (e) => show(e.detail.value));
+        Nook.runHooks('profileMount', root, u, me);
       },
     };
   }
@@ -989,6 +993,7 @@
               : '<p class="muted">Nobody. You can block someone from their profile, or from the More menu in a chat with them. They aren’t told.</p>') +
             '</div></section>'
           : '') +
+        Nook.hooksHTML('settingsSections', header) +
         `<section>${header('pixelCircle', 'manage_accounts', 'Account')}<div class="card setting-card">` +
         `<div class="about-app">${avatar(store.user(store.ME), 48)}<div><b class="m3-title">u/${esc(store.state.me.name)}</b><span class="muted">Signed in${store.isAdmin() ? ' · Admin' : ''}</span></div></div>` +
         `<div class="toolbar"><button class="m3-btn tonal" data-act="change-password">${icon('password')}Change password</button><button class="m3-btn tonal" data-act="new-recovery">${icon('key')}New recovery code</button><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button></div>` +
@@ -1082,6 +1087,7 @@
           $('#set-break-out').textContent = slider.format(s.breakMinutes);
           apply();
         });
+        Nook.runHooks('settingsMount', root);
       },
     };
   }
@@ -1153,7 +1159,7 @@
 
   const personRowHTML = (u, actions) =>
     `<div class="row-link person-row" data-href="#/u/${encodeURIComponent(u.name)}" tabindex="0" role="link" aria-label="u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 44)}` +
-    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}${prideFlag(u)}</b><small>${u.pronouns ? esc(u.pronouns) + ' · ' : ''}${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small></span><span class="row-actions">${actions}</span></div>`;
+    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}${prideFlag(u)}</b><small>${u.pronouns ? esc(u.pronouns) + ' · ' : ''}${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small>${Nook.hooksHTML('personRow', u)}</span><span class="row-actions">${actions}</span></div>`;
 
   function friendsPage() {
     const incoming = store.friends('incoming');
@@ -1717,7 +1723,7 @@
     const friends = store.friendStatus(u.name) === 'friends';
     const head =
       `<div class="chat-head"><a class="m3-toolbar-btn" href="#/messages" data-effect="nudge-left" data-shape="cookie7" aria-label="All messages">${icon('arrow_back')}</a>` +
-      `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}" translate="no">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small></span></a>` +
+      `<a class="chat-who" href="#/u/${encodeURIComponent(u.name)}">${avatar(u, 40, { moving: true })}<span><b class="${nameFont(u).trim()}" translate="no">${esc(u.name)}</b>${prideFlag(u)}<small>${friends ? 'Friends' : 'u/' + esc(u.name)}${u.pronouns ? ' · ' + esc(u.pronouns) : ''}</small>${Nook.hooksHTML('chatHead', u)}</span></a>` +
       (friends ? callButtons(`data-user="${esc(u.name)}"`, 'u/' + u.name) : '') +
       (store.state.canBlock
         ? `<button class="m3-icon-btn chat-report" data-act="person-menu" data-user="${esc(u.name)}" aria-label="More for u/${esc(u.name)}" data-tooltip="More">${icon('more_vert')}</button></div>`
@@ -2187,6 +2193,7 @@
         '<div class="page single"><div class="col">' +
         `<div class="page-head"><m3-shape-icon shape="pixelCircle" symbol="shield_person" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Moderation</h1><span class="muted">Open reports, newest first. Whoever you act on is told what and why.</span></div></div>` +
         '<div id="reports"><m3-loading aria-label="Loading reports"></m3-loading></div>' +
+        Nook.hooksHTML('adminSections') +
         `<form class="card add-friend" id="ban-form"><span class="field-label">Ban an account</span><div class="toolbar"><input class="m3-field" id="ban-name" placeholder="username" autocapitalize="none" spellcheck="false" maxlength="20"><input class="m3-field" id="ban-reason" placeholder="Reason they’ll see" maxlength="200"><button class="m3-btn tonal" type="submit">${icon('block')}Ban</button></div><span class="error" id="ban-err"></span></form>` +
         '</div></div>',
       mount(root) {
@@ -2256,6 +2263,7 @@
             err.textContent = error.message;
           }
         });
+        Nook.runHooks('adminMount', root);
       },
     };
   }

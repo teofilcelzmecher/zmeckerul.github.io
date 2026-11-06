@@ -6,7 +6,9 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '../..');
-const APP_FILES = ['js/account.js', 'js/app.js', 'js/calls.js', 'js/pickers.js', 'js/ui.js', 'js/views.js', 'js/store.js', 'js/moderation.js', 'js/ads.js', 'js/api.js'];
+const APP_FILES = ['js/account.js', 'js/app.js', 'js/calls.js', 'js/pickers.js', 'js/ui.js', 'js/views.js', 'js/store.js', 'js/moderation.js', 'js/ads.js', 'js/api.js',
+  // 1.4
+  'js/achievements-data.js', 'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js'];
 const M3_FILES = ['../m3/m3.js'];
 const SERVER = 'server/server.js';
 

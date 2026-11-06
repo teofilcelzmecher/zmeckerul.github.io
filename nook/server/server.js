@@ -280,9 +280,11 @@ const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 
 // ---- shaping rows for the app ------------------------------------------------------------------------
 
+// what the parts added in 1.4 (achievements, rewards, …) add to everyone's public profile: fn(row) => fields
+const USER_EXTRAS = [];
 function publicUser(u) {
   const badges = badgesOf(u);
-  return {
+  const out = {
     name: u.name, color: u.color, shape: u.shape, icon: u.icon, photo: imageUrl(u.photo), photoGif: imageUrl(u.photo_gif),
     banner: imageUrl(u.banner), bannerGif: imageUrl(u.banner_gif), bio: u.bio, font: u.name_font || undefined,
     // up to four flags (from 1.0); `flag` is the first, for an app from before then
@@ -290,6 +292,8 @@ function publicUser(u) {
     scheme: u.profile_scheme || undefined, sticker: u.sticker_shape || undefined, badges: badges.length ? badges : undefined,
     createdAt: u.created_at, admin: u.role === 'admin' || undefined, banned: u.banned_at ? true : undefined, rev: u.rev,
   };
+  for (const extra of USER_EXTRAS) Object.assign(out, extra(u));
+  return out;
 }
 function meOut(u) {
   return Object.assign(publicUser(u), { role: u.role, joinedAt: u.created_at, calls: u.calls === 'off' ? 'off' : 'on' });
@@ -2550,6 +2554,9 @@ async function handle(req, res) {
     res.writeHead(204);
     return res.end();
   }
+  // checks every request goes through first (1.4: a banned network): guard(req, url, ip) throws to refuse
+  const ip = req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : 'unknown';
+  for (const guard of REQUEST_GUARDS) await guard(req, url, ip);
   const image = /^\/api\/images\/([^/]+)$/.exec(url.pathname);
   if (image && req.method === 'GET') return serveImage(res, image[1]);
   const clip = /^\/api\/videos\/([A-Za-z0-9_-]{8,40})\.mp4$/.exec(url.pathname);
@@ -2564,7 +2571,7 @@ async function handle(req, res) {
     const ctx = {
       params,
       query: Object.fromEntries(url.searchParams),
-      ip: req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : 'unknown',
+      ip,
       body: ['POST', 'PUT', 'PATCH'].includes(req.method) && !r.upload ? await readBody(req, r.body) : {},
     };
     if (r.auth) {
@@ -2576,6 +2583,7 @@ async function handle(req, res) {
       if (r.admin && who.user.role !== 'admin') fail(403, 'Only admins can do that.');
       // any request means one of their devices is still there (for calls)
       lastSeen.set(who.user.id, now());
+      for (const seen of ON_AUTHED) seen(who.user, ctx);
     }
     // a stream writes its own answer, and keeps writing
     if (r.stream) return r.handler(Object.assign(ctx, { req, res }));
@@ -2604,6 +2612,21 @@ const server = http.createServer((req, res) => {
 server.requestTimeout = 5 * 60000;
 server.headersTimeout = 15000;
 
+// ---- the parts added in 1.4 ------------------------------------------------------------------------------------
+// Each is a module of its own (server/<name>.js) with install(ctx): it makes its own tables, adds its routes, and
+// returns what the others may use (ctx.modules.<name>). Installed in this order, so each can use the ones before it.
+const REQUEST_GUARDS = [];
+const ON_AUTHED = []; // fn(user, ctx) after a request is signed in
+const CLI = { commands: {}, help: [] }; // `nook <command>`s the modules add (cli.js lists and runs them)
+const modules = {};
+const moduleCtx = {
+  db, route, limit, fail, text, notify, now, push, CONFIG, VERSION, MINUTE, HOUR, DAY, readImage, saveImage, imageUrl, friendship, hasBlocked,
+  lastSeen, badgesOf, publicUser, takeDown, ban, pictures, textmodel, autoReport, USER_EXTRAS, REQUEST_GUARDS, ON_AUTHED, CLI, modules,
+  // true when this is the running server, false when cli.js loaded it for a command: timers only start when serving
+  serving: require.main === module,
+};
+for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social']) modules[name] = require('./' + name).install(moduleCtx) || {};
+
 if (require.main === module) {
   server.listen(CONFIG.port, CONFIG.host, () => {
     console.log(`Budgie server ${VERSION} on http://${CONFIG.host}:${CONFIG.port}, data in ${CONFIG.data}, allowing ${CONFIG.origins.join(', ')}`);
@@ -2615,4 +2638,4 @@ if (require.main === module) {
   process.on('SIGINT', stop);
 }
 
-module.exports = { checkRelayUsage, relayUsed, relayLimit, monthKey, server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport, setBadge, badgesOf };
+module.exports = { checkRelayUsage, relayUsed, relayLimit, monthKey, server, db, CONFIG, VERSION, inviteHash, hashPassword, recoveryCode, recoveryHash, takeDown, ban, eraseUser, pictures, textmodel, autoReport, setBadge, badgesOf, modules, CLI };

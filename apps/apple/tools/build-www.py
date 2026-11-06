@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory() as site:
     subprocess.run([sys.executable, os.path.join(REPO, 'nook', 'tools', 'build-site.py'), REPO, site], check=True)
     shutil.rmtree(WWW, ignore_errors=True)
     # only what the app shows: the pages and what they load
-    keep = ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html', 'app.css', 'legal.css', 'og.png', 'LICENSE', 'js', 'm3', 'fonts']
+    keep = ['index.html', 'terms.html', 'privacy.html', 'licenses.html', '404.html', 'app.css', 'legal.css', 'og.png', 'LICENSE', 'js', 'm3', 'fonts', 'css']
     os.makedirs(WWW)
     for name in keep:
         src = os.path.join(site, name)

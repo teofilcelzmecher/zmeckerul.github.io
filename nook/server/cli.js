@@ -54,7 +54,8 @@ const COMMANDS = {
       '  nook remove <post|comment> <id> [reason]   take something down; its author is told why',
       '  nook delete-user <name>          erase an account and wipe what it posted (for deletion requests)',
       '  nook stats                       how much is stored',
-      '  nook backup <file>               copy the whole database to a file, safely, while running'
+      '  nook backup <file>               copy the whole database to a file, safely, while running',
+      ...nook.CLI.help
     );
   },
 
@@ -554,6 +555,6 @@ const COMMANDS = {
 };
 
 Promise.resolve()
-  .then(() => (COMMANDS[command] || COMMANDS.help)(...args))
+  .then(() => (COMMANDS[command] || nook.CLI.commands[command] || COMMANDS.help)(...args))
   .catch((error) => quit(error.message || String(error)))
   .finally(() => db.close());
