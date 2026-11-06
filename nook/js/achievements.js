@@ -449,6 +449,7 @@
           ? r.usedFreeze === 1 ? 'You missed a day, and a freeze kept your streak alive.' : `You missed ${r.usedFreeze} days, and your freezes kept your streak alive.`
           : left === 1 ? `1 more day to a ${ring.next}-day streak` : `${left} more days to a ${ring.next}-day streak`;
     const extras = [];
+    if (icy && !r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>${r.freezes === 1 ? '1 freeze left' : `${r.freezes} freezes left`}</span></span>`);
     if (r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>You earned a freeze: it saves your streak on a day you miss.</span></span>`);
     if (streakTier) extras.push(`<span class="ach-m-chip">${icon('military_tech')}<span translate="no">On fire</span> <b>${ROMAN[streakTier - 1]}</b></span>`);
     // a milestone that unlocked nothing new says what the next one will
@@ -766,8 +767,9 @@
   function heroHTML(name, u) {
     const mine = store.isMe(name);
     const data = cached(name);
-    const streak = mine ? (data && data.streak && !data.streak.hidden ? data.streak.count : !data ? store.state.streak.count : 0) : u.streak || 0;
-    const featured = (mine ? (data ? data.featured : []) : u.featured || []).map((f) => featuredEntry(f, data)).filter(Boolean);
+    // what the server just said, when it's here (someone's streak that ran out since this device last synced is gone)
+    const streak = data ? (data.streak && !data.streak.hidden ? data.streak.count : 0) : mine ? store.state.streak.count : (u && u.streak) || 0;
+    const featured = (data ? data.featured || [] : mine ? [] : (u && u.featured) || []).map((f) => featuredEntry(f, data)).filter(Boolean);
     const parts = [];
     if (streak >= 3 && !calm()) {
       parts.push(`<button type="button" class="ach-streak-pill" data-ach-streak="${esc(name)}" aria-label="${streak}-day streak">${flameHTML()}<b>${num(streak)}</b><span>day streak</span></button>`);

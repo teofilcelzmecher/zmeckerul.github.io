@@ -282,6 +282,8 @@ const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 
 // what the parts added in 1.4 (achievements, rewards, …) add to everyone's public profile: fn(row) => fields
 const USER_EXTRAS = [];
+// and what they add to "Export my data": fn(user) => { section: [...] }
+const EXPORT_EXTRAS = [];
 function publicUser(u) {
   const badges = badgesOf(u);
   const out = {
@@ -767,7 +769,7 @@ route('POST', '/api/account/recovery', async ({ user, body }) => {
 
 route('GET', '/api/account/export', ({ user }) => {
   const id = user.id;
-  return {
+  const out = {
     exportedAt: new Date().toISOString(),
     note: 'Everything Budgie’s server holds about your account. Images are linked; open each link to download it.',
     profile: Object.assign(meOut(user), { termsAccepted: user.terms }),
@@ -792,6 +794,8 @@ route('GET', '/api/account/export', ({ user }) => {
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
     videos: db.all('SELECT * FROM videos WHERE owner_id = ?', id).map((v) => Object.assign(videoOut(v), { post: v.post_id || undefined, createdAt: v.created_at })),
   };
+  for (const extra of EXPORT_EXTRAS) Object.assign(out, extra(user));
+  return out;
 });
 
 /** wipes an account: its posts and comments are emptied and marked removed, everything else goes */
@@ -2641,6 +2645,7 @@ const modules = {};
 const moduleCtx = {
   db, route, limit, fail, text, notify, now, push, CONFIG, VERSION, MINUTE, HOUR, DAY, readImage, saveImage, imageUrl, friendship, hasBlocked,
   lastSeen, badgesOf, publicUser, takeDown, ban, pictures, textmodel, autoReport, USER_EXTRAS, REQUEST_GUARDS, ON_AUTHED, CLI, modules,
+  EXPORT_EXTRAS,
   // true when this is the running server, false when cli.js loaded it for a command: timers only start when serving
   serving: require.main === module,
 };

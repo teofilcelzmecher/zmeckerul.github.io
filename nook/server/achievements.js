@@ -446,6 +446,25 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     return { showStreak: !userById(user.id).streak_hidden };
   });
 
+  // "Export my data": every tier reached and when, the streak as the server keeps it, and what's featured
+  if (Array.isArray(ctx.EXPORT_EXTRAS)) {
+    ctx.EXPORT_EXTRAS.push((user) => {
+      const u = userById(user.id);
+      const names = new Map(db.all('SELECT id, name FROM custom_achievements').map((c) => ['custom:' + c.id, c.name]));
+      return {
+        achievements: db.all('SELECT id, tier, at, by_id FROM achievements WHERE user_id = ? ORDER BY at, id, tier', user.id).map((r) => ({
+          id: r.id, name: FAMILY.has(r.id) ? FAMILY.get(r.id).name : names.get(r.id) || r.id, tier: r.tier ? roman(r.tier) : undefined,
+          reachedAt: new Date(r.at).toISOString(), givenByAdmin: r.by_id ? true : undefined,
+        })),
+        streak: {
+          days: liveStreak(u), best: u.streak_best, freezes: u.streak_freezes, lastDay: u.streak_day ? dayName(u.streak_day) : undefined,
+          timeZoneMinutes: u.streak_tz, lastFourWeeks: u.streak_log || undefined, shownOnProfile: !u.streak_hidden,
+        },
+        featuredAchievements: parseFeatured(u.ach_featured),
+      };
+    });
+  }
+
   // ---- special achievements, given by Budgie's admins ---------------------------------------------------------------
 
   function makeCustom({ name, desc, symbol, shape, color }, byId) {
