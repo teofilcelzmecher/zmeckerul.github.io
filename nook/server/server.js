@@ -767,7 +767,7 @@ route('POST', '/api/account/recovery', async ({ user, body }) => {
 
 route('GET', '/api/account/export', ({ user }) => {
   const id = user.id;
-  return {
+  const out = {
     exportedAt: new Date().toISOString(),
     note: 'Everything Budgie’s server holds about your account. Images are linked; open each link to download it.',
     profile: Object.assign(meOut(user), { termsAccepted: user.terms }),
@@ -792,6 +792,9 @@ route('GET', '/api/account/export', ({ user }) => {
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
     videos: db.all('SELECT * FROM videos WHERE owner_id = ?', id).map((v) => Object.assign(videoOut(v), { post: v.post_id || undefined, createdAt: v.created_at })),
   };
+  // what the parts added in 1.4 keep about the account (each part's exportFor)
+  for (const part of Object.values(modules)) if (part && typeof part.exportFor === 'function') Object.assign(out, part.exportFor(id));
+  return out;
 });
 
 /** wipes an account: its posts and comments are emptied and marked removed, everything else goes */
