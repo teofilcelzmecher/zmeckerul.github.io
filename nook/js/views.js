@@ -1596,7 +1596,7 @@
       if (kind === 'emoji') return Nook.pickers.emoji(tool, (emoji) => Nook.pickers.insertAt(input, emoji));
       if (kind === 'sticker' && Nook.stickers) {
         // a sticker goes as soon as it's picked, as its own message; one of your emojis goes where you're writing
-        const s = await Nook.stickers.pick({ field: input, from: tool });
+        const s = await Nook.stickers.pick({ field: input });
         if (s) queue({ id: store.uid('local'), body: '', createdAt: Date.now(), mine: true, media: Nook.stickers.localMedia(s), extra: { sticker: s.id } });
         return;
       }
