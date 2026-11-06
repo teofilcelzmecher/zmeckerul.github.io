@@ -12,6 +12,7 @@
  *   Nook.hook('settingsMount', (root) => {})
  *   Nook.hook('personRow', (u) => html)              a line under someone's name in lists of people (friends)
  *   Nook.hook('chatHead', (u) => html)               after the subtitle in a chat with someone
+ *   Nook.hook('nameTags', (u) => html)               tiny tags after someone's name on posts and comments
  *   Nook.hook('adminSections', () => html)           sections on the Moderation page
  *   Nook.hook('adminMount', (root) => {})
  *   Nook.hook('afterRender', (route, main) => {})    after every page is drawn

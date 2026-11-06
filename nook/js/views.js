@@ -149,8 +149,8 @@
     const head =
       '<header class="post-head">' +
       (inNook
-        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="by"><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a></span>${prideFlag(u)}${devTag(u)}${roleTag(p.n, name)}`) +
+        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag(p.n, name)}`
+        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="by"><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a></span>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag(p.n, name)}`) +
       // the dot travels with what follows it, so a line that wraps never ends in a lone "·"
       `<span class="when"><span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time></span>` +
       (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
@@ -322,22 +322,6 @@
     return `<div class="card banned-note" role="status">${icon('block')}<div><b>You can’t post or comment in n/${esc(c.id)}${b.until ? ' until ' + esc(new Date(b.until).toLocaleDateString([], { day: 'numeric', month: 'long' })) : ''}.</b><small>Reason: ${esc(b.reason)}. You can still read it.</small></div></div>`;
   }
 
-  function streakCard() {
-    // calm mode (1.0): no streak to keep up
-    if (store.state.settings.calm) return '';
-    const s = store.state.streak;
-    const milestones = [3, 7, 14, 30, 100, 365];
-    const next = milestones.find((m) => m > s.count) || s.count + 1;
-    const left = next - s.count;
-    return (
-      '<section class="card">' +
-      `<div class="streak"><div class="streak-ring"><m3-squiggle progress="${(s.count / next).toFixed(3)}" thickness="5" aria-hidden="true"></m3-squiggle>${icon('local_fire_department')}</div>` +
-      `<div class="streak-text"><b class="m3-title">${plural(s.count, 'day')} streak</b>` +
-      `<span class="muted">${left} more day${left === 1 ? '' : 's'} to a ${next}-day streak. Best so far: ${s.best || s.count}.</span></div></div>` +
-      '</section>'
-    );
-  }
-
   function trendingCard(limit = 5) {
     const list = store
       .allCommunities()
@@ -391,7 +375,7 @@
       `<div class="c-side">${avatar(removed ? ghost : u, 30)}<button class="c-thread" data-act="collapse" aria-label="Collapse this thread"></button></div>` +
       '<div class="c-main">' +
       '<div class="c-head">' +
-      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}" translate="no">${esc(name)}</a>${prideFlag(u)}${devTag(u)}${roleTag((store.post(c.postId) || {}).n, name)}`) +
+      (removed ? '<span>[deleted]</span>' : `<a class="author${nameFont(u)}" href="#/u/${esc(name)}" translate="no">${esc(name)}</a>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag((store.post(c.postId) || {}).n, name)}`) +
       (!removed && op ? '<span class="tag op">OP</span>' : '') +
       (!removed && mine ? '<span class="tag">You</span>' : '') +
       `<span>· ${ago(c.createdAt)}</span>${c.edited && !removed ? '<span>· edited</span>' : ''}<span class="c-hidden"></span></div>` +
@@ -776,13 +760,6 @@
       .filter(Boolean)
       .slice(0, 6);
     const joinedDays = Math.max(1, Math.round((Date.now() - (me ? s.me.joinedAt : u.createdAt || Date.now())) / 86400000));
-    const badges = me
-      ? `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="burst" symbol="military_tech" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Badges</h2><m3-wavy-line></m3-wavy-line><span class="muted">${Object.keys(s.badges).length}/${store.BADGES.length}</span></header>` +
-        `<div class="badges">${store.BADGES.map((b) => {
-          const got = !!s.badges[b.id];
-          return `<div class="badge-tile${got ? '' : ' locked'}" data-tooltip="${esc(b.desc)}"><m3-shape-icon shape="${b.shape}" symbol="${got ? b.symbol : 'lock'}" size="52" icon-size="24"></m3-shape-icon><b translate="no">${esc(b.name)}</b><small>${esc(b.desc)}</small></div>`;
-        }).join('')}</div></section>`
-      : '';
     const banner = ui.bannerImage(u);
     const who = me ? Object.assign({}, u, s.me) : u;
     // the shapes floating behind it: a mix, the owner's favourite, or none
@@ -821,16 +798,14 @@
         `<div class="stat" title="Every upvote on their posts and comments is a feather"><b class="count">${num(st.feathers)}</b><span>Feathers</span></div>` +
         `<div class="stat"><b class="count">${num(st.posts.length)}</b><span>Posts</span></div>` +
         `<div class="stat"><b class="count">${num(st.comments.length)}</b><span>Comments</span></div>` +
-        (me && !s.settings.calm ? `<div class="stat"><b>${plural(s.streak.count, 'day')}</b><span>Streak</span></div>` : '') +
         '</div></section>' +
-        badges +
+        // achievements and the streak (1.4, js/achievements.js) live here, where the badges were
         Nook.hooksHTML('profileSections', u, who, me) +
         `<div class="toolbar">${segmented('profile-tab', [['posts', 'Posts', 'article'], ['comments', 'Comments', 'forum']], 'posts', 'Show')}</div>` +
         '<div id="profile-list">' +
         feedShell() +
         '</div>' +
         '</div><aside class="rail">' +
-        (me ? streakCard() : '') +
         Nook.hooksHTML('profileRail', u, who, me) +
         (where.length
           ? `<section class="card"><h3 class="card-title">${icon('location_on')}<span>${me ? 'Where you hang out' : 'Hangs out in'}</span></h3><div class="list">${where
@@ -849,7 +824,7 @@
           if (tab === 'posts') {
             box.innerHTML = feedShell();
             const sorted = [...st.posts].sort((a, b) => b.createdAt - a.createdAt);
-            mountFeed(box, sorted, {}, empty('edit_note', me ? 'You haven’t posted yet' : 'No posts yet', me ? 'Your first post earns you a badge.' : 'They’re more of a commenter.', me ? `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>` : ''));
+            mountFeed(box, sorted, {}, empty('edit_note', me ? 'You haven’t posted yet' : 'No posts yet', me ? 'Your first post earns you an achievement.' : 'They’re more of a commenter.', me ? `<a class="m3-btn filled" href="#/submit">${icon('edit')}Create a post</a>` : ''));
           } else {
             const list = [...st.comments].sort((a, b) => b.createdAt - a.createdAt);
             box.innerHTML = list.length
@@ -888,7 +863,7 @@
                   `<span class="note-text"><span>${esc(n.text)}</span><small>${ago(n.createdAt)}</small></span></button>`
               )
               .join('')}</div>`
-          : empty('notifications_off', 'All quiet', 'Replies, friend requests and the badges you earn show up here.')) +
+          : empty('notifications_off', 'All quiet', 'Replies, friend requests and the achievements you earn show up here.')) +
         '</div></div>',
     };
   }

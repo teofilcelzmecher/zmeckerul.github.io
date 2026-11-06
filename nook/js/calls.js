@@ -1222,6 +1222,10 @@
     if (sound && 'contentHint' in sound) sound.contentHint = 'music';
     active.screen = track;
     active.screenSound = sound;
+    // the time it's shared counts towards an achievement (1.4)
+    active.shareFrom = Date.now();
+    clearInterval(active.shareTick);
+    active.shareTick = setInterval(() => reportShare(), 5 * 60000);
     // nobody's watching yet: everyone sees the card, and joins it if they want to (an older app shows it straight away)
     active.peers.forEach((peer) => {
       if (peer.watchesMe) peer.watchesMe = false;
@@ -1233,6 +1237,20 @@
     controls();
     layout();
   }
+  /**
+   * how long your screen has been shared since this was last said, told to the server (1.4: the Broadcaster
+   * achievement): when a share stops, when the call ends, and every 5 minutes in between. The server never counts
+   * more than the time you were really in the call.
+   */
+  function reportShare(call = active, keepalive = false) {
+    if (!call || !call.shareFrom) return;
+    const at = Date.now();
+    const seconds = Math.round((at - call.shareFrom) / 1000);
+    call.shareFrom = call.screen ? at : 0;
+    if (seconds > 0) api.post('/api/stats/share', { callId: call.id, seconds }, { keepalive }).catch(() => {});
+  }
+  addEventListener('pagehide', () => active && reportShare(active, true));
+
   // up to 1080p at 30 frames a second: a bigger screen is scaled down, which costs little sharpness and keeps it smooth
   const SCREEN = { frameRate: { ideal: 30, max: 30 }, width: { max: 1920 }, height: { max: 1080 } };
 
@@ -1250,6 +1268,8 @@
     const sound = active.screenSound;
     active.screen = null;
     active.screenSound = null;
+    reportShare();
+    clearInterval(active.shareTick);
     track.stop();
     if (sound) sound.stop();
     active.peers.forEach((peer) => {
@@ -1318,6 +1338,8 @@
     unloop();
     clearInterval(was.tick);
     clearInterval(was.usage);
+    clearInterval(was.shareTick);
+    reportShare(was, true);
     meters.stop();
     was.peers.forEach(closePeer);
     stopTracks(was.local);

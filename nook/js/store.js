@@ -355,50 +355,60 @@
     }
   }
 
-  // ---- badges and streaks --------------------------------------------------------------------------------
+  // ---- the visit streak and achievements ----------------------------------------------------------------
+  // From 1.4 the server keeps both (the streak by your own date, achievements counted from what you've done), so
+  // nobody can just say they have them, and they're the same on every device. js/achievements.js shows them.
 
   const dayKey = (time) => {
     const d = new Date(time);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  /** today counts as a visit: the server says how the streak stands, and what to celebrate ('streak') */
   function touchStreak() {
     const today = dayKey(Date.now());
+    return api
+      .post('/api/streak', { day: today, tz: -new Date().getTimezoneOffset() })
+      .then((r) => {
+        const s = state.streak;
+        if (s.count !== r.count || s.best !== r.best || s.last !== today || s.freezes !== r.freezes) {
+          Object.assign(s, { count: r.count, best: r.best, last: today, freezes: r.freezes });
+          save();
+        }
+        emit('streak', r);
+        if (r.unlocked && r.unlocked.length) emit('achievements', r.unlocked);
+        return r;
+      })
+      .catch((error) => {
+        // a server from before 1.4 keeps no streak: this device does, as it used to
+        if (error.status === 404) return localStreak(today);
+        return null;
+      });
+  }
+  function localStreak(today) {
     const s = state.streak;
-    if (s.last === today) return s;
-    const yesterday = dayKey(Date.now() - 86400000);
-    s.count = s.last === yesterday ? s.count + 1 : 1;
+    if (s.last === today) return null;
+    s.count = s.last === dayKey(Date.now() - 86400000) ? s.count + 1 : 1;
     s.last = today;
     s.best = Math.max(s.best || 0, s.count);
     save();
-    return s;
+    return null;
   }
 
-  function award(id) {
-    if (state.badges[id]) return null;
-    const badge = BADGES.find((b) => b.id === id);
-    if (!badge) return null;
-    state.badges[id] = Date.now();
-    save();
-    notify({ kind: 'badge', symbol: badge.symbol, shape: badge.shape, text: `Badge unlocked: ${badge.name}. ${badge.desc}.`, href: '#/u/' + state.me.name });
-    emit('badge', badge);
-    return badge;
-  }
+  // (from before 1.4, when this device gave out badges itself: nothing to do now)
+  const award = () => null;
 
+  /** after something that might count (a post, a comment, a nest joined…), the server looks again a moment later and
+   *  says what was unlocked ('achievements') */
+  let checkTimer = 0;
   function checkBadges() {
-    award('hello');
-    if (state.streak.count >= 3) award('streak3');
-    if (state.streak.count >= 7) award('streak7');
-    const mine = userStats(state.me.name);
-    if (mine.posts.length) award('firstpost');
-    if (mine.comments.length >= 5) award('chatty');
-    if (state.joined.length >= 8) award('joiner');
-    if (state.visited.length >= 6) award('explorer');
-    if (Object.keys(state.polls).length) award('pollster');
-    if (state.sparksGiven >= 10) award('sparky');
-    if (state.collections.length) award('curator');
-    if (allCommunities().some((c) => (c.mods || []).some(isMe))) award('founder');
-    if (state.friends.some((f) => f.status === 'friends')) award('friendly');
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(() => {
+      api
+        .post('/api/achievements/check', {})
+        .then((r) => r && r.unlocked && r.unlocked.length && emit('achievements', r.unlocked))
+        .catch(() => {});
+    }, 2500);
   }
 
   // ---- changing things: shown at once, undone if the server says no -------------------------------------------
