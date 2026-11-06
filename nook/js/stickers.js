@@ -72,6 +72,10 @@
     local.set(meKey(), { emojis: lib.emojis, stickers: lib.stickers, max: lib.max });
     for (const fn of [...listeners]) fn();
   }
+  // a server from before 1.4 has no stickers: the app then doesn't offer them (it asks again each time it opens)
+  const OFF = 'nook-stickers-off';
+  let off = local.get(OFF, false) === true;
+  const available = () => api.signedIn() && !off;
   let loading = null;
   /** your library from the server (the picker shows what this device knew meanwhile) */
   function load() {
@@ -84,8 +88,13 @@
           lib.stickers = r.stickers || [];
           lib.max = r.max || MAX;
           lib.loaded = true;
+          if (off) local.set(OFF, (off = false));
           changed();
           return lib;
+        })
+        .catch((error) => {
+          if (error.status === 404 && !off) local.set(OFF, (off = true));
+          throw error;
         })
         .finally(() => (loading = null));
     }
@@ -195,13 +204,18 @@
     }
   }
 
-  /** the long-press menu of a sticker message: save it, report it */
+  /** the top of a sticker message's long-press menu: the sticker, and whose it is */
+  function menuHead(m) {
+    const s = m.media && m.media.sticker;
+    if (!s || s.gone || gone.has(s.id)) return '';
+    return `<div class="stk-menu-head"><img src="${esc(srcOf(s))}" alt="" draggable="false"><span><b translate="no">${esc(s.name || 'Sticker')}</b>${s.by ? `<small>by u/${esc(s.by)}</small>` : ''}</span></div>`;
+  }
+  /** and its rows: save it (or see it, once it's yours), report it */
   function menuRows(m) {
     const s = m.media && m.media.sticker;
-    if (!s || s.gone) return '';
+    if (!s || s.gone || gone.has(s.id)) return '';
     const row = (act, symbol, title, sub) => `<button type="button" class="row-link" data-do="${act}" data-m3-ripple>${icon(symbol)}<span class="row-text"><b>${title}</b>${sub ? `<small>${sub}</small>` : ''}</span></button>`;
     return (
-      `<div class="stk-menu-head"><img src="${esc(srcOf(s))}" alt="" draggable="false"><span><b translate="no">${esc(s.name || 'Sticker')}</b>${s.by ? `<small>by u/${esc(s.by)}</small>` : ''}</span></div>` +
       (byId(s.id) ? row('sticker-info', 'check_circle', 'In your stickers', 'See it big') : row('sticker-save', 'library_add', 'Save sticker', 'Add it to your stickers')) +
       (s.by && store.isMe(s.by) ? '' : row('sticker-report', 'flag', 'Report sticker', 'Moderators can take it down everywhere'))
     );
@@ -832,7 +846,9 @@
   function pickerSection() {
     const list = ordered('emoji');
     return (
-      '<section id="ep-yours" data-group="yours"><h4>Yours</h4><div class="ep-row ep-yours">' +
+      '<section id="ep-yours" data-group="yours"><h4>Yours</h4>' +
+      (list.length ? '' : '<p class="ep-yours-hint muted">Make your own emoji from any picture, then use it anywhere you write.</p>') +
+      '<div class="ep-row ep-yours">' +
       list
         .map((e) => `<button type="button" data-emoji=":${esc(e.name)}:" data-custom="${esc(e.id)}" title="${esc(e.name)}" aria-label=":${esc(e.name)}:"><img class="cemoji" src="${esc(srcOf(e))}" alt="" loading="lazy" draggable="false"></button>`)
         .join('') +
@@ -1061,7 +1077,7 @@
   setTimeout(() => load().catch(() => {}), 1500);
 
   Nook.stickers = {
-    load, library: () => lib, emojiHTML, jumbo, toTokens, toNames, mediaHTML, localMedia, popIn, menuRows, menuAction,
-    pick, open, make, choose, info, save, pickerSection, TOKEN,
+    load, library: () => lib, available, emojiHTML, jumbo, toTokens, toNames, mediaHTML, localMedia, popIn, menuHead, menuRows, menuAction,
+    pick, open, make, choose, info, save, used, pickerSection, TOKEN,
   };
 })();

@@ -2749,7 +2749,8 @@
       $('#f-write', root).hidden = preview;
       const box = $('#f-preview', root);
       box.hidden = !preview;
-      box.innerHTML = body.value.trim() ? ui.md(body.value) : '<p class="muted">Nothing to preview yet.</p>';
+      // your own emojis (1.4) show as they will once it's posted
+      box.innerHTML = body.value.trim() ? ui.md(Nook.stickers ? Nook.stickers.toTokens(body.value) : body.value) : '<p class="muted">Nothing to preview yet.</p>';
     });
 
     // the image: chosen or dropped, then shrunk to fit in local storage
