@@ -60,6 +60,10 @@ img.cemoji {
   color: inherit;
   opacity: 0.75;
 }
+.bubble.jumbo .cemoji-gone {
+  font-size: 15px;
+  vertical-align: 0.6em;
+}
 
 /* ---- stickers in chats -------------------------------------------------------------------------------------- */
 
@@ -737,6 +741,9 @@ img.cemoji {
   min-height: 72px;
   padding: 4px 8px 0 18px;
   overflow: hidden;
+  /* more than fit fade away at the end, rather than being cut */
+  -webkit-mask-image: linear-gradient(to right, #000 78%, transparent);
+  mask-image: linear-gradient(to right, #000 78%, transparent);
 }
 .stk-peek img {
   flex: none;
