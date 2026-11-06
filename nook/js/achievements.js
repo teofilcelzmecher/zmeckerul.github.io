@@ -889,7 +889,7 @@
       head +
       (mine ? streakCardHTML(data.streak, data) : '') +
       (mine
-        ? `<div class="ach-actions"><button type="button" class="m3-btn tonal small" data-ach-act="flex">${icon('ios_share')}Flex</button><button type="button" class="m3-btn tonal small" data-ach-act="feature">${icon('push_pin')}Feature</button>${hasRewards() ? `<button type="button" class="m3-btn text small" data-ach-act="customise">${icon('palette')}Rewards</button>` : ''}</div>`
+        ? `<div class="ach-actions">${calm() ? '' : `<button type="button" class="m3-btn tonal small" data-ach-act="flex">${icon('ios_share')}Flex</button>`}<button type="button" class="m3-btn tonal small" data-ach-act="feature">${icon('push_pin')}Feature</button>${hasRewards() ? `<button type="button" class="m3-btn text small" data-ach-act="customise">${icon('palette')}Rewards</button>` : ''}</div>`
         : '') +
       `<div class="ach-grid">${shown.join('')}</div>` +
       `<button type="button" class="m3-btn text ach-more" data-ach-act="${all ? 'less' : 'more'}"${list.length > 3 ? '' : ' hidden'}>${icon(all ? 'expand_less' : 'expand_more')}${all ? 'Show fewer' : `Show all ${list.length}`}</button>`
@@ -1054,7 +1054,8 @@
           return false;
         },
       });
-      actions.push({ label: 'Flex', symbol: 'ios_share', variant: 'filled', run: () => setTimeout(() => flex(), 250) });
+      // (the Flex card shows the streak's number: not in calm mode)
+      if (!calm()) actions.push({ label: 'Flex', symbol: 'ios_share', variant: 'filled', run: () => setTimeout(() => flex(), 250) });
     } else actions.push({ label: 'Close', variant: 'filled', value: null });
     ui.sheet({
       headline: e.name,
