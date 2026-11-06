@@ -212,12 +212,20 @@
   let skip = new Set(); // tiers already celebrated another way (the streak's moment shows its own)
   function absorb(data) {
     const now = {};
-    for (const e of entriesOf(data)) if (e.has) now[e.id] = e.special ? Math.max(1, e.tier) : e.tier;
-    const known = store_(meKey('known'));
+    const entries = entriesOf(data);
+    for (const e of entries) if (e.has) now[e.id] = e.special ? Math.max(1, e.tier) : e.tier;
+    let known = store_(meKey('known'));
+    // a brand-new account's very first look: what it reached in the last few minutes (Hello, Budgie I…) still gets
+    // its moment. Anyone else on a new device has it all there already, without a parade of old news
+    const me = store.state.me || {};
+    if (!known && me.joinedAt && Date.now() - me.joinedAt < DAY) {
+      known = {};
+      for (const e of entries) if (e.has && !(e.at && Date.now() - e.at < 10 * 60000)) known[e.id] = now[e.id];
+    }
     if (known) {
       const fresh = [];
       for (const [id, tier] of Object.entries(now)) {
-        if (tier > (known[id] || 0) && !skip.has(id + ':' + tier)) fresh.push({ e: entriesOf(data).find((x) => x.id === id), from: known[id] || 0 });
+        if (tier > (known[id] || 0) && !skip.has(id + ':' + tier)) fresh.push({ e: entries.find((x) => x.id === id), from: known[id] || 0 });
       }
       if (fresh.length) celebrate(fresh);
     }
@@ -736,10 +744,12 @@
       M3.toast(`${r.count}-day streak!`, { symbol: 'local_fire_department', shape: 'burst', timeout: 3000 });
       return;
     }
-    // once the page has settled (and not over a call)
+    // once the page has settled (and not over a call); celebrations of new tiers wait their turn behind it
+    let release;
+    momentDone = new Promise((resolve) => (release = resolve));
     setTimeout(() => {
-      if (document.querySelector('.call-screen:not([hidden]):not(.ended)')) return;
-      streakMoment(r);
+      if (document.querySelector('.call-screen:not([hidden]):not(.ended)')) return release();
+      streakMoment(r).then(release, release);
     }, 700);
   });
   // what the server unlocked as you did something (or while you were away): look, and celebrate what's new
