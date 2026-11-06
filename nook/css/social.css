@@ -71,8 +71,9 @@
   color: inherit;
   opacity: 0.6;
 }
-body.calm .nudge-pips {
-  display: none;
+/* calm mode hides tallies: the dots here, and how many nudges came in a row */
+body.calm :is(.nudge-pips, .nm-count) {
+  display: none !important;
 }
 
 /* ---- the flight, and the rings ------------------------------------------------------------------------------ */
@@ -240,8 +241,9 @@ body.calm .nudge-pips {
 }
 .nm-name {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 8px;
+  gap: 2px 8px;
   min-width: 0;
   color: var(--m3-on-surface);
   font-size: var(--m3-fs-large);
@@ -249,6 +251,7 @@ body.calm .nudge-pips {
   line-height: 1.2;
 }
 .nm-name > span:first-child {
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

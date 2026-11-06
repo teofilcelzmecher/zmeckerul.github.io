@@ -386,7 +386,7 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
   const say = (...lines) => console.log(lines.join('\n'));
   const when = (t) => (t ? new Date(t).toISOString().slice(0, 16).replace('T', ' ') : 'for good');
   const describe = (b) =>
-    `  #${String(b.id).padEnd(5)} ${(b.name ? 'u/' + b.name : 'an address').padEnd(22)} ${String(b.networks).padStart(2)} network${b.networks === 1 ? ' ' : 's'}  ${b.until ? 'until ' + when(b.until) : 'for good        '}  ${b.by ? 'by u/' + b.by : ''}${b.reason ? '  · ' + b.reason : ''}`;
+    `  #${String(b.id).padEnd(5)} ${(b.name ? 'u/' + b.name : 'an address').padEnd(22)} ${String(b.networks).padStart(2)} network${b.networks === 1 ? ' ' : 's'}  ${b.until ? 'until ' + when(b.until) : 'for good'.padEnd(22)}  ${b.by ? 'by u/' + b.by : ''}${b.reason ? '  · ' + b.reason : ''}`;
   CLI.help.push(
     '  nook ipban <name|IP> [days] [reason]   ban an account and the networks it used in the last 90 days (or one IP\'s network), for 1, 7 (the default) or 30 days, or 0 for good',
     '  nook ipbans                      list the network bans in force',
