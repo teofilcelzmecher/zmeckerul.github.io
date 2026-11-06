@@ -40,7 +40,8 @@ const NAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 /**
  * the network an address belongs to, written one way only: an IPv4 address as it is, an IPv6 address as its /64
  * block (an IPv4 address written as IPv6, ::ffff:1.2.3.4, is the IPv4 one). null for anything that isn't an address
- * (behind a tunnel that doesn't say who's calling, every request is "unknown", and that's never noted or banned)
+ * (behind a tunnel that doesn't say who's calling, every request is "unknown", and that, like this computer's own
+ * address, is never noted or banned)
  */
 function networkOf(value) {
   let ip = String(value || '').trim();
@@ -52,8 +53,9 @@ function networkOf(value) {
   const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
   if (mapped) ip = mapped[1];
   const kind = net.isIP(ip);
-  if (kind === 4) return '4:' + ip.split('.').map(Number).join('.');
-  if (kind !== 6) return null;
+  // this computer itself (a proxy in front that didn't say who's calling) is everybody at once: never a network
+  if (kind === 4) return /^(127|0)\./.test(ip) ? null : '4:' + ip.split('.').map(Number).join('.');
+  if (kind !== 6 || /^(::1?|0*:(0*:)*0*:?1?)$/.test(ip)) return null;
   // the first four groups of eight, with "::" filled in (an IPv4 address at the end counts as two groups)
   const [head, tail] = ip.toLowerCase().includes('::') ? ip.toLowerCase().split('::') : [ip.toLowerCase(), null];
   const groups = (part) => (part ? part.split(':').flatMap((g) => (g.includes('.') ? ['0', '0'] : [g])) : []);
