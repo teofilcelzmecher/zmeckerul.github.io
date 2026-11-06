@@ -104,7 +104,8 @@
   const artSrc = (art) => (art ? api.url(art) : '');
   const EQ = '<span class="pres-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
   const MINI_EQ = '<span class="pres-eq mini" aria-hidden="true"><i></i><i></i><i></i></span>';
-  const GAME_SHAPES = ['pixelCircle', 'pixelTriangle', 'cookie4', 'puffyDiamond'];
+  // the controller's shape: a pixel circle (it's a game, after all), then softer ones, round and round
+  const GAME_SHAPES = ['pixelCircle', 'cookie4', 'puffyDiamond', 'clover4'];
 
   /** the big card for a song, on a profile */
   function musicCard(m, own) {

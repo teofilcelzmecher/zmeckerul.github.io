@@ -487,8 +487,10 @@
 .avatar .pres-dot.game {
   background: var(--pres-game-bg, #7c4dff);
 }
+/* (the avatar sizes its own icon from its size, so this one says its size outright) */
 .avatar .pres-dot .m3-icon {
   --m3-icon-size: 13px;
+  font-size: 13px;
   color: #fff;
   font-variation-settings: 'FILL' 1, 'wght' 600;
 }
