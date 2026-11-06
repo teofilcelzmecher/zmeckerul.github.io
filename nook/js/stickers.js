@@ -341,11 +341,12 @@
           const by = s.by ? (store.isMe(s.by) ? 'by you' : `by <a href="#/u/${encodeURIComponent(s.by)}" translate="no">u/${esc(s.by)}</a>`) : '';
           text.innerHTML =
             `<b class="m3-title" translate="no">${esc(label(s))}</b>` +
-            `<span class="muted">${kind === 'emoji' ? 'Custom emoji' : 'Sticker'}${s.gif ? ' · moves' : ''}${by ? ' · ' + by : ''}</span>`;
+            `<span class="muted">${kind === 'emoji' ? 'Custom emoji' : 'Sticker'}${s.gif ? ' · moves' : ''}${by ? ' · ' + by : ''}</span>` +
+            (saved && !s.mine ? `<span class="stk-kept">${icon('check')}${kind === 'emoji' ? 'In your emojis' : 'In your stickers'}</span>` : '');
           const btn = (act, symbol, words, variant = 'tonal') => `<button type="button" class="m3-btn ${variant}" data-info="${act}">${icon(symbol)}${words}</button>`;
           actions.innerHTML = s.mine
             ? btn('rename', 'edit', 'Rename') + btn('delete', 'delete', 'Delete', 'text')
-            : (saved ? btn('saved', 'check', kind === 'emoji' ? 'In your emojis' : 'In your stickers') + btn('rename', 'edit', 'Rename', 'text') + btn('delete', 'bookmark_remove', 'Remove', 'text')
+            : (saved ? btn('rename', 'edit', 'Rename') + btn('delete', 'bookmark_remove', 'Remove', 'text')
               : btn('save', 'library_add', kind === 'emoji' ? 'Save to my emojis' : 'Save to my stickers', 'filled')) + btn('report', 'flag', 'Report', 'text');
         };
         paint();
@@ -463,9 +464,9 @@
     const edge = canvasOf(size);
     const e = edge.getContext('2d');
     const r = pad * 0.9;
-    for (const ring of [1, 0.66, 0.33]) {
-      for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2 + ring;
+    for (const ring of [1, 0.75, 0.5, 0.25]) {
+      for (let i = 0; i < 32; i++) {
+        const a = (i / 32) * Math.PI * 2 + ring;
         e.drawImage(sil, Math.cos(a) * r * ring, Math.sin(a) * r * ring);
       }
     }
@@ -656,8 +657,11 @@
                 celebrate(stage.firstElementChild);
                 if (r.unlocked) store.emit('achievements');
                 button.innerHTML = icon('check') + 'Done';
-                setTimeout(() => close(r.sticker), calm() ? 200 : 750);
-                M3.toast(emoji ? `Your emoji is ready: :${r.sticker.name}:` : 'Your sticker is ready', { symbol: emoji ? 'add_reaction' : 'auto_awesome', shape: 'puffy' });
+                setTimeout(() => {
+                  close(r.sticker);
+                  // the sticker sheet it was made from shows it arriving; anywhere else a toast says so
+                  if (!document.querySelector('dialog.stk-sheet[open]')) M3.toast(emoji ? `Your emoji is ready: :${r.sticker.name}:` : 'Your sticker is ready', { symbol: emoji ? 'add_reaction' : 'auto_awesome', shape: 'puffy' });
+                }, calm() ? 200 : 750);
               })
               .catch((error) => {
                 busy = false;

@@ -3070,7 +3070,8 @@
 
   // ---- live: what the server says changed ------------------------------------------------------------
 
-  const said = (m, inGroup) => (m.kind ? views.lineText(m, inGroup) : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70));
+  const said = (m, inGroup) =>
+    m.kind ? views.lineText(m, inGroup) : !m.body && m.media && m.media.type === 'sticker' ? 'Sent a sticker' : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70);
   store.on('messages', (incoming = []) => {
     renderBadges();
     // a group's chat only listens for its own news

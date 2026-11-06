@@ -156,24 +156,23 @@ img.cemoji {
 
 /* ---- the sticker sheet: your stickers and your emojis ------------------------------------------------------- */
 
+/* the tabs stay put and the stickers scroll under them */
 .stk-sheet .sheet-body {
-  max-height: min(64dvh, 600px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
   gap: 12px;
 }
 .stk-tabs {
-  position: sticky;
-  top: 0;
-  z-index: 2;
   justify-self: center;
-  box-shadow: 0 0 0 6px var(--m3-surface-container-low, var(--m3-surface));
 }
 .stk-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  align-content: start;
   gap: 8px;
+  max-height: min(52dvh, 520px);
   padding: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .stk-grid[data-kind='emoji'] {
   grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
@@ -438,7 +437,6 @@ img.cemoji {
   padding: 4px;
   overflow-x: auto;
   scrollbar-width: none;
-  scroll-snap-type: x proximity;
 }
 .stk-shapes::-webkit-scrollbar {
   display: none;
@@ -455,7 +453,6 @@ img.cemoji {
   background: var(--m3-surface-container-high);
   color: var(--m3-on-surface-variant);
   cursor: pointer;
-  scroll-snap-align: start;
   transition:
     background-color 160ms,
     color 160ms,
@@ -592,6 +589,23 @@ img.cemoji {
 .stk-hero-text a {
   color: var(--m3-primary);
   font-weight: 650;
+}
+/* already in your library: said quietly, not a button */
+.stk-kept {
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 4px 12px 4px 8px;
+  border-radius: var(--m3-r-full, 999px);
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+}
+.stk-kept .m3-icon {
+  --m3-icon-size: 18px;
 }
 .stk-hero-actions {
   display: flex;
