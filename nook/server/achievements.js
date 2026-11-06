@@ -310,8 +310,18 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
       }
       return [];
     }
+    // each its own line in the inbox; a few at once reach the phone as one notification, not a burst of them
+    const several = unlocked.length > 1;
     for (const a of unlocked) {
-      notify(userId, { kind: 'achievement', text: `Achievement unlocked: ${a.name} ${roman(a.tier)}`, href: `#/u/${u.name}?achievement=${a.id}`, symbol: a.symbol, shape: a.shape });
+      notify(userId, { kind: 'achievement', quiet: several, text: `Achievement unlocked: ${a.name} ${roman(a.tier)}`, href: `#/u/${u.name}?achievement=${a.id}`, symbol: a.symbol, shape: a.shape });
+    }
+    if (several && ctx.push && typeof ctx.push.send === 'function') {
+      const [top] = [...unlocked].sort((a, b) => b.tier - a.tier);
+      const more = unlocked.length - 1;
+      ctx.push.send([userId], {
+        kind: 'activity', title: 'Budgie', href: `#/u/${u.name}`,
+        body: `Achievements unlocked: ${top.name} ${roman(top.tier)} and ${more === 1 ? '1 more' : `${more} more`}`,
+      });
     }
     return unlocked;
   }

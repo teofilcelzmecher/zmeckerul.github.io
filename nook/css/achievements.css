@@ -1126,7 +1126,8 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   color: inherit;
 }
 .ach-m-count {
-  font-size: clamp(76px, 26vw, 128px);
+  /* big, but never so big that a short screen loses the rest below it */
+  font-size: clamp(64px, min(26vw, 15dvh), 128px);
   font-weight: 850;
   font-variant-numeric: tabular-nums;
   font-variation-settings: 'wdth' 115, 'ROND' 100;
@@ -1207,6 +1208,16 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   gap: 8px;
   width: min(360px, 100%);
   margin-top: 12px;
+}
+/* on a wide screen, the rewards side by side (the title across the top) */
+@media (min-width: 600px) {
+  .ach-m-rewards {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    width: min(720px, 100%);
+  }
+  .ach-m-rewards-title {
+    grid-column: 1 / -1;
+  }
 }
 .ach-m-rewards-title {
   display: inline-flex;
