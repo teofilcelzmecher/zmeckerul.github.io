@@ -741,6 +741,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   };
   // what someone has been into for the last month: their most played songs, artists, genres and games
   route('GET', '/api/activity/:name/lately', ({ user, params }) => {
+    limit('activity-read:' + user.id, 120, MINUTE, 'Too many requests. Slow down a little.');
     const owner = userNamed(params.name);
     if (!owner) fail(404, 'There’s no one by that name.');
     if (!canSee(user, owner, rowOf(owner.id))) return { lately: null };
