@@ -412,12 +412,14 @@ function install(ctx) {
   let line = Promise.resolve();
   let waiting = 0;
   function remake(bytes, crop, kind) {
+    // an emoji is always 128 across; a sticker is never made bigger than the part of the GIF it's cut from
+    const options = Object.assign({}, GIF_OUT[kind], kind === 'sticker' ? { side: Math.max(64, Math.min(GIF_OUT.sticker.side, Math.round(crop.sw))) } : {});
     if (waiting >= 4) fail(503, 'Lots of stickers are being made right now. Try again in a minute.');
     waiting++;
     const job = line.then(
       () =>
         new Promise((resolve, reject) => {
-          const worker = new Worker(__filename, { workerData: { stickerGif: true, bytes, crop, options: GIF_OUT[kind] }, resourceLimits: { maxOldGenerationSizeMb: 256 } });
+          const worker = new Worker(__filename, { workerData: { stickerGif: true, bytes, crop, options }, resourceLimits: { maxOldGenerationSizeMb: 256 } });
           const timer = setTimeout(() => {
             worker.terminate();
             reject(Object.assign(new Error('That GIF took too long to make. Try a shorter one.'), { status: 413 }));
