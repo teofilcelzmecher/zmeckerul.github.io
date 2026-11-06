@@ -431,7 +431,10 @@
     return (
       '<form class="reply-box">' +
       `<textarea class="m3-field" rows="3" placeholder="${esc(placeholder)}" required>${esc(value)}</textarea>` +
-      `<div class="row"><button type="button" class="m3-icon-btn small only-hover" data-act="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button><span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
+      `<div class="row"><button type="button" class="m3-icon-btn small only-hover" data-act="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
+      // your own emojis (1.4) on a phone, whose keyboard can't have them (a computer's emoji picker has a Yours tab)
+      (Nook.stickers && Nook.stickers.available() ? `<button type="button" class="m3-icon-btn small stk-touch" data-stk-act="emojis" aria-label="Your emojis">${icon('add_reaction')}</button>` : '') +
+      `<span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
       `<button type="button" class="m3-btn text" data-act="reply-cancel">Cancel</button>` +
       `<button type="submit" class="m3-btn filled">${icon('send')}${esc(submitLabel)}</button></div></form>`
     );

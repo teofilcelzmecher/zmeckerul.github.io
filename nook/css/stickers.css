@@ -643,6 +643,13 @@ img.cemoji {
   min-width: 0;
 }
 
+/* a comment's button for your own emojis: on phones only (a computer's emoji picker has them in its Yours tab) */
+@media (hover: hover) {
+  .stk-touch {
+    display: none !important;
+  }
+}
+
 /* ---- the emoji picker's Yours tab (computers) ---------------------------------------------------------------- */
 
 .ep-yours button img.cemoji {

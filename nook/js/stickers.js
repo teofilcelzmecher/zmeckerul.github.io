@@ -701,19 +701,22 @@
    * your stickers and emojis. From a chat, a tap on a sticker sends it (it resolves with it) and a tap on an emoji
    * puts it where you're writing (`field`); from Settings (`manage`), a tap shows what you can do with it.
    */
-  function pick({ field = null, tab = 'sticker', manage = false } = {}) {
-    let kind = tab;
+  function pick({ field = null, tab = 'sticker', manage = false, only = '' } = {}) {
+    let kind = only || tab;
     let painter = null;
     const tabs = [['sticker', 'Stickers', 'sticky_note_2'], ['emoji', 'Emojis', 'mood']];
     const sheet = ui.sheet({
-      headline: manage ? 'Your stickers' : 'Stickers',
+      headline: only === 'emoji' ? 'Your emojis' : manage ? 'Your stickers' : 'Stickers',
       symbol: 'add_reaction',
       shape: 'puffy',
       className: 'stk-sheet',
       html:
-        `<div class="m3-segmented stk-tabs" role="radiogroup" aria-label="Stickers or emojis">${tabs
-          .map(([id, words, symbol]) => `<button type="button" class="m3-segment" role="radio" aria-checked="${id === kind}" data-tab="${id}">${icon(symbol)}${words}</button>`)
-          .join('')}</div>` +
+        // somewhere a sticker can't go (a comment), it's just your emojis
+        (only
+          ? ''
+          : `<div class="m3-segmented stk-tabs" role="radiogroup" aria-label="Stickers or emojis">${tabs
+              .map(([id, words, symbol]) => `<button type="button" class="m3-segment" role="radio" aria-checked="${id === kind}" data-tab="${id}">${icon(symbol)}${words}</button>`)
+              .join('')}</div>`) +
         '<div class="stk-grid" role="list"></div><p class="stk-foot muted"></p>',
       setup(body, close) {
         const grid = body.querySelector('.stk-grid');
@@ -753,7 +756,8 @@
         painter = paint;
         listeners.add(paint);
         load().catch(() => {});
-        body.querySelector('.stk-tabs').addEventListener('click', (e) => {
+        const tabsEl = body.querySelector('.stk-tabs');
+        if (tabsEl) tabsEl.addEventListener('click', (e) => {
           const b = e.target.closest('[data-tab]');
           if (!b || b.dataset.tab === kind) return;
           kind = b.dataset.tab;
@@ -876,7 +880,7 @@
     return m ? { query: m[2], from: end - m[2].length - 1 } : null;
   }
   function showSuggest(field) {
-    const p = lib.emojis.length && field.form ? partial(field) : null;
+    const p = lib.emojis.length ? partial(field) : null;
     if (!p) return closeSuggest();
     const q = p.query;
     const items = lib.emojis
@@ -932,6 +936,10 @@
 
   // ---- everything else happens through the page: taps, files, typing, sending ---------------------------------
 
+  // where your emojis go: what's drawn as Markdown everywhere it shows (messages, comments, a post's words). Bios and
+  // nests' descriptions show as plain words in places, so they keep :name: as typed
+  const WRITING = 'textarea#chat-input, .reply-box textarea, textarea#f-body';
+
   document.addEventListener(
     'click',
     (e) => {
@@ -954,6 +962,12 @@
       if (act) {
         e.preventDefault();
         if (act.dataset.stkAct === 'library') open(act.dataset.tab || 'sticker');
+        // a comment's own emoji button, on a phone
+        else if (act.dataset.stkAct === 'emojis') {
+          const form = act.closest('form');
+          const field = form && form.querySelector('textarea');
+          if (field) pick({ field, only: 'emoji' });
+        }
       }
     },
     true
@@ -998,7 +1012,7 @@
       closeSuggest();
       const form = e.target;
       if (!(form instanceof HTMLFormElement) || !lib.emojis.length) return;
-      for (const ta of form.querySelectorAll('textarea')) {
+      for (const ta of form.querySelectorAll(WRITING)) {
         const next = toTokens(ta.value);
         if (next !== ta.value) ta.value = next;
       }
@@ -1008,7 +1022,7 @@
   // and back to :name: when something with your emojis in it is being edited again
   document.addEventListener('focusin', (e) => {
     const ta = e.target;
-    if (!(ta instanceof HTMLTextAreaElement) || !ta.form || !HAS_TOKEN.test(ta.value)) return;
+    if (!(ta instanceof HTMLTextAreaElement) || !ta.matches(WRITING) || !HAS_TOKEN.test(ta.value)) return;
     const next = toNames(ta.value);
     if (next === ta.value) return;
     const atEnd = ta.selectionStart === ta.value.length;
@@ -1017,7 +1031,8 @@
   });
   document.addEventListener('input', (e) => {
     const ta = e.target;
-    if (ta instanceof HTMLTextAreaElement) showSuggest(ta);
+    if (ta instanceof HTMLTextAreaElement && ta.matches(WRITING)) showSuggest(ta);
+    else if (suggest) closeSuggest();
   });
   document.addEventListener(
     'keydown',
