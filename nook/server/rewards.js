@@ -92,8 +92,11 @@ function install({ db, route, limit, fail, publicUser, USER_EXTRAS, CLI, modules
     font: u.name_font || '',
   });
 
-  // everyone's public profile carries what they wear (the font already travels as `font`)
-  USER_EXTRAS.push((u) => ({ effect: known(u.name_effect, 'effect'), frame: known(u.name_frame, 'frame'), scene: known(u.profile_scene, 'scene') }));
+  // everyone's public profile carries what they wear (the font already travels as `font`); a banned account is
+  // shown plainly, so it can't keep showing off
+  USER_EXTRAS.push((u) =>
+    u.banned_at ? {} : { effect: known(u.name_effect, 'effect'), frame: known(u.name_frame, 'frame'), scene: known(u.profile_scene, 'scene') }
+  );
 
   // ---- routes ------------------------------------------------------------------------------------------------
 

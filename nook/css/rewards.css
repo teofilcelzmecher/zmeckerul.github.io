@@ -1173,6 +1173,16 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   flex: none;
   font-size: 14px;
 }
+/* what unlocks a locked one is worth reading in full ("Conversationalist III"): it takes two lines if it must */
+.rw-chip.locked {
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .rw-chip.on {
   background: var(--m3-primary);
   color: var(--m3-on-primary);
@@ -1229,15 +1239,17 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   min-width: 0;
 }
 .rw-bar-text b {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .rw-bar-text b .m3-icon {
+  margin-inline-end: 4px;
   font-size: 18px;
+  vertical-align: -3px;
 }
 .rw-bar-text small {
   color: var(--m3-on-surface-variant);
@@ -1248,6 +1260,23 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 .rw-error {
   color: var(--m3-error) !important;
+}
+
+/* a reward shown small where an achievement says what it unlocks (Nook.rewards.preview) */
+.rw-preview {
+  display: inline-grid;
+  place-items: center;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.rw-preview.rw-sample {
+  font-size: 1.1rem;
+}
+.rw-preview-frame {
+  padding: 8px;
+}
+.rw-preview.rw-thumb {
+  width: 132px;
 }
 
 /* ---- in Edit profile ---------------------------------------------------------------------------------------- */

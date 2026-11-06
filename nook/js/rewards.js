@@ -240,6 +240,21 @@
       el.insertAdjacentHTML('beforeend', rep(5, (i) => `<i class="rw-spark" aria-hidden="true" style="--x:${r2(-4 + jitter(i, 11) * 100)}%;--y:${r2(-30 + jitter(i, 12) * 120)}%;--d:${r2(i * 0.55)}s;--z:${r2(0.6 + jitter(i, 13) * 0.7)}"></i>`));
     }
   }
+  /**
+   * Shrinks the names drawn in tiles until each fits its tile: the wide fonts (Arcade, Royal) and long usernames
+   * would otherwise be cut off. Measured, as how wide a name comes out depends on the font and the letters in it.
+   */
+  function fit(root) {
+    const samples = [...root.querySelectorAll('.rw-sample')];
+    for (const el of samples) el.style.fontSize = '';
+    // all the reading first, then all the writing, so the page is laid out once
+    const sizes = samples.map((el) => {
+      const room = el.parentElement.clientWidth - 6;
+      const need = el.scrollWidth;
+      return room > 0 && need > room ? Math.max(11, (parseFloat(getComputedStyle(el).fontSize) * room) / need) : 0;
+    });
+    samples.forEach((el, i) => sizes[i] && (el.style.fontSize = sizes[i].toFixed(1) + 'px'));
+  }
   /** a name's classes for what it wears: { font, effect } */
   const nameClasses = (style) => ui.nameFont({ font: style.font, effect: style.effect }).trim();
 
@@ -949,7 +964,11 @@
           const header = body.parentElement.querySelector('.m3-dialog-header');
           if (header) {
             header.insertAdjacentHTML('beforeend', '<button type="button" class="m3-btn tonal small rw-done">Done</button>');
-            header.querySelector('.rw-done').addEventListener('click', () => close(true));
+            const done = header.querySelector('.rw-done');
+            done.addEventListener('click', () => close(true));
+            // on a phone a press on the header starts dragging the sheet down, which captures the pointer and would
+            // swallow the tap: a press on Done is only ever a tap
+            done.addEventListener('pointerdown', (e) => e.stopPropagation());
           }
           const panel = $('#rw-panel');
           const bar = $('#rw-bar');
@@ -987,6 +1006,7 @@
           const paintPanel = (animate) => {
             panel.innerHTML = panelHTML();
             body.querySelectorAll('.rw-grid .name-fx').forEach(liven);
+            fit(panel);
             paintThumbs();
             if (animate) fx.stagger(panel.querySelectorAll('.rw-tile'), { y: 10, step: 22, max: 12 });
           };
@@ -1090,6 +1110,13 @@
           paintStage();
           paintPanel(false);
           paintBar();
+          // the reward fonts arrive a moment after their tiles are drawn (each only once something shows it): the
+          // names are measured again in them
+          const refit = () => (body.isConnected ? fit(panel) : document.fonts.removeEventListener('loadingdone', refit));
+          if (document.fonts) {
+            document.fonts.addEventListener('loadingdone', refit);
+            document.fonts.ready.then(refit);
+          }
           // straight to the reward it was opened on
           if (want) {
             requestAnimationFrame(() => {
@@ -1203,5 +1230,36 @@
     load().catch(() => {});
   });
 
-  Nook.rewards = { open, frame, liven, mountScene, load, wear, fontTiles, editorCard, SCENES: Object.keys(SCENES), KINDS };
+  // ---- for the achievements page: what a tier unlocks, shown off -------------------------------------------
+
+  /** the rewards an achievement's tier unlocks (catalog entries) */
+  const unlocks = (family, tier) => REWARDS.filter((r) => r.needs && r.needs.family === family && (tier == null || r.needs.tier === tier));
+  /**
+   * A small picture of a reward, for wherever an achievement shows what it unlocks: a name (yours, or `who`'s) in
+   * the effect or font, the picture in the frame, or a still of the scene. Call paint(root) once it's in the page:
+   * that brings the names to life and paints the scenes.
+   */
+  function preview(id, who) {
+    const r = REWARD.get(id);
+    if (!r) return '';
+    const u = who || store.state.me;
+    const name = esc(u.name || '');
+    switch (r.kind) {
+      case 'effect':
+        return `<span class="rw-preview rw-sample ${ui.nameFont({ font: u.font, effect: r.id }).trim()}" translate="no">${name}</span>`;
+      case 'font':
+        return `<span class="rw-preview rw-sample name-font-${r.id}" translate="no">${name}</span>`;
+      case 'frame':
+        return `<span class="rw-preview rw-preview-frame">${ui.avatar(Object.assign({}, u, { frame: r.id }), 44, { moving: true })}</span>`;
+      default:
+        return `<span class="rw-preview rw-thumb" data-rw-thumb="${esc(r.id)}"></span>`;
+    }
+  }
+  function paint(root) {
+    if (!root) return;
+    root.querySelectorAll('.rw-preview.name-fx').forEach(liven);
+    root.querySelectorAll('[data-rw-thumb]').forEach((el) => el.firstChild || mountScene(el, el.dataset.rwThumb, { thumb: true }));
+  }
+
+  Nook.rewards = { open, frame, liven, mountScene, load, wear, fontTiles, editorCard, unlocks, preview, paint, SCENES: Object.keys(SCENES), KINDS };
 })();
