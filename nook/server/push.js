@@ -41,6 +41,7 @@ const isApple = (platform) => /^(ios|macos)/.test(platform || '');
 const WORDS = {
   picture: { en: 'Sent a picture', ro: 'A trimis o poză', es: 'Envió una foto', fr: 'A envoyé une photo', de: 'Hat ein Bild geschickt', it: 'Ha inviato una foto' },
   gif: { en: 'Sent a GIF', ro: 'A trimis un GIF', es: 'Envió un GIF', fr: 'A envoyé un GIF', de: 'Hat ein GIF geschickt', it: 'Ha inviato una GIF' },
+  sticker: { en: 'Sent a sticker', ro: 'A trimis un sticker', es: 'Envió un sticker', fr: 'A envoyé un sticker', de: 'Hat einen Sticker geschickt', it: 'Ha inviato uno sticker' },
   answer: { en: 'Tap to answer', ro: 'Atinge ca să răspunzi', es: 'Toca para responder', fr: 'Touche pour répondre', de: 'Tippe zum Annehmen', it: 'Tocca per rispondere' },
   join: { en: 'Tap to join', ro: 'Atinge ca să intri', es: 'Toca para unirte', fr: 'Touche pour rejoindre', de: 'Tippe zum Beitreten', it: 'Tocca per partecipare' },
 };
@@ -125,7 +126,8 @@ module.exports = function push(db, { langDir = path.join(__dirname, '..', 'js', 
    *  they wrote it */
   function words(note, lang) {
     const title = String(note.title || 'Budgie').slice(0, 120);
-    const said = note.kind === 'message' ? note.body : t(lang, note.body);
+    // a custom emoji (1.4) is written <:name:id> inside a message: a notification shows :name:
+    const said = note.kind === 'message' ? String(note.body || '').replace(/<:([a-z0-9_]{2,32}):[A-Za-z0-9]{6,16}>/g, ':$1:') : t(lang, note.body);
     const body = [said || (note.word ? word(note.word, lang) : ''), note.then ? word(note.then, lang) : ''].filter(Boolean).join(' · ').slice(0, 240);
     return { title, body };
   }
