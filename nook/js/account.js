@@ -114,8 +114,12 @@
       `<div class="gate-card">${head('Opening Budgie…', '')}<m3-loading aria-label="Loading"></m3-loading></div>`,
 
     offline: (o) =>
-      `<div class="gate-card">${head(o.setup ? 'Almost there' : 'Can’t reach Budgie', o.setup ? 'Budgie’s server hasn’t been connected yet. Check back soon.' : esc(o.message || 'Budgie’s server isn’t answering. It may be restarting, or your connection may be down.'), 'pixelCircle')}` +
-      (o.setup ? '' : `<button class="m3-btn filled gate-go" type="button" data-retry>${icon('refresh')}Try again</button>`) + legal + '</div>',
+      o.network
+        ? // the network is banned (1.4), not necessarily the person: they stay signed in, for when they're elsewhere
+          `<div class="gate-card">${head('Not from this network', esc(o.message), 'softBoom')}<p class="gate-hint">This can happen on a network many people share, like mobile data, a school’s or a café’s. If you think it’s a mistake, contact Budgie.</p>` +
+          `<button class="m3-btn filled gate-go" type="button" data-retry>${icon('refresh')}Try again</button>${legal}</div>`
+        : `<div class="gate-card">${head(o.setup ? 'Almost there' : 'Can’t reach Budgie', o.setup ? 'Budgie’s server hasn’t been connected yet. Check back soon.' : esc(o.message || 'Budgie’s server isn’t answering. It may be restarting, or your connection may be down.'), 'pixelCircle')}` +
+          (o.setup ? '' : `<button class="m3-btn filled gate-go" type="button" data-retry>${icon('refresh')}Try again</button>`) + legal + '</div>',
   };
 
   function show(name, options = {}) {
@@ -364,7 +368,8 @@
     } catch (error) {
       clearTimeout(slow);
       starting = false;
-      if (error.status === 401 || error.status === 403) {
+      if (error.network) show('offline', { network: true, message: error.message });
+      else if (error.status === 401 || error.status === 403) {
         api.setToken(null);
         show('signin', { message: error.status === 403 ? error.message : '' });
       } else {
