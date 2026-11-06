@@ -284,7 +284,9 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     const legacy = first ? legacyTiers(u) : new Map();
     const t = now();
     const unlocked = [];
-    db.tx(() => {
+    // all at once (or as part of the change that asked, if that's in a transaction already)
+    const atomically = (fn) => (db.raw.isTransaction ? fn() : db.tx(fn));
+    atomically(() => {
       for (const f of FAMILIES) {
         const value = valueOf(u, f.count, prefs);
         const tier = Math.max(tierFor(f, value), legacy.get(f.id) || 0);

@@ -429,6 +429,10 @@ html[data-m3-theme='dark'] .ach-streak-pill {
 .ach-more {
   justify-self: center;
 }
+.ach-tile[hidden],
+.ach-more[hidden] {
+  display: none;
+}
 
 /* a progress bar: --p from 0 to 1 */
 .ach-bar {
@@ -1036,12 +1040,14 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   position: relative;
   display: grid;
   justify-items: center;
-  align-content: center;
+  /* centred, but never pushed off the top when a small screen has to scroll */
+  align-content: safe center;
   gap: 6px;
-  min-height: 100%;
+  height: 100%;
   padding: calc(var(--nook-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px);
   text-align: center;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .ach-m-stage {
   position: relative;

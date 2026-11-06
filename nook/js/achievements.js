@@ -447,6 +447,13 @@
     const extras = [];
     if (r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>You earned a freeze: it saves your streak on a day you miss.</span></span>`);
     if (streakTier) extras.push(`<span class="ach-m-chip">${icon('military_tech')}<span translate="no">On fire</span> <b>${ROMAN[streakTier - 1]}</b></span>`);
+    // a milestone that unlocked nothing new says what the next one will
+    if (big && !rewards.length) {
+      const fam = FAMILY.get('streak');
+      const t = fam.tiers.findIndex((need) => need > r.count);
+      const upcoming = t >= 0 ? rewardsAt('streak', t + 1) : [];
+      if (upcoming.length) extras.push(`<span class="ach-m-chip">${icon('redeem')}<span>${`At ${fam.tiers[t]} days: `}<b translate="no">${esc(upcoming.map((x) => x.name).join(', '))}</b></span></span>`);
+    }
 
     const dlg = document.createElement('dialog');
     dlg.className = `ach-moment${icy ? ' icy' : ''}${big ? ' big' : ''}${still() ? ' still' : ''}`;
@@ -566,7 +573,7 @@
     };
     fit();
     const parts = [];
-    const palette = icy ? ICE : FIRE;
+    const palette = (icy ? ICE : FIRE).slice();
     const stage = dlg.querySelector('.ach-m-stage');
     const origin = () => {
       const b = stage.getBoundingClientRect();
@@ -674,6 +681,8 @@
         const stops = svg.querySelectorAll('#achfo stop, #achfm stop');
         const warm = ['#ff3d00', '#ff7a00', '#ffc400', '#ff9100', '#ffe082'];
         stops.forEach((s, i) => s.animate([{ stopColor: s.getAttribute('stop-color') }, { stopColor: warm[i] }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' }));
+        TONGUES.forEach((tg, i) => tg.el.setAttribute('fill', FIRE[i % FIRE.length]));
+        palette.splice(0, palette.length, ...FIRE);
         dlg.classList.add('thawed');
       }, 1150);
     }
@@ -781,7 +790,7 @@
   Nook.hook('nameTags', (u) => {
     const list = (store.isMe(u.name) ? (cached(u.name) || {}).featured : u.featured) || [];
     if (!list.length) return '';
-    const data = store.isMe(u.name) ? cached(u.name) : null;
+    const data = cached(u.name);
     const items = list.map((f) => featuredEntry(f, data)).filter(Boolean);
     return `<span class="ach-tags" title="${esc(items.map((e) => `${tr(e.name)}${e.tier ? ' ' + ROMAN[e.tier - 1] : ''}`).join(' · '))}">${items.map((e) => `<span class="ach-tag ${tierClass(e)}" style="--ach-mask:${mask(e.shape)}${e.special && e.color ? `;--ach-color:${esc(e.color)}` : ''}"></span>`).join('')}</span>`;
   });
@@ -844,7 +853,8 @@
   const sortEntries = (list) =>
     list.sort((a, b) => (b.has ? 1 : 0) - (a.has ? 1 : 0) || (b.special ? 1 : 0) - (a.special ? 1 : 0) || b.tier - a.tier || progressOf(b) - progressOf(a));
 
-  const SHOWN = 6;
+  // folded, the grid shows two rows (however many fit across): fitRows() hides the rest once it's on the screen
+  const ROWS = 2;
   /** the achievements section of a profile (the streak card first, on your own) */
   function sectionInner(name, data, { all = false } = {}) {
     const mine = store.isMe(name);
@@ -852,7 +862,8 @@
     const list = sortEntries(entriesOf(data));
     const reached = list.filter((e) => e.has).length;
     if (!mine && !reached) return '';
-    const shown = all ? list : list.slice(0, SHOWN);
+    // before it's measured, a phone's two rows of three
+    const shown = list.map((e, i) => tileHTML(e, mine, name).replace('<button type="button" class="ach-tile', `<button type="button"${!all && i >= 6 ? ' hidden' : ''} class="ach-tile`));
     const head =
       `<header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="burst" symbol="military_tech" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Achievements</h2><m3-wavy-line></m3-wavy-line>` +
       `<span class="muted count">${mine ? `${reached}/${list.length}` : num(reached)}</span></header>`;
@@ -862,8 +873,8 @@
       (mine
         ? `<div class="ach-actions"><button type="button" class="m3-btn tonal small" data-ach-act="flex">${icon('ios_share')}Flex</button><button type="button" class="m3-btn tonal small" data-ach-act="feature">${icon('push_pin')}Feature</button>${hasRewards() ? `<button type="button" class="m3-btn text small" data-ach-act="customise">${icon('palette')}Rewards</button>` : ''}</div>`
         : '') +
-      `<div class="ach-grid">${shown.map((e) => tileHTML(e, mine, name)).join('')}</div>` +
-      (list.length > SHOWN ? `<button type="button" class="m3-btn text ach-more" data-ach-act="${all ? 'less' : 'more'}">${icon(all ? 'expand_less' : 'expand_more')}${all ? 'Show fewer' : `Show all ${list.length}`}</button>` : '')
+      `<div class="ach-grid">${shown.join('')}</div>` +
+      `<button type="button" class="m3-btn text ach-more" data-ach-act="${all ? 'less' : 'more'}"${list.length > 3 ? '' : ' hidden'}>${icon(all ? 'expand_less' : 'expand_more')}${all ? 'Show fewer' : `Show all ${list.length}`}</button>`
     );
   }
   Nook.hook('profileSections', (u) => {
@@ -871,6 +882,19 @@
     const inner = sectionInner(u.name, data);
     return `<section class="section ach-section" data-ach-section="${esc(u.name)}"${inner ? '' : ' hidden'}>${inner}</section>`;
   });
+
+  /** folded, a grid shows as many rows as ROWS, of however many tiles fit across; the button only when there's more */
+  function fitRows(sec) {
+    const grid = sec.querySelector('.ach-grid');
+    const more = sec.querySelector('.ach-more');
+    if (!grid || !more || !grid.offsetWidth) return;
+    const tiles = [...grid.children];
+    const across = getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length || 3;
+    const all = more.dataset.achAct === 'less';
+    tiles.forEach((tile, i) => (tile.hidden = !all && i >= across * ROWS));
+    more.hidden = tiles.length <= across * ROWS;
+  }
+  addEventListener('resize', () => document.querySelectorAll('[data-ach-section]').forEach(fitRows));
 
   const expanded = new Set();
   /** draws a profile's achievements again where they're showing */
@@ -880,8 +904,9 @@
       sec.hidden = !inner;
       if (sec.innerHTML !== inner) {
         sec.innerHTML = inner;
-        if (arrive) fx.stagger(sec.querySelectorAll('.ach-tile'), { y: 12, step: 35 });
-      }
+        fitRows(sec);
+        if (arrive) fx.stagger(sec.querySelectorAll('.ach-tile:not([hidden])'), { y: 12, step: 35 });
+      } else fitRows(sec);
     }
     for (const hero of document.querySelectorAll(`[data-ach-hero="${CSS.escape(name)}"]`)) {
       const u = store.user(name);
@@ -894,18 +919,20 @@
     paint(meName(), data || cached(meName()));
   }
 
+  const opened = new Set();
   Nook.hook('profileMount', (root, u) => {
     const name = u.name;
     const had = cached(name);
     load(name)
       .then((data) => {
         paint(name, data, { arrive: !had });
+        // opened from an achievement's note (…?achievement=streak): its sheet, once
         const want = new URLSearchParams((location.hash.split('?')[1] || '')).get('achievement');
-        if (want) {
+        if (want && !opened.has(location.hash)) {
+          opened.add(location.hash);
           const sec = root.querySelector('[data-ach-section]');
           if (sec) sec.scrollIntoView({ block: 'start', behavior: still() ? 'auto' : 'smooth' });
           setTimeout(() => openAchievement(want, name), 300);
-          history.replaceState(history.state, '', location.href.replace(/[?&]achievement=[^&]*/, ''));
         }
       })
       .catch(() => {
@@ -939,7 +966,13 @@
         if (act.dataset.achAct === 'more') expanded.add(who.toLowerCase());
         else expanded.delete(who.toLowerCase());
         const data = cached(who);
-        if (sec && data) fx.flipHeight(sec, () => (sec.innerHTML = sectionInner(who, data, { all: expanded.has(who.toLowerCase()) })));
+        if (sec && data) {
+          fx.flipHeight(sec, () => {
+            sec.innerHTML = sectionInner(who, data, { all: expanded.has(who.toLowerCase()) });
+            fitRows(sec);
+          });
+          if (act.dataset.achAct === 'more') fx.stagger([...sec.querySelectorAll('.ach-tile')].slice(6), { y: 10, step: 25 });
+        }
         return;
       }
       case 'give':
@@ -1591,7 +1624,7 @@
         ? `<div class="card"><div class="team-list">${r.custom
             .map(
               (c) =>
-                `<div class="team-row">${badgeHTML(entryOf(c), 44)}<span class="row-text"><b translate="no">${esc(c.name)}</b><small>${esc(c.desc || '')}${c.desc ? ' · ' : ''}${c.holders === 1 ? '1 person' : `${num(c.holders)} people`} · id ${esc(c.id.replace('custom:', ''))}</small></span>` +
+                `<div class="team-row">${badgeHTML(entryOf(c), 44)}<span class="row-text"><b translate="no">${esc(c.name)}</b>${c.desc ? `<small>${esc(c.desc)}</small>` : ''}<small>${c.holders === 1 ? '1 person has it' : `${num(c.holders)} people have it`} · id ${esc(c.id.replace('custom:', ''))}</small></span>` +
                 `<button type="button" class="m3-icon-btn" data-ach-delete="${esc(c.id)}" aria-label="Delete ${esc(c.name)}" data-tooltip="Delete">${icon('delete')}</button></div>`
             )
             .join('')}</div></div>`
@@ -1628,7 +1661,7 @@
           shape,
           color: form.querySelector('#ach-color').value,
         });
-        M3.toast('Made it. Give it from someone’s profile.', { symbol: 'military_tech', shape });
+        M3.toast('Special achievement made', { symbol: 'military_tech', shape });
         M3.burst(form.querySelector('.ach-make-preview .ach-badge'), 'pin');
         form.querySelector('#ach-name').value = '';
         form.querySelector('#ach-desc').value = '';
