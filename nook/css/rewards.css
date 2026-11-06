@@ -14,14 +14,14 @@
   src: url('../fonts/name-arcade.woff2') format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
   font-display: swap;
-  size-adjust: 64%;
+  size-adjust: 72%;
 }
 @font-face {
   font-family: 'Budgie Name Arcade';
   src: url('../fonts/name-arcade-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
   font-display: swap;
-  size-adjust: 64%;
+  size-adjust: 72%;
 }
 @font-face {
   font-family: 'Budgie Name Marquee';
@@ -201,7 +201,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 .name-fx-rainbow {
   background-image: linear-gradient(90deg, var(--rw-rainbow));
-  background-size: 300% 100%;
+  background-size: 100% 100%;
 }
 .name-fx-neon {
   color: var(--rw-neon);
@@ -222,7 +222,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 .name-fx-aurora {
   background-image: linear-gradient(110deg, var(--rw-aurora));
-  background-size: 300% 100%;
+  background-size: 100% 100%;
 }
 .name-fx-gold {
   background-image: linear-gradient(180deg, var(--rw-gold-2) 0%, var(--rw-gold-1) 38%, var(--rw-gold-3) 58%, var(--rw-gold-1) 80%, var(--rw-gold-2) 100%);
@@ -245,6 +245,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 .name-fx-rainbow.rw-live,
 .name-fx-aurora.rw-live {
+  background-size: 200% 100%;
   animation: rw-flow 7s linear infinite;
 }
 .name-fx-aurora.rw-live {
@@ -270,6 +271,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
     animation: rw-sweep 2.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
   }
   a.name-fx:is(.name-fx-rainbow, .name-fx-aurora):hover {
+    background-size: 200% 100%;
     animation: rw-flow 4s linear infinite;
   }
   a.name-fx-fire:hover {
@@ -337,8 +339,11 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   }
 }
 @keyframes rw-flow {
+  from {
+    background-position: 0 0;
+  }
   to {
-    background-position: 150% 0;
+    background-position: -200% 0;
   }
 }
 @keyframes rw-shine {
@@ -427,6 +432,14 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   position: absolute;
   inset: calc(var(--s) * -0.2);
   pointer-events: none;
+}
+/* small pictures (a chat's header) wear a slimmer frame that keeps close to them */
+.rw-frame.rw-sm[style*='--rw-mask'] {
+  inset: calc(var(--s) * -0.13);
+}
+.chat-who > .avatar.framed,
+.chat-empty > .avatar.framed {
+  margin: 0 calc(var(--s) * 0.1);
 }
 /* the outlines that follow the picture's shape: a colour that turns, seen through the shape's outline */
 .rw-frame[style*='--rw-mask'] {
@@ -543,14 +556,21 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 
 /* vinyl: the picture is the record's label, the record spins under it, the arm rests on it */
 .rw-vinyl {
-  inset: calc(var(--s) * -0.26);
+  inset: calc(var(--s) * -0.2);
   border-radius: 50%;
   background: #0f0f10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   overflow: hidden;
 }
 .rw-vinyl.rw-sm {
-  inset: calc(var(--s) * -0.18);
+  inset: calc(var(--s) * -0.12);
+}
+.rw-flames.rw-sm i {
+  height: calc(var(--s) * 0.26 * var(--h));
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.38));
+}
+.rw-petals.rw-sm .rw-flower i {
+  height: calc(var(--s) * 0.32);
 }
 .rw-vinyl i {
   position: absolute;
@@ -563,7 +583,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   animation: rw-spin 3.2s linear infinite;
 }
 .rw-vinyl-arm {
-  inset: calc(var(--s) * -0.26);
+  inset: calc(var(--s) * -0.2);
 }
 .rw-vinyl-arm svg {
   display: block;
@@ -862,6 +882,17 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   }
 }
 
+/* a framed picture on a profile keeps room round it for its frame (more above a crown) */
+.profile-hero:not(.has-banner) .profile-main > .avatar.framed {
+  margin: calc(var(--s) * 0.08);
+}
+.profile-hero:not(.has-banner) .profile-main > .avatar.framed:has(.rw-crown) {
+  margin-top: calc(var(--s) * 0.26);
+}
+.profile-hero.has-banner .profile-main > .avatar.framed:has(.rw-crown) {
+  z-index: 1;
+}
+
 /* on a banner the picture's outline is the frame's job (the outline there would redraw the frame every frame) */
 .profile-hero.has-banner .profile-main > .avatar.framed {
   filter: none;
@@ -903,8 +934,33 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
     opacity: 1;
   }
 }
+/* a few still stars above the northern lights, on a dark page */
+.rw-scene-northern-lights::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 27% 8%, #fff 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 46% 22%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 63% 11%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 78% 26%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 90% 9%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 34%, #fff 50%, transparent 51%), radial-gradient(1.3px 1.3px at 6% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 84% 44%, #fff 50%, transparent 51%), radial-gradient(1.1px 1.1px at 55% 4%, #fff 50%, transparent 51%);
+}
+:root[data-m3-theme='dark'] .rw-scene-northern-lights::before {
+  opacity: 0.7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) .rw-scene-northern-lights::before {
+    opacity: 0.7;
+  }
+}
 .profile-hero.rw-scened {
   isolation: isolate;
+}
+/* the small words over a scene keep a soft edge of the page's colour, so they read over anything moving */
+.profile-hero.rw-scened :is(.who > .muted, .bio, .interests .chip) {
+  text-shadow: 0 0 6px var(--m3-surface-container-low), 0 0 2px var(--m3-surface-container-low);
 }
 /* a scene takes the place of the floating shapes */
 .profile-hero.rw-scened > .m3-stickers {
@@ -933,13 +989,27 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 /* ---- Customise ---------------------------------------------------------------------------------------------- */
 
 .rw-sheet .sheet-body {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+/* the sheet doesn't scroll as a whole: the preview and the tabs stay put, the tiles scroll under them */
+.m3-dialog.rw-sheet {
+  overflow: hidden;
   padding-bottom: 0;
+}
+.rw-sheet .m3-dialog-header {
+  align-items: center;
+}
+.rw-done {
+  margin-left: auto;
 }
 /* the preview: you, wearing what you're trying, the scene moving behind */
 .rw-stage {
   position: relative;
+  flex: none;
   isolation: isolate;
   display: flex;
   align-items: center;
@@ -972,6 +1042,8 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   font-size: var(--m3-fs-smaller);
 }
 .rw-tabs {
+  flex: none;
+  align-self: stretch;
   justify-self: stretch;
   width: auto;
   max-width: none;
@@ -983,7 +1055,14 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 .rw-panel {
   display: grid;
+  flex: 1 1 auto;
+  align-content: start;
   gap: 10px;
+  min-height: 120px;
+  margin: 0 -24px;
+  padding: 2px 24px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .rw-panel-head {
   display: grid;
@@ -1133,19 +1212,15 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 }
 /* the bar at the bottom: what you're trying, and Wear */
 .rw-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 3;
   display: flex;
+  flex: none;
   align-items: center;
   gap: 12px;
   min-height: 64px;
-  margin: 0 -24px;
-  padding: 10px 24px;
-  background: color-mix(in srgb, var(--m3-surface-container-high) 92%, transparent);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  margin: -12px -24px 0;
+  padding: 12px 24px calc(14px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--m3-outline-variant);
+  background: var(--m3-surface-container-high);
 }
 .rw-bar-text {
   display: grid;
@@ -1242,13 +1317,31 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   .rw-grid-scene {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .rw-panel {
+    margin: 0 -20px;
+    padding: 2px 20px 14px;
+  }
   .rw-bar {
-    margin: 0 -16px;
-    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    margin: -12px -20px 0;
+    padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px));
   }
   .rw-tabs .m3-segment {
     padding: 0 4px;
     font-size: var(--m3-fs-smaller);
+  }
+}
+
+@media (max-height: 720px) {
+  .rw-stage {
+    min-height: 0;
+    padding: 12px 16px;
+  }
+  .rw-stage-av {
+    width: 84px;
+    height: 84px;
+  }
+  .rw-stage-av .avatar {
+    --s: 64px !important;
   }
 }
 
@@ -1325,4 +1418,7 @@ body.plain-names .name-fx:not(.rw-sample, .rw-stage-name *) .rw-spark {
   .rw-scene {
     display: none;
   }
+}
+.rw-orbit.rw-sm .rw-plane i {
+  --rx: calc(var(--s) * 0.6);
 }

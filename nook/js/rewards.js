@@ -147,11 +147,11 @@
     '<circle cx="3" cy="11" r="3.2" fill="#ffe680" stroke="#8f5f00" stroke-width="1.6"/><circle cx="32" cy="4" r="3.4" fill="#ffe680" stroke="#8f5f00" stroke-width="1.6"/><circle cx="61" cy="11" r="3.2" fill="#ffe680" stroke="#8f5f00" stroke-width="1.6"/>' +
     '<circle cx="32" cy="28" r="4.6" fill="#e53950" stroke="#7a1020" stroke-width="1.4"/><circle cx="17" cy="33" r="3" fill="#3d8bff" stroke="#123e85" stroke-width="1.2"/><circle cx="47" cy="33" r="3" fill="#2ec27e" stroke="#0e5b35" stroke-width="1.2"/>' +
     '<path d="M29.5 26.2 l2 -1.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round" opacity=".8"/></svg>';
-  // the tonearm resting on the record, drawn in the record's box (152 × 152, the picture's middle at 76, 76)
+  // the tonearm resting on the record, drawn in the record's box (140 × 140, the picture's middle at 70, 70)
   const ARM =
-    '<svg viewBox="0 0 152 152" aria-hidden="true" focusable="false"><circle cx="140" cy="16" r="8" fill="#9aa0a6" stroke="#5f6368" stroke-width="2"/><circle cx="140" cy="16" r="3" fill="#e8eaed"/>' +
-    '<path d="M140 16 L139 64 L127 92" fill="none" stroke="#dadce0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M140 16 L139 64 L127 92" fill="none" stroke="#80868b" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>' +
-    '<rect x="119" y="88" width="12" height="9" rx="2" fill="#5f6368" transform="rotate(-28 125 92)"/></svg>';
+    '<svg viewBox="0 0 140 140" aria-hidden="true" focusable="false"><circle cx="129" cy="13" r="7" fill="#9aa0a6" stroke="#5f6368" stroke-width="2"/><circle cx="129" cy="13" r="2.6" fill="#e8eaed"/>' +
+    '<path d="M129 13 L129 58 L121 85" fill="none" stroke="#dadce0" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M129 13 L129 58 L121 85" fill="none" stroke="#80868b" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>' +
+    '<rect x="115" y="82" width="11" height="8" rx="2" fill="#5f6368" transform="rotate(-24 120 86)"/></svg>';
   const ORBITS = (half) =>
     `<svg viewBox="0 0 140 140" aria-hidden="true" focusable="false"><g fill="none" stroke-width="1.3" stroke-linecap="round">` +
     `<path class="o1" d="${half ? 'M4 70 A66 19 0 0 0 136 70' : 'M4 70 A66 19 0 1 0 136 70 A66 19 0 1 0 4 70'}" transform="rotate(-22 70 70)"/>` +
@@ -579,8 +579,8 @@
               continue;
             }
             const near = 1 - s.z;
-            const size = near * 2.3 + 0.5;
-            ctx.fillStyle = rgba(col, Math.min(1, near * 1.5 + 0.1) * (0.6 + 0.4 * Math.sin(s.tw)) * (pal.dark ? 0.95 : 0.6));
+            const size = near * 2.4 + (pal.dark ? 0.6 : 0.9);
+            ctx.fillStyle = rgba(col, Math.min(1, near * 1.5 + (pal.dark ? 0.12 : 0.3)) * (0.6 + 0.4 * Math.sin(s.tw)) * (pal.dark ? 0.95 : 0.7));
             ctx.fillRect(sx - size / 2, sy - size / 2, size, size);
           }
           if (shooting) {
@@ -623,24 +623,20 @@
         return s;
       });
       const curtains = [
-        { k: 0, base: 0.46, amp: 0.1, f: 0.0055, s: 0.33, f2: 0.015, s2: 0.52, tall: 0.42, a: pal.dark ? 0.55 : 0.34, seed: rnd(0, 9) },
-        { k: 1, base: 0.36, amp: 0.08, f: 0.007, s: -0.27, f2: 0.012, s2: 0.41, tall: 0.34, a: pal.dark ? 0.4 : 0.24, seed: rnd(0, 9) },
-        { k: 2, base: 0.56, amp: 0.09, f: 0.0045, s: 0.22, f2: 0.019, s2: -0.37, tall: 0.3, a: pal.dark ? 0.38 : 0.22, seed: rnd(0, 9) },
+        { k: 0, base: 0.42, amp: 0.1, f: 0.0055, s: 0.33, f2: 0.015, s2: 0.52, tall: 0.42, a: pal.dark ? 0.42 : 0.26, seed: rnd(0, 9) },
+        { k: 1, base: 0.3, amp: 0.08, f: 0.007, s: -0.27, f2: 0.012, s2: 0.41, tall: 0.3, a: pal.dark ? 0.3 : 0.18, seed: rnd(0, 9) },
+        { k: 2, base: 0.58, amp: 0.09, f: 0.0045, s: 0.22, f2: 0.019, s2: -0.37, tall: 0.3, a: pal.dark ? 0.3 : 0.18, seed: rnd(0, 9) },
       ];
-      const dots = pal.dark ? Array.from({ length: count((w * h) / 4000, 15, 60) }, () => ({ x: rnd(0, w), y: rnd(0, h * 0.7), tw: rnd(0, TAU), ts: rnd(0.8, 2) })) : [];
       let t = rnd(0, 30);
-      let stepX = 3;
+      // the canvas is a quarter as sharp as the screen (see SOFT): one of its pixels is a column of light 4 wide,
+      // and the browser's smoothing as it's stretched to size blends the columns into soft curtains
+      const stepX = 4;
       return {
-        thin: () => (stepX = 5),
+        thin: () => {},
         step(dt) {
           t += dt;
-          for (const d of dots) d.tw += dt * d.ts;
         },
         draw(ctx) {
-          for (const d of dots) {
-            ctx.fillStyle = rgba([255, 255, 255], 0.25 + 0.35 * Math.sin(d.tw));
-            ctx.fillRect(d.x, d.y, 1.2, 1.2);
-          }
           ctx.globalCompositeOperation = pal.dark ? 'lighter' : 'source-over';
           for (const c of curtains) {
             const tall = c.tall * h;
@@ -648,7 +644,7 @@
               const y = h * c.base + c.amp * h * Math.sin(x * c.f + t * c.s + c.seed) + 0.5 * c.amp * h * Math.sin(x * c.f2 - t * c.s2);
               const shimmer = 0.5 + 0.5 * Math.sin(x * 0.012 + t * 0.9 + c.seed * 2);
               ctx.globalAlpha = c.a * (0.35 + 0.65 * shimmer);
-              ctx.drawImage(strips[c.k], x, y - tall * 0.9, stepX + 1, tall);
+              ctx.drawImage(strips[c.k], x, y - tall * 0.9, stepX, tall);
             }
           }
           ctx.globalAlpha = 1;
@@ -693,8 +689,8 @@
       };
     },
   };
-  // the soft scenes don't need a sharp canvas (fewer pixels to fill on a phone)
-  const SOFT = { 'northern-lights': 0.5, embers: 1, fireflies: 1 };
+  // the soft scenes don't need a sharp canvas (fewer pixels to fill on a phone): how many canvas pixels to a CSS one
+  const SOFT = { 'northern-lights': 0.25, embers: 1, fireflies: 1 };
 
   // every scene on the screen, moved on by one loop
   const running = new Set();
@@ -745,8 +741,10 @@
     host.insertBefore(layer, host.firstChild);
     const ctx = canvas.getContext('2d');
     const pal = palette(host);
-    const res = Math.min(window.devicePixelRatio || 1, 2) * (SOFT[id] || 1);
+    const res = SOFT[id] || Math.min(window.devicePixelRatio || 1, 2);
     let dpr = res;
+    // a tile's still picture is the scene as it looks on a profile, made small (so it isn't nearly empty)
+    let zoom = 1;
     let sim = null;
     let w = 0;
     let h = 0;
@@ -763,8 +761,9 @@
         h = nh;
         canvas.width = Math.round(w * dpr);
         canvas.height = Math.round(h * dpr);
+        if (thumb) zoom = Math.min(1, w / 340);
         if (remake) {
-          sim = make(w, h, pal);
+          sim = make(w / zoom, h / zoom, pal);
           // a few seconds in already, so it doesn't start empty
           for (let i = 0; i < 90; i++) sim.step(1 / 30);
           for (let i = 0; i < thinned; i++) sim.thin();
@@ -773,8 +772,8 @@
       return true;
     };
     const paint = () => {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(dpr * zoom, 0, 0, dpr * zoom, 0, 0);
+      ctx.clearRect(0, 0, w / zoom, h / zoom);
       sim.draw(ctx);
     };
     const inst = {
@@ -944,8 +943,14 @@
         shape: 'sunny',
         className: 'wide rw-sheet',
         html: stage + tabs + '<div class="rw-panel" id="rw-panel"></div><div class="rw-bar" id="rw-bar" aria-live="polite"></div>',
-        setup(body) {
+        setup(body, close) {
           const $ = (sel) => body.querySelector(sel);
+          // Done sits in the header, so the tiles get the room an actions row would take
+          const header = body.parentElement.querySelector('.m3-dialog-header');
+          if (header) {
+            header.insertAdjacentHTML('beforeend', '<button type="button" class="m3-btn tonal small rw-done">Done</button>');
+            header.querySelector('.rw-done').addEventListener('click', () => close(true));
+          }
           const panel = $('#rw-panel');
           const bar = $('#rw-bar');
 
@@ -1107,7 +1112,7 @@
             }
           );
         },
-        actions: [{ label: 'Done', variant: 'filled', value: true }],
+        actions: [],
       })
       .then(() => {
         sheetOpen = false;
