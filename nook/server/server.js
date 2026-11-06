@@ -1520,7 +1520,9 @@ route('PATCH', '/api/me', async ({ user, body }) => {
   }
   const bioDoubt = next.bio !== user.bio ? await checkText([next.bio], 'profile') : null;
   if (body.font != null) {
-    if (body.font !== '' && !NAME_FONTS.includes(body.font)) fail(400, 'That isn’t one of Budgie’s name fonts.', { field: 'font' });
+    // 1.4: the fonts achievements unlock are rewards; server/rewards.js says whether this person may wear one
+    const mayWear = modules.rewards && modules.rewards.mayWearFont;
+    if (body.font !== '' && !NAME_FONTS.includes(body.font) && !(mayWear && mayWear(user, String(body.font)))) fail(400, 'That isn’t one of Budgie’s name fonts.', { field: 'font' });
     next.name_font = body.font;
   }
   if (body.pronouns != null) {
@@ -2625,6 +2627,8 @@ const moduleCtx = {
   // true when this is the running server, false when cli.js loaded it for a command: timers only start when serving
   serving: require.main === module,
 };
+// the free name fonts (rewards adds the ones achievements unlock)
+moduleCtx.NAME_FONTS = NAME_FONTS;
 for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {
