@@ -254,6 +254,11 @@
       return room > 0 && need > room ? Math.max(11, (parseFloat(getComputedStyle(el).fontSize) * room) / need) : 0;
     });
     samples.forEach((el, i) => sizes[i] && (el.style.fontSize = sizes[i].toFixed(1) + 'px'));
+    // a locked tile's "On fire IV" that would take two lines shows the achievement's badge and tier instead
+    const chips = [...root.querySelectorAll('.rw-chip.locked')].filter((c) => c.querySelector('.rw-need-short'));
+    for (const c of chips) c.classList.remove('tight');
+    const tight = chips.map((c) => c.offsetHeight > 27);
+    chips.forEach((c, i) => tight[i] && c.classList.add('tight'));
   }
   /** a name's classes for what it wears: { font, effect } */
   const nameClasses = (style) => ui.nameFont({ font: style.font, effect: style.effect }).trim();
@@ -904,6 +909,16 @@
         (k) => `<button class="m3-segment" role="radio" aria-checked="${k.id === kind}" value="${k.id}">${esc(k.label)}</button>`
       ).join('')}</div>`;
 
+    // what unlocks a locked one: "On fire IV". Where that doesn't fit on a line, it's the achievement's own badge and
+    // the tier instead (fit() decides; the bar says it in full when the tile's tapped)
+    const lockChip = (r) => {
+      const f = FAMILY.get(r.needs.family);
+      const full = needsName(r);
+      const badge = f
+        ? `<span class="rw-need-short" aria-hidden="true"><m3-shape-icon shape="${esc(f.shape || 'circle')}" symbol="${esc(f.symbol || 'emoji_events')}" size="18" icon-size="12"></m3-shape-icon>${TIERS[r.needs.tier - 1] || r.needs.tier}</span>`
+        : '';
+      return `<span class="rw-chip locked">${icon('lock')}<span class="rw-need-full">${esc(full)}</span>${badge}</span>`;
+    };
     // one tile: what it looks like on you, its name, and whether it's yours
     const tile = (k, id, art) => {
       const r = REWARD.get(id);
@@ -915,7 +930,7 @@
         : pending
         ? '<span class="rw-chip">…</span>'
         : locked
-        ? `<span class="rw-chip locked">${icon('lock')}${esc(needsName(r))}</span>`
+        ? lockChip(r)
         : r && newAtOpen.has(id)
         ? '<span class="rw-chip new">New</span>'
         : '';
@@ -1025,12 +1040,19 @@
               text = `<b translate="no">${esc(name)}</b><small>${id ? 'You’re wearing it' : `No ${KIND.get(kind).word}`}</small>`;
               button = id ? `<button type="button" class="m3-btn text" data-rw-wear="">${icon('close')}Take off</button>` : '';
             } else if (!isUnlocked(r)) {
+              // the whole bar is the way to the achievement: a card with its badge, what it takes, and how far
+              // you've got (the width of a phone is all needed for a name like "Conversationalist III")
               const at = tierNow(r);
-              const f = FAMILY.get(r.needs.family);
-              text =
-                `<b>${icon('lock')}Unlock with ${esc(needsName(r))}</b>` +
-                `<small>${esc(needsWhat(r))}${f ? ` · ${at ? `you’re at ${esc(f.name)} ${TIERS[at - 1]}` : 'not started yet'}` : ''}</small>`;
-              button = `<button type="button" class="m3-btn tonal" data-rw-how="${esc(r.id)}">${icon('emoji_events')}How to unlock</button>`;
+              const f = FAMILY.get(r.needs.family) || {};
+              const what = needsWhat(r);
+              bar.innerHTML =
+                `<button type="button" class="rw-how" data-rw-how="${esc(r.id)}" data-m3-ripple>` +
+                `<m3-shape-icon shape="${esc(f.shape || 'burst')}" symbol="${esc(f.symbol || 'emoji_events')}" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
+                `<span class="rw-how-text"><b>${icon('lock')}Unlock with ${esc(needsName(r))}</b>` +
+                `<small>${esc(what)}${what ? ' · ' : ''}${at ? `you’re at ${esc(f.name || '')} ${TIERS[at - 1]}` : 'not started yet'}</small>` +
+                (note ? `<small class="rw-error" role="alert">${esc(note)}</small>` : '') +
+                `</span><span class="rw-how-go">${icon('emoji_events')}<span>How to unlock</span>${icon('chevron_right')}</span></button>`;
+              return;
             } else {
               text = `<b translate="no">${esc(name)}</b><small>${id ? (r && r.needs ? `Unlocked with ${esc(needsName(r))}` : 'Everyone has this one') : `Take off your ${KIND.get(kind).word}`}</small>`;
               button = `<button type="button" class="m3-btn filled" data-rw-wear="${esc(id)}">${icon(id ? 'checkroom' : 'close')}${id ? 'Wear' : 'Take off'}</button>`;
@@ -1117,6 +1139,8 @@
             document.fonts.addEventListener('loadingdone', refit);
             document.fonts.ready.then(refit);
           }
+          // and once the sheet is open (it's laid out only then)
+          requestAnimationFrame(refit);
           // straight to the reward it was opened on
           if (want) {
             requestAnimationFrame(() => {
@@ -1199,6 +1223,29 @@
 
   // ---- on profiles -----------------------------------------------------------------------------------------
 
+  /**
+   * A long name in a wide font (Graffiti, Arcade, Royal) would break in the middle of a word: it's made a little
+   * smaller instead, as far as about two thirds of its size, so it stays on one line where it can.
+   */
+  function fitName(h1) {
+    const span = h1 && h1.querySelector('span[translate="no"]');
+    if (!span || !/\bname-(font|fx)-/.test(span.className) || document.body.classList.contains('plain-names')) return;
+    const measure = () => {
+      if (!span.isConnected) return;
+      span.style.fontSize = '';
+      span.style.whiteSpace = 'nowrap';
+      let others = 0;
+      for (const el of h1.children) if (el !== span) others += el.getBoundingClientRect().width + 6;
+      const room = h1.clientWidth - others;
+      const need = span.getBoundingClientRect().width;
+      span.style.whiteSpace = '';
+      if (room > 0 && need > room) span.style.fontSize = Math.max(0.64, (room / need) * 0.98).toFixed(3) + 'em';
+    };
+    measure();
+    // again once the font has come (it can arrive after the page is drawn)
+    if (document.fonts) document.fonts.ready.then(measure);
+  }
+
   Nook.hook('profileMount', (root, u, me) => {
     const hero = root.querySelector('.profile-hero');
     if (!hero) return;
@@ -1212,6 +1259,7 @@
     // the name in full, with its effect alive
     const name = hero.querySelector('h1 .name-fx');
     if (name) liven(name);
+    fitName(hero.querySelector('.who h1'));
     // your own: Customise, beside Edit profile
     const edit = me && supported && hero.querySelector('[data-act="edit-profile"]');
     if (edit) {
