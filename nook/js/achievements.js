@@ -409,12 +409,16 @@
     });
   }
 
-  /** the next milestone and how far along the ring is */
+  /**
+   * the next milestone and how far along the ring is: the whole way there (7 of 14 is half full, not empty just after
+   * the 7-day milestone), and `at` full on the day a milestone is reached
+   */
   const ringOf = (count) => {
     const ms = CAT.streak.milestones;
     const next = ms.find((m) => m > count) || count + 1;
     const prev = [...ms].reverse().find((m) => m <= count) || 0;
-    return { next, prev, p: Math.max(0, Math.min(1, (count - prev) / Math.max(1, next - prev))) };
+    const p = Math.max(0, Math.min(1, count / next));
+    return { next, prev, p, at: count && count === prev ? 1 : p };
   };
 
   let momentOpen = false;
@@ -643,7 +647,7 @@
 
     if (still()) {
       // held still: the card as it ends, with one tap of the phone
-      arc.setAttribute('stroke-dashoffset', (C * (1 - (r.lost ? 0 : ring.p))).toFixed(2));
+      arc.setAttribute('stroke-dashoffset', (C * (1 - ring.at)).toFixed(2));
       rollOdometer(dlg, 0);
       buzz(big ? [10, 60, 30] : 12);
       later(close, big || rewards.length ? 12000 : 7000);
@@ -692,7 +696,7 @@
       const o = origin();
       for (let i = 0; i < (big ? 70 : 36); i++) ember(o, true);
       buzz(big ? [20, 70, 60] : 20);
-      if (!r.lost) arc.animate([{ strokeDashoffset: arc.getAttribute('stroke-dashoffset') }, { strokeDashoffset: (C * (1 - (r.count === ring.prev && ring.prev ? 1 : ring.p))).toFixed(2) }], { duration: 900, easing: gentle.easing, fill: 'forwards' });
+      arc.animate([{ strokeDashoffset: arc.getAttribute('stroke-dashoffset') }, { strokeDashoffset: (C * (1 - ring.at)).toFixed(2) }], { duration: 900, easing: gentle.easing, fill: 'forwards' });
       dlg.querySelector('.ach-m-count').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'ease-out' });
       if (big) {
         fx.confetti({ x: o.x, y: o.y }, { shapes: ['burst', 'sunny', 'flower', 'heart', 'softBurst'], count: 34, power: 1.3 });
@@ -847,6 +851,8 @@
       badgeHTML(e, 58) +
       `<span class="ach-name" translate="no">${esc(e.name)}</span><span class="ach-sub">${sub}</span>` +
       (mine && !e.special && !maxed ? `<span class="ach-bar" aria-hidden="true"><span style="--p:${p.toFixed(3)}"></span></span><small class="count">${num(Math.floor(e.value))}/${num(e.next)}</small>` : '') +
+      // every tier reached: nothing left to fill, so a little crown says so
+      (mine && !e.special && maxed ? `<small class="ach-maxed">${icon('crown')}<span>Top tier</span></small>` : '') +
       '</button>'
     );
   }
