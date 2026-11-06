@@ -400,7 +400,7 @@
         ? ''
         : '<div class="c-actions">' +
           voteBox('comment', c.id, store.commentScore(c), dir, true) +
-          `<button class="m3-btn text" data-act="reply">${icon('reply')}Reply</button>` +
+          `<button class="m3-btn text" data-act="reply" aria-label="Reply">${icon('reply')}<span class="reply-word">Reply</span></button>` +
           `<button class="m3-btn text" data-act="comment-share" aria-label="Share">${icon('ios_share')}<span class="not-phone">Share</span></button>` +
           `<button class="m3-icon-btn small" data-act="comment-menu" aria-label="More options for this comment"><span translate="no" class="m3-icon">more_horiz</span></button>` +
           '</div>') +
@@ -1104,7 +1104,7 @@
         '<form class="card form" id="submit-form" novalidate>' +
         `<div class="field"><span class="field-label">Posting in</span><button type="button" class="picker-btn" id="nook-picker" aria-haspopup="menu">${nookIcon(nook, 32, 18)}<span id="nook-picker-name">n/${esc(nook.id)}</span>${icon('expand_more')}</button></div>` +
         // a picture or GIF, or (when the server takes them, from 1.0) a video
-        `<div>${segmented('post-type', [['text', 'Text', 'notes'], ['image', s.videos ? 'Media' : 'Image', s.videos ? 'perm_media' : 'image'], ['link', 'Link', 'link'], ['poll', 'Poll', 'ballot']], type === 'video' ? 'image' : type, 'Post type')}</div>` +
+        `<div class="segments-row">${segmented('post-type', [['text', 'Text', 'notes'], ['image', s.videos ? 'Media' : 'Image', s.videos ? 'perm_media' : 'image'], ['link', 'Link', 'link'], ['poll', 'Poll', 'ballot']], type === 'video' ? 'image' : type, 'Post type')}</div>` +
         `<div class="field"><label for="f-title">Title</label><input class="m3-field" id="f-title" maxlength="300" required placeholder="An interesting title" value="${esc(draft.title || '')}"><span class="counter" id="f-title-count">0/300</span><span class="error" id="f-title-err"></span></div>` +
         `<div class="field"><span class="field-label">Flair</span><div class="chips" id="f-flairs" role="group" aria-label="Flair"></div></div>` +
         // image

@@ -232,18 +232,35 @@ p {
 
 /* a row of segments too long for a phone scrolls rather than spilling */
 .setting-row > .m3-segmented,
-.toolbar > .m3-segmented {
+.toolbar > .m3-segmented,
+.segments-row > .m3-segmented {
   overflow-x: auto;
   scrollbar-width: none;
 }
 .setting-row > .m3-segmented::-webkit-scrollbar,
-.toolbar > .m3-segmented::-webkit-scrollbar {
+.toolbar > .m3-segmented::-webkit-scrollbar,
+.segments-row > .m3-segmented::-webkit-scrollbar {
   display: none;
 }
 @media (max-width: 440px) {
   /* a little closer together, so five (the ringtones) fit a phone */
   .setting-row > .m3-segmented > .m3-segment {
     padding: 0 11px;
+  }
+  /* words only, so the longer translations (Romanian, German, French) fit a phone too */
+  .toolbar > .m3-segmented > .m3-segment,
+  .segments-row > .m3-segmented > .m3-segment {
+    padding: 0 12px;
+  }
+  :is(.setting-row, .toolbar, .segments-row) > .m3-segmented > .m3-segment > .m3-icon {
+    display: none;
+  }
+  /* a setting with more choices than a phone has room for wraps them onto a second row, rather than hiding the
+     last ones off the edge (the pill follows to either row) */
+  .setting-row > .m3-segmented {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 22px;
   }
 }
 @media (max-width: 380px) {
@@ -741,6 +758,9 @@ body.bars-hidden .bottom-nav {
 .post-head .by .author {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.post-head .line-start > .dot {
+  visibility: hidden;
 }
 .post-head .post-more {
   position: absolute;
@@ -1778,6 +1798,15 @@ body.calm :is(.badge, .badge-dot) {
   align-items: center;
   gap: 2px;
   margin-inline-start: -6px;
+}
+@media (max-width: 440px) {
+  /* one row under each comment: Reply is its arrow alone (its name is still read out) */
+  .c-actions {
+    flex-wrap: nowrap;
+  }
+  .c-actions .reply-word {
+    display: none;
+  }
 }
 .c-actions .m3-btn.text {
   height: 30px;
@@ -2923,6 +2952,9 @@ kbd {
   }
   .layout {
     grid-template-columns: minmax(0, 1fr);
+    /* a safety net: anything still too wide is cut at the screen's edge, rather than making a phone's whole page
+       wider than the screen (which pushes the fixed bars off it too). Clip, not hidden: sticky headers keep working */
+    overflow-x: clip;
   }
   .main {
     padding: 4px 12px calc(110px + env(safe-area-inset-bottom, 0px));
@@ -3878,7 +3910,7 @@ html.visitor .landing {
   z-index: 200;
   display: grid;
   place-items: center;
-  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding: calc(24px + var(--nook-top)) 16px calc(24px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   background:
     radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--m3-primary-container) 70%, transparent), transparent 45%),
@@ -4065,7 +4097,8 @@ html.visitor .landing {
   position: fixed;
   right: 16px;
   bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-  z-index: 90;
+  /* over the page and the bottom bar (70), under the side menu and its scrim (79, 80) */
+  z-index: 75;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -4105,6 +4138,14 @@ html.visitor .landing {
   body:is([data-view='thread'], [data-view='groupThread'], [data-view='submit'], .typing) .m3-toaster {
     top: calc(var(--nook-bar) + env(safe-area-inset-top, 0px) + 8px);
     bottom: auto;
+  }
+  /* in a chat, below its header (who it's with, and the call buttons) */
+  body:is([data-view='thread'], [data-view='groupThread']) .m3-toaster {
+    top: calc(var(--nook-bar) + env(safe-area-inset-top, 0px) + 72px);
+  }
+  /* section titles wrap rather than lose their end ("Confidențialitate și…") */
+  .m3-section-header > .m3-title {
+    white-space: normal;
   }
 }
 @media (min-width: 720px) {
@@ -4429,9 +4470,12 @@ button.chat-who {
 .chat-head .m3-icon-btn {
   flex: none;
 }
-.chat-who span {
+.chat-who > span:not(.group-icon) {
   display: grid;
   min-width: 0;
+}
+.chat-who > .group-icon {
+  flex: none;
 }
 .chat-who b {
   overflow: hidden;
@@ -4639,6 +4683,7 @@ button.chat-who {
   margin-bottom: 8px;
   padding: 10px 14px;
   overflow: hidden;
+  overflow-wrap: anywhere;
   border-radius: 18px;
   background: var(--m3-surface-container-high);
   -webkit-line-clamp: 3;
@@ -4804,7 +4849,7 @@ button.chat-who {
     --chat-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
   }
   body.typing .chat-page {
-    --chat-bottom: calc(var(--kb, 0px) + 8px);
+    --chat-bottom: max(calc(var(--kb, 0px) + 8px), calc(8px + env(safe-area-inset-bottom, 0px)));
   }
   body.typing[data-view='thread'] .main {
     padding-bottom: 8px;
@@ -5499,6 +5544,12 @@ html.has-call-bar .topbar {
   top: calc(var(--call-bar) + var(--nook-top));
   height: 64px;
   padding-top: 0;
+}
+@media (max-width: 719px) {
+  /* the side menu covers the call bar, so its header keeps its usual height */
+  html.has-call-bar .drawer-head {
+    height: calc(58px + var(--nook-top));
+  }
 }
 .call-bar {
   position: sticky;

@@ -1263,17 +1263,56 @@
       const squish = target.closest(SQUISH_HOSTS);
       if (squish) squish.style.setProperty('--m3-press-scale', pressScale(squish));
       const host = rippleHostFor(target);
-      const wave = host && startWave(host, e.clientX, e.clientY);
-      if (!wave) return;
-      const held = pointerWaves.get(e.pointerId) || [];
-      held.push(wave);
-      pointerWaves.set(e.pointerId, held);
+      if (!host) return;
+      // a finger waits a moment first, as Android's own lists do: most scrolls start on a card or a row, and
+      // shouldn't flash it. A quick tap still ripples when the finger lifts.
+      if (e.pointerType === 'touch') {
+        const touch = { host, x: e.clientX, y: e.clientY, timer: 0 };
+        touch.timer = setTimeout(() => {
+          pendingTouches.delete(e.pointerId);
+          holdWave(e.pointerId, startWave(host, touch.x, touch.y));
+        }, TOUCH_DELAY);
+        pendingTouches.set(e.pointerId, touch);
+        return;
+      }
+      holdWave(e.pointerId, startWave(host, e.clientX, e.clientY));
     },
     true
+  );
+  const TOUCH_DELAY = 90;
+  const pendingTouches = new Map();
+  function holdWave(pointerId, wave) {
+    if (!wave) return;
+    const held = pointerWaves.get(pointerId) || [];
+    held.push(wave);
+    pointerWaves.set(pointerId, held);
+  }
+  // a finger that moves is scrolling, not pressing
+  global.addEventListener(
+    'pointermove',
+    (e) => {
+      const touch = pendingTouches.get(e.pointerId);
+      if (touch && Math.hypot(e.clientX - touch.x, e.clientY - touch.y) > 10) {
+        clearTimeout(touch.timer);
+        pendingTouches.delete(e.pointerId);
+      }
+    },
+    { capture: true, passive: true }
   );
 
   // the release may come anywhere: the pointer can have left the button by then
   function releasePointer(e) {
+    const touch = pendingTouches.get(e.pointerId);
+    if (touch) {
+      clearTimeout(touch.timer);
+      pendingTouches.delete(e.pointerId);
+      // a quick tap: its ripple starts and fades at once
+      if (e.type === 'pointerup') {
+        const wave = startWave(touch.host, touch.x, touch.y);
+        if (wave) releaseWave(wave);
+      }
+      return;
+    }
     const held = pointerWaves.get(e.pointerId);
     if (!held) return;
     pointerWaves.delete(e.pointerId);
@@ -1282,6 +1321,8 @@
   global.addEventListener('pointerup', releasePointer, true);
   global.addEventListener('pointercancel', releasePointer, true);
   global.addEventListener('blur', () => {
+    for (const touch of pendingTouches.values()) clearTimeout(touch.timer);
+    pendingTouches.clear();
     for (const held of pointerWaves.values()) held.forEach(releaseWave);
     pointerWaves.clear();
   });
@@ -2203,12 +2244,12 @@
       rove(list);
     }
 
-    // layout pixels, untouched by any scale the group is shown at
+    // layout pixels, untouched by any scale the group is shown at (and the row, when a group wraps onto two)
     function measure(segment) {
-      if (segment.offsetParent === group) return { left: segment.offsetLeft, width: segment.offsetWidth };
+      if (segment.offsetParent === group) return { left: segment.offsetLeft, top: segment.offsetTop, width: segment.offsetWidth };
       const a = segment.getBoundingClientRect();
       const b = group.getBoundingClientRect();
-      return { left: a.left - b.left - group.clientLeft, width: a.width };
+      return { left: a.left - b.left - group.clientLeft, top: a.top - b.top - group.clientTop, width: a.width };
     }
 
     function place() {
@@ -2218,6 +2259,7 @@
         if (!tint) return;
         const box = measure(segment);
         tint.style.left = box.left + 'px';
+        tint.style.top = box.top + 'px';
         tint.style.width = box.width + 'px';
       });
       const target = chosen(list);
@@ -2231,6 +2273,7 @@
       const jump = ready < 2 || !placed;
       if (jump) indicator.style.transition = 'none';
       indicator.style.left = box.left + 'px';
+      indicator.style.top = box.top + 'px';
       indicator.style.width = box.width + 'px';
       indicator.style.visibility = '';
       if (jump) {

@@ -540,12 +540,22 @@
         e.preventDefault();
         close(null);
       });
-      // a press on the scrim dismisses, as a sheet should, but not the second half of the double-tap that opened it
+      // a tap on the scrim dismisses, as a sheet should, but not the second half of the double-tap that opened it.
+      // On the tap's click, not its press: closed on the press, a slow finger would lift after the sheet had gone and
+      // its click would land on whatever was underneath. Pressed and released outside, so a drag that only ends
+      // there doesn't count.
       const openedAt = performance.now();
-      el.addEventListener('pointerdown', (e) => {
-        if (e.target !== el || performance.now() - openedAt < 350) return;
+      const outside = (e) => {
         const r = el.getBoundingClientRect();
-        if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) close(null);
+        return e.target === el && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
+      };
+      let pressedOutside = false;
+      el.addEventListener('pointerdown', (e) => {
+        pressedOutside = outside(e) && performance.now() - openedAt >= 350;
+      });
+      el.addEventListener('click', (e) => {
+        if (pressedOutside && outside(e)) close(null);
+        pressedOutside = false;
       });
 
       // dragged down by its grip or headline far or fast enough, it goes
@@ -779,12 +789,30 @@
       .map(([id, name, desc, symbol, shape]) => `<span class="special-badge ${id}" role="listitem" data-tooltip="${desc}"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="24" icon-size="14" aria-hidden="true"></m3-shape-icon>${name}</span>`)
       .join('')}</div>`;
   }
+  /**
+   * A tap that closes a popup is used up by it, as on Android: the click that follows it doesn't also open what's
+   * underneath. (Only the very next click, and only for a moment: a press that turned into a scroll has none.)
+   */
+  function eatClick() {
+    const eat = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      done();
+    };
+    const done = () => {
+      document.removeEventListener('click', eat, true);
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(done, 500);
+    document.addEventListener('click', eat, true);
+  }
+
   // after a developer's name on posts and comments
   const devTag = (u) => (hasBadge(u, 'dev') ? `<span class="tag dev" title="One of Budgie’s developers">${icon('code')}Dev</span>` : '');
 
   Nook.ui = {
     esc, md, plain, highlight, ago, num, plural, ink, avatar, avatarFace, bannerImage, motionOff, PROFILE_ICONS, pictureFrom, cropPicture, nookIcon, icon, theme, sheet,
     NAME_FONTS, nameFont, PRIDE_FLAGS, prideFlag, flagsOf, flagSVG, INTERESTS, INTERESTS_MAX, PROFILE_SCHEMES, SPECIAL_BADGES, hasBadge, specialBadges, devTag,
-    undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark,
+    undoToast, copy, linkTo, favicon, SEEDS, SEED_SHAPES, NOOK_SYMBOLS, DEFAULT_SEED, systemDark, eatClick,
   };
 })();

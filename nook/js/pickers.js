@@ -142,7 +142,11 @@
     });
     if (matchMedia('(hover: hover)').matches) search.focus({ preventScroll: true });
 
-    const outside = (e) => !el.contains(e.target) && !anchor.contains(e.target) && closePicker();
+    const outside = (e) => {
+      if (el.contains(e.target) || anchor.contains(e.target)) return;
+      closePicker();
+      if (e.pointerType !== 'mouse') ui.eatClick();
+    };
     const keys = (e) => e.key === 'Escape' && (closePicker(), anchor.focus());
     setTimeout(() => document.addEventListener('pointerdown', outside, true));
     document.addEventListener('keydown', keys);

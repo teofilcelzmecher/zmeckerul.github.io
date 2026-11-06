@@ -1125,6 +1125,7 @@
 .m3-segmented.is-ready > .m3-segmented-indicator {
   transition:
     left var(--m3-motion-element-move),
+    top var(--m3-motion-element-move),
     width var(--m3-motion-element-move);
 }
 .m3-segmented-tint {

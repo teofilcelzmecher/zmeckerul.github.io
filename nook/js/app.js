@@ -244,10 +244,37 @@
     if (target) scrollTo(0, target.y);
     else if (!route.params.c && route.params.focus !== 'comments') scrollTo(0, 0);
     if (route.view === 'searchPage') searchInput.value = route.params.q || '';
+    // a new page (or one come back to) starts with the bars showing: the jump to its place isn't reading on
+    lastY = scrollY;
+    document.body.classList.remove('bars-hidden');
     onScroll();
     armPull(!!main.querySelector('[data-feed]'));
   }
   app.render = render;
+
+  // A post's header wraps on a narrow screen. A dot separates two things on one line, so one that would start a
+  // line is hidden, and what follows it moves over into its place (moved, not resized, so the line can't change
+  // its mind and jump back up).
+  const tidyHead = (head) => {
+    for (const el of head.querySelectorAll(':scope > :is(.by, .when)')) {
+      const prev = el.previousElementSibling;
+      const starts = !!prev && el.offsetTop >= prev.offsetTop + prev.offsetHeight - 2;
+      const dot = el.querySelector('.dot');
+      el.classList.toggle('line-start', starts);
+      el.style.translate = starts && dot ? `-${dot.offsetWidth + parseFloat(getComputedStyle(el).columnGap || 0)}px 0` : '';
+    }
+  };
+  const heads = new WeakSet();
+  const headSizes = 'ResizeObserver' in window ? new ResizeObserver((entries) => entries.forEach((e) => tidyHead(e.target))) : null;
+  let headsSoon = 0;
+  if (headSizes)
+    new MutationObserver(() => {
+      if (headsSoon) return;
+      headsSoon = requestAnimationFrame(() => {
+        headsSoon = 0;
+        for (const head of main.querySelectorAll('.post-head')) if (!heads.has(head)) heads.add(head), headSizes.observe(head);
+      });
+    }).observe(main, { childList: true, subtree: true });
 
   // ---- the shell -------------------------------------------------------------------
 
@@ -663,7 +690,9 @@
       closePicker();
     });
     const away = (e) => {
-      if (!el.contains(e.target) && !btn.contains(e.target)) closePicker();
+      if (el.contains(e.target) || btn.contains(e.target)) return;
+      closePicker();
+      if (e.pointerType !== 'mouse') ui.eatClick();
     };
     const onScroll = () => closePicker();
     document.addEventListener('pointerdown', away, true);
@@ -3316,6 +3345,16 @@
       if (shape) shape.transitionTo('cookie9', { spring: true });
     }
   }
+  // the system can take the touch over halfway (a back swipe, a call coming in): the pull just ends
+  addEventListener(
+    'touchcancel',
+    () => {
+      if (!pull) return;
+      pull = null;
+      resetPull();
+    },
+    { passive: true }
+  );
   addEventListener('touchend', () => {
     if (!pull) return;
     const armed = pull.active && pull.armed;
@@ -3349,6 +3388,28 @@
     vv.addEventListener('resize', fitKeyboard);
     vv.addEventListener('scroll', fitKeyboard);
   }
+  // In Budgie's Android app the keyboard makes the window shorter. Put away (with Back, or the keyboard's own key)
+  // while a box still has the focus, the typing is over: the box lets go, so the bottom bar and the chat box come
+  // back down. (In a phone's browser the keyboard leaves the window as it is, so this never happens there.)
+  let tall = innerHeight;
+  let wide = innerWidth;
+  let keyboardWasUp = false;
+  addEventListener('resize', () => {
+    if (innerWidth !== wide) {
+      wide = innerWidth;
+      tall = innerHeight;
+      keyboardWasUp = false;
+      return;
+    }
+    if (!typing()) {
+      tall = Math.max(tall, innerHeight);
+      keyboardWasUp = false;
+    } else if (innerHeight < tall - 150) keyboardWasUp = true;
+    else if (keyboardWasUp && innerHeight >= tall - 40 && matchMedia('(hover: none)').matches) {
+      keyboardWasUp = false;
+      document.activeElement.blur();
+    }
+  });
   document.addEventListener('focusin', () => document.body.classList.toggle('typing', typing()));
   document.addEventListener('focusout', () => setTimeout(() => document.body.classList.toggle('typing', typing()), 0));
 

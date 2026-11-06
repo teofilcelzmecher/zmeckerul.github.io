@@ -8,8 +8,9 @@
  *   haptics        the app's navigator.vibrate(…) buzzes become the phone's haptic taps
  *   notifications  messages, calls and replies, pushed by the server through Firebase Cloud Messaging; tapping
  *                  one opens the chat or post it's about
- *   back button    closes what's open (a menu, a dialog, the call screen), then goes back, then leaves
- *   system bars    their icons light or dark, to suit the app's colours
+ *   back button    closes what's open (a menu, a dialog, the side menu, search, a picker, the call screen), then
+ *                  goes back, then leaves
+ *   system bars    their icons light or dark, to suit the colours under them (a call's are always dark)
  *   share, links   the phone's share sheet; links to Budgie read budgiesocial.com, not the app's own address;
  *                  links to other sites open in the browser
  */
@@ -26,6 +27,19 @@
   const SplashScreen = plugin('SplashScreen');
   const SystemBars = plugin('SystemBars');
   const quiet = (p) => p && p.catch && p.catch(() => {});
+
+  const language = () => (window.Nook && Nook.i18n && Nook.i18n.lang) || 'en';
+  // the app's own words that Android shows (these are only in the Android app, so they aren't in the website's
+  // language files): the share sheet's title, and the notification categories in Android's settings
+  const WORDS = {
+    en: { share: 'Share', messages: ['Messages', 'Messages from friends and in your groups'], calls: ['Calls', 'Someone calling you'], activity: ['Replies and more', 'Replies, mentions, friend requests and news from Budgie'] },
+    ro: { share: 'Distribuie', messages: ['Mesaje', 'Mesaje de la prieteni și din grupurile tale'], calls: ['Apeluri', 'Cineva te sună'], activity: ['Răspunsuri și altele', 'Răspunsuri, mențiuni, cereri de prietenie și noutăți de la Budgie'] },
+    es: { share: 'Compartir', messages: ['Mensajes', 'Mensajes de amigos y de tus grupos'], calls: ['Llamadas', 'Alguien te está llamando'], activity: ['Respuestas y más', 'Respuestas, menciones, solicitudes de amistad y novedades de Budgie'] },
+    fr: { share: 'Partager', messages: ['Messages', 'Messages de tes amis et de tes groupes'], calls: ['Appels', 'Quelqu’un t’appelle'], activity: ['Réponses et plus', 'Réponses, mentions, demandes d’ami et nouvelles de Budgie'] },
+    de: { share: 'Teilen', messages: ['Nachrichten', 'Nachrichten von Freunden und aus deinen Gruppen'], calls: ['Anrufe', 'Jemand ruft dich an'], activity: ['Antworten und mehr', 'Antworten, Erwähnungen, Freundschaftsanfragen und Neues von Budgie'] },
+    it: { share: 'Condividi', messages: ['Messaggi', 'Messaggi dagli amici e dai tuoi gruppi'], calls: ['Chiamate', 'Qualcuno ti sta chiamando'], activity: ['Risposte e altro', 'Risposte, menzioni, richieste di amicizia e novità da Budgie'] },
+  };
+  const words = () => WORDS[language()] || WORDS.en;
 
   // the address people know: what's shared and copied points there, not at the app's own
   const SITE = 'https://budgiesocial.com/';
@@ -60,7 +74,7 @@
     Object.defineProperty(navigator, 'share', {
       configurable: true,
       value: (data = {}) =>
-        Share.share({ title: data.title, text: forSharing(data.text), url: forSharing(data.url), dialogTitle: 'Share' }).then(() => undefined),
+        Share.share({ title: data.title, text: forSharing(data.text), url: forSharing(data.url), dialogTitle: words().share }).then(() => undefined),
     });
     Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
   } catch (_) {
@@ -121,6 +135,12 @@
         if (dialog.dispatchEvent(new Event('cancel', { cancelable: true }))) dialog.close();
         return;
       }
+      // the side menu, search, or the reaction or emoji picker: closed as Esc would close them on a computer
+      if (document.querySelector('#drawer.open, .topbar.searching, .spark-picker, .emoji-picker')) {
+        if (document.activeElement && document.activeElement !== document.body && document.activeElement.blur) document.activeElement.blur();
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        return;
+      }
       // a call on the whole screen: as Esc would, a stream out of full screen (or the reactions closed) first, then
       // back to Budgie, and the call carries on in its bar
       const call = document.querySelector('.call-screen:not([hidden])');
@@ -132,18 +152,24 @@
   );
 
   // ---- system bars: their icons dark on light colours and light on dark ones -----------------------------------
+  // A call (ringing, on the whole screen, or carrying on in its bar across the top) is always dark, whatever the
+  // app's own colours; otherwise the app's theme colour says.
+  const inCall = () => shown(document.querySelector('.call-ring')) || shown(document.querySelector('.call-screen:not([hidden])')) || document.documentElement.classList.contains('has-call-bar');
   let barStyle = '';
   function bars() {
     const meta = document.querySelector('meta[name="theme-color"]');
     const color = (meta && meta.content) || getComputedStyle(document.body || document.documentElement).backgroundColor;
     const rgb = String(color).match(/[\da-f]{2}/gi) && color.startsWith('#') ? color.slice(1).match(/../g).map((x) => parseInt(x, 16)) : (String(color).match(/\d+/g) || [255, 255, 255]).map(Number);
     const light = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255 > 0.55;
-    const style = light ? 'LIGHT' : 'DARK'; // LIGHT: for a light background (dark icons)
+    const style = light && !inCall() ? 'LIGHT' : 'DARK'; // LIGHT: for a light background (dark icons)
     if (style === barStyle) return;
     barStyle = style;
     quiet(SystemBars.setStyle({ style }));
   }
-  new MutationObserver(bars).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['content', 'class', 'data-theme', 'style'] });
+  let barsSoon = 0;
+  const barsLater = () => barsSoon || (barsSoon = requestAnimationFrame(() => ((barsSoon = 0), bars())));
+  // the call's screens come and go (added, removed, hidden), and the theme colour changes with the page
+  new MutationObserver(barsLater).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['content', 'class', 'data-theme', 'style', 'hidden'] });
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', bars);
 
   // ---- notifications -----------------------------------------------------------------------------------------------
@@ -163,7 +189,6 @@
       return '';
     }
   };
-  const language = () => (window.Nook && Nook.i18n && Nook.i18n.lang) || 'en';
   let deviceToken = '';
   let sentFor = ''; // the sign-in and language this device's token was last given to the server with
   async function tell() {
@@ -183,10 +208,12 @@
   }
   async function channels() {
     // each can be silenced on its own in Android's settings
+    // (in the app's language; making a channel again with the same id renames it, so a new language shows next start)
+    const w = words();
     for (const c of [
-      { id: 'messages', name: 'Messages', description: 'Messages from friends and in your groups', importance: 4, vibration: true },
-      { id: 'calls', name: 'Calls', description: 'Someone calling you', importance: 5, vibration: true },
-      { id: 'activity', name: 'Replies and more', description: 'Replies, mentions, friend requests and news from Budgie', importance: 3 },
+      { id: 'messages', name: w.messages[0], description: w.messages[1], importance: 4, vibration: true },
+      { id: 'calls', name: w.calls[0], description: w.calls[1], importance: 5, vibration: true },
+      { id: 'activity', name: w.activity[0], description: w.activity[1], importance: 3 },
     ])
       await quiet(Push.createChannel(Object.assign({ visibility: 1, lights: true, lightColor: '#6750A4' }, c)));
   }
