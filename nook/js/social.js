@@ -95,7 +95,7 @@
       btn.querySelector('.nudge-pips').hidden = closed;
       const wait = btn.querySelector('.nudge-wait');
       wait.hidden = !waiting;
-      if (waiting) wait.textContent = minutes(a.next) + ' min';
+      if (waiting) wait.textContent = minutes(a.next) >= 60 ? '1 h' : minutes(a.next) + ' min';
       const tip =
         a.on === false
           ? `u/${name} isn’t taking nudges right now`
@@ -167,7 +167,7 @@
     paint(name);
     if (!r.left) tick();
     sent(name, from);
-    const more = calm() ? '' : r.left ? ` · ${r.left === 1 ? 'one more' : r.left + ' more'} this hour` : ' · that’s all for this hour';
+    const more = calm() ? '' : r.left ? ` · ${r.left === 1 ? 'one more' : r.left + ' more'} this hour` : ' · last one this hour';
     M3.toast(`Nudged u/${name}${more}`, { symbol: 'waving_hand', shape: 'sunny' });
   }
 
@@ -344,11 +344,13 @@
       '<div class="nm-card">' +
       `<div class="nm-face" aria-hidden="true"><m3-shape class="nm-halo nm-halo-a" shape="${HALO[0]}"></m3-shape><m3-shape class="nm-halo nm-halo-b" shape="${HALO[1]}"></m3-shape>` +
       `<span class="nm-ring"></span><span class="nm-ring"></span>${avatar(u, 68, { moving: true })}<span class="nm-hand">${icon('waving_hand')}</span></div>` +
-      `<div class="nm-words"><b class="nm-name"><span class="${esc(nameFont(u))}" translate="no">u/${esc(u.name)}</span><span class="nm-count"${count > 1 ? '' : ' hidden'}>×${count}</span></b>` +
-      `<span>${preview ? 'This is what your friends see when you nudge them' : 'wants your attention'}</span></div>` +
+      `<div class="nm-words"><b class="nm-name"><span class="${esc(nameFont(u))}" translate="no">u/${esc(u.name)}</span><span class="nm-count"${count > 1 ? '' : ' hidden'}>×${count}</span>` +
+      `${preview ? '<span class="nm-tag">Preview</span>' : ''}</b><span>wants your attention</span></div>` +
       `<button type="button" class="m3-icon-btn nm-close" aria-label="Close">${icon('close')}</button>` +
-      `<div class="nm-actions"><button type="button" class="m3-btn filled small" data-nm="chat"${preview ? ' disabled' : ''}>${icon('chat')}Say hi</button>` +
-      `<button type="button" class="m3-btn tonal small" data-nm="back"${preview ? ' disabled' : ''}>${icon('waving_hand')}Nudge back</button></div>` +
+      (preview
+        ? '<p class="nm-about">This is what your friends see when you nudge them, with a double buzz on their phone.</p>'
+        : `<div class="nm-actions"><button type="button" class="m3-btn filled small" data-nm="chat">${icon('chat')}Say hi</button>` +
+          `<button type="button" class="m3-btn tonal small" data-nm="back">${icon('waving_hand')}Nudge back</button></div>`) +
       '<span class="nm-timer" aria-hidden="true"></span></div>';
     document.body.appendChild(el);
     if (typeof el.showPopover === 'function') {
@@ -361,6 +363,8 @@
     }
     const card = el.querySelector('.nm-card');
     const face = el.querySelector('.nm-face .avatar');
+    // the card wears the friend's own colours, in light or dark as the app is
+    if (u.color && ui.theme && ui.theme.scheme) ui.theme.scheme(String(u.color).toLowerCase(), 'tonalSpot').then((colors) => el.isConnected && M3.color.apply(colors, card), () => {});
     let closing = false;
     let timer = 0;
     let morph = 0;
@@ -372,6 +376,7 @@
       clearTimeout(timer);
       clearInterval(morph);
       document.removeEventListener('keydown', onKey);
+      window.removeEventListener('hashchange', close);
       const done = () => {
         el.remove();
         if (current && current.el === el) current = null;
@@ -398,14 +403,18 @@
     card.addEventListener('pointerleave', () => !closing && schedule());
     card.addEventListener('focusin', hold);
     el.querySelector('.nm-close').addEventListener('click', close);
-    el.querySelector('[data-nm="chat"]').addEventListener('click', () => {
-      close();
-      app().go('#/messages/' + encodeURIComponent(u.name));
-    });
-    el.querySelector('[data-nm="back"]').addEventListener('click', (e) => {
-      hold();
-      nudge(u.name, e.currentTarget).then(() => setTimeout(close, 700));
-    });
+    if (!preview) {
+      el.querySelector('[data-nm="chat"]').addEventListener('click', () => {
+        close();
+        app().go('#/messages/' + encodeURIComponent(u.name));
+      });
+      el.querySelector('[data-nm="back"]').addEventListener('click', (e) => {
+        hold();
+        nudge(u.name, e.currentTarget).then(() => setTimeout(close, 700));
+      });
+    }
+    // going somewhere else puts it away: it was about the page you were on
+    window.addEventListener('hashchange', close, { once: true });
     // a flick upwards puts it away
     let startY = null;
     card.addEventListener('pointerdown', (e) => {
@@ -601,17 +610,17 @@
           return;
         }
         if (!box.isConnected) return;
-        const tile = (n, words, cls, symbol) => `<div class="sb-tile ${cls}"><span class="sb-tile-icon">${icon(symbol)}</span><b>${n}</b><span>${words}</span></div>`;
+        const fact = (n, words, cls, symbol) => `<div class="sb-fact ${cls}"><span class="sb-fact-icon">${icon(symbol)}</span><b>${n}</b><span>${words}</span></div>`;
         box.innerHTML =
-          '<div class="sb-tiles">' +
-          tile(look.networks, look.networks === 1 ? 'network they used' : 'networks they used', 'is-ban', 'wifi_off') +
-          (look.guarded ? tile(look.guarded, look.guarded === 1 ? 'an admin uses too: left alone' : 'admins use too: left alone', 'is-kept', 'verified_user') : '') +
-          tile(look.others, look.others === 1 ? 'other account uses them' : 'other accounts use them', look.others ? 'is-others' : 'is-none', look.others ? 'group' : 'person') +
+          '<div class="sb-facts">' +
+          fact(look.networks, look.networks === 1 ? 'network they used gets banned' : 'networks they used get banned', 'is-ban', 'wifi_off') +
+          (look.guarded ? fact(look.guarded, look.guarded === 1 ? 'network an admin uses too is left alone' : 'networks an admin uses too are left alone', 'is-kept', 'verified_user') : '') +
+          fact(look.others, look.others === 1 ? 'other account used these networks lately' : 'other accounts used these networks lately', look.others ? 'is-others' : 'is-none', look.others ? 'group' : 'person') +
           '</div>' +
           (look.networks ? '' : `<p class="muted sb-note">No networks seen for u/${esc(name)} in the last 90 days, so only their account is banned.</p>`) +
           (look.banned ? '<p class="muted sb-note">Their account is already banned: it stays banned however this ends.</p>' : '') +
           (look.active ? '<p class="muted sb-note">Their networks are already banned once; this adds another.</p>' : '');
-        if (!still()) fx().stagger(box.querySelectorAll('.sb-tile'), { y: 10, step: 60 });
+        if (!still()) fx().stagger(box.querySelectorAll('.sb-fact'), { y: 10, step: 60 });
       },
       actions: [
         { label: 'Cancel', value: null },
@@ -633,7 +642,7 @@
               .then(async (done) => {
                 close(done);
                 haptic([20, 40, 20]);
-                M3.toast(`u/${done.name} is banned${done.networks ? `, with ${done.networks === 1 ? 'one network' : done.networks + ' networks'},` : ''} ${forWords(days)}`, { symbol: 'gavel', shape: 'softBoom' });
+                M3.toast(`Banned u/${done.name} ${forWords(days)}`, { symbol: 'gavel', shape: 'softBoom' });
                 await store.sync().catch(() => {});
                 document.dispatchEvent(new CustomEvent('nook-ipbans'));
                 if (/^#\/u\//.test(location.hash)) app().render();
