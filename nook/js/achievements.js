@@ -457,7 +457,7 @@
           ? r.usedFreeze === 1 ? 'You missed a day, and a freeze kept your streak alive.' : `You missed ${r.usedFreeze} days, and your freezes kept your streak alive.`
           : left === 1 ? `1 more day to a ${ring.next}-day streak` : `${left} more days to a ${ring.next}-day streak`;
     const extras = [];
-    if (icy && !r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>${r.freezes === 1 ? '1 freeze left' : `${r.freezes} freezes left`}</span></span>`);
+    if (icy && !r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>${r.freezes ? (r.freezes === 1 ? '1 freeze left' : `${r.freezes} freezes left`) : `No freezes left: you earn one every ${r.freezeEvery || CAT.streak.freezeEvery} days`}</span></span>`);
     if (r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>You earned a freeze: it saves your streak on a day you miss.</span></span>`);
     if (streakTier) extras.push(`<span class="ach-m-chip">${icon('military_tech')}<span translate="no">On fire</span> <b>${ROMAN[streakTier - 1]}</b></span>`);
     // a milestone that unlocked nothing new says what the next one will
