@@ -101,6 +101,12 @@ function frames(bytes, mime) {
     const gif = new (lib('omggif').GifReader)(bytes);
     if (gif.width * gif.height > MAX_PIXELS) throw new Error('That picture is too large.');
     const count = Math.min(gif.numFrames(), 400);
+    // every frame must fit inside the GIF's own picture: the decoder trusts each frame's size and makes room for all
+    // of it, so a tiny file that claims one enormous frame would take gigabytes of memory
+    for (let i = 0; i < count; i++) {
+      const f = gif.frameInfo(i);
+      if (f.x + f.width > gif.width || f.y + f.height > gif.height) throw new Error('That GIF looks broken.');
+    }
     const pick = new Set(Array.from({ length: Math.min(6, count) }, (_, k) => Math.round((k * (count - 1)) / Math.max(1, Math.min(6, count) - 1))));
     // frames draw over the ones before them, so they're drawn in order onto one canvas
     const canvas = new Uint8Array(gif.width * gif.height * 4);

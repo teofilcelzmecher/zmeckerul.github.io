@@ -455,13 +455,21 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     checks.set(userId, timer);
   }
 
-  /** one song heard: its artist and genres too. At most 60 an hour, and the same one not twice in half an hour */
+  const SONG_PLAYED = MINUTE; // a song counts once it has played this long
+  const SONGS_PER_HOUR = 25;
+  const GAME_PLAYED = 10 * MINUTE; // a game counts as played once it has run this long
+  const NEW_GAMES_PER_DAY = 5;
+
+  /**
+   * one song heard: its artist and genres too. At most 25 an hour (about what real listening gives: songs are three
+   * or four minutes long), and the same one not twice in half an hour, so achievements can't be farmed with fake plays
+   */
   function countSong(userId, s, m, t) {
     s.done = true;
     for (const [k, at] of s.counted) if (t - at > 30 * MINUTE) s.counted.delete(k);
     s.hour = s.hour.filter((at) => t - at < HOUR);
     const key = songKey(m);
-    if (s.counted.has(key) || s.hour.length >= 60) return false;
+    if (s.counted.has(key) || s.hour.length >= SONGS_PER_HOUR) return false;
     s.counted.set(key, t);
     s.hour.push(t);
     stats.addItem(userId, 'music.songs', key, `${m.title}\n${m.artist || ''}`);
@@ -482,17 +490,17 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     let changed = runTime(s, userId, 'music.minutes', t);
     const key = songKey(m);
     if (key === s.key && !fresh) {
-      // a song counts once it has played for half a minute, like a scrobble
-      if (!s.done && t - s.keyAt >= 30000) changed = countSong(userId, s, s.cur, t) || changed;
+      // a song counts once it has played for a minute
+      if (!s.done && t - s.keyAt >= SONG_PLAYED) changed = countSong(userId, s, s.cur, t) || changed;
     } else {
       // the one before it, if it played long enough and wasn't counted yet
-      if (s.cur && !s.done && !fresh && t - s.keyAt >= 30000) changed = countSong(userId, s, s.cur, t) || changed;
+      if (s.cur && !s.done && !fresh && t - s.keyAt >= SONG_PLAYED) changed = countSong(userId, s, s.cur, t) || changed;
       Object.assign(s, { key, keyAt: t, cur: { title: m.title, artist: m.artist }, done: false });
     }
     if (changed) checkSoon(userId);
   }
 
-  /** a sighting of a game really running: it counts as played once it has run for two minutes (ten new ones a day at most) */
+  /** a sighting of a game really running: it counts as played once it has run for ten minutes (five new ones a day at most) */
   function sawGame(userId, g, t) {
     const s = trackOf(userId).game;
     const fresh = !s.at || t - s.at > GAP;
@@ -500,12 +508,12 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const key = gameKey(g.name);
     if (!key) return;
     if (key !== s.key || fresh) Object.assign(s, { key, since: t, name: g.name, done: false });
-    else if (!s.done && t - s.since >= 2 * MINUTE) {
+    else if (!s.done && t - s.since >= GAME_PLAYED) {
       s.done = true;
       const day = new Date(t).toISOString().slice(0, 10);
       if (s.day !== day) Object.assign(s, { day, fresh: 0 });
       const isNew = !db.get("SELECT 1 AS x FROM stat_items WHERE user_id = ? AND key = 'games.played' AND item = ?", userId, key);
-      if (!isNew || s.fresh < 10) {
+      if (!isNew || s.fresh < NEW_GAMES_PER_DAY) {
         if (isNew) s.fresh++;
         stats.addItem(userId, 'games.played', key, s.name);
         changed = true;

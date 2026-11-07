@@ -29,7 +29,7 @@ const textmodel = require('./textmodel');
 const video = require('./video');
 const makePush = require('./push');
 
-const VERSION = '1.2.0';
+const VERSION = '1.4.0';
 const TERMS = '1.0.0, 2026-10-30';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,
@@ -465,8 +465,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '1.2.0, 2026-10-31',
-  text: 'Budgie is coming as an app to Android, iPhone, iPad and Mac, with notifications for messages, calls and replies. If you turn them on in an app, they reach your device through Google’s Firebase Cloud Messaging (Android) or Apple’s Push Notification service (iPhone, iPad and Mac), so Google or Apple gets your device’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.',
+  version: '1.4.0, 2026-11-07',
+  text: 'Budgie’s Terms and Privacy Policy have changed for Budgie 1.4: achievements and streaks, profile rewards, Activity (what you listen to and play, from Last.fm, Steam or Budgie for Windows and Linux, shown to friends unless you choose otherwise), stickers and emojis, and nudges. To make bans hold, Budgie now keeps a scrambled form of the networks you use it from, never the address itself, for 90 days. Read them in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });

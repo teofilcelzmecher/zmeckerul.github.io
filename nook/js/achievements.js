@@ -739,12 +739,14 @@
     repaintMine();
     if (r.unlocked && r.unlocked.length) refreshMine(600);
     const moment = r.grew || r.lost || r.usedFreeze;
-    if (!moment || calm()) return;
+    if (!moment) return;
     const shown = store_(meKey('moment'));
     if (shown === r.day) return;
     store_(meKey('moment'), r.day);
-    if (S().streakMoments === false) {
-      M3.toast(`${r.count}-day streak!`, { symbol: 'local_fire_department', shape: 'burst', timeout: 3000 });
+    // in Calm mode, or with the big moments turned off, a quiet note still says what happened
+    if (S().streakMoments === false || calm()) {
+      const note = r.usedFreeze ? 'A freeze kept your streak going' : r.lost ? 'Your streak started again' : `${r.count}-day streak!`;
+      M3.toast(note, { symbol: r.usedFreeze ? 'ac_unit' : 'local_fire_department', shape: 'burst', timeout: 3000 });
       return;
     }
     // once the page has settled (and not over a call); celebrations of new tiers wait their turn behind it

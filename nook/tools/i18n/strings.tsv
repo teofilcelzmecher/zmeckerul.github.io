@@ -228,88 +228,90 @@ b3da702	text	js/achievements.js:496	Unlocked
 8edd453	text	js/achievements.js:500	Let’s go
 a91a878	text	js/achievements.js:500	Keep it going
 7ed6002	text	js/achievements.js:501	Tap anywhere to carry on
-e93d190	pattern	js/achievements.js:747	{0}-day streak!
-c005f41	pattern	js/achievements.js:788	{1}-day streak
-afc24ba	pattern	js/achievements.js:840	Next at {0} days
-cd3cc48	pattern	js/achievements.js:848	{2} of {3} freezes
-59c89f0	pattern	js/achievements.js:848	A freeze keeps your streak going on a day you miss. You earn one every {0} days, and can hold {1}.
-5526a9b	text	js/achievements.js:848	Freezes
-7b72883	text	js/achievements.js:849	This week
-3605023	pattern	js/achievements.js:850	Best: {2} days
-adaab1b	pattern	js/achievements.js:863	Special · {0}
-a798882	text	js/achievements.js:863	Locked
-556aa19	text	js/achievements.js:870	Top tier
-a6634f2	text	js/achievements.js:889	Achievements
-6b1f893	text	js/achievements.js:895	Flex
-2f4f4b7	text	js/achievements.js:895	Rewards
-ad565d9	text	js/achievements.js:895	Feature
-d94dfbe	text	js/achievements.js:898	Show fewer
-c7767b0	pattern	js/achievements.js:898	Show all {0}
-0f17d7b	text	js/achievements.js:1019	That achievement isn’t here any more.
-2e34b16	text	js/achievements.js:1025	A special achievement from Budgie.
-ee0fcb7	pattern	js/achievements.js:1025	Given by Budgie’s team on {0}
-b7f4981	pattern	js/achievements.js:1025	Given by Budgie on {0}
-bf9f405	pattern	js/achievements.js:1031	{1} of {2}{3} to Tier {4}
-1e213ca	pattern	js/achievements.js:1041	Tier {0} · {1}
-ae31ad5	text	js/achievements.js:1052	Featured
-7a57bd3	text	js/achievements.js:1052	Feature it
-da15813	pattern	js/achievements.js:1092	You can feature up to {0}. Take one off first.
-359dda1	text	js/achievements.js:1100	Featured on your profile
-0f623be	text	js/achievements.js:1100	Nothing featured
-27fcbb1	text	js/achievements.js:1117	Reach an achievement first, then you can feature it.
-34940a8	text	js/achievements.js:1120	Feature achievements
-7b318db	pattern	js/achievements.js:1125	Pick up to {0}. They show under your name on your profile, and small by your name on posts and comments.
-52b26d3	pattern	js/achievements.js:1132	{0} of {1} chosen
-7b7f9e2	pattern	js/achievements.js:1301	Best: {0} days
-d6f960e	text	js/achievements.js:1319	1 reached
-cbd3234	text	js/achievements.js:1358	The first ones are on their way
-a2e8ed7	pattern	js/achievements.js:1397	My {0}-day streak on Budgie
-f4ab121	text	js/achievements.js:1397	My achievements on Budgie
-2dbe008	text	js/achievements.js:1406	Making your card
-2c1469f	text	js/achievements.js:1409	Save image
-39a2069	text	js/achievements.js:1410	Send to a friend
-41d26ce	text	js/achievements.js:1411	Post it
-60816eb	text	js/achievements.js:1420	Couldn’t make the picture on this device.
-7623a2b	text	js/achievements.js:1444	Link to your profile copied
-8babc6a	text	js/achievements.js:1447	Couldn’t share it from here. Try Save image.
-516c033	text	js/achievements.js:1473	Add a friend first, then you can send them your card.
-39375ee	pattern	js/achievements.js:1491	Sent to u/{0}
-8434ee9	pattern	js/achievements.js:1530	Give u/{1} a special achievement
-9fcc240	text	js/achievements.js:1530	Give an achievement
-b6fdd03	text	js/achievements.js:1539	Make a special achievement on the Moderation page first.
-73c583e	pattern	js/achievements.js:1543	Has it{0}
-b70ef35	pattern	js/achievements.js:1545	Give u/{0} an achievement
-5bd44eb	text	js/achievements.js:1551	Tier
-ea127dc	text	js/achievements.js:1565	Take away
-45d381a	text	js/achievements.js:1571	Taken away
-be8ca1d	text	js/achievements.js:1571	They didn’t have it
-fbefae1	text	js/achievements.js:1579	Give
-b3c85dc	text	js/achievements.js:1587	Given: they’ve been told
-4fa02bd	text	js/achievements.js:1587	They already have that
-df4159a	text	js/achievements.js:1602	Special achievements
-3cd5781	text	js/achievements.js:1606	Bug hunter
-0b62ca1	text	js/achievements.js:1607	Found a real bug in Budgie
-41db52e	text	js/achievements.js:1607	What it’s for
-da5fa11	text	js/achievements.js:1611	Make it
-3126147	text	js/achievements.js:1614	Give one from someone’s profile (the medal button), or with
-5407b65	text	js/achievements.js:1614	on the server. People are told when they get one.
-2f7b8f7	text	js/achievements.js:1649	1 person has it
-1b7f184	pattern	js/achievements.js:1649	{0} people have it
-460403b	pattern	js/achievements.js:1649	{2} · id {3}
-531c9d4	pattern	js/achievements.js:1650	Delete {1}
-ba85c4f	text	js/achievements.js:1653	No special achievements yet. Make the first one above.
-28f1c77	text	js/achievements.js:1660	Delete this special achievement?
-d053df8	text	js/achievements.js:1662	Everyone who has it loses it. This can’t be undone.
-441bda6	text	js/achievements.js:1668	Deleted
-ade9895	text	js/achievements.js:1686	Special achievement made
-2430706	text	js/achievements.js:1705	Streak and achievements
-b579de1	text	js/achievements.js:1706	Show my streak on my profile
-932ef16	text	js/achievements.js:1706	Others see your flame and how many days in a row you’ve opened Budgie (from 3 days). Off, only you see it.
-4dab278	text	js/achievements.js:1707	Streak celebrations
-8c18206	text	js/achievements.js:1707	A full-screen moment, once a day, when your streak grows. Off, it’s just a small note.
-6fe4f2e	text	js/achievements.js:1708	Calm mode hides streaks and celebrations altogether. Achievements are counted by Budgie’s server from what you do here.
-0a707b9	text	js/achievements.js:1724	Your streak shows on your profile
-0102eea	text	js/achievements.js:1724	Your streak is only for you now
+66e2b96	text	js/achievements.js:748	A freeze kept your streak going
+6538be1	text	js/achievements.js:748	Your streak started again
+e93d190	pattern	js/achievements.js:748	{0}-day streak!
+c005f41	pattern	js/achievements.js:790	{1}-day streak
+afc24ba	pattern	js/achievements.js:842	Next at {0} days
+cd3cc48	pattern	js/achievements.js:850	{2} of {3} freezes
+59c89f0	pattern	js/achievements.js:850	A freeze keeps your streak going on a day you miss. You earn one every {0} days, and can hold {1}.
+5526a9b	text	js/achievements.js:850	Freezes
+7b72883	text	js/achievements.js:851	This week
+3605023	pattern	js/achievements.js:852	Best: {2} days
+adaab1b	pattern	js/achievements.js:865	Special · {0}
+a798882	text	js/achievements.js:865	Locked
+556aa19	text	js/achievements.js:872	Top tier
+a6634f2	text	js/achievements.js:891	Achievements
+6b1f893	text	js/achievements.js:897	Flex
+2f4f4b7	text	js/achievements.js:897	Rewards
+ad565d9	text	js/achievements.js:897	Feature
+d94dfbe	text	js/achievements.js:900	Show fewer
+c7767b0	pattern	js/achievements.js:900	Show all {0}
+0f17d7b	text	js/achievements.js:1021	That achievement isn’t here any more.
+2e34b16	text	js/achievements.js:1027	A special achievement from Budgie.
+ee0fcb7	pattern	js/achievements.js:1027	Given by Budgie’s team on {0}
+b7f4981	pattern	js/achievements.js:1027	Given by Budgie on {0}
+bf9f405	pattern	js/achievements.js:1033	{1} of {2}{3} to Tier {4}
+1e213ca	pattern	js/achievements.js:1043	Tier {0} · {1}
+ae31ad5	text	js/achievements.js:1054	Featured
+7a57bd3	text	js/achievements.js:1054	Feature it
+da15813	pattern	js/achievements.js:1094	You can feature up to {0}. Take one off first.
+359dda1	text	js/achievements.js:1102	Featured on your profile
+0f623be	text	js/achievements.js:1102	Nothing featured
+27fcbb1	text	js/achievements.js:1119	Reach an achievement first, then you can feature it.
+34940a8	text	js/achievements.js:1122	Feature achievements
+7b318db	pattern	js/achievements.js:1127	Pick up to {0}. They show under your name on your profile, and small by your name on posts and comments.
+52b26d3	pattern	js/achievements.js:1134	{0} of {1} chosen
+7b7f9e2	pattern	js/achievements.js:1303	Best: {0} days
+d6f960e	text	js/achievements.js:1321	1 reached
+cbd3234	text	js/achievements.js:1360	The first ones are on their way
+a2e8ed7	pattern	js/achievements.js:1399	My {0}-day streak on Budgie
+f4ab121	text	js/achievements.js:1399	My achievements on Budgie
+2dbe008	text	js/achievements.js:1408	Making your card
+2c1469f	text	js/achievements.js:1411	Save image
+39a2069	text	js/achievements.js:1412	Send to a friend
+41d26ce	text	js/achievements.js:1413	Post it
+60816eb	text	js/achievements.js:1422	Couldn’t make the picture on this device.
+7623a2b	text	js/achievements.js:1446	Link to your profile copied
+8babc6a	text	js/achievements.js:1449	Couldn’t share it from here. Try Save image.
+516c033	text	js/achievements.js:1475	Add a friend first, then you can send them your card.
+39375ee	pattern	js/achievements.js:1493	Sent to u/{0}
+8434ee9	pattern	js/achievements.js:1532	Give u/{1} a special achievement
+9fcc240	text	js/achievements.js:1532	Give an achievement
+b6fdd03	text	js/achievements.js:1541	Make a special achievement on the Moderation page first.
+73c583e	pattern	js/achievements.js:1545	Has it{0}
+b70ef35	pattern	js/achievements.js:1547	Give u/{0} an achievement
+5bd44eb	text	js/achievements.js:1553	Tier
+ea127dc	text	js/achievements.js:1567	Take away
+45d381a	text	js/achievements.js:1573	Taken away
+be8ca1d	text	js/achievements.js:1573	They didn’t have it
+fbefae1	text	js/achievements.js:1581	Give
+b3c85dc	text	js/achievements.js:1589	Given: they’ve been told
+4fa02bd	text	js/achievements.js:1589	They already have that
+df4159a	text	js/achievements.js:1604	Special achievements
+3cd5781	text	js/achievements.js:1608	Bug hunter
+0b62ca1	text	js/achievements.js:1609	Found a real bug in Budgie
+41db52e	text	js/achievements.js:1609	What it’s for
+da5fa11	text	js/achievements.js:1613	Make it
+3126147	text	js/achievements.js:1616	Give one from someone’s profile (the medal button), or with
+5407b65	text	js/achievements.js:1616	on the server. People are told when they get one.
+2f7b8f7	text	js/achievements.js:1651	1 person has it
+1b7f184	pattern	js/achievements.js:1651	{0} people have it
+460403b	pattern	js/achievements.js:1651	{2} · id {3}
+531c9d4	pattern	js/achievements.js:1652	Delete {1}
+ba85c4f	text	js/achievements.js:1655	No special achievements yet. Make the first one above.
+28f1c77	text	js/achievements.js:1662	Delete this special achievement?
+d053df8	text	js/achievements.js:1664	Everyone who has it loses it. This can’t be undone.
+441bda6	text	js/achievements.js:1670	Deleted
+ade9895	text	js/achievements.js:1688	Special achievement made
+2430706	text	js/achievements.js:1707	Streak and achievements
+b579de1	text	js/achievements.js:1708	Show my streak on my profile
+932ef16	text	js/achievements.js:1708	Others see your flame and how many days in a row you’ve opened Budgie (from 3 days). Off, only you see it.
+4dab278	text	js/achievements.js:1709	Streak celebrations
+8c18206	text	js/achievements.js:1709	A full-screen moment, once a day, when your streak grows. Off, it’s just a small note.
+6fe4f2e	text	js/achievements.js:1710	Calm mode hides streaks and celebrations altogether. Achievements are counted by Budgie’s server from what you do here.
+0a707b9	text	js/achievements.js:1726	Your streak shows on your profile
+0102eea	text	js/achievements.js:1726	Your streak is only for you now
 a0a85f4	text	js/ads.js:42	Sponsored
 1462bd6	text	js/api.js:44	Budgie’s server isn’t set up yet.
 2c035ac	text	js/api.js:49	Bearer
@@ -1862,43 +1864,43 @@ d9f9d87	pattern	js/views.js:2244	{0} removed, and its owner told why
 cb02233	text	js/views.js:2277	Nothing to see here
 9cc815b	text	js/views.js:2277	This page doesn’t exist.
 5c53da3	text	js/views.js:2277	Back home
-506419a	text	server/achievements.js:199	That isn’t a date.
-33b6bde	text	server/achievements.js:202	Your device’s date looks wrong. Check its clock, then open Budgie again.
-482de84	pattern	server/achievements.js:308	Achievements are here: your badges became achievements with tiers, I to V, and you’ve already reached {0}. See them on your profile, and pick a few to show off.
-f7b220f	pattern	server/achievements.js:316	Achievement unlocked: {0} {1}
-288edef	text	server/achievements.js:363	Try again in a moment.
-2e0d1c8	pattern	server/achievements.js:446	You can feature up to {0}.
-f426939	text	server/achievements.js:447	You can only feature achievements you’ve reached.
-632a81f	text	server/achievements.js:486	Give it a name (at least 2 characters).
-bdbf510	text	server/achievements.js:487	The symbol is a Material Symbols name, like star or celebration.
-8850e03	text	server/achievements.js:488	That isn’t one of the shapes.
-7852015	text	server/achievements.js:489	The colour is a hex code, like #e8467c.
-c684185	text	server/achievements.js:490	There’s already a special achievement with that name.
-790fc0f	pattern	server/achievements.js:514	You got a special achievement from Budgie: {0}{1}{2}
-861cf24	text	server/achievements.js:540	That special achievement is gone.
-8618fcb	pattern	server/achievements.js:549	u/{0} is banned.
-9657e05	text	server/achievements.js:551	The tier is I to V, or none.
-56311ce	text	server/achievements.js:578	That call isn’t one you were in.
+506419a	text	server/achievements.js:202	That isn’t a date.
+33b6bde	text	server/achievements.js:205	Your device’s date looks wrong. Check its clock, then open Budgie again.
+482de84	pattern	server/achievements.js:317	Achievements are here: your badges became achievements with tiers, I to V, and you’ve already reached {0}. See them on your profile, and pick a few to show off.
+f7b220f	pattern	server/achievements.js:325	Achievement unlocked: {0} {1}
+288edef	text	server/achievements.js:372	Try again in a moment.
+2e0d1c8	pattern	server/achievements.js:455	You can feature up to {0}.
+f426939	text	server/achievements.js:456	You can only feature achievements you’ve reached.
+632a81f	text	server/achievements.js:495	Give it a name (at least 2 characters).
+bdbf510	text	server/achievements.js:496	The symbol is a Material Symbols name, like star or celebration.
+8850e03	text	server/achievements.js:497	That isn’t one of the shapes.
+7852015	text	server/achievements.js:498	The colour is a hex code, like #e8467c.
+c684185	text	server/achievements.js:499	There’s already a special achievement with that name.
+790fc0f	pattern	server/achievements.js:523	You got a special achievement from Budgie: {0}{1}{2}
+861cf24	text	server/achievements.js:549	That special achievement is gone.
+8618fcb	pattern	server/achievements.js:558	u/{0} is banned.
+9657e05	text	server/achievements.js:560	The tier is I to V, or none.
+56311ce	text	server/achievements.js:587	That call isn’t one you were in.
 8caa8b7	text	server/presence.js:168	This reads as hurtful to an automatic check, so it can’t be your status. If it got you wrong, try putting it differently.
 ca5b212	text	server/presence.js:169	this activity status might be
-b611af7	text	server/presence.js:631	That’s a lot of updates. Try again in a minute.
-7ee821f	text	server/presence.js:633	That can’t be cleared.
-b81bf69	text	server/presence.js:641	That’s a lot of updates. Budgie will catch up in a minute.
-f9118bd	text	server/presence.js:649	That’s a lot of statuses for one hour. Try again later.
-c3f8bff	text	server/presence.js:652	Say what you’re listening to or playing.
-385130c	text	server/presence.js:655	That isn’t a place Budgie knows activity from.
-739209a	text	server/presence.js:673	Choose everyone, friends or nobody.
-1cb8458	text	server/presence.js:681	That’s a lot of tries. Wait a little and try again.
-768b5eb	text	server/presence.js:684	Last.fm usernames are 2–15 letters, numbers, - or _, starting with a letter.
-dd64e5c	text	server/presence.js:686	Last.fm isn’t answering right now. Try again in a minute.
-7b15fd1	pattern	server/presence.js:687	Last.fm doesn’t know anyone called “{0}”.
-20a99be	text	server/presence.js:688	Your Last.fm listening is private. In Last.fm’s settings, under Privacy, turn off “Hide recent listening information”, then try again.
-068f56a	text	server/presence.js:689	Last.fm didn’t answer properly. Try again in a minute.
-5df0243	text	server/presence.js:714	Paste your Steam profile’s link, its 17-digit number, or the name in its custom URL.
-df94d3f	text	server/presence.js:717	Steam isn’t answering right now. Try again in a minute.
-d571104	pattern	server/presence.js:718	Steam doesn’t know a profile called “{0}”.
-31d8dc2	text	server/presence.js:721	That isn’t a Steam profile’s number.
-869326a	text	server/presence.js:725	Steam doesn’t know that profile.
+b611af7	text	server/presence.js:639	That’s a lot of updates. Try again in a minute.
+7ee821f	text	server/presence.js:641	That can’t be cleared.
+b81bf69	text	server/presence.js:649	That’s a lot of updates. Budgie will catch up in a minute.
+f9118bd	text	server/presence.js:657	That’s a lot of statuses for one hour. Try again later.
+c3f8bff	text	server/presence.js:660	Say what you’re listening to or playing.
+385130c	text	server/presence.js:663	That isn’t a place Budgie knows activity from.
+739209a	text	server/presence.js:681	Choose everyone, friends or nobody.
+1cb8458	text	server/presence.js:689	That’s a lot of tries. Wait a little and try again.
+768b5eb	text	server/presence.js:692	Last.fm usernames are 2–15 letters, numbers, - or _, starting with a letter.
+dd64e5c	text	server/presence.js:694	Last.fm isn’t answering right now. Try again in a minute.
+7b15fd1	pattern	server/presence.js:695	Last.fm doesn’t know anyone called “{0}”.
+20a99be	text	server/presence.js:696	Your Last.fm listening is private. In Last.fm’s settings, under Privacy, turn off “Hide recent listening information”, then try again.
+068f56a	text	server/presence.js:697	Last.fm didn’t answer properly. Try again in a minute.
+5df0243	text	server/presence.js:722	Paste your Steam profile’s link, its 17-digit number, or the name in its custom URL.
+df94d3f	text	server/presence.js:725	Steam isn’t answering right now. Try again in a minute.
+d571104	pattern	server/presence.js:726	Steam doesn’t know a profile called “{0}”.
+31d8dc2	text	server/presence.js:729	That isn’t a Steam profile’s number.
+869326a	text	server/presence.js:733	Steam doesn’t know that profile.
 e8b2890	text	server/rewards.js:116	That’s a lot of changing. Wait a little and try again.
 8176307	text	server/rewards.js:121	name fonts
 14182b2	pattern	server/rewards.js:121	That isn’t one of Budgie’s {0}.
@@ -1932,7 +1934,7 @@ af7faa3	text	server/server.js:231	This reads as a threat, or as wishing harm on 
 6845850	text	server/server.js:406	GIF search is off.
 b07eede	text	server/server.js:409	That GIF can’t be sent.
 d78feba	text	server/server.js:413	That’s a lot of pictures. Try again in a little while.
-f378568	text	server/server.js:469	Budgie is coming as an app to Android, iPhone, iPad and Mac, with notifications for messages, calls and replies. If you turn them on in an app, they reach your device through Google’s Firebase Cloud Messaging (Android) or Apple’s Push Notification service (iPhone, iPad and Mac), so Google or Apple gets your device’s notification token and what each notification says. The Privacy Policy says how: read it in Settings → Privacy and legal.
+0e7102b	text	server/server.js:469	Budgie’s Terms and Privacy Policy have changed for Budgie 1.4: achievements and streaks, profile rewards, Activity (what you listen to and play, from Last.fm, Steam or Budgie for Windows and Linux, shown to friends unless you choose otherwise), stickers and emojis, and nudges. To make bans hold, Budgie now keeps a scrambled form of the networks you use it from, never the address itself, for 90 days. Read them in Settings → Privacy and legal.
 8efd22e	text	server/server.js:486	You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!
 6833da1	text	server/server.js:488	You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.
 fdce4cb	pattern	server/server.js:489	u/{0} gave you
@@ -2084,50 +2086,50 @@ e182a96	pattern	server/server.js:2465	A moderator removed your {0}. Reason: {1}.
 a626b4f	text	server/server.js:2621	Only admins can do that.
 af782c4	text	server/server.js:2639	There’s nothing here.
 6e67440	text	server/server.js:2646	Something went wrong on Budgie’s server. Try again in a moment.
-fc02421	text	server/social.js:157	Budgie can’t be used from this network right now.
-ad0e292	text	server/social.js:197	Admins can’t be banned, and neither can the networks they use. Remove their admin role first.
-d4027ec	text	server/social.js:221	That’s this computer’s own address, which stands for everyone, so it can’t be banned.
-8ce80eb	text	server/social.js:221	That isn’t an IP address.
-ce7b8b5	pattern	server/social.js:224	An admin (u/{0}) used that network in the last {1} days, so it can’t be banned.
-83680e3	text	server/social.js:243	That ban is already gone.
-7e351d0	text	server/social.js:343	You can’t nudge yourself. Nice try, though.
-13e7fac	text	server/social.js:346	You can only nudge friends.
-d030fcc	text	server/social.js:357	You’re nudging very fast. Give it a moment.
-1bbd459	pattern	server/social.js:359	u/{0} isn’t taking nudges right now.
-778e180	pattern	server/social.js:364	You’ve nudged u/{0} {1} times this hour. You can nudge them again in {2}.
-d8f39a4	pattern	server/social.js:365	That’s a lot of nudges this hour. You can nudge again in {0}.
-2f0dc0b	pattern	server/social.js:368	u/{0} has had a lot of nudges this hour. Try a message instead?
-f9a0bde	pattern	server/social.js:377	u/{0} wants your attention 👋{1}
-7bb2ac1	pattern	server/stickers.js:361	Your emojis are full ({0}). Delete one to make room.
-374948b	pattern	server/stickers.js:361	Your stickers are full ({0}). Delete one to make room.
-7c8f36c	text	server/stickers.js:370	An emoji’s name is 2–32 small letters, numbers or underscores (like party_budgie).
-bbdbf94	text	server/stickers.js:373	A sticker’s name is at most 32 characters.
-d4f176a	text	server/stickers.js:381	That name reads as hurtful or rude to an automatic check. Try another one.
-742f4f2	text	server/stickers.js:404	Pictures can’t be checked right now, so stickers can’t be made. Try again in a minute.
-399e94c	text	server/stickers.js:407	an emoji
-7f2123d	text	server/stickers.js:407	a sticker
-6aa01e7	pattern	server/stickers.js:407	This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be {0}. Try a different one.
-3cead7b	text	server/stickers.js:417	Lots of stickers are being made right now. Try again in a minute.
-688c11a	text	server/stickers.js:425	That GIF took too long to make. Try a shorter one.
-2c92699	text	server/stickers.js:443	That GIF couldn’t be made into a sticker. Try another one.
-d1b711c	text	server/stickers.js:458	That part of the picture is too small. Zoom out a little.
-b37b1c2	text	server/stickers.js:459	That part of the picture is mostly empty. Zoom in a little.
-e7a0dc8	text	server/stickers.js:475	Make an emoji or a sticker.
-4bec142	text	server/stickers.js:476	That’s a lot of new stickers for one hour. Try again in a little while.
-efd0ed6	text	server/stickers.js:477	That’s a lot of new stickers for one day. Try again tomorrow.
-77346ec	pattern	server/stickers.js:480	You already have an emoji called :{0}:. Pick another name.
-8284c04	text	server/stickers.js:494	That picture looks broken. Try another one.
-54f85d4	pattern	server/stickers.js:495	{0} are at most {1}×{2} pixels.
-b4a5999	text	server/stickers.js:496	That picture is too small.
-cc92033	text	server/stickers.js:526	That one isn’t there any more.
-bfffb07	text	server/stickers.js:532	That’s a lot of saving. Try again in a little while.
-8c75c72	text	server/stickers.js:536	You can’t save this one.
-2a6f998	text	server/stickers.js:550	That one isn’t in your library.
-c1caa54	pattern	server/stickers.js:552	You already have an emoji called :{0}:.
-0a9d39f	text	server/stickers.js:607	That’s a lot of stickers. Slow down a little.
-0370afa	text	server/stickers.js:609	That sticker isn’t there any more.
-5d7fe9f	text	server/stickers.js:610	Save that sticker to your library first.
-d03d93a	pattern	server/stickers.js:635	{0} removed your {1}. Reason: {2}. If you think this was a mistake, contact Budgie.
+fc02421	text	server/social.js:184	Budgie can’t be used from this network right now.
+ad0e292	text	server/social.js:224	Admins can’t be banned, and neither can the networks they use. Remove their admin role first.
+d4027ec	text	server/social.js:248	That’s this computer’s own address, which stands for everyone, so it can’t be banned.
+8ce80eb	text	server/social.js:248	That isn’t an IP address.
+ce7b8b5	pattern	server/social.js:251	An admin (u/{0}) used that network in the last {1} days, so it can’t be banned.
+83680e3	text	server/social.js:270	That ban is already gone.
+7e351d0	text	server/social.js:370	You can’t nudge yourself. Nice try, though.
+13e7fac	text	server/social.js:373	You can only nudge friends.
+d030fcc	text	server/social.js:384	You’re nudging very fast. Give it a moment.
+1bbd459	pattern	server/social.js:386	u/{0} isn’t taking nudges right now.
+778e180	pattern	server/social.js:391	You’ve nudged u/{0} {1} times this hour. You can nudge them again in {2}.
+d8f39a4	pattern	server/social.js:392	That’s a lot of nudges this hour. You can nudge again in {0}.
+2f0dc0b	pattern	server/social.js:395	u/{0} has had a lot of nudges this hour. Try a message instead?
+f9a0bde	pattern	server/social.js:404	u/{0} wants your attention 👋{1}
+7bb2ac1	pattern	server/stickers.js:375	Your emojis are full ({0}). Delete one to make room.
+374948b	pattern	server/stickers.js:375	Your stickers are full ({0}). Delete one to make room.
+7c8f36c	text	server/stickers.js:384	An emoji’s name is 2–32 small letters, numbers or underscores (like party_budgie).
+bbdbf94	text	server/stickers.js:387	A sticker’s name is at most 32 characters.
+d4f176a	text	server/stickers.js:395	That name reads as hurtful or rude to an automatic check. Try another one.
+742f4f2	text	server/stickers.js:418	Pictures can’t be checked right now, so stickers can’t be made. Try again in a minute.
+399e94c	text	server/stickers.js:421	an emoji
+7f2123d	text	server/stickers.js:421	a sticker
+6aa01e7	pattern	server/stickers.js:421	This picture might not be OK for everyone on Budgie (an automatic check flagged it), so it can’t be {0}. Try a different one.
+3cead7b	text	server/stickers.js:431	Lots of stickers are being made right now. Try again in a minute.
+688c11a	text	server/stickers.js:439	That GIF took too long to make. Try a shorter one.
+2c92699	text	server/stickers.js:457	That GIF couldn’t be made into a sticker. Try another one.
+d1b711c	text	server/stickers.js:472	That part of the picture is too small. Zoom out a little.
+b37b1c2	text	server/stickers.js:473	That part of the picture is mostly empty. Zoom in a little.
+e7a0dc8	text	server/stickers.js:489	Make an emoji or a sticker.
+4bec142	text	server/stickers.js:490	That’s a lot of new stickers for one hour. Try again in a little while.
+efd0ed6	text	server/stickers.js:491	That’s a lot of new stickers for one day. Try again tomorrow.
+77346ec	pattern	server/stickers.js:494	You already have an emoji called :{0}:. Pick another name.
+8284c04	text	server/stickers.js:508	That picture looks broken. Try another one.
+54f85d4	pattern	server/stickers.js:509	{0} are at most {1}×{2} pixels.
+b4a5999	text	server/stickers.js:510	That picture is too small.
+cc92033	text	server/stickers.js:540	That one isn’t there any more.
+bfffb07	text	server/stickers.js:546	That’s a lot of saving. Try again in a little while.
+8c75c72	text	server/stickers.js:550	You can’t save this one.
+2a6f998	text	server/stickers.js:564	That one isn’t in your library.
+c1caa54	pattern	server/stickers.js:566	You already have an emoji called :{0}:.
+0a9d39f	text	server/stickers.js:621	That’s a lot of stickers. Slow down a little.
+0370afa	text	server/stickers.js:623	That sticker isn’t there any more.
+5d7fe9f	text	server/stickers.js:624	Save that sticker to your library first.
+d03d93a	pattern	server/stickers.js:649	{0} removed your {1}. Reason: {2}. If you think this was a mistake, contact Budgie.
 8b77299	text	server/textmodel.js:327	The tokenizer couldn’t be prepared.
 d01b37f	text	server/textmodel.js:555	The text model took too long.
 ca14ca9	text	server/textmodel.js:617	very hostile

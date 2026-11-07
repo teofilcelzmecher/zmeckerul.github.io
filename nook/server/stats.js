@@ -88,7 +88,13 @@ CREATE TABLE IF NOT EXISTS stat_items (
       userId, key, Math.max(1, Math.min(200, limit))
     );
 
-  return { get, add, max, addItem, count, items, onChange: (fn) => listeners.push(fn) };
+  // in "Export my data": every count, and every song, artist, genre and game counted, with when
+  const exportFor = (userId) => ({
+    stats: db.all('SELECT key, value, updated_at AS updatedAt FROM stats WHERE user_id = ? ORDER BY key', userId),
+    statItems: db.all('SELECT key, item, label, count, first_at AS firstAt, last_at AS lastAt FROM stat_items WHERE user_id = ? ORDER BY key, first_at', userId),
+  });
+
+  return { get, add, max, addItem, count, items, exportFor, onChange: (fn) => listeners.push(fn) };
 }
 
 module.exports = { install };

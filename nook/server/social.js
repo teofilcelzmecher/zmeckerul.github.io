@@ -11,7 +11,8 @@
  *
  * A network ban stops anyone using Budgie from the internet connections (IP addresses) a banned account used. The
  * addresses themselves are never kept: each is turned into a keyed hash (HMAC-SHA256 with a secret made on this
- * server and kept in its database), so a copy of the database doesn't say where anyone was, and the same address
+ * server and kept in a file of its own beside the database, DATA/ip-key, readable only by the server, and never in
+ * the database or its backups), so a copy of the database doesn't say where anyone was, and the same address
  * always gives the same hash, which is all a ban needs. For IPv6, where a phone or a home moves around a whole block
  * of addresses (a /64) by itself, it's the block that's hashed. Which networks someone used is noted once an hour at
  * most, and forgotten after 90 days.
@@ -28,7 +29,9 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const net = require('node:net');
+const path = require('node:path');
 
 const NUDGES_PER_FRIEND = 3; // per hour, from one person to one friend
 const NUDGES_PER_HOUR = 20; // per hour, from one person to everyone
@@ -64,6 +67,15 @@ function networkOf(value) {
   const all = tail == null ? front : [...front, ...Array(Math.max(0, 8 - front.length - back.length)).fill('0'), ...back];
   return '6:' + all.slice(0, 4).map((g) => parseInt(g || '0', 16).toString(16)).join(':') + '::/64';
 }
+
+// a name from the address, or '' when its %-escapes are broken (then nobody is found, rather than an error)
+const safeName = (value) => {
+  try {
+    return decodeURIComponent(String(value || ''));
+  } catch (_) {
+    return '';
+  }
+};
 
 function install(ctx) {
   const { db, route, limit, fail, text, notify, now, MINUTE, HOUR, DAY, friendship, hasBlocked, ban, REQUEST_GUARDS, ON_AUTHED, CLI, modules, serving } = ctx;
@@ -116,7 +128,22 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
 
   // the secret the hashes are keyed with: made once, here, and never sent anywhere. Without it a hash can't be
   // worked back to an address by trying them all (there are only four billion IPv4 ones)
-  const KEY = db.meta('ip-key') || db.meta('ip-key', crypto.randomBytes(32).toString('hex'));
+  // It lives in its own file (only the server's user can read it), not in the database: `nook backup` copies the
+  // database, and with the key beside the hashes they could be worked back. A key a test server once kept in the
+  // database moves to the file, so its hashes still match.
+  const KEY = (() => {
+    const file = path.join(ctx.CONFIG.data, 'ip-key');
+    try {
+      const saved = fs.readFileSync(file, 'utf8').trim();
+      if (/^[0-9a-f]{64}$/.test(saved)) return saved;
+    } catch (_) {
+      /* not made yet */
+    }
+    const key = db.meta('ip-key') || crypto.randomBytes(32).toString('hex');
+    fs.writeFileSync(file, key + '\n', { mode: 0o600 });
+    if (db.meta('ip-key')) db.meta('ip-key', '');
+    return key;
+  })();
   const hashes = new Map(); // address -> its hash, so the same visitor's every request doesn't hash again
   function hashOf(ip) {
     if (!ip || ip === 'unknown') return null;
@@ -294,7 +321,7 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
 
   // before banning: what it would do (no addresses or hashes ever leave the server, just numbers)
   route('GET', '/api/admin/ipbans/:name', ({ params }) => {
-    const u = userNamed(decodeURIComponent(params.name));
+    const u = userNamed(safeName(params.name));
     if (!u) fail(404, 'There’s nobody by that name.');
     const p = preview(u);
     return { name: p.name, networks: p.networks, guarded: p.guarded, others: p.others, banned: p.banned, admin: p.admin, active: p.active };
@@ -349,7 +376,7 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
 
   // what a friend's Nudge button says: how many are left this hour, and when the next one is possible
   route('GET', '/api/nudges/:name', ({ user, params }) => {
-    const other = friendFor(user, decodeURIComponent(params.name));
+    const other = friendFor(user, safeName(params.name));
     return Object.assign({ on: nudgesOn(other.id) }, allowance(user.id, other.id));
   });
 

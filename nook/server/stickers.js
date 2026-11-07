@@ -152,6 +152,9 @@ function remakeGif(bytes, crop, { side, maxFrames, budget, cap }) {
   const W = reader.width, H = reader.height, count = reader.numFrames();
   if (!count || !W || !H) throw Object.assign(new Error('That GIF looks empty.'), { status: 400 });
   if (W * H * count > 160e6 || count > 1000) throw Object.assign(new Error('That GIF is too long or too large. Try a shorter one.'), { status: 413 });
+  // every frame must fit inside the GIF's own picture: the decoder trusts each frame's size and makes room for all of
+  // it, so a tiny file that claims one enormous frame would take gigabytes of memory
+  checkFrames(reader, W, H);
   // it fits the budget of pixels a sticker may have, keeping fewer frames before it gets smaller
   let every = Math.max(1, Math.ceil(count / maxFrames));
   let size = side;
@@ -166,6 +169,17 @@ function remakeGif(bytes, crop, { side, maxFrames, budget, cap }) {
     else size = Math.max(64, Math.round(size * 0.8));
   }
   throw Object.assign(new Error('That GIF is still too big once it’s made smaller. Try a shorter one.'), { status: 413 });
+}
+
+/** refuses a GIF whose frames don't fit inside its own picture, or add up to too many pixels (shared with pictures.js) */
+function checkFrames(reader, W, H, budget = 160e6) {
+  let pixels = 0;
+  for (let i = 0; i < reader.numFrames(); i++) {
+    const f = reader.frameInfo(i);
+    if (f.x + f.width > W || f.y + f.height > H || f.width < 1 || f.height < 1) throw Object.assign(new Error('That GIF looks broken. Try another one.'), { status: 400 });
+    pixels += f.width * f.height;
+    if (pixels > budget) throw Object.assign(new Error('That GIF is too long or too large. Try a shorter one.'), { status: 413 });
+  }
 }
 
 function attemptGif(reader, W, H, count, crop, side, every, GifWriter) {

@@ -910,6 +910,13 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   .ach-pop:popover-open {
     bottom: calc(92px + env(safe-area-inset-bottom, 0px));
   }
+  /* in a chat, or while typing, the bottom is the message box: the pill comes in at the top instead, under the
+     chat's header, so it never covers the box or takes the taps meant for it */
+  body:is([data-view='thread'], [data-view='groupThread'], .typing) .ach-pop,
+  body:is([data-view='thread'], [data-view='groupThread'], .typing) .ach-pop:popover-open {
+    top: calc(var(--nook-bar) + var(--nook-top) + 72px);
+    bottom: auto;
+  }
 }
 .ach-pop > .m3-icon {
   flex: none;

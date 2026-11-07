@@ -302,7 +302,8 @@ To restore: `sudo systemctl stop nook`, copy the backup over `/var/lib/nook/nook
 
 Someone banned who comes straight back with a new account can be stopped by their internet connection too. The
 server notes which networks (IP addresses) each account uses Budgie from, as a keyed hash only (HMAC-SHA256 with a
-secret made on this laptop and kept in its database, never the address itself), once an hour at most, and forgets
+secret made on this laptop and kept in its own file, DATA/ip-key, readable only by Budgie, never in the database or
+its backups, and never the address itself), once an hour at most, and forgets
 them after 90 days. For IPv6 it's the address's /64 block, since phones and homes move around inside it by themselves.
 
 "Ban account and network" (on someone's profile, or the Moderation page) bans the account and every network it used in

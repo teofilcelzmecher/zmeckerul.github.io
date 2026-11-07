@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     ['streak_count', 'INTEGER NOT NULL DEFAULT 0'], ['streak_best', 'INTEGER NOT NULL DEFAULT 0'], ['streak_day', 'INTEGER NOT NULL DEFAULT 0'],
     ['streak_freezes', 'INTEGER NOT NULL DEFAULT 0'], ['streak_tz', 'INTEGER NOT NULL DEFAULT 0'], ['streak_log', "TEXT NOT NULL DEFAULT ''"],
     ['streak_hidden', 'INTEGER NOT NULL DEFAULT 0'], ['ach_featured', "TEXT NOT NULL DEFAULT ''"], ['ach_count', 'INTEGER NOT NULL DEFAULT 0'],
-    ['ach_seeded', 'INTEGER NOT NULL DEFAULT 0'],
+    ['ach_seeded', 'INTEGER NOT NULL DEFAULT 0'], ['streak_at', 'INTEGER NOT NULL DEFAULT 0'],
   ];
   const have = new Set(db.raw.prepare('PRAGMA table_info(users)').all().map((c) => c.name));
   for (const [name, type] of COLUMNS) if (!have.has(name)) db.raw.exec(`ALTER TABLE users ADD COLUMN ${name} ${type}`);
@@ -148,8 +148,11 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     if (!u.streak_day && !u.streak_count && u.created_at < SINCE) u = seedStreak(u, day);
     const out = { grew: false, usedFreeze: 0, lost: 0, earnedFreeze: false, milestone: 0 };
     let { streak_count: count, streak_best: best, streak_freezes: freezes, streak_log: log } = u;
+    // a new day reached by changing time zone needs most of a real day since the last one (a trip is fine; hopping
+    // across time zones to collect yesterday, today and tomorrow in a minute isn't)
+    const hopped = u.streak_day && tz !== u.streak_tz && now() - (u.streak_at || 0) < 20 * HOUR;
     // the same day again, or a day before the last one (a clock or a trip across time zones): nothing changes
-    if (day > u.streak_day) {
+    if (day > u.streak_day && !hopped) {
       const missed = u.streak_day ? day - u.streak_day - 1 : 0;
       if (!u.streak_day || !count) {
         count = 1;
@@ -178,12 +181,12 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
       best = Math.max(best, count);
       log = log.slice(-LOG_DAYS);
       db.run(
-        'UPDATE users SET streak_count = ?, streak_best = ?, streak_day = ?, streak_freezes = ?, streak_tz = ?, streak_log = ?, rev = ? WHERE id = ?',
-        count, best, day, freezes, tz, log, db.bump(), userId
+        'UPDATE users SET streak_count = ?, streak_best = ?, streak_day = ?, streak_freezes = ?, streak_tz = ?, streak_log = ?, streak_at = ?, rev = ? WHERE id = ?',
+        count, best, day, freezes, tz, log, now(), db.bump(), userId
       );
       stats.add(userId, 'visits', 1);
       stats.max(userId, 'streak.best', best);
-    } else if (tz !== u.streak_tz) {
+    } else if (tz !== u.streak_tz && !hopped) {
       db.run('UPDATE users SET streak_tz = ? WHERE id = ?', tz, userId);
     }
     const unlocked = check(userId);
@@ -202,7 +205,11 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     if (day * DAY - t > 14 * HOUR || (day + 1) * DAY - t < -12 * HOUR) fail(400, 'Your device’s date looks wrong. Check its clock, then open Budgie again.');
     let tz = Math.round(Number(body.tz));
     if (!Number.isFinite(tz) || tz < -720 || tz > 840) tz = Math.round((day * DAY + 12 * HOUR - t) / MINUTE);
-    return visit(user.id, day, clampInt(tz, -720, 840));
+    tz = clampInt(tz, -720, 840);
+    // the day must be today in the time zone the device says it's in (give or take a few minutes of clock), so a
+    // day can't be picked from the three that are "today" somewhere
+    if (![t - 5 * MINUTE, t, t + 5 * MINUTE].some((at) => localDay(at, tz) === day)) fail(400, 'Your device’s date looks wrong. Check its clock, then open Budgie again.');
+    return visit(user.id, day, tz);
   });
 
   // ---- counting ----------------------------------------------------------------------------------------------------
@@ -281,7 +288,9 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     const reached = reachedOf(userId);
     const prefs = prefsOf(u);
     const first = !u.ach_seeded;
-    const legacy = first ? legacyTiers(u) : new Map();
+    // the badges from before 1.4 lived in people's own saved settings, which they can write: only accounts that
+    // existed before achievements came to the server bring them along
+    const legacy = first && u.created_at < SINCE ? legacyTiers(u) : new Map();
     const t = now();
     const unlocked = [];
     // all at once (or as part of the change that asked, if that's in a transaction already)
