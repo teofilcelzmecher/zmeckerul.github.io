@@ -558,9 +558,13 @@ function songOf(p) {
   // a song file without tags: players call it by its file's name ("01_-_Song.flac" → "01 - Song")
   if (AUDIO_FILE.test(song.title)) song.title = clip(song.title.replace(AUDIO_FILE, '').replace(/_/g, ' '), LIMITS.title) || song.title;
   if (kind === 'browser') {
+    // a tab playing something, on a site that isn't known for music: browsers don't reliably say whether it's a
+    // video (on Linux they say nothing), so it's music when it looks like it: a song from an album (YouTube Music,
+    // Spotify and Bandcamp say which album; videos don't), a song's file, or a music video ("Artist - Song",
+    // "(Official Video)", an artist's VEVO or "- Topic" channel). "How to fix a bike chain" isn't
+    const looksLikeMusic = !!song.album || audioFile || /\s[-–—]\s/.test(song.title) || /official|lyric|\bmv\b|m\/v|visuali[sz]er|\baudio\b/i.test(song.title) || /VEVO$|- Topic$/.test(song.artist);
+    if (!looksLikeMusic) return null;
     song = tidyBrowserSong(song);
-    // a browser saying it's a video: only what looks like a music video ("Artist - Song", "(Official Video)")
-    if (type === 'video' && !(/\s[-–—]\s/.test(p.title) || /official|lyric|\bmv\b|visuali[sz]er/i.test(p.title) || /VEVO$|- Topic$/.test(p.artist))) return null;
   }
   // a song without anyone singing it is most likely something else (a video, a podcast's ad, the app's own sounds),
   // unless it's a song's own file

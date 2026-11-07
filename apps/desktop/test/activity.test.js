@@ -83,6 +83,11 @@ test("songs: what isn't music is left out", () => {
   // a browser on Twitch (Linux players may say where), and a video in a browser that isn't a music video
   assert.equal(A.songOf(p(['Mozilla Firefox'], { url: 'https://www.twitch.tv/somebody' })), null);
   assert.equal(A.songOf(p(['MSEdge'], { title: 'How to fix a bike', artist: 'Bike Channel', type: 'Video' })), null);
+  // a video in a browser that says nothing about itself (Linux), or calls itself music (Chrome on Windows)
+  assert.equal(A.songOf(p(['Mozilla Firefox'], { title: 'How to fix a bike chain', artist: 'Bike Channel', url: 'https://www.youtube.com/watch?v=abc' })), null);
+  assert.equal(A.songOf(p(['Chrome'], { title: 'How to fix a bike chain', artist: 'Bike Channel', type: 'Music' })), null);
+  // but a song from an album in one (YouTube Music, Spotify's web player) is music
+  assert.deepEqual(A.songOf(p(['Chrome'], { title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', type: 'Music' })), { title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', app: 'Chrome', playing: true, rank: 113 });
   // a music site in a browser says so
   assert.equal(A.songOf(p(['Mozilla Firefox'], { url: 'https://music.youtube.com/watch?v=x' })).app, 'YouTube Music');
   // Spotify's adverts, and something with no title
@@ -106,7 +111,7 @@ test('songs: music videos in browsers, tidied', () => {
 
 test('songs: playing beats paused, and two playing at once don\'t swap places', () => {
   const a = { ids: ['Spotify.exe'], title: 'A', artist: 'X', playing: false };
-  const b = { ids: ['chrome'], title: 'B', artist: 'Y', playing: true };
+  const b = { ids: ['chrome'], title: 'B', artist: 'Y', album: 'Z', playing: true };
   assert.equal(A.pickSong([a, b]).title, 'B');
   const c = { ids: ['Spotify.exe'], title: 'C', artist: 'Z', playing: true };
   const d = { ids: ['AIMP'], title: 'D', artist: 'W', playing: true };
@@ -127,8 +132,8 @@ test('PowerShell: media sessions, one or many, with escaped characters', () => {
   // a list of one written as the one thing alone
   const one = A.parsePsLine('{"media":{"app":"Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic","status":"Changing","type":"Music","title":"Song","artist":"","album":"Album","albumArtist":"Band"}}');
   assert.deepEqual(A.pickSong(one.media), { title: 'Song', artist: 'Band', album: 'Album', app: 'Media Player', playing: true });
-  // Firefox's app id is a code
-  const ff = A.parsePsLine('{"media":[{"app":"308046B0AF4A39CB","status":"Playing","type":"Music","title":"Song","artist":"Artist","album":"","albumArtist":""}]}');
+  // Firefox's app id is a code (here playing YouTube Music, which says the album)
+  const ff = A.parsePsLine('{"media":[{"app":"308046B0AF4A39CB","status":"Playing","type":"Music","title":"Song","artist":"Artist","album":"Album","albumArtist":""}]}');
   assert.equal(A.pickSong(ff.media).app, 'Firefox');
   assert.deepEqual(A.parsePsLine('{"media":[]}'), { media: [] });
   assert.deepEqual(A.parsePsLine('{"media":null,"unavailable":true}'), { unavailable: true });
