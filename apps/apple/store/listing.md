@@ -70,7 +70,13 @@ if a page is too cramped).
 > On iPhone, haptics you can feel and quick actions on the Home Screen. On iPhone Duo and iPad, room to spread out, and Budgie in more than one window. On Mac, a menu bar and keyboard shortcuts for everything. Ask Siri to open your chats, and pick up where you left off on another device with Handoff.
 >
 > MAKE IT YOURS
-> Pick your colours, your shape, a font for your name, your pronouns, your interests and up to four pride flags. Light or dark, calm or lively.
+> Pick your colours, your shape, a font for your name, your pronouns, your interests and up to four pride flags. Light or dark, calm or lively. Make your own stickers for your chats, and custom emojis for anywhere you write.
+>
+> STREAKS AND ACHIEVEMENTS
+> Keep a daily streak going, with freezes for the days you miss, and earn achievements in tiers from I to V. They unlock profile fonts, frames, effects and scenes, so you can show off what you've earned on your profile.
+>
+> SEE WHAT FRIENDS ARE INTO
+> Show your friends what you're listening to and playing, and see what they're into (just your friends, unless you choose otherwise). Want a friend's attention? Send them a nudge.
 >
 > IN YOUR LANGUAGE
 > English, Română, Español, Français, Deutsch and Italiano.
@@ -82,7 +88,7 @@ if a page is too cramped).
 
 **Keywords** (100 characters at most, commas, no spaces):
 
-> community,nests,friends,group chat,video call,photos,polls,forum,hobbies,kind,safe,share
+> community,nests,friends,group chat,video call,photos,polls,forum,hobbies,stickers,streak,share
 
 **Support URL:** https://budgiesocial.com · **Marketing URL:** https://budgiesocial.com
 **Privacy Policy URL:** https://budgiesocial.com/privacy.html
@@ -126,11 +132,16 @@ Functionality** only:
 | User Content → Photos or Videos | Profile picture, banner, pictures and videos in posts and chats |
 | User Content → Emails or Text Messages | Private and group messages |
 | User Content → Other User Content | Posts, comments, polls, the profile's bio, pronouns, interests and pride flags |
+| User Content → Other User Content | Stickers and custom emojis; nudges; the Activity status (what someone is listening to or playing, typed by them or read from the Last.fm or Steam account they link) |
+| Usage Data → Product Interaction | The streak, achievements and what counts toward them (days opened, songs, artists, genres and games counted, time spent sharing a screen) |
 | Sensitive Info | Pride flags someone chooses to show (they can say something about sexual orientation or gender identity) |
+| Other Data → Other Data Types | A scrambled (keyed hash) form of the network the app is used from, never the address itself, kept 90 days so that bans can't be dodged |
+
+(In App Store Connect, User Content → Other User Content is one entry: tick it once, it covers both rows.)
 
 Not collected: name, email, phone, address, location, contacts, health, financial info, browsing or search history,
-purchases, usage data, diagnostics, advertising data. Calls are encrypted between the devices in them and never
-reach Budgie's server.
+purchases, diagnostics, advertising data. Calls are encrypted between the devices in them and never reach Budgie's
+server.
 
 ## Age rating
 
