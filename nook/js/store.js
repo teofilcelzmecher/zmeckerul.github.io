@@ -74,6 +74,8 @@
     name: me.name, color: me.color, shape: me.shape, icon: me.icon || '', bio: me.bio || '', font: me.font || '', ...pictures(me),
     pronouns: me.pronouns || '', flag: me.flag || '', flags: me.flags || (me.flag ? [me.flag] : []), interests: me.interests || [], scheme: me.scheme || '', sticker: me.sticker || '',
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [], calls: me.calls || 'on',
+    // what you wear from the rewards achievements unlock (1.4): a name effect, a frame round your picture, a scene
+    effect: me.effect || '', frame: me.frame || '', scene: me.scene || '',
   });
 
   const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});

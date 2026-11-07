@@ -2140,6 +2140,7 @@
     const model = {
       color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '',
       font: me.font || '', flags: [...(me.flags || [])], interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
+      effect: me.effect || '',
     };
     const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
     const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
@@ -2220,7 +2221,11 @@
         (fonts
           ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
             ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
-            '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small></div>'
+            // and the fonts achievements unlock (1.4), with Customise for the rest of what they unlock
+            (Nook.rewards ? Nook.rewards.fontTiles(me.name, model.font) : '') +
+            '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small>' +
+            (Nook.rewards ? Nook.rewards.editorCard() : '') +
+            '</div>'
           : '') +
         `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
         `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
@@ -2276,14 +2281,23 @@
         });
         const fontGrid = body.querySelector('.font-grid');
         if (fontGrid) {
-          fontGrid.querySelectorAll('[data-font]').forEach((b) =>
-            b.addEventListener('click', () => {
-              model.font = b.dataset.font;
-              fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
-              $$('#ep-name').className = ui.nameFont(model).trim();
-              fx.pop($$('#ep-name'), 0.4);
-            })
-          );
+          // one listener for the grid, as the fonts achievements unlock arrive in it a moment later
+          fontGrid.addEventListener('click', (e) => {
+            const b = e.target.closest('[data-font]');
+            if (!b) return;
+            model.font = b.dataset.font;
+            fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
+            $$('#ep-name').className = ui.nameFont(model).trim();
+            fx.pop($$('#ep-name'), 0.4);
+          });
+          // what you put on in Customise (opened from here) shows here too, and Save keeps it
+          const onStyle = (e) => {
+            if (!body.isConnected) return document.removeEventListener('nook:style', onStyle);
+            Object.assign(model, { font: e.detail.font || '', effect: e.detail.effect || '' });
+            fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other.dataset.font === model.font)));
+            $$('#ep-name').className = ui.nameFont(model).trim();
+          };
+          document.addEventListener('nook:style', onStyle);
         }
         // pronouns, a flag, colours, shapes and interests (from 0.7.0)
         let paintDots = () => {};

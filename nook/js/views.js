@@ -937,7 +937,7 @@
         sw('set-tintPosts', 'Tint posts by their nest', 'In mixed feeds, each card takes its nest’s colours.', s.tintPosts) +
         sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
         sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
-        sw('set-nameFonts', 'Name fonts', 'Show names in the fonts people picked for them. Off, every name is in Budgie’s own font.', s.nameFonts !== false) +
+        sw('set-nameFonts', 'Name fonts', 'Show names in the fonts and effects people picked for them. Off, every name is plain, in Budgie’s own font.', s.nameFonts !== false) +
         (ui.theme.offline ? '<p class="muted">Couldn’t load the colour library (offline?), so only the built-in scheme is available right now.</p>' : '') +
         '</div></section>' +
         `<section>${header('cookie9', 'dynamic_feed', 'Feed')}<div class="card setting-card">` +

@@ -153,9 +153,12 @@
   }
 
   function avatar(u, size = 32, options) {
+    // the frame someone wears round their picture (1.4, js/rewards.js draws it), where the picture is big: profiles,
+    // chats and calls (the places a picture moves). Part of it can sit behind the picture, part in front
+    const frame = options && options.moving && u.frame && Nook.rewards ? Nook.rewards.frame(u, size) : null;
     return (
-      `<span class="avatar" style="--av:${esc(u.color)};--av-ink:${ink(u.color)};--s:${size}px" aria-hidden="true">` +
-      `<m3-shape shape="${esc(u.shape)}"></m3-shape>${avatarFace(u, options)}</span>`
+      `<span class="avatar${frame ? ' framed' : ''}" style="--av:${esc(u.color)};--av-ink:${ink(u.color)};--s:${size}px" aria-hidden="true">` +
+      `${frame ? frame.back : ''}<m3-shape shape="${esc(u.shape)}"></m3-shape>${avatarFace(u, options)}${frame ? frame.front : ''}</span>`
     );
   }
 
@@ -694,9 +697,12 @@
     ['', 'Budgie'], ['rounded', 'Rounded'], ['hand', 'Handwritten'], ['serif', 'Fancy'], ['pixel', 'Pixel'],
     ['mono', 'Typewriter'], ['sign', 'Sign'], ['script', 'Script'], ['comic', 'Comic'],
   ];
-  const FONT_IDS = new Set(NAME_FONTS.map(([id]) => id).filter(Boolean));
-  /** the class that draws someone's name in the font they picked (' name-font-pixel'), or '' */
-  const nameFont = (u) => (u && FONT_IDS.has(u.font) ? ' name-font-' + u.font : '');
+  // and (1.4) the fonts and name effects achievements unlock, from the shared catalog (js/rewards.js shows them off)
+  const REWARDS = (window.NOOK_ACHIEVEMENTS && window.NOOK_ACHIEVEMENTS.rewards) || [];
+  const FONT_IDS = new Set(NAME_FONTS.map(([id]) => id).filter(Boolean).concat(REWARDS.filter((r) => r.kind === 'font').map((r) => r.id)));
+  const EFFECT_IDS = new Set(REWARDS.filter((r) => r.kind === 'effect').map((r) => r.id));
+  /** the classes that draw someone's name in the font they picked (' name-font-pixel') and the effect they wear, or '' */
+  const nameFont = (u) => (u && FONT_IDS.has(u.font) ? ' name-font-' + u.font : '') + (u && EFFECT_IDS.has(u.effect) ? ' name-fx name-fx-' + u.effect : '');
 
   // pride flags someone can wear next to their name: [id, name, stripes from the top (a colour, or
   // [colour, share]), what's drawn over them]. Drawn here as tiny SVGs, so they're sharp at any size.
