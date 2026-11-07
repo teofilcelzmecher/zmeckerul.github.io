@@ -94,7 +94,7 @@ function templateText(node) {
   return out;
 }
 
-function scan(file, { server = false } = {}) {
+function scan(file, { server = false, data = false } = {}) {
   const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
   currentSrc = src;
   const ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'script', allowHashBang: true, locations: true });
@@ -103,10 +103,12 @@ function scan(file, { server = false } = {}) {
   const serverHit = (anc) =>
     anc.some((n) => n.type === 'CallExpression' && n.callee && ((n.callee.name && /^(fail|notify|autoReport|limit|refuse|reject)$/.test(n.callee.name)) || (n.callee.type === 'MemberExpression' && n.callee.property.name === 'error' && false))) ||
     anc.some((n) => n.type === 'Property' && n.key && /^(text|error|why|EARLY_NOTE)$/.test(n.key.name || n.key.value)) ||
-    anc.some((n) => n.type === 'VariableDeclarator' && n.id && /^(PICTURE_REFUSED|TEXT_REFUSED|PROFILE_PARTS|NOTICE|EARLY_NOTE|BADGE_NOTES|DESCRIBE|KIND_LABEL)$/.test(n.id.name));
+    anc.some((n) => n.type === 'VariableDeclarator' && n.id && /^(PICTURE_REFUSED|TEXT_REFUSED|PROFILE_PARTS|CATEGORIES|PAST_NOTICES|NOTICE|EARLY_NOTE|BADGE_NOTES|DESCRIBE|KIND_LABEL)$/.test(n.id.name));
+  const dataHit = (anc) => anc.some((n) => n.type === 'Property' && n.key && /^(tagline|description|rules|flairs|category)$/.test(n.key.name || n.key.value));
   walk.ancestor(ast, {
     Literal(node, anc) {
       if (typeof node.value !== 'string') return;
+      if (data && !dataHit(anc)) return;
       // console logging isn't for people
       if (anc.some((n) => n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && n.callee.object && n.callee.object.name === 'console')) return;
       if (server && !serverHit(anc)) return;
@@ -127,6 +129,10 @@ for (const f of APP_FILES) scan(f);
 for (const f of M3_FILES) scan(f);
 scan(SERVER, { server: true });
 scan('server/textmodel.js', { server: true });
+// 1.4 server modules: the notes and errors people see, found the same way as in server.js
+for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social']) scan('server/' + f + '.js', { server: true });
+// Budgie's own starter nests: tagline, description, rules, flairs and category are Budgie's words (the title is a name)
+scan('js/data.js', { data: true });
 // the page itself
 fromHTML(fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, ''), 'text', 'index.html');
 
