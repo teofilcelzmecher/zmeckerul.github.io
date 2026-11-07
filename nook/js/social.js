@@ -167,7 +167,8 @@
     paint(name);
     if (!r.left) tick();
     sent(name, from);
-    const more = calm() ? '' : r.left ? ` · ${r.left === 1 ? 'one more' : r.left + ' more'} this hour` : ' · last one this hour';
+    // a toast is one short line (on a 360 px phone, about 28 letters): the button's dots say the rest
+    const more = calm() ? '' : r.left ? ` · ${r.left} left` : ' · none left';
     M3.toast(`Nudged u/${name}${more}`, { symbol: 'waving_hand', shape: 'sunny' });
   }
 

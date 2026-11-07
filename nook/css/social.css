@@ -607,3 +607,8 @@ span.sb-ring .m3-icon {
     margin-left: -10px;
   }
 }
+
+/* the "can't be used from this network" screen: no "Free · No email needed" tag, that's for joining */
+.gate-network .gate-tag {
+  display: none;
+}
