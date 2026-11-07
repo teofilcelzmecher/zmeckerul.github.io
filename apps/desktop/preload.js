@@ -78,6 +78,10 @@ ipcRenderer.on('activity', (e, a) => {
   last = tidy(a);
   for (const cb of [...hearing]) call(cb, last);
 });
+// the app asking whether this page still listens (after a navigation that may not have left it)
+ipcRenderer.on('activity-ask', () => {
+  if (hearing.size) ipcRenderer.send('activity-listen', true);
+});
 ipcRenderer.on('activity-options', (e, o) => {
   options = tidyOptions(o);
   for (const cb of [...hearingOptions]) call(cb, Object.assign({}, options));

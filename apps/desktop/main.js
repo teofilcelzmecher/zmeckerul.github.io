@@ -196,6 +196,7 @@ function createWindow() {
     const same = e && typeof e.isSameDocument === 'boolean' ? e.isSameDocument : inPlace;
     if (main && !same) pageLeft();
   });
+  wc.on('did-stop-loading', askPage);
   wc.on('context-menu', contextMenu);
   win.loadURL(SITE);
 }
@@ -332,8 +333,10 @@ ipcMain.on('lang', (e, code) => {
 /*
  * activity.js looks (music from the computer's media controls, games from what's running) only while Budgie's page
  * has asked to hear it (BUDGIE_DESKTOP.onActivity, preload.js) and sharing is on, and the page alone decides what to
- * post: nothing, when nobody's signed in. A reload asks again; until it does (or for a page that never will, like the
- * offline page), looking stops after a short while, so a reload doesn't start it all over again.
+ * post: nothing, when nobody's signed in. A reload asks again. Until it does, looking goes on for a little while (a
+ * reload doesn't start it all over again); then the page is asked whether it's still listening (a download or a link
+ * opened in the browser starts leaving the page without leaving it), and looking stops if nobody says yes, as for the
+ * offline page or an older Budgie.
  */
 let listening = false;
 let leftTimer = 0;
@@ -347,7 +350,7 @@ const sharing = () => settings.shareMusic !== false || settings.shareGames !== f
 
 /** the page hears what's playing and running (and the tray shows it, when it changed) */
 function tell(a, beat) {
-  if (!listening || !win || win.isDestroyed()) return;
+  if (!listening || !win || win.isDestroyed() || !sameSite(win.webContents.getURL())) return;
   win.webContents.send('activity', a, !!beat);
   const before = JSON.stringify(nowPlaying());
   shown = a;
@@ -379,7 +382,14 @@ function pageLeft() {
   shown = { music: null, game: null };
   refreshTray();
   clearTimeout(leftTimer);
-  leftTimer = setTimeout(() => !listening && watcher.stop(), 15000);
+  leftTimer = setTimeout(() => {
+    askPage();
+    leftTimer = setTimeout(() => !listening && watcher.stop(), 3000);
+  }, 12000);
+}
+/** "still listening?": the page answers by asking again, if it is */
+function askPage() {
+  if (!listening && win && !win.isDestroyed() && sameSite(win.webContents.getURL())) win.webContents.send('activity-ask');
 }
 /** what may be shared changed (from the page's Settings, or the tray): kept, and the page hears it */
 function setShare(o) {
