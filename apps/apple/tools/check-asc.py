@@ -4,9 +4,15 @@
 import base64, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 
 BUNDLE = 'com.budgiesocial.app'
-key_id = re.sub(r'\s', '', os.environ.get('ASC_KEY_ID', ''))
-issuer = re.sub(r'\s', '', os.environ.get('ASC_ISSUER_ID', ''))
-team = re.sub(r'\s', '', os.environ.get('APPLE_TEAM_ID', ''))
+# without what pasting can add around them (spaces, line breaks, invisible characters, quotes, a full stop)
+raw = {k: os.environ.get(k, '') for k in ['ASC_KEY_ID', 'ASC_ISSUER_ID', 'APPLE_TEAM_ID']}
+key_id = re.sub(r'[^A-Za-z0-9]', '', raw['ASC_KEY_ID']).upper()
+issuer = re.sub(r'[^0-9A-Fa-f-]', '', raw['ASC_ISSUER_ID'])
+team = re.sub(r'[^A-Za-z0-9]', '', raw['APPLE_TEAM_ID']).upper()
+for name, clean in [('ASC_KEY_ID', key_id), ('ASC_ISSUER_ID', issuer), ('APPLE_TEAM_ID', team)]:
+    extra = len(raw[name]) - len(clean)
+    if extra:
+        print(f'{name}: left out {extra} character{"s" if extra > 1 else ""} that can\'t be part of it (spaces, invisible ones, punctuation)')
 problems = []
 if not re.fullmatch(r'[A-Z0-9]{10}', key_id):
     problems.append(f'ASC_KEY_ID should be the key\'s Key ID: 10 capital letters and digits (it has {len(key_id)} characters).')

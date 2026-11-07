@@ -154,10 +154,10 @@ jobs:
         working-directory: apps/apple
         run: |
           set -eo pipefail
-          # the ids without the spaces or line breaks pasting can add
-          ASC_KEY_ID=$(printf '%s' "$ASC_KEY_ID" | tr -d '[:space:]')
-          ASC_ISSUER_ID=$(printf '%s' "$ASC_ISSUER_ID" | tr -d '[:space:]')
-          APPLE_TEAM_ID=$(printf '%s' "$APPLE_TEAM_ID" | tr -d '[:space:]')
+          # the ids without what pasting can add (spaces, line breaks, invisible characters, punctuation)
+          ASC_KEY_ID=$(printf '%s' "$ASC_KEY_ID" | LC_ALL=C tr -cd 'A-Za-z0-9' | tr 'a-z' 'A-Z')
+          ASC_ISSUER_ID=$(printf '%s' "$ASC_ISSUER_ID" | LC_ALL=C tr -cd '0-9A-Fa-f-')
+          APPLE_TEAM_ID=$(printf '%s' "$APPLE_TEAM_ID" | LC_ALL=C tr -cd 'A-Za-z0-9' | tr 'a-z' 'A-Z')
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
           cat > "$RUNNER_TEMP/export.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
