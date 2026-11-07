@@ -33,6 +33,9 @@
   const lang = () => (Nook.i18n && Nook.i18n.lang) || 'en';
   const DAY = 86400000;
 
+  // the catalog's names are Budgie's own words: this copy of it speaks the language (the server's copy stays English)
+  for (const f of CAT.families) f.name = tr(f.name);
+  for (const r of CAT.rewards) r.name = tr(r.name);
   const ROMAN = CAT.tiers;
   const TIER_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Prismatic'];
   const FAMILY = new Map(CAT.families.map((f) => [f.id, f]));
@@ -132,7 +135,7 @@
 
   const descOf = (fam, tier) => {
     const n = fam.tiers[Math.max(0, Math.min(fam.tiers.length - 1, tier - 1))];
-    return n === 1 && fam.one ? fam.one : fam.desc.replace('{n}', num(n));
+    return n === 1 && fam.one ? tr(fam.one) : tr(fam.desc).replace('{n}', num(n));
   };
   const unitOf = (fam) => (fam.count.startsWith('minutes:') ? 'hours' : fam.count === 'streak' ? 'days' : '');
   const rewardsAt = (id, tier) => CAT.rewards.filter((r) => r.needs && r.needs.family === id && r.needs.tier === tier);
@@ -459,7 +462,7 @@
     const extras = [];
     if (icy && !r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>${r.freezes ? (r.freezes === 1 ? '1 freeze left' : `${r.freezes} freezes left`) : `No freezes left: you earn one every ${r.freezeEvery || CAT.streak.freezeEvery} days`}</span></span>`);
     if (r.earnedFreeze) extras.push(`<span class="ach-m-chip ice">${icon('ac_unit')}<span>You earned a freeze: it saves your streak on a day you miss.</span></span>`);
-    if (streakTier) extras.push(`<span class="ach-m-chip">${icon('military_tech')}<span translate="no">On fire</span> <b>${ROMAN[streakTier - 1]}</b></span>`);
+    if (streakTier) extras.push(`<span class="ach-m-chip">${icon('military_tech')}<span translate="no">${esc(FAMILY.get('streak').name)}</span> <b>${ROMAN[streakTier - 1]}</b></span>`);
     // a milestone that unlocked nothing new says what the next one will
     if (big && !rewards.length) {
       const fam = FAMILY.get('streak');
@@ -835,7 +838,7 @@
       const rw = rewardsAt('streak', tier + 1);
       next =
         `<div class="ach-next"><span class="ach-next-head">${icon('redeem')}<span>${`Next at ${need} days`}</span></span><span class="ach-next-list">` +
-        (rw.length ? rw.map((x) => rewardChip(x)).join('') : `<span class="ach-reward">${icon('military_tech')}<span translate="no">On fire</span> ${ROMAN[tier]}</span>`) +
+        (rw.length ? rw.map((x) => rewardChip(x)).join('') : `<span class="ach-reward">${icon('military_tech')}<span translate="no">${esc(FAMILY.get('streak').name)}</span> ${ROMAN[tier]}</span>`) +
         '</span></div>';
     }
     const freezes = Array.from({ length: st.freezesMax || CAT.streak.freezesMax }, (_, i) => `<span class="ach-freeze${i < st.freezes ? ' have' : ''}">${icon('ac_unit')}</span>`).join('');

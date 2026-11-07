@@ -157,8 +157,10 @@
   function spoken(act) {
     if (!act) return '';
     const bits = [];
-    if (act.music) bits.push(`Listening to ${songText(act.music)}`);
-    if (act.game) bits.push(`Playing ${act.game.name}`);
+    // the words are Budgie's, the song and the game are the person's own: they're put in after the words are translated
+    const say = (text) => (window.Nook && Nook.i18n ? Nook.i18n.t(text) : text);
+    if (act.music) bits.push(say('Listening to {0}').replace('{0}', () => songText(act.music)));
+    if (act.game) bits.push(say('Playing {0}').replace('{0}', () => act.game.name));
     return bits.join('. ');
   }
 

@@ -15,6 +15,8 @@
   const { esc, md, plain, ago, num, plural, icon, avatar, nookIcon, highlight, nameFont, prideFlag, specialBadges, devTag } = ui;
   const settings = () => store.state.settings;
   const app = () => Nook.app;
+  // Budgie's own words that are put together in code, said in the language (a sentence the page already holds is translated by js/i18n.js on its own)
+  const tr = (s) => (Nook.i18n ? Nook.i18n.t(s) : s);
 
   const SORT_LABELS = { hot: ['Hot', 'local_fire_department'], new: ['New', 'new_releases'], top: ['Top', 'trending_up'], rising: ['Rising', 'rocket'] };
 
@@ -159,7 +161,7 @@
       '</header>';
 
     const title =
-      `<h2 class="post-title" id="t-${p.id}">${p.flair ? `<span class="flair">${esc(p.flair)}</span> ` : ''}` +
+      `<h2 class="post-title" id="t-${p.id}">${p.flair ? `<span class="flair">${esc(tr(p.flair))}</span> ` : ''}` +
       (open ? esc(clean(p.title)) : `<a href="${href}">${esc(clean(p.title))}</a>`) +
       '</h2>';
 
@@ -538,7 +540,7 @@
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
         (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span translate="no" class="m3-icon">more_horiz</span></button></div></div>` +
-        `<p class="nook-tagline" translate="no">${esc(c.tagline)}</p>` +
+        `<p class="nook-tagline"${c.starter ? '' : ' translate="no"'}>${esc(c.tagline)}</p>` +
         pulse(c) +
         '</section>' +
         bannedNote(c) +
@@ -641,7 +643,7 @@
             `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
             `<h3 class="m3-title" translate="no">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
-            `<p translate="no">${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
+            `<p${c.starter ? '' : ' translate="no"'}>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
         )
         .join('');
     return {
@@ -956,7 +958,7 @@
           ? `<section>${header('clover8', 'call', 'Calls')}<div class="card setting-card">` +
             sw('set-calls', 'Let friends call me', 'Voice and video calls from your friends and the groups you’re in. Off, nobody can ring you, but you can still call them.', store.state.me.calls !== 'off') +
             (serverAt('0.9.5') && Nook.calls
-              ? `<div class="setting-row"><span class="label">Ringtone</span>${segmented('set-ringtone', Nook.calls.RINGTONES.map((id) => [id, id[0].toUpperCase() + id.slice(1)]), s.ringtone || 'budgie', 'Ringtone')}</div>` +
+              ? `<div class="setting-row"><span class="label">Ringtone</span>${segmented('set-ringtone', Nook.calls.RINGTONES.map((id) => [id, ({ budgie: 'Budgie', chime: 'Chime', pulse: 'Pulse', classic: 'Classic', silent: 'Silent' })[id] || id[0].toUpperCase() + id.slice(1)]), s.ringtone || 'budgie', 'Ringtone')}</div>` +
                 `<div class="toolbar"><button class="m3-btn tonal" data-act="call-look">${icon('palette')}Call look</button><button class="m3-btn text" data-act="ring-preview">${icon('volume_up')}Hear the ringtone</button></div>`
               : '') +
             '<p class="muted">Calls go straight between devices, encrypted, and are never recorded. As with any direct call, the people in a call can see your device’s internet (IP) address, unless it goes through Budgie’s relay. Only call people you trust.</p>' +
@@ -1105,8 +1107,8 @@
         // body
         `<div class="field"><div class="toolbar" style="justify-content:space-between"><label for="f-body" class="field-label">Body <span class="muted" id="f-body-optional">(optional)</span></label>${segmented('body-mode', [['write', 'Write'], ['preview', 'Preview']], 'write', 'Body mode')}</div>` +
         '<div id="f-write"><div class="format-bar" role="toolbar" aria-label="Formatting">' +
-        [['bold', 'format_bold', '**', '**'], ['italic', 'format_italic', '*', '*'], ['code', 'code', '`', '`'], ['link', 'link', '[', '](https://)'], ['quote', 'format_quote', '> ', ''], ['list', 'format_list_bulleted', '- ', ''], ['spoiler', 'visibility_off', '||', '||']]
-          .map(([name, sym, a, b]) => `<button type="button" class="m3-icon-btn small" data-wrap-a="${esc(a)}" data-wrap-b="${esc(b)}" aria-label="${name}" data-tooltip="${name[0].toUpperCase() + name.slice(1)}"><span translate="no" class="m3-icon">${sym}</span></button>`)
+        [['bold', 'Bold', 'format_bold', '**', '**'], ['italic', 'Italic', 'format_italic', '*', '*'], ['code', 'Code', 'code', '`', '`'], ['link', 'Link', 'link', '[', '](https://)'], ['quote', 'Quote', 'format_quote', '> ', ''], ['list', 'List', 'format_list_bulleted', '- ', ''], ['spoiler', 'Spoiler', 'visibility_off', '||', '||']]
+          .map(([name, label, sym, a, b]) => `<button type="button" class="m3-icon-btn small" data-wrap-a="${esc(a)}" data-wrap-b="${esc(b)}" aria-label="${label}" data-tooltip="${label}"><span translate="no" class="m3-icon">${sym}</span></button>`)
           .join('') +
         `</div><textarea class="m3-field" id="f-body" rows="7" placeholder="Say more (optional). Markdown-lite works: **bold**, *italic*, lists, > quotes.">${esc(draft.body || '')}</textarea></div>` +
         '<div id="f-preview" class="preview-box md" hidden></div></div>' +
@@ -1137,7 +1139,7 @@
 
   const personRowHTML = (u, actions) =>
     `<div class="row-link person-row" data-href="#/u/${encodeURIComponent(u.name)}" tabindex="0" role="link" aria-label="u/${esc(u.name)}" data-m3-ripple data-m3-hover-root>${avatar(u, 44)}` +
-    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}${prideFlag(u)}</b><small>${u.pronouns ? esc(u.pronouns) + ' · ' : ''}${esc(clean(u.bio || '')) || 'Joined ' + ago(u.createdAt || Date.now())}</small>${Nook.hooksHTML('personRow', u)}</span><span class="row-actions">${actions}</span></div>`;
+    `<span class="row-text"><b class="${nameFont(u).trim()}">u/${esc(u.name)}${prideFlag(u)}</b><small>${u.pronouns ? esc(u.pronouns) + ' · ' : ''}${esc(clean(u.bio || '')) || `Joined ${ago(u.createdAt || Date.now())}`}</small>${Nook.hooksHTML('personRow', u)}</span><span class="row-actions">${actions}</span></div>`;
 
   function friendsPage() {
     const incoming = store.friends('incoming');
@@ -1276,7 +1278,7 @@
     const names = (d.names || []).map((n) => 'u/' + n).join(', ');
     switch (d.type) {
       case 'created':
-        return `${who} made the group${names ? ' with ' + names : ''}`;
+        return names ? `${who} made the group with ${names}` : `${who} made the group`;
       case 'added':
         return `${who} added ${names}`;
       case 'removed':
@@ -1300,7 +1302,7 @@
   const mediaWord = (x) => (x.type === 'klipy' || x.gif ? 'GIF' : 'Photo');
   /** the last message, for a list of chats */
   const preview = (m, inGroup) =>
-    !m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + (m.body ? plain(clean(m.body), 80) : m.media ? (m.media.type === 'sticker' ? 'Sticker' : mediaWord(m.media) === 'GIF' ? 'GIF' : '📷 Photo') : '');
+    !m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? tr('You') + ': ' : inGroup && m.from ? m.from + ': ' : '') + (m.body ? plain(clean(m.body), 80) : m.media ? (m.media.type === 'sticker' ? 'Sticker' : mediaWord(m.media) === 'GIF' ? 'GIF' : '📷 Photo') : '');
 
   /** a picture or GIF in a bubble; it opens full size when pressed */
   function mediaHTML(x) {

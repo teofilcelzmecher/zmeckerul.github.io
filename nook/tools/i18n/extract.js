@@ -21,8 +21,12 @@ const add = (text, kind, where) => {
 
 // what counts as words people read
 const KEYS = new Set(['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'End', 'Tab', 'Enter', 'Escape', 'Backspace', 'Delete', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'DOMContentLoaded', 'NotAllowedError', 'AbortError', 'NotFoundError', 'NotReadableError', 'OverconstrainedError', 'TypeError', 'Shift', 'Control', 'Meta', 'Alt', 'Space', 'Spacebar']);
+// code that only looks like words: class lists, selectors, font names, css values, a command, names that are never translated
+const NOT_WORDS = new Set(['button, a, input', 'name-fx name-fx-', 'img.pres-cover, img.pres-glow', 'h1 .name-fx', 'Google Sans Flex', 'Material Symbols Rounded', 'Symbols', 'Ab1', 'UTC', '{0} {1}px "{2}"', 'nook award <user> <id> [tier]', 'Last.fm', 'Steam', 'PC']);
 function looksLikeUI(t) {
   if (!t || t.length < 2) return false;
+  if (NOT_WORDS.has(t) || /^[IVX]+$/.test(t) || /^;?--[\w-]+:/.test(t) || /^translate[XYZ]?\(/.test(t)) return false;
+  if (/^[a-z][a-z0-9-]*(?: [a-z][a-z0-9-]*)+$/.test(t) && /-/.test(t)) return false; // class lists ("wide rw-sheet")
   if (KEYS.has(t)) return false;
   if (/="/.test(t) || /^use strict$/.test(t) || /^\(/.test(t) || /^m3: /.test(t)) return false;
   if (/^[\s{}0-9]*$/.test(t.replace(/\{\d+\}/g, ''))) return false;
@@ -53,7 +57,7 @@ function looksLikeUI(t) {
   if (/^[\d\s.,:%px-]+$/.test(bare)) return false;
   if (/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(bare)) return false;
   if (/^(true|false|null|undefined|none|auto|block|flex|grid|inline|hidden|visible)$/.test(bare)) return false;
-  if (/^[a-z]+(\s[a-z]+)*$/.test(bare) && bare.split(' ').length <= 3 && !/^(off|on|or|and|then|you|today|now|yesterday|seen|sent|edited|deleted|removed|pinned|banned|blocked|friends|private|public|free)$/.test(bare)) {
+  if (!/\{\d+\}/.test(t) && /^[a-z]+(\s[a-z]+)*$/.test(bare) && bare.split(' ').length <= 3 && !/^(off|on|or|and|then|you|today|now|yesterday|seen|sent|edited|deleted|removed|pinned|banned|blocked|friends|private|public|free)$/.test(bare)) {
     // lower-case runs are mostly class lists ("m3-btn filled small"), keyframe names and such; real words are kept
     if (/\b(m3|btn|icon|card|row|tag|small|filled|tonal|text|outlined|chip|sheet|wide|big|spacer|muted|count|field|label|toolbar|list|page|col|rail|post|feed|hero|grid|item|menu|bar|box|top|head|foot|end|start|center|left|right|bottom|wrap|nowrap|ease|linear|forwards|both|smooth|instant|polite|assertive|dialog|status|button|link|img|presentation|application|region|navigation|group|radio|radiogroup|switch|tab|tablist|tabpanel|true|false)\b/.test(bare)) return false;
   }

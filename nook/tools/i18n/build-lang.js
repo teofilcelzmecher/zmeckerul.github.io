@@ -70,6 +70,8 @@ const COUNT = {
   de: `function (n, f) { var v = parseFloat(String(n).replace(/,/g, '')); var d = String(n).replace('.', ','); return d + ' ' + (v === 1 && !/k$/i.test(n) ? f[0] : f[1]); }`,
   it: `function (n, f) { var v = parseFloat(String(n).replace(/,/g, '')); return n + ' ' + (v === 1 && !/k$/i.test(n) ? f[0] : f[1]); }`,
 };
+// the word that joins the last item of a list ("banner and bio")
+const AND = { ro: 'și', es: 'y', fr: 'et', de: 'und', it: 'e' };
 // "5m", "3h", "2d", "1w" in the app's lists
 const SHORT = {
   ro: { now: 'acum', m: '{0} min', h: '{0} h', d: '{0} z', w: '{0} săpt.' },
@@ -97,6 +99,7 @@ for (const lang of LANGS) {
     `window.NOOK_LANG = {\n` +
     `  code: ${JSON.stringify(lang)},\n` +
     `  locale: ${JSON.stringify(LOCALE[lang])},\n` +
+    `  and: ${JSON.stringify(AND[lang])},\n` +
     `  short: ${JSON.stringify(SHORT[lang])},\n` +
     `  nouns: ${JSON.stringify(nouns)},\n` +
     `  plurals: ${JSON.stringify(PLURALS)},\n` +

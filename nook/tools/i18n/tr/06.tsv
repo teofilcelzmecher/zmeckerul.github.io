@@ -10,7 +10,6 @@ b0e6615	Postarea asta a zburat, sau n-a existat niciodată.	Esta publicación se
 77003d0	Cele mai bune	Mejores	Meilleurs	Beste	Migliori
 252451a	Sortează comentariile	Ordenar comentarios	Trier les commentaires	Kommentare sortieren	Ordina i commenti
 472cd93	Încă niciun comentariu. Spune ceva frumos!	Aún no hay comentarios. ¡Di algo bonito!	Pas encore de commentaires. Dis quelque chose de gentil !	Noch keine Kommentare. Sag was Nettes!	Ancora nessun commento. Di’ qualcosa di carino!
-d91c1c3	Activitate: {3}	Actividad: {3}	Activité : {3}	Aktivität: {3}	Attività: {3}
 b965ae6	Explorează	Explorar	Explorer	Entdecken	Esplora
 2a31cdc	Găsește-ți cuibul. Fiecare are culoarea, forma și ritmul lui.	Encuentra tu nido. Cada uno tiene su color, su forma y su ritmo.	Trouve ton nid. Chacun a sa couleur, sa forme et son rythme.	Finde dein Nest. Jedes hat seine eigene Farbe, Form und sein eigenes Tempo.	Trova il tuo nido. Ognuno ha il suo colore, la sua forma e il suo ritmo.
 c56c4ac	Proaspăt din cuiburi	Recién salido de los nidos	Tout frais des nids	Frisch aus den Nestern	Freschi dai nidi
@@ -45,12 +44,10 @@ e7719f2	L-ai blocat pe u/{1}. Nu-ți poate scrie, nu te poate suna și nu te poa
 fc4260d	Raportează u/{1}	Denunciar a u/{1}	Signaler u/{1}	u/{1} melden	Segnala u/{1}
 0f88f21	Fiecare vot pozitiv la postările și comentariile lor e o pană	Cada voto a favor en sus publicaciones y comentarios es una pluma	Chaque vote pour sur ses publications et commentaires est une plume	Jedes Upvote auf Beiträge und Kommentare ist eine Feder	Ogni voto positivo ai suoi post e commenti è una piuma
 5bdb7fa	Pene	Plumas	Plumes	Federn	Piume
-ac4792c	Serie	Racha	Série	Serie	Serie
 be521b3	Postările sunt ascunse	Sus publicaciones están ocultas	Ses publications sont masquées	Die Beiträge sind ausgeblendet	I suoi post sono nascosti
 1817f2c	Comentariile sunt ascunse	Sus comentarios están ocultos	Ses commentaires sont masqués	Die Kommentare sind ausgeblendet	I suoi commenti sono nascosti
 4833367	L-ai blocat pe u/{0}. Deblochează ca să vezi ce scrie.	Bloqueaste a u/{0}. Desbloquéalo para ver lo que escribe.	Tu as bloqué u/{0}. Débloque cette personne pour voir ce qu’elle écrit.	Du hast u/{0} blockiert. Entsperre die Person, um zu sehen, was sie schreibt.	Hai bloccato u/{0}. Sbloccalo per vedere cosa scrive.
 ff38060	Încă n-ai postat	Aún no has publicado	Tu n’as encore rien publié	Du hast noch nichts gepostet	Non hai ancora pubblicato
-5ab6d2b	Prima ta postare îți aduce o insignă.	Tu primera publicación te da una insignia.	Ta première publication te rapporte un badge.	Dein erster Beitrag bringt dir ein Abzeichen.	Il tuo primo post ti fa guadagnare un badge.
 2a70c94	Preferă să comenteze.	Es más de comentar.	Plutôt du genre à commenter.	Eher jemand, der kommentiert.	Preferisce commentare.
 1bc5046	· {5} · la „{6}”	· {5} · en «{6}»	· {5} · sur « {6} »	· {5} · zu „{6}“	· {5} · su “{6}”
 d14da37	Încă niciun comentariu	Aún no hay comentarios	Pas encore de commentaires	Noch keine Kommentare	Ancora nessun commento
@@ -59,7 +56,6 @@ a0316e1	Tipul tăcut.	Del tipo callado.	Plutôt discret.	Eher die stille Sorte.	
 44caf74	Notificări	Avisos	Notifications	Mitteilungen	Notifiche
 8958e22	Marchează tot ca citit	Marcar todo como leído	Tout marquer comme lu	Alle als gelesen markieren	Segna tutto come letto
 889fd4f	Liniște totală	Todo tranquilo	Tout est calme	Alles ruhig	Tutto tranquillo
-b008315	Răspunsurile, cererile de prietenie și insignele pe care le câștigi apar aici.	Las respuestas, las solicitudes de amistad y las insignias que ganes aparecen aquí.	Les réponses, les demandes d’ami et les badges que tu gagnes s’affichent ici.	Antworten, Freundschaftsanfragen und deine Abzeichen erscheinen hier.	Risposte, richieste di amicizia e i badge che ottieni compaiono qui.
 fb99ba8	Rezultate pentru „{0}”	Resultados de «{0}»	Résultats pour « {0} »	Ergebnisse für „{0}“	Risultati per “{0}”
 fe9355f	Cuiburi	Nidos	Nids	Nester	Nidi
 8ffb70f	Caută pe Budgie	Buscar en Budgie	Rechercher sur Budgie	Budgie durchsuchen	Cerca su Budgie
@@ -84,7 +80,6 @@ a987c19	Oprește lucrurile care se mișcă singure și ține paginile nemișcate
 95cf156	Vibrații la atingere	Vibración al tocar	Vibrations au toucher	Haptisches Feedback	Vibrazione al tocco
 97c52e7	O mică vibrație când votezi, dai Spark, salvezi sau intri într-un cuib, pe telefoanele care pot.	Una pequeña vibración al votar, dar Spark, guardar o unirte, en los móviles que lo permiten.	Une petite vibration quand tu votes, donnes un Spark, enregistres ou rejoins, sur les téléphones compatibles.	Ein kleines Summen beim Abstimmen, Sparken, Speichern oder Beitreten, auf Handys, die das können.	Una piccola vibrazione quando voti, dai Spark, salvi o ti unisci, sui telefoni che lo supportano.
 5244a49	Fonturile numelor	Fuentes de los nombres	Polices des noms	Schriften für Namen	Font dei nomi
-81d5176	Arată numele în fonturile alese de oameni. Dacă e oprit, toate numele sunt în fontul Budgie.	Muestra los nombres con las fuentes que cada uno eligió. Si lo desactivas, todos van con la fuente de Budgie.	Affiche les noms dans les polices choisies par chacun. Désactivé, tous les noms sont dans la police de Budgie.	Zeigt Namen in den Schriften, die die Leute gewählt haben. Aus: alle Namen in Budgies eigener Schrift.	Mostra i nomi nei font scelti da ciascuno. Se disattivato, tutti i nomi usano il font di Budgie.
 9a4f8f1	Nu s-a putut încărca biblioteca de culori (ești offline?), așa că acum e disponibilă doar schema de bază.	No se pudo cargar la biblioteca de colores (¿sin conexión?), así que ahora solo está disponible la paleta integrada.	Impossible de charger la bibliothèque de couleurs (hors ligne ?), seule la palette intégrée est disponible pour l’instant.	Die Farbbibliothek konnte nicht geladen werden (offline?), daher gibt es gerade nur das eingebaute Schema.	Impossibile caricare la libreria dei colori (offline?), quindi per ora c’è solo la palette integrata.
 29f3c40	Sortarea implicită pe Acasă	Orden predeterminado en Inicio	Tri par défaut sur l’accueil	Standardsortierung auf Start	Ordinamento predefinito nella home
 c296ad9	Postări mai mici, cu miniaturi, ca să vezi mai multe deodată.	Publicaciones más pequeñas con miniaturas, para ver más de una vez.	Des publications plus petites avec miniatures, pour en voir plus à la fois.	Kleinere Beiträge mit Vorschaubildern, damit du mehr auf einmal siehst.	Post più piccoli con miniature, per vederne di più alla volta.

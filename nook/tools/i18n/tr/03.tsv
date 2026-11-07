@@ -19,7 +19,6 @@ ee57ee0	, până la {0}	, hasta {0}	, jusqu’à {0}	, bis zu {0}	, fino a {0}
 +Change or remove them	Schimbă-le sau elimină-le	Cámbialas o quítalas	Change-les ou retire-les	Ändern oder entfernen	Cambiale o toglile
 11b32b4	Steaguri pride	Banderas del orgullo	Drapeaux des fiertés	Pride-Flaggen	Bandiere pride
 5efacef	Steag pride	Bandera del orgullo	Drapeau des fiertés	Pride-Flagge	Bandiera pride
-6908d50	=	=	=	=	=
 e5192ac	Alege până la {0}. Apar în ordinea în care le alegi.	Elige hasta {0}. Se muestran en el orden en que las eliges.	Choisis-en jusqu’à {0}. Ils s’affichent dans l’ordre où tu les choisis.	Wähle bis zu {0}. Sie erscheinen in der Reihenfolge, in der du sie wählst.	Scegline fino a {0}. Compaiono nell’ordine in cui le scegli.
 6eef664	Niciunul	Ninguna	Aucun	Keine	Nessuna
 eba8c0d	Poți purta până la {0} steaguri. Scoate mai întâi unul.	Puedes llevar hasta {0} banderas. Quita una primero.	Tu peux porter jusqu’à {0} drapeaux. Retires-en un d’abord.	Du kannst bis zu {0} Flaggen tragen. Nimm zuerst eine ab.	Puoi mostrare fino a {0} bandiere. Prima togline una.
@@ -162,7 +161,6 @@ b8499d4	Apel vocal	Llamada de voz	Appel vocal	Sprachanruf	Chiamata vocale
 4972259	u/{0} a început: {1}	u/{0} empezó: {1}	u/{0} a lancé : {1}	u/{0} hat gestartet: {1}	u/{0} ha avviato: {1}
 71fa2c6	{0} pe Budgie	{0} en Budgie	{0} sur Budgie	{0} auf Budgie	{0} su Budgie
 b59cf9e	Respinge	Rechazar	Refuser	Ablehnen	Rifiuta
-ca4d920	=	=	=	=	=
 db5b9fe	Camera {0}	Cámara {0}	Caméra {0}	Kamera {0}	Videocamera {0}
 +Camera on	Cameră pornită	Cámara activada	Caméra activée	Kamera an	Videocamera accesa
 b663449	Budgie are nevoie de microfon{0} pentru apeluri. Permite {1} în setările browserului pentru acest site, apoi încearcă din nou.	Budgie necesita tu micrófono{0} para las llamadas. Permite {1} en los ajustes de tu navegador para este sitio y vuelve a intentarlo.	Budgie a besoin de ton micro{0} pour les appels. Autorise {1} dans les réglages de ton navigateur pour ce site, puis réessaie.	Budgie braucht dein Mikrofon{0} für Anrufe. Erlaube {1} in den Browsereinstellungen für diese Seite und versuch es dann noch mal.	Budgie ha bisogno del microfono{0} per le chiamate. Consenti {1} nelle impostazioni del browser per questo sito, poi riprova.

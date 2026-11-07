@@ -87,6 +87,8 @@
       }
       if (out === undefined) {
         for (const p of patterns) {
+          // a very short pattern ("{0} with {1}") only ever stands for a short phrase, never for a long sentence
+          if (p.fixed < 10 && (key.length > 70 || /[.!?] /.test(key))) continue;
           const m = p.re.exec(key);
           if (!m) continue;
           const slots = [];
@@ -112,10 +114,12 @@
         }
       }
       // a list, when every item in it has a translation ("Transgender, Bisexual")
-      if (out === undefined && key.includes(', ')) {
-        const items = key.split(', ');
+      // (the last one may follow "and": "profile picture, banner and bio")
+      if (out === undefined && (key.includes(', ') || (pack.and && key.includes(' and ')))) {
+        const items = key.split(pack.and ? /, | and / : /, /);
+        const seps = key.match(pack.and ? /, | and /g : /, /g);
         const done = items.map((item) => t(item));
-        if (done.every((item, i) => item !== items[i] || !/\p{L}/u.test(item))) out = done.join(', ');
+        if (done.every((item, i) => item !== items[i] || !/\p{L}/u.test(item))) out = done.map((item, i) => item + (i < seps.length ? (seps[i] === ' and ' ? ' ' + pack.and + ' ' : seps[i]) : '')).join('');
       }
       if (out === undefined) out = null;
       if (cache.size > 5000) cache.clear();
@@ -129,7 +133,7 @@
   }
 
   // what's left as it was: icons, and what people wrote
-  const KEEP = '[translate="no"], [data-no-i18n], .md, .post-title, .c-body, .bio, .author, .msg-name, .chat-who b, .tile-name span, .call-title b, .group-name, .peek-post h3, .who-name, .name, script, style, code, pre, kbd';
+  const KEEP = '[translate="no"], [data-no-i18n], .md:not(a), .post-title, .c-body, .bio:not(.muted), .author, .msg-name, .chat-who b, .tile-name span, .call-title b, .group-name, .peek-post h3, .who-name, .name, script, style, code, pre, kbd';
   // a text box: its label and placeholder are the app's, what's in it is someone's
   const BOX = 'textarea';
   const ATTRS = ['aria-label', 'placeholder', 'title', 'data-tooltip', 'alt', 'data-title', 'data-description', 'data-tagline', 'data-example', 'aria-description'];

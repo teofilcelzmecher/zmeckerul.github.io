@@ -7,7 +7,6 @@ bf567dc	Prietenos	Amistoso	Sympa	Freundlich	Amichevole
 aa17a22	Animat	Animado	Animé	Lebhaft	Vivace
 e315670	Relaxat	Tranquilo	Tranquille	Entspannt	Rilassato
 fe73d79	Liniștit	Silencioso	Calme	Ruhig	Tranquillo
-d778620	Insignă deblocată: {0}. {1}.	Insignia desbloqueada: {0}. {1}.	Badge débloqué : {0}. {1}.	Abzeichen freigeschaltet: {0}. {1}.	Badge sbloccato: {0}. {1}.
 3676fd5	=	=	=	=	=
 0cd5214	=	=	=	=	=
 de2cc25	Spoiler, apasă ca să vezi	Spoiler, pulsa para verlo	Spoiler, appuie pour révéler	Spoiler, zum Anzeigen tippen	Spoiler, premi per vederlo
@@ -23,7 +22,6 @@ d15efec	GIF-ul e prea mare. Încearcă unul sub {0} MB.	Ese GIF es demasiado gra
 fee16d9	Imaginea e prea mare. Încearcă una sub 20 MB.	Esa imagen es demasiado grande. Prueba con una de menos de 20 MB.	Cette image est trop lourde. Essaie-en une de moins de 20 Mo.	Das Bild ist zu groß. Versuch eins unter 20 MB.	L’immagine è troppo grande. Prova con una sotto i 20 MB.
 cdbfd11	=	=	=	=	=
 39fc721	Anulează	Deshacer	Annuler	Rückgängig	Annulla
-cb7efff	=	=	=	=	=
 c5aa340	Rotunjit	Redondeada	Arrondie	Abgerundet	Arrotondato
 1ebe977	De mână	A mano	Manuscrite	Handschrift	A mano
 2441955	Elegant	Elegante	Élégante	Verschnörkelt	Elegante
@@ -130,7 +128,6 @@ bf58d17	Gestionează	Gestionar	Gérer	Verwalten	Gestisci
 +You can’t post or comment in n/{0}.	Nu poți posta sau comenta în n/{0}.	No puedes publicar ni comentar en n/{0}.	Tu ne peux pas publier ni commenter dans n/{0}.	Du kannst in n/{0} nicht posten oder kommentieren.	Non puoi pubblicare né commentare in n/{0}.
 +You can’t post or comment in n/{0} until {1}.	Nu poți posta sau comenta în n/{0} până pe {1}.	No puedes publicar ni comentar en n/{0} hasta el {1}.	Tu ne peux pas publier ni commenter dans n/{0} jusqu’au {1}.	Du kannst in n/{0} bis zum {1} nicht posten oder kommentieren.	Non puoi pubblicare né commentare in n/{0} fino al {1}.
 ef36547	Motiv: {2}. Poți să-l citești în continuare.	Motivo: {2}. Puedes seguir leyéndolo.	Raison : {2}. Tu peux toujours le lire.	Grund: {2}. Lesen kannst du es weiterhin.	Motivo: {2}. Puoi continuare a leggerlo.
-c78a4c8	Încă {0} zi{1} până la o serie de {2} zile. Recordul tău: {3}.	{0} día{1} más para una racha de {2} días. Tu mejor marca: {3}.	Encore {0} jour{1} pour une série de {2} jours. Ton record : {3}.	Noch {0} Tag{1} bis zur {2}-Tage-Serie. Bisher am besten: {3}.	Ancora {0} giorn{1} per una serie di {2} giorni. Il tuo record: {3}.
 +1 more day to a {0}-day streak. Best so far: {1}.	Încă o zi până la o serie de {0} zile. Recordul tău: {1}.	1 día más para una racha de {0} días. Tu mejor marca: {1}.	Encore 1 jour pour une série de {0} jours. Ton record : {1}.	Noch 1 Tag bis zur {0}-Tage-Serie. Bisher am besten: {1}.	Ancora 1 giorno per una serie di {0} giorni. Il tuo record: {1}.
 +{0} more days to a {1}-day streak. Best so far: {2}.	Încă {0} zile până la o serie de {1} zile. Recordul tău: {2}.	{0} días más para una racha de {1} días. Tu mejor marca: {2}.	Encore {0} jours pour une série de {1} jours. Ton record : {2}.	Noch {0} Tage bis zur {1}-Tage-Serie. Bisher am besten: {2}.	Ancora {0} giorni per una serie di {1} giorni. Il tuo record: {2}.
 +{0} streak	Serie: {0}	Racha de {0}	Série de {0}	Serie: {0}	Serie di {0}

@@ -72,6 +72,8 @@
     osc.stop(t + length + 0.05);
   }
   // the ringtones to pick from in Settings → Calls; "silent" only vibrates
+  // what the ringtones are called (Budgie's own words, so they can be translated)
+  const RINGTONE_NAMES = { budgie: 'Budgie', chime: 'Chime', pulse: 'Pulse', classic: 'Classic', silent: 'Silent' };
   const RINGTONES = {
     // a bright three-note figure, twice, like a little bird
     budgie() {
@@ -1509,7 +1511,7 @@
         `<div class="swatches">${ui.SEEDS.map((seed, i) => `<button type="button" class="swatch" data-color="${seed}" aria-pressed="${seed === pick}" aria-label="Colour ${seed}"><m3-shape shape="${ui.SEED_SHAPES[i]}" style="color:${seed}"></m3-shape></button>`).join('')}</div></div>` +
         `<div class="field"><span class="field-label">Background</span><div class="chips">${BACKGROUNDS.map(([id, label, symbol]) => choice('bg', id, label, symbol, (s.callBg || 'shapes') === id)).join('')}</div></div>` +
         `<div class="field"><span class="field-label">Ringtone</span><div class="chips" style="flex-wrap:wrap">${Object.keys(RINGTONES)
-          .map((id) => choice('tone', id, id[0].toUpperCase() + id.slice(1), id === 'silent' ? 'vibration' : 'music_note', ringtone() === id))
+          .map((id) => choice('tone', id, RINGTONE_NAMES[id] || id[0].toUpperCase() + id.slice(1), id === 'silent' ? 'vibration' : 'music_note', ringtone() === id))
           .join('')}</div></div>`,
       setup(body) {
         body.addEventListener('click', (e) => {
@@ -1534,7 +1536,7 @@
     el.className = 'call-screen';
     el.dataset.media = active.call.media;
     el.setAttribute('role', 'dialog');
-    el.setAttribute('aria-label', `${kindOf(active.call.media)} with ${title()}`);
+    el.setAttribute('aria-label', active.call.media === 'video' ? `Video call with ${title()}` : `Voice call with ${title()}`);
     const keys = matchMedia('(hover: hover)').matches;
     el.innerHTML =
       `<div class="call-bg" aria-hidden="true">${['cookie12', 'flower', 'clover8', 'sunny'].map((shape) => `<m3-shape shape="${shape}"></m3-shape>`).join('')}</div>` +

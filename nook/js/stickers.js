@@ -831,7 +831,7 @@
     ui.sheet({
       className: 'menu-sheet',
       html:
-        `<div class="stk-menu-head"><img src="${esc(srcOf(s))}" alt="" draggable="false"><span><b translate="no">${esc(label(s))}</b><small>${s.mine ? 'You made this' : s.by ? 'Saved, by u/' + esc(s.by) : 'Saved'}</small></span></div>` +
+        `<div class="stk-menu-head"><img src="${esc(srcOf(s))}" alt="" draggable="false"><span><b translate="no">${esc(label(s))}</b><small>${s.mine ? 'You made this' : s.by ? `Saved, by u/${esc(s.by)}` : 'Saved'}</small></span></div>` +
         `<div class="menu-sheet-list" role="menu">${list
           .map((item, i) => `<button type="button" class="menu-sheet-item${item.destructive ? ' is-destructive' : ''}" role="menuitem" data-i="${i}" data-m3-ripple><span translate="no" class="m3-icon" aria-hidden="true">${item.symbol}</span><span>${esc(item.label)}</span></button>`)
           .join('')}</div>`,
@@ -991,7 +991,7 @@
         const span = document.createElement('span');
         span.className = 'cemoji-gone';
         span.setAttribute('translate', 'no');
-        span.title = 'This emoji isn’t there any more';
+        span.title = Nook.i18n ? Nook.i18n.t('This emoji isn’t there any more') : 'This emoji isn’t there any more';
         span.textContent = `:${img.dataset.name || 'emoji'}:`;
         img.replaceWith(span);
       } else if (img.classList.contains('sticker-img')) {

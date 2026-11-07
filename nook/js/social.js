@@ -25,6 +25,7 @@
   const api = Nook.api;
   const { esc, icon, avatar } = ui;
   const settings = () => store.state.settings;
+  const say = (text) => (Nook.i18n ? Nook.i18n.t(text) : text);
   const fx = () => Nook.fx;
   const app = () => Nook.app;
   const calm = () => !!settings().calm;
@@ -101,8 +102,8 @@
           ? `u/${name} isn’t taking nudges right now`
           : waiting
           ? `You can nudge u/${name} again in ${waitWords(a.next)}`
-          : `Get their attention (${a.left === 1 ? 'one more' : a.left + ' more'} this hour)`;
-      btn.dataset.tooltip = tip;
+          : `Get their attention (${a.left === 1 ? 'one more' : `${a.left} more`} this hour)`;
+      btn.dataset.tooltip = say(tip); // an attribute set this way isn't seen by the translator on its own
       btn.setAttribute('aria-label', `Nudge u/${name}. ${tip}.`);
     }
   }
@@ -742,8 +743,8 @@
               const title = b.name ? `u/${esc(b.name)}` : 'One network';
               const what = b.name ? (b.networks ? (b.networks === 1 ? 'One network' : `${b.networks} networks`) : 'Account only') : 'Banned with nook ipban';
               return (
-                `<article class="card sb-row" data-ban="${b.id}">${face}<div class="row-text"><b translate="no">${title}</b><small>${what} · ${esc(b.reason)}</small>` +
-                `<small class="muted">${b.by ? `by u/${esc(b.by)} · ` : ''}${esc(ui.ago(b.createdAt))}${b.account ? ' · account comes back when it ends' : ''}</small></div>` +
+                `<article class="card sb-row" data-ban="${b.id}">${face}<div class="row-text"><b translate="no">${title}</b><small><span>${what}</span> · <span>${esc(b.reason)}</span></small>` +
+                `<small class="muted">${b.by ? `<span>by u/${esc(b.by)}</span> · ` : ''}<span>${esc(ui.ago(b.createdAt))}</span>${b.account ? ' · <span>account comes back when it ends</span>' : ''}</small></div>` +
                 `${timeLeft(b)}<button type="button" class="m3-btn text small" data-lift="${b.id}">${icon('lock_open')}Lift</button></article>`
               );
             })
@@ -761,7 +762,13 @@
         symbol: 'lock_open',
         iconShape: 'cookie9',
         body: b.name
-          ? `Their ${b.networks === 1 ? 'network' : 'networks'} can use Budgie again${b.account ? `, and u/${b.name} can sign in again` : `. Their account stays banned, if it was banned some other way`}.`
+          ? b.account
+            ? b.networks === 1
+              ? `Their network can use Budgie again, and u/${b.name} can sign in again.`
+              : `Their networks can use Budgie again, and u/${b.name} can sign in again.`
+            : b.networks === 1
+              ? 'Their network can use Budgie again. Their account stays banned, if it was banned some other way.'
+              : 'Their networks can use Budgie again. Their account stays banned, if it was banned some other way.'
           : 'Everyone on that network can use Budgie again.',
         actions: [{ label: 'Cancel', value: false }, { label: 'Lift it', value: true, variant: 'filled' }],
       });

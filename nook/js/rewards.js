@@ -80,7 +80,8 @@
     const f = FAMILY.get(r.needs.family);
     if (!f || !f.desc) return '';
     const n = (f.tiers || [])[r.needs.tier - 1];
-    return n === 1 && f.one ? f.one : f.desc.replace('{n}', n == null ? '' : n.toLocaleString());
+    const say = (text) => (Nook.i18n ? Nook.i18n.t(text) : text); // the catalog's sentences are English: say them in the language
+    return n === 1 && f.one ? say(f.one) : say(f.desc).replace('{n}', n == null ? '' : n.toLocaleString());
   }
   const tierNow = (r) => (mine && r.needs ? mine.tiers[r.needs.family] || 0 : 0);
 
@@ -936,7 +937,7 @@
         : '';
       return (
         `<button type="button" class="rw-tile${locked ? ' locked' : ''}${on ? ' on' : ''}" role="radio" aria-checked="${trying[k] === id}" data-rw-try="${esc(id)}" ` +
-        `aria-label="${esc(label(k, id))}${locked ? `, locked: unlock with ${esc(needsName(r))}` : on ? ', wearing' : ''}" data-m3-ripple>` +
+        `aria-label="${locked ? `${esc(label(k, id))}, locked: unlock with ${esc(needsName(r))}` : on ? `${esc(label(k, id))}, wearing` : esc(label(k, id))}" data-m3-ripple>` +
         `<span class="rw-tile-art">${art}</span><span class="rw-tile-label"><span class="rw-tile-name" translate="no">${esc(label(k, id))}</span>${chip}</span></button>`
       );
     };
@@ -1049,7 +1050,7 @@
                 `<button type="button" class="rw-how" data-rw-how="${esc(r.id)}" data-m3-ripple>` +
                 `<m3-shape-icon shape="${esc(f.shape || 'burst')}" symbol="${esc(f.symbol || 'emoji_events')}" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
                 `<span class="rw-how-text"><b>${icon('lock')}Unlock with ${esc(needsName(r))}</b>` +
-                `<small>${esc(what)}${what ? ' · ' : ''}${at ? `you’re at ${esc(f.name || '')} ${TIERS[at - 1]}` : 'not started yet'}</small>` +
+                `<small>${what ? `<span>${esc(what)}</span> · ` : ''}<span>${at ? `you’re at ${esc(f.name || '')} ${TIERS[at - 1]}` : 'not started yet'}</span></small>` +
                 (note ? `<small class="rw-error" role="alert">${esc(note)}</small>` : '') +
                 `</span><span class="rw-how-go">${icon('emoji_events')}<span>How to unlock</span>${icon('chevron_right')}</span></button>`;
               return;
