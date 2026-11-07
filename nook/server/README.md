@@ -269,6 +269,22 @@ by itself.
 In an emergency (say the laptop is running out of memory), `NOOK_TEXT_CHECK=off` or
 `NOOK_PICTURE_CHECK=off` in the service's settings turns one off.
 
+## Achievements and the streak (1.4)
+
+The server counts achievements itself (posts, comments, friends, songs and games from the Activity part, screen
+sharing in calls…), in five tiers, I to V, from the list in `js/achievements-data.js`, and keeps everyone's visit
+streak by their own date, with freezes that save it on a missed day. Nothing to set up. Special achievements are
+the ones you give "for whatever reason you want": make them on the Moderation page, or here:
+
+| Command | What it does |
+|---|---|
+| `sudo nook achievement new "Bug hunter" "Found a real bug in Budgie" bug_report boom` | Makes a special achievement (a [Material Symbols](https://fonts.google.com/icons) name and one of the app's shapes are optional) |
+| `sudo nook achievements` | Lists the special achievements, their ids and how many people have each |
+| `sudo nook award NAME ID [TIER]` | Gives someone one (tier 1–5 or I–V, or none); they're told in their inbox |
+| `sudo nook unaward NAME ID` | Takes it away again |
+
+On someone's profile, the medal button (admins only) gives one too.
+
 ## Backups
 
 Every night at 03:30 the database is copied to `/var/lib/nook/backups/` and copies older than 14 days

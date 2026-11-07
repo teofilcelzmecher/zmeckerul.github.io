@@ -282,6 +282,8 @@ const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 
 // what the parts added in 1.4 (achievements, rewards, …) add to everyone's public profile: fn(row) => fields
 const USER_EXTRAS = [];
+// and what they add to "Export my data": fn(user) => { section: [...] }
+const EXPORT_EXTRAS = [];
 function publicUser(u) {
   const badges = badgesOf(u);
   const out = {
@@ -767,7 +769,7 @@ route('POST', '/api/account/recovery', async ({ user, body }) => {
 
 route('GET', '/api/account/export', ({ user }) => {
   const id = user.id;
-  return {
+  const out = {
     exportedAt: new Date().toISOString(),
     note: 'Everything Budgie’s server holds about your account. Images are linked; open each link to download it.',
     profile: Object.assign(meOut(user), { termsAccepted: user.terms }),
@@ -792,6 +794,8 @@ route('GET', '/api/account/export', ({ user }) => {
     images: db.all('SELECT id, mime, created_at AS createdAt FROM images WHERE owner_id = ?', id).map((r) => ({ url: imageUrl(r.id), type: r.mime, createdAt: r.createdAt })),
     videos: db.all('SELECT * FROM videos WHERE owner_id = ?', id).map((v) => Object.assign(videoOut(v), { post: v.post_id || undefined, createdAt: v.created_at })),
   };
+  for (const extra of EXPORT_EXTRAS) Object.assign(out, extra(user));
+  return out;
 });
 
 /** wipes an account: its posts and comments are emptied and marked removed, everything else goes */
@@ -1957,6 +1961,15 @@ const RING_MS = Number(process.env.NOOK_RING_MS) || 35 * 1000; // NOOK_RING_MS s
 // a page reloaded mid-call has this long to come back before it counts as having left (NOOK_AWAY_MS, for the tests)
 const AWAY_MS = Number(process.env.NOOK_AWAY_MS) || 30 * 1000;
 const calls = new Map(); // id -> the call
+// calls that ended in the last half hour, and how long each person was in each call (1.4: the time someone shares
+// their screen counts towards an achievement, and it can't be more than they were in the call)
+const endedCalls = new Map();
+function callSpan(callId, userId) {
+  const c = calls.get(callId) || endedCalls.get(callId);
+  if (!c || !c.spent || !c.ever.has(userId)) return null;
+  const since = c.since.get(userId);
+  return (c.spent.get(userId) || 0) + (since ? (c.ended || now()) - since : 0);
+}
 const streams = new Map(); // user id -> their devices' open event streams
 const queues = new Map(); // user id -> the last two minutes of signals, for a device that polls instead of listening
 const lastSeen = new Map(); // user id -> when one of their devices was last in touch
@@ -2089,6 +2102,8 @@ const callOf = (userId) => [...calls.values()].find((c) => c.joined.has(userId))
 
 function newCall(user, media, { group = null, peer = null, ring }) {
   const c = { id: randomId('c', 9), media, group, peer, by: user.id, ringing: new Set(ring), joined: new Set([user.id]), ever: new Set([user.id]), started: now(), answered: 0 };
+  c.since = new Map([[user.id, c.started]]); // when each person in it came in
+  c.spent = new Map(); // and how long each was in it before, if they left and came back
   calls.set(c.id, c);
   const out = callOut(c);
   for (const id of ring) signal(id, 'call-ring', { call: out });
@@ -2148,6 +2163,7 @@ async function joinCall(c, user) {
   const peers = [...c.joined].filter((id) => id !== user.id);
   c.joined.add(user.id);
   c.ever.add(user.id);
+  if (!c.since.has(user.id)) c.since.set(user.id, now());
   c.ringing.delete(user.id);
   if (!c.answered && c.joined.size > 1) c.answered = now();
   const out = callOut(c);
@@ -2168,6 +2184,10 @@ function back(c, userId) {
 function leaveCall(c, userId) {
   back(c, userId);
   if (!c.joined.delete(userId)) return void c.ringing.delete(userId);
+  if (c.since.has(userId)) {
+    c.spent.set(userId, (c.spent.get(userId) || 0) + now() - c.since.get(userId));
+    c.since.delete(userId);
+  }
   for (const id of c.joined) signal(id, 'call-left', { call: c.id, user: nameOf(userId) });
   if (!c.answered) return endCall(c, 'cancelled');
   if (c.group ? c.joined.size === 0 : c.joined.size < 2) endCall(c, 'ended');
@@ -2176,6 +2196,9 @@ function leaveCall(c, userId) {
 function endCall(c, reason) {
   if (!calls.delete(c.id)) return;
   clearTimeout(c.timer);
+  c.ended = now();
+  endedCalls.set(c.id, c);
+  setTimeout(() => endedCalls.delete(c.id), 30 * MINUTE).unref();
   for (const timer of (c.away || new Map()).values()) clearTimeout(timer);
   for (const id of new Set([...c.ever, ...c.ringing, c.by, ...(c.peer ? [c.peer] : [])])) signal(id, 'call-ended', { call: c.id, reason, until: reason === 'limit' ? nextMonth() : undefined });
   // its line in the chat: how long it went on, or that nobody picked up
@@ -2622,9 +2645,12 @@ const modules = {};
 const moduleCtx = {
   db, route, limit, fail, text, notify, now, push, CONFIG, VERSION, MINUTE, HOUR, DAY, readImage, saveImage, imageUrl, friendship, hasBlocked,
   lastSeen, badgesOf, publicUser, takeDown, ban, pictures, textmodel, autoReport, USER_EXTRAS, REQUEST_GUARDS, ON_AUTHED, CLI, modules,
+  EXPORT_EXTRAS,
   // true when this is the running server, false when cli.js loaded it for a command: timers only start when serving
   serving: require.main === module,
 };
+// how long someone was in a call (1.4: screen-sharing time is capped by it)
+moduleCtx.callSpan = callSpan;
 for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {

@@ -13,6 +13,7 @@
  *   'minutes:<key>'   a number of minutes in stats, counted in hours (tiers are hours)
  *   'stickers'        stickers and emojis made
  * `legacy` names the badges from before 1.4 that this replaces: whoever had one keeps the tier it stood for.
+ * `one` is what `desc` says when {n} is 1 ("Made your first post", not "Made 1 posts").
  *
  * A reward is something for a profile: a name effect, a font for the name, a frame round the picture, or a scene
  * behind the profile. `needs` is the tier of an achievement that unlocks it; none means everyone has it.
@@ -21,25 +22,25 @@ window.NOOK_ACHIEVEMENTS = {
   tiers: ['I', 'II', 'III', 'IV', 'V'],
 
   families: [
-    { id: 'hello', name: 'Hello, Budgie', desc: 'Opened Budgie on {n} different days', symbol: 'waving_hand', shape: 'cookie9', count: 'visits', tiers: [1, 10, 50, 150, 365], legacy: { hello: 1 } },
+    { id: 'hello', name: 'Hello, Budgie', desc: 'Opened Budgie on {n} different days', symbol: 'waving_hand', shape: 'cookie9', one: 'Opened Budgie for the first time', count: 'visits', tiers: [1, 10, 50, 150, 365], legacy: { hello: 1 } },
     { id: 'streak', name: 'On fire', desc: 'Kept a {n}-day visit streak', symbol: 'local_fire_department', shape: 'burst', count: 'streak', tiers: [3, 7, 30, 100, 365], legacy: { streak3: 1, streak7: 2 } },
-    { id: 'posts', name: 'Wordsmith', desc: 'Made {n} posts', symbol: 'edit', shape: 'sunny', count: 'posts', tiers: [1, 10, 50, 200, 1000], legacy: { firstpost: 1 } },
+    { id: 'posts', name: 'Wordsmith', desc: 'Made {n} posts', symbol: 'edit', shape: 'sunny', one: 'Made your first post', count: 'posts', tiers: [1, 10, 50, 200, 1000], legacy: { firstpost: 1 } },
     { id: 'comments', name: 'Conversationalist', desc: 'Left {n} comments', symbol: 'forum', shape: 'clover4', count: 'comments', tiers: [5, 25, 100, 500, 2000], legacy: { chatty: 1 } },
-    { id: 'friends', name: 'Friendly', desc: 'Made {n} friends', symbol: 'diversity_1', shape: 'heart', count: 'friends', tiers: [1, 5, 15, 30, 60], legacy: { friendly: 1 } },
+    { id: 'friends', name: 'Friendly', desc: 'Made {n} friends', symbol: 'diversity_1', shape: 'heart', one: 'Made your first friend', count: 'friends', tiers: [1, 5, 15, 30, 60], legacy: { friendly: 1 } },
     { id: 'joins', name: 'Social butterfly', desc: 'Joined {n} nests', symbol: 'diversity_3', shape: 'flower', count: 'joins', tiers: [3, 8, 15, 25, 40], legacy: { joiner: 2 } },
     { id: 'explorer', name: 'Explorer', desc: 'Visited {n} different nests', symbol: 'explore', shape: 'arch', count: 'visited', tiers: [6, 12, 20, 35, 50], legacy: { explorer: 1 } },
-    { id: 'polls', name: 'Voice of the people', desc: 'Voted in {n} polls', symbol: 'how_to_vote', shape: 'pill', count: 'polls', tiers: [1, 10, 50, 150, 500], legacy: { pollster: 1 } },
+    { id: 'polls', name: 'Voice of the people', desc: 'Voted in {n} polls', symbol: 'how_to_vote', shape: 'pill', one: 'Voted in your first poll', count: 'polls', tiers: [1, 10, 50, 150, 500], legacy: { pollster: 1 } },
     { id: 'sparks', name: 'Sparky', desc: 'Gave {n} Sparks', symbol: 'auto_awesome', shape: 'boom', count: 'sparks', tiers: [10, 50, 250, 1000, 5000], legacy: { sparky: 1 } },
-    { id: 'collections', name: 'Curator', desc: 'Made {n} collections', symbol: 'collections_bookmark', shape: 'gem', count: 'collections', tiers: [1, 3, 6, 10, 20], legacy: { curator: 1 } },
-    { id: 'founder', name: 'Founder', desc: 'Created {n} nests', symbol: 'castle', shape: 'softBurst', count: 'nests', tiers: [1, 2, 3, 5, 10], legacy: { founder: 1 } },
+    { id: 'collections', name: 'Curator', desc: 'Made {n} collections', symbol: 'collections_bookmark', shape: 'gem', one: 'Made your first collection', count: 'collections', tiers: [1, 3, 6, 10, 20], legacy: { curator: 1 } },
+    { id: 'founder', name: 'Founder', desc: 'Created {n} nests', symbol: 'castle', shape: 'softBurst', one: 'Created your first nest', count: 'nests', tiers: [1, 2, 3, 5, 10], legacy: { founder: 1 } },
     { id: 'songs', name: 'Music lover', desc: 'Listened to {n} different songs', symbol: 'music_note', shape: 'cookie12', count: 'set:music.songs', tiers: [10, 50, 250, 1000, 5000] },
     { id: 'artists', name: 'Crate digger', desc: 'Listened to {n} different artists', symbol: 'album', shape: 'cookie7', count: 'set:music.artists', tiers: [5, 25, 100, 300, 1000] },
     { id: 'genres', name: 'Genre hopper', desc: 'Listened to {n} different genres', symbol: 'queue_music', shape: 'flower', count: 'set:music.genres', tiers: [3, 8, 15, 30, 50] },
-    { id: 'listening', name: 'Headphones on', desc: 'Listened for {n} hours', symbol: 'headphones', shape: 'pill', count: 'minutes:music.minutes', tiers: [1, 10, 50, 200, 1000] },
-    { id: 'games', name: 'Gamer', desc: 'Played {n} different games', symbol: 'sports_esports', shape: 'pixelCircle', count: 'set:games.played', tiers: [1, 5, 15, 40, 100] },
+    { id: 'listening', name: 'Headphones on', desc: 'Listened for {n} hours', symbol: 'headphones', shape: 'pill', one: 'Listened for an hour', count: 'minutes:music.minutes', tiers: [1, 10, 50, 200, 1000] },
+    { id: 'games', name: 'Gamer', desc: 'Played {n} different games', symbol: 'sports_esports', shape: 'pixelCircle', one: 'Played your first game', count: 'set:games.played', tiers: [1, 5, 15, 40, 100] },
     { id: 'playtime', name: 'Marathon', desc: 'Played for {n} hours', symbol: 'timer', shape: 'pixelTriangle', count: 'minutes:games.minutes', tiers: [5, 25, 100, 500, 2000] },
-    { id: 'sharing', name: 'Broadcaster', desc: 'Shared your screen for {n} hours', symbol: 'present_to_all', shape: 'clover8', count: 'minutes:share.minutes', tiers: [1, 5, 25, 100, 500] },
-    { id: 'stickers', name: 'Sticker artist', desc: 'Made {n} stickers and emojis', symbol: 'add_reaction', shape: 'puffy', count: 'stickers', tiers: [1, 5, 15, 30, 50] },
+    { id: 'sharing', name: 'Broadcaster', desc: 'Shared your screen for {n} hours', symbol: 'present_to_all', shape: 'clover8', one: 'Shared your screen for an hour', count: 'minutes:share.minutes', tiers: [1, 5, 25, 100, 500] },
+    { id: 'stickers', name: 'Sticker artist', desc: 'Made {n} stickers and emojis', symbol: 'add_reaction', shape: 'puffy', one: 'Made your first sticker or emoji', count: 'stickers', tiers: [1, 5, 15, 30, 50] },
   ],
 
   // what a streak earns besides its tiers: a freeze every few days (it saves the streak on a day you miss), and a
