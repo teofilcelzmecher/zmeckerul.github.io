@@ -246,12 +246,33 @@
         setTimeout(check, 250);
       })();
     });
+  // and nothing else open over it for a moment: what the app shows as it starts (the day's streak) goes first, and a
+  // sheet someone opened is finished with before anything is asked, for up to two minutes
+  const settled = () =>
+    new Promise((resolve) => {
+      const started = Date.now();
+      let clearSince = 0;
+      (function check() {
+        if (!signedIn() || Date.now() - started > 120000) return resolve(false);
+        const clear = !document.documentElement.classList.contains('gated') && !document.querySelector('dialog[open]');
+        clearSince = clear ? clearSince || Date.now() : 0;
+        if (clearSince && Date.now() - clearSince >= 2500) return resolve(true);
+        setTimeout(check, 250);
+      })();
+    });
   async function ask() {
     if (!PUSH || !(await showing())) return;
     const now = await Push.checkPermissions().catch(() => null);
     if (!now) return;
     if (now.receive === 'granted') return register();
     if (now.receive === 'denied') return;
+    try {
+      if (localStorage.getItem('nook-push-asked')) return;
+    } catch (_) {
+      return;
+    }
+    // the question opens straight after this (nothing can open in between)
+    if (!(await settled())) return;
     try {
       if (localStorage.getItem('nook-push-asked')) return;
       localStorage.setItem('nook-push-asked', '1');

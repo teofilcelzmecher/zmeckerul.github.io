@@ -231,87 +231,87 @@ a91a878	text	js/achievements.js:500	Keep it going
 66e2b96	text	js/achievements.js:748	A freeze kept your streak going
 6538be1	text	js/achievements.js:748	Your streak started again
 e93d190	pattern	js/achievements.js:748	{0}-day streak!
-c005f41	pattern	js/achievements.js:790	{1}-day streak
-afc24ba	pattern	js/achievements.js:842	Next at {0} days
-cd3cc48	pattern	js/achievements.js:850	{2} of {3} freezes
-59c89f0	pattern	js/achievements.js:850	A freeze keeps your streak going on a day you miss. You earn one every {0} days, and can hold {1}.
-5526a9b	text	js/achievements.js:850	Freezes
-7b72883	text	js/achievements.js:851	This week
-3605023	pattern	js/achievements.js:852	Best: {2} days
-adaab1b	pattern	js/achievements.js:865	Special · {0}
-a798882	text	js/achievements.js:865	Locked
-556aa19	text	js/achievements.js:872	Top tier
-a6634f2	text	js/achievements.js:891	Achievements
-6b1f893	text	js/achievements.js:897	Flex
-2f4f4b7	text	js/achievements.js:897	Rewards
-ad565d9	text	js/achievements.js:897	Feature
-d94dfbe	text	js/achievements.js:900	Show fewer
-c7767b0	pattern	js/achievements.js:900	Show all {0}
-0f17d7b	text	js/achievements.js:1021	That achievement isn’t here any more.
-2e34b16	text	js/achievements.js:1027	A special achievement from Budgie.
-ee0fcb7	pattern	js/achievements.js:1027	Given by Budgie’s team on {0}
-b7f4981	pattern	js/achievements.js:1027	Given by Budgie on {0}
-bf9f405	pattern	js/achievements.js:1033	{1} of {2}{3} to Tier {4}
-1e213ca	pattern	js/achievements.js:1043	Tier {0} · {1}
-ae31ad5	text	js/achievements.js:1054	Featured
-7a57bd3	text	js/achievements.js:1054	Feature it
-da15813	pattern	js/achievements.js:1094	You can feature up to {0}. Take one off first.
-359dda1	text	js/achievements.js:1102	Featured on your profile
-0f623be	text	js/achievements.js:1102	Nothing featured
-27fcbb1	text	js/achievements.js:1119	Reach an achievement first, then you can feature it.
-34940a8	text	js/achievements.js:1122	Feature achievements
-7b318db	pattern	js/achievements.js:1127	Pick up to {0}. They show under your name on your profile, and small by your name on posts and comments.
-52b26d3	pattern	js/achievements.js:1134	{0} of {1} chosen
-7b7f9e2	pattern	js/achievements.js:1303	Best: {0} days
-d6f960e	text	js/achievements.js:1321	1 reached
-cbd3234	text	js/achievements.js:1360	The first ones are on their way
-a2e8ed7	pattern	js/achievements.js:1399	My {0}-day streak on Budgie
-f4ab121	text	js/achievements.js:1399	My achievements on Budgie
-2dbe008	text	js/achievements.js:1408	Making your card
-2c1469f	text	js/achievements.js:1411	Save image
-39a2069	text	js/achievements.js:1412	Send to a friend
-41d26ce	text	js/achievements.js:1413	Post it
-60816eb	text	js/achievements.js:1422	Couldn’t make the picture on this device.
-7623a2b	text	js/achievements.js:1446	Link to your profile copied
-8babc6a	text	js/achievements.js:1449	Couldn’t share it from here. Try Save image.
-516c033	text	js/achievements.js:1475	Add a friend first, then you can send them your card.
-39375ee	pattern	js/achievements.js:1493	Sent to u/{0}
-8434ee9	pattern	js/achievements.js:1532	Give u/{1} a special achievement
-9fcc240	text	js/achievements.js:1532	Give an achievement
-b6fdd03	text	js/achievements.js:1541	Make a special achievement on the Moderation page first.
-73c583e	pattern	js/achievements.js:1545	Has it{0}
-b70ef35	pattern	js/achievements.js:1547	Give u/{0} an achievement
-5bd44eb	text	js/achievements.js:1553	Tier
-ea127dc	text	js/achievements.js:1567	Take away
-45d381a	text	js/achievements.js:1573	Taken away
-be8ca1d	text	js/achievements.js:1573	They didn’t have it
-fbefae1	text	js/achievements.js:1581	Give
-b3c85dc	text	js/achievements.js:1589	Given: they’ve been told
-4fa02bd	text	js/achievements.js:1589	They already have that
-df4159a	text	js/achievements.js:1604	Special achievements
-3cd5781	text	js/achievements.js:1608	Bug hunter
-0b62ca1	text	js/achievements.js:1609	Found a real bug in Budgie
-41db52e	text	js/achievements.js:1609	What it’s for
-da5fa11	text	js/achievements.js:1613	Make it
-3126147	text	js/achievements.js:1616	Give one from someone’s profile (the medal button), or with
-5407b65	text	js/achievements.js:1616	on the server. People are told when they get one.
-2f7b8f7	text	js/achievements.js:1651	1 person has it
-1b7f184	pattern	js/achievements.js:1651	{0} people have it
-460403b	pattern	js/achievements.js:1651	{2} · id {3}
-531c9d4	pattern	js/achievements.js:1652	Delete {1}
-ba85c4f	text	js/achievements.js:1655	No special achievements yet. Make the first one above.
-28f1c77	text	js/achievements.js:1662	Delete this special achievement?
-d053df8	text	js/achievements.js:1664	Everyone who has it loses it. This can’t be undone.
-441bda6	text	js/achievements.js:1670	Deleted
-ade9895	text	js/achievements.js:1688	Special achievement made
-2430706	text	js/achievements.js:1707	Streak and achievements
-b579de1	text	js/achievements.js:1708	Show my streak on my profile
-932ef16	text	js/achievements.js:1708	Others see your flame and how many days in a row you’ve opened Budgie (from 3 days). Off, only you see it.
-4dab278	text	js/achievements.js:1709	Streak celebrations
-8c18206	text	js/achievements.js:1709	A full-screen moment, once a day, when your streak grows. Off, it’s just a small note.
-6fe4f2e	text	js/achievements.js:1710	Calm mode hides streaks and celebrations altogether. Achievements are counted by Budgie’s server from what you do here.
-0a707b9	text	js/achievements.js:1726	Your streak shows on your profile
-0102eea	text	js/achievements.js:1726	Your streak is only for you now
+c005f41	pattern	js/achievements.js:799	{1}-day streak
+afc24ba	pattern	js/achievements.js:851	Next at {0} days
+cd3cc48	pattern	js/achievements.js:859	{2} of {3} freezes
+59c89f0	pattern	js/achievements.js:859	A freeze keeps your streak going on a day you miss. You earn one every {0} days, and can hold {1}.
+5526a9b	text	js/achievements.js:859	Freezes
+7b72883	text	js/achievements.js:860	This week
+3605023	pattern	js/achievements.js:861	Best: {2} days
+adaab1b	pattern	js/achievements.js:874	Special · {0}
+a798882	text	js/achievements.js:874	Locked
+556aa19	text	js/achievements.js:881	Top tier
+a6634f2	text	js/achievements.js:900	Achievements
+6b1f893	text	js/achievements.js:906	Flex
+2f4f4b7	text	js/achievements.js:906	Rewards
+ad565d9	text	js/achievements.js:906	Feature
+d94dfbe	text	js/achievements.js:909	Show fewer
+c7767b0	pattern	js/achievements.js:909	Show all {0}
+0f17d7b	text	js/achievements.js:1030	That achievement isn’t here any more.
+2e34b16	text	js/achievements.js:1036	A special achievement from Budgie.
+ee0fcb7	pattern	js/achievements.js:1036	Given by Budgie’s team on {0}
+b7f4981	pattern	js/achievements.js:1036	Given by Budgie on {0}
+bf9f405	pattern	js/achievements.js:1042	{1} of {2}{3} to Tier {4}
+1e213ca	pattern	js/achievements.js:1052	Tier {0} · {1}
+ae31ad5	text	js/achievements.js:1063	Featured
+7a57bd3	text	js/achievements.js:1063	Feature it
+da15813	pattern	js/achievements.js:1103	You can feature up to {0}. Take one off first.
+359dda1	text	js/achievements.js:1111	Featured on your profile
+0f623be	text	js/achievements.js:1111	Nothing featured
+27fcbb1	text	js/achievements.js:1128	Reach an achievement first, then you can feature it.
+34940a8	text	js/achievements.js:1131	Feature achievements
+7b318db	pattern	js/achievements.js:1136	Pick up to {0}. They show under your name on your profile, and small by your name on posts and comments.
+52b26d3	pattern	js/achievements.js:1143	{0} of {1} chosen
+7b7f9e2	pattern	js/achievements.js:1312	Best: {0} days
+d6f960e	text	js/achievements.js:1330	1 reached
+cbd3234	text	js/achievements.js:1369	The first ones are on their way
+a2e8ed7	pattern	js/achievements.js:1408	My {0}-day streak on Budgie
+f4ab121	text	js/achievements.js:1408	My achievements on Budgie
+2dbe008	text	js/achievements.js:1417	Making your card
+2c1469f	text	js/achievements.js:1420	Save image
+39a2069	text	js/achievements.js:1421	Send to a friend
+41d26ce	text	js/achievements.js:1422	Post it
+60816eb	text	js/achievements.js:1431	Couldn’t make the picture on this device.
+7623a2b	text	js/achievements.js:1455	Link to your profile copied
+8babc6a	text	js/achievements.js:1458	Couldn’t share it from here. Try Save image.
+516c033	text	js/achievements.js:1484	Add a friend first, then you can send them your card.
+39375ee	pattern	js/achievements.js:1502	Sent to u/{0}
+8434ee9	pattern	js/achievements.js:1541	Give u/{1} a special achievement
+9fcc240	text	js/achievements.js:1541	Give an achievement
+b6fdd03	text	js/achievements.js:1550	Make a special achievement on the Moderation page first.
+73c583e	pattern	js/achievements.js:1554	Has it{0}
+b70ef35	pattern	js/achievements.js:1556	Give u/{0} an achievement
+5bd44eb	text	js/achievements.js:1562	Tier
+ea127dc	text	js/achievements.js:1576	Take away
+45d381a	text	js/achievements.js:1582	Taken away
+be8ca1d	text	js/achievements.js:1582	They didn’t have it
+fbefae1	text	js/achievements.js:1590	Give
+b3c85dc	text	js/achievements.js:1598	Given: they’ve been told
+4fa02bd	text	js/achievements.js:1598	They already have that
+df4159a	text	js/achievements.js:1613	Special achievements
+3cd5781	text	js/achievements.js:1617	Bug hunter
+0b62ca1	text	js/achievements.js:1618	Found a real bug in Budgie
+41db52e	text	js/achievements.js:1618	What it’s for
+da5fa11	text	js/achievements.js:1622	Make it
+3126147	text	js/achievements.js:1625	Give one from someone’s profile (the medal button), or with
+5407b65	text	js/achievements.js:1625	on the server. People are told when they get one.
+2f7b8f7	text	js/achievements.js:1660	1 person has it
+1b7f184	pattern	js/achievements.js:1660	{0} people have it
+460403b	pattern	js/achievements.js:1660	{2} · id {3}
+531c9d4	pattern	js/achievements.js:1661	Delete {1}
+ba85c4f	text	js/achievements.js:1664	No special achievements yet. Make the first one above.
+28f1c77	text	js/achievements.js:1671	Delete this special achievement?
+d053df8	text	js/achievements.js:1673	Everyone who has it loses it. This can’t be undone.
+441bda6	text	js/achievements.js:1679	Deleted
+ade9895	text	js/achievements.js:1697	Special achievement made
+2430706	text	js/achievements.js:1716	Streak and achievements
+b579de1	text	js/achievements.js:1717	Show my streak on my profile
+932ef16	text	js/achievements.js:1717	Others see your flame and how many days in a row you’ve opened Budgie (from 3 days). Off, only you see it.
+4dab278	text	js/achievements.js:1718	Streak celebrations
+8c18206	text	js/achievements.js:1718	A full-screen moment, once a day, when your streak grows. Off, it’s just a small note.
+6fe4f2e	text	js/achievements.js:1719	Calm mode hides streaks and celebrations altogether. Achievements are counted by Budgie’s server from what you do here.
+0a707b9	text	js/achievements.js:1735	Your streak shows on your profile
+0102eea	text	js/achievements.js:1735	Your streak is only for you now
 a0a85f4	text	js/ads.js:42	Sponsored
 1462bd6	text	js/api.js:44	Budgie’s server isn’t set up yet.
 2c035ac	text	js/api.js:49	Bearer

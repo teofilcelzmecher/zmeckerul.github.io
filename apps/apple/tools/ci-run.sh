@@ -25,9 +25,9 @@ report() { # udid
   local data
   data=$(xcrun simctl get_app_container "$1" com.budgiesocial.app data 2>/dev/null) && echo "$data/Documents/budgie-diagnostics.json"
 }
-# the page reports 9 seconds after it starts; a simulator's first start can take much longer than that, so this waits
-# for this launch's report (the last one is removed before each launch, so it's never read again by mistake), then
-# takes the screenshot
+# the page reports 9 seconds after it starts, or once it has drawn when it's still loading then (up to 45 seconds); a
+# simulator's first start can take longer than that, so this waits for this launch's report (the last one is removed
+# before each launch, so it's never read again by mistake), then takes the screenshot
 shoot() { # udid, name, phase
   local file
   file=$(report "$1")
@@ -88,6 +88,6 @@ for path in reports:
     for what, good in want.items():
         print(('ok  ' if good else 'FAIL'), name, what)
         problems += not good
-    print('    ', json.dumps({k: r.get(k) for k in ['title', 'hash', 'width', 'height', 'native']}))
+    print('    ', json.dumps({k: r.get(k) for k in ['title', 'hash', 'width', 'height', 'loadedIn', 'native']}))
 sys.exit(1 if problems else 0)
 EOF

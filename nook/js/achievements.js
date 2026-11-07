@@ -749,13 +749,22 @@
       M3.toast(note, { symbol: r.usedFreeze ? 'ac_unit' : 'local_fire_department', shape: 'burst', timeout: 3000 });
       return;
     }
-    // once the page has settled (and not over a call); celebrations of new tiers wait their turn behind it
+    // once the page has settled (and not over a call), and not over something else that's open (a question the app
+    // asks as it starts, a sheet): it waits for that to close, up to two minutes, then says it quietly instead.
+    // Celebrations of new tiers wait their turn behind it
     let release;
     momentDone = new Promise((resolve) => (release = resolve));
-    setTimeout(() => {
+    const started = Date.now();
+    const go = () => {
       if (document.querySelector('.call-screen:not([hidden]):not(.ended)')) return release();
+      if (document.querySelector('dialog[open]:not(.ach-moment)')) {
+        if (Date.now() - started < 120000) return setTimeout(go, 400);
+        M3.toast(r.usedFreeze ? 'A freeze kept your streak going' : r.lost ? 'Your streak started again' : `${r.count}-day streak!`, { symbol: r.usedFreeze ? 'ac_unit' : 'local_fire_department', shape: 'burst', timeout: 3000 });
+        return release();
+      }
       streakMoment(r).then(release, release);
-    }, 700);
+    };
+    setTimeout(go, 700);
   });
   // what the server unlocked as you did something (or while you were away): look, and celebrate what's new
   store.on('achievements', () => refreshMine(100));
