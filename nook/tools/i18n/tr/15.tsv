@@ -21,7 +21,7 @@ d2e8fb0	Ai votat în primul tău sondaj	Votaste en tu primera encuesta	Tu as vot
 0724f68	Melodii diferite ascultate: {n}	Escuchaste {n} canciones distintas	Tu as écouté {n} morceaux différents	{n} verschiedene Songs gehört	Hai ascoltato {n} canzoni diverse
 6c0714b	Căutător de discuri	Rastreador de discos	Chineur de disques	Plattensammler	Cercatore di dischi
 9effba5	Artiști diferiți ascultați: {n}	Escuchaste a {n} artistas distintos	Tu as écouté {n} artistes différents	{n} verschiedene Künstler gehört	Hai ascoltato {n} artisti diversi
-b328d08	Sărit între genuri	Saltando de género en género	Papillon des genres	Genre-Hopper	Saltatore di generi
+b328d08	Hoinar printre genuri	Saltando de género en género	Papillon des genres	Genre-Hopper	Saltatore di generi
 75af840	Genuri diferite ascultate: {n}	Escuchaste {n} géneros distintos	Tu as écouté {n} genres différents	{n} verschiedene Genres gehört	Hai ascoltato {n} generi diversi
 902a573	Căștile pe urechi	Con los cascos puestos	Casque sur les oreilles	Kopfhörer auf	Cuffie addosso
 ccc9ebe	Ore de ascultat: {n}	Escuchaste durante {n} horas	Tu as écouté pendant {n} heures	{n} Stunden lang gehört	Hai ascoltato per {n} ore
@@ -56,7 +56,7 @@ e368d0b	Flăcări	Llamas	Flammes	Flammen	Fiamme
 82d8ad5	Pixeli	Píxeles	Pixels	Pixel	Pixel
 b6c22d0	Orbită	Órbita	Orbite	Umlaufbahn	Orbita
 f715c8d	Petale	Pétalos	Pétales	Blütenblätter	Petali
-09d463e	Holograma	Holograma	Hologramme	Hologramm	Ologramma
+09d463e	Hologramă	Holograma	Hologramme	Hologramm	Ologramma
 410494f	Coroană	Corona	Couronne	Krone	Corona
 58356fb	Bule	Burbujas	Bulles	Blasen	Bolle
 79141e0	Confetti	Confeti	Confettis	Konfetti	Coriandoli
@@ -168,7 +168,7 @@ df4159a	Realizări speciale	Logros especiales	Succès spéciaux	Besondere Errung
 3cd5781	Vânător de bug-uri	Cazador de bugs	Chasseur de bugs	Bug-Jäger	Cacciatore di bug
 0b62ca1	A găsit un bug adevărat în Budgie	Encontró un bug de verdad en Budgie	A trouvé un vrai bug dans Budgie	Hat einen echten Bug in Budgie gefunden	Ha trovato un vero bug in Budgie
 41db52e	La ce e bună	Para qué sirve	À quoi ça sert	Wofür das gut ist	A cosa serve
-da5fa11	Creeaz-o	Crear	Créer	Erstellen	Crea
+da5fa11	Creează-o	Crear	Créer	Erstellen	Crea
 3126147	Oferă una din profilul cuiva (butonul cu medalie) sau cu	Dale una desde el perfil de alguien (el botón de la medalla) o con	Donnes-en un depuis le profil de quelqu’un (le bouton médaille) ou avec	Vergib eine über das Profil einer Person (der Medaillen-Button) oder mit	Assegnane uno dal profilo di qualcuno (il pulsante della medaglia) o con
 5407b65	pe server. Oamenii sunt anunțați când primesc una.	en el servidor. Se avisa a la gente cuando recibe uno.	sur le serveur. Les gens sont prévenus quand ils en reçoivent un.	auf dem Server. Die Leute werden benachrichtigt, wenn sie eine bekommen.	sul server. Le persone vengono avvisate quando ne ricevono uno.
 2f7b8f7	1 persoană o are	1 persona lo tiene	1 personne l’a	1 Person hat sie	1 persona ce l’ha
@@ -374,7 +374,7 @@ f4d0ddd	Rețelele lui pot folosi din nou Budgie, iar u/{0} se poate conecta din 
 6b46ab1	Rețeaua lui poate folosi din nou Budgie. Contul lui rămâne interzis, dacă a fost interzis în alt fel.	Su red puede volver a usar Budgie. Su cuenta sigue expulsada, si lo estaba por otro motivo.	Son réseau peut de nouveau utiliser Budgie. Son compte reste banni, s’il l’était d’une autre façon.	Sein Netzwerk kann Budgie wieder nutzen. Das Konto bleibt gesperrt, falls es auf andere Weise gesperrt wurde.	La sua rete può usare di nuovo Budgie. Il suo account resta bannato, se lo era in un altro modo.
 61c9fab	Rețelele lui pot folosi din nou Budgie. Contul lui rămâne interzis, dacă a fost interzis în alt fel.	Sus redes pueden volver a usar Budgie. Su cuenta sigue expulsada, si lo estaba por otro motivo.	Ses réseaux peuvent de nouveau utiliser Budgie. Son compte reste banni, s’il l’était d’une autre façon.	Seine Netzwerke können Budgie wieder nutzen. Das Konto bleibt gesperrt, falls es auf andere Weise gesperrt wurde.	Le sue reti possono usare di nuovo Budgie. Il suo account resta bannato, se lo era in un altro modo.
 22a0095	Toți cei din acea rețea pot folosi din nou Budgie.	Todos los de esa red pueden volver a usar Budgie.	Tous ceux de ce réseau peuvent de nouveau utiliser Budgie.	Alle in diesem Netzwerk können Budgie wieder nutzen.	Tutti su quella rete possono usare di nuovo Budgie.
-744aa4b	Ridic-o	Levántala	Lève-le	Aufheben	Revocalo
+744aa4b	Ridică-o	Levántala	Lève-le	Aufheben	Revocalo
 58a6d70	Ridicat: u/{0} poate reveni	Levantada: u/{0} puede volver	Levé : u/{0} peut revenir	Aufgehoben: u/{0} kann zurückkommen	Revocato: u/{0} può tornare
 f649c96	Interdicție ridicată	Expulsión levantada	Bannissement levé	Sperre aufgehoben	Ban revocato
 eaedab5	Scrie numele de utilizator al contului de interzis.	Escribe el nombre de usuario de la cuenta que quieres expulsar.	Saisis le nom d’utilisateur du compte à bannir.	Gib den Benutzernamen des Kontos ein, das gesperrt werden soll.	Scrivi il nome utente dell’account da bannare.
@@ -436,8 +436,8 @@ b9b70a2	Al tău: {2}	Tu {2}	Ton {2}	Dein {2}	Il tuo {2}
 4890495	Dans de bucurie	Baile de la alegría	Danse de la joie	Freudentanz	Ballo della gioia
 0d556a7	Scrie-l între două puncte ca să-l folosești, ca :party_budgie:. Litere mici, cifre și _.	Escríbelo entre dos puntos para usarlo, como :party_budgie:. Letras minúsculas, números y _.	Écris-le entre deux-points pour l’utiliser, comme :party_budgie:. Lettres minuscules, chiffres et _.	Schreib ihn zwischen Doppelpunkte, um ihn zu benutzen, etwa :party_budgie:. Kleinbuchstaben, Ziffern und _.	Scrivilo tra due punti per usarlo, come :party_budgie:. Lettere minuscole, numeri e _.
 0617764	Te ajută să-l găsești și se vede când cineva îl ține apăsat.	Te ayuda a encontrarlo y se ve cuando alguien lo mantiene pulsado.	Ça t’aide à le retrouver et ça s’affiche quand quelqu’un le garde appuyé.	Hilft dir, es zu finden, und wird angezeigt, wenn jemand es gedrückt hält.	Ti aiuta a trovarlo e si vede quando qualcuno lo tiene premuto.
-e119c23	Fă emoji	Crear emoji	Créer l’emoji	Emoji erstellen	Crea emoji
-20ea284	Fă sticker	Crear sticker	Créer le sticker	Sticker erstellen	Crea sticker
+e119c23	Creează emoji	Crear emoji	Créer l’emoji	Emoji erstellen	Crea emoji
+20ea284	Creează sticker	Crear sticker	Créer le sticker	Sticker erstellen	Crea sticker
 8cd8acf	Dă-i un nume de 2–32 de litere mici, cifre sau liniuțe de subliniere.	Ponle un nombre de 2 a 32 letras minúsculas, números o guiones bajos.	Donne-lui un nom de 2 à 32 lettres minuscules, chiffres ou tirets bas.	Gib ihm einen Namen aus 2–32 Kleinbuchstaben, Ziffern oder Unterstrichen.	Dagli un nome di 2–32 lettere minuscole, numeri o trattini bassi.
 484022a	Ai deja :{0}:. Alege alt nume.	Ya tienes :{0}:. Elige otro nombre.	Tu as déjà :{0}:. Choisis un autre nom.	Du hast schon :{0}:. Wähle einen anderen Namen.	Hai già :{0}:. Scegli un altro nome.
 820d600	Se verifică…	Comprobando…	Vérification…	Wird geprüft …	Controllo…
@@ -491,8 +491,8 @@ d6430fa	Fă autopromovare doar în postările tale	Limita la autopromoción a tu
 def2b5f	Echipament	Equipo	Matériel	Equipment	Attrezzatura
 bfbeaf9	Artă	Arte	Illustration	Artwork	Artwork
 a7d3bef	Cinele tale din timpul săptămânii, rețetele de familie și experimentele din bucătărie. Postează rețeta, altfel nu s-a întâmplat.	Tus cenas entre semana, recetas de familia y experimentos de cocina. Publica la receta o no ha pasado.	Tes dîners de semaine, recettes de famille et expériences de cuisine. Publie la recette, sinon c’est comme si ça n’avait pas existé.	Deine Abendessen unter der Woche, Familienrezepte und Küchenexperimente. Poste das Rezept, sonst ist es nie passiert.	Le tue cene infrasettimanali, le ricette di famiglia e gli esperimenti in cucina. Pubblica la ricetta, altrimenti non è mai successo.
-25b7929	Fără rețetă nu există	Sin receta no ha pasado	Sans recette, ça n’a pas existé	Ohne Rezept ist es nie passiert	Senza ricetta non è mai successo
-7915332	Fără rușinat mâncarea altora	Nada de criticar lo que come la gente	Pas de moqueries sur ce que mangent les gens	Kein Food-Shaming	Niente food shaming
+25b7929	Fără rețetă, nu s-a întâmplat	Sin receta no ha pasado	Sans recette, ça n’a pas existé	Ohne Rezept ist es nie passiert	Senza ricetta non è mai successo
+7915332	Fără să rușinezi mâncarea altora	Nada de criticar lo que come la gente	Pas de moqueries sur ce que mangent les gens	Kein Food-Shaming	Niente food shaming
 4de2ff3	Marchează părerile picante ca spoilere	Marca las opiniones picantes como spoilers	Marque les avis tranchés comme spoilers	Kennzeichne scharfe Meinungen als Spoiler	Segna le opinioni piccanti come spoiler
 1dcda80	Rețetă	Receta	Recette	Rezept	Ricetta
 2758e32	Eșec	Fracaso	Raté	Reinfall	Fallimento
@@ -510,16 +510,16 @@ e6cb6f8	Marchează cu spoiler rezultatele lansărilor	Marca con spoiler los resu
 c1d0cb3	Astrofoto	Astrofoto	Astrophoto	Astrofoto	Astrofoto
 34c808d	Știri	Noticias	Actualité	News	Notizie
 c650915	Jocuri liniștitoare și oamenii care le iubesc. Împărtășește-ți fermele, insulele și micile victorii.	Juegos reconfortantes y la gente que los quiere. Comparte tus granjas, tus islas y tus pequeñas victorias.	Des jeux réconfortants et celles et ceux qui les aiment. Partage tes fermes, tes îles et tes petites victoires.	Wohlfühlspiele und die Leute, die sie lieben. Teile deine Farmen, deine Inseln und deine kleinen Siege.	Giochi rilassanti e le persone che li amano. Condividi le tue fattorie, le tue isole e le tue piccole vittorie.
-9e7f2ed	Păstrează totul pe plan sănătos	Mantén un ambiente sano	Reste bienveillant	Bleib wohlwollend	Mantieni un clima sereno
+9e7f2ed	Păstrează atmosfera caldă și prietenoasă	Mantén un ambiente sano	Reste bienveillant	Bleib wohlwollend	Mantieni un clima sereno
 6c1f634	Marchează spoilerele	Etiqueta los spoilers	Signale les spoilers	Kennzeichne Spoiler	Segna gli spoiler
 93e7840	Capturile de ecran au nevoie de context	Las capturas necesitan contexto	Les captures d’écran ont besoin de contexte	Screenshots brauchen Kontext	Gli screenshot hanno bisogno di contesto
 60c152d	Captură de ecran	Captura	Capture d’écran	Screenshot	Screenshot
 6422fcc	Recomandare	Recomendación	Recommandation	Empfehlung	Consiglio
 19130d3	Realizare	Logro	Succès	Errungenschaft	Traguardo
-8ea717f	Navetiști, pilote, cicloturiști și oameni cărora pur și simplu le plac bicicletele.	Personas que van al trabajo en bici, que corren, que viajan y a las que simplemente les gustan las bicis.	Cyclistes du quotidien, coureurs, randonneurs et gens qui aiment simplement le vélo.	Pendler, Rennradler, Tourenfahrer und alle, die einfach Fahrräder mögen.	Pendolari, corridori, cicloturisti e chi semplicemente ama le bici.
+8ea717f	Navetiști, concurenți, cicloturiști și oameni cărora pur și simplu le plac bicicletele.	Personas que van al trabajo en bici, que corren, que viajan y a las que simplemente les gustan las bicis.	Cyclistes du quotidien, coureurs, randonneurs et gens qui aiment simplement le vélo.	Pendler, Rennradler, Tourenfahrer und alle, die einfach Fahrräder mögen.	Pendolari, corridori, cicloturisti e chi semplicemente ama le bici.
 2a1e41f	Trasee, reparații, ture și tot ce ține de două roți.	Rutas, reparaciones, salidas y todo lo demás sobre dos ruedas.	Itinéraires, réparations, sorties et tout le reste sur deux roues.	Routen, Reparaturen, Touren und alles andere auf zwei Rädern.	Percorsi, riparazioni, uscite e tutto il resto su due ruote.
 141f8c0	Împărtășește trasee, nu adrese private	Comparte rutas, no direcciones privadas	Partage des itinéraires, pas des adresses privées	Teile Routen, keine privaten Adressen	Condividi percorsi, non indirizzi privati
-701d693	Fii amabil cu ciclistii noi	Sé amable con los ciclistas nuevos	Sois sympa avec les nouveaux cyclistes	Sei nett zu neuen Fahrern	Sii gentile con i nuovi ciclisti
+701d693	Fii amabil cu cicliștii noi	Sé amable con los ciclistas nuevos	Sois sympa avec les nouveaux cyclistes	Sei nett zu neuen Fahrern	Sii gentile con i nuovi ciclisti
 2386bd4	Păstrează dezbaterile despre cască civilizate	Mantén los debates sobre el casco cordiales	Garde les débats sur le casque courtois	Halte Helmdebatten sachlich	Mantieni civili i dibattiti sul casco
 5709890	Raport de tură	Crónica de salida	Compte rendu de sortie	Tourenbericht	Resoconto di uscita
 5f60b1c	Reparație	Reparación	Réparation	Reparatur	Riparazione
@@ -534,7 +534,7 @@ e29a79f	Recenzie	Reseña	Critique	Rezension	Recensione
 82e8680	Sprite-uri, tileset-uri, animații și palete. Critica e binevenită când e cerută.	Sprites, tilesets, animaciones y paletas. Las críticas son bienvenidas cuando se piden.	Sprites, tilesets, animations et palettes. Les critiques sont les bienvenues quand on en demande.	Sprites, Tilesets, Animationen und Paletten. Kritik ist willkommen, wenn darum gebeten wird.	Sprite, tileset, animazioni e palette. Le critiche sono benvenute quando richieste.
 e87442a	Doar lucrări originale	Solo trabajo original	Uniquement des œuvres originales	Nur eigene Arbeiten	Solo lavori originali
 00b8e9e	Folosește eticheta Critică dacă vrei feedback	Usa la etiqueta Crítica si quieres opiniones	Utilise l’étiquette Critique si tu veux des retours	Nimm das Flair Kritik, wenn du Feedback willst	Usa l’etichetta Critica se vuoi un parere
-f1ee816	Fără copiere după model fără a menționa autorul	Nada de calcar sin dar crédito	Pas de décalque sans crédit	Kein Nachzeichnen ohne Quellenangabe	Niente ricalchi senza crediti
+f1ee816	Nicio copiere după model fără a menționa autorul	Nada de calcar sin dar crédito	Pas de décalque sans crédit	Kein Nachzeichnen ohne Quellenangabe	Niente ricalchi senza crediti
 029f7aa	Creație proprie	Creación propia	Création perso	Eigenes Werk	Opera mia
 6256de9	Critică	Crítica	Critique	Kritik	Critica
 2701a94	Tutorial	Tutorial	Tutoriel	Tutorial	Tutorial
