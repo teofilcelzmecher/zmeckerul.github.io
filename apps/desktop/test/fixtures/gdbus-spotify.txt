@@ -1,0 +1,1 @@
+({'PlaybackStatus': <'Playing'>, 'Metadata': <{'mpris:trackid': <objectpath '/org/budgie/track/0'>, 'mpris:length': <int64 215000000>, 'xesam:title': <'Get Lucky'>, 'xesam:artist': <['Daft Punk', 'Pharrell Williams']>, 'xesam:album': <'Random Access Memories'>}>, 'Volume': <1.0>, 'Position': <int64 42000000>, 'CanPlay': <true>, 'Rate': <1.0>},)

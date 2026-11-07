@@ -67,6 +67,41 @@ const WORDS = {
   noSuggestions: ['No suggestions', 'Nicio sugestie', 'Sin sugerencias', 'Aucune suggestion', 'Keine Vorschläge', 'Nessun suggerimento'],
   answer: ['Answer', 'Răspunde', 'Contestar', 'Répondre', 'Annehmen', 'Rispondi'],
   decline: ['Decline', 'Respinge', 'Rechazar', 'Refuser', 'Ablehnen', 'Rifiuta'],
+  // the tray: whether Budgie may show the song you're listening to and the game you're playing, and what it sees now
+  sharePlaying: [
+    'Share what I’m playing',
+    'Arată ce ascult și ce joc',
+    'Mostrar lo que escucho y juego',
+    'Montrer ce que j’écoute et ce à quoi je joue',
+    'Zeigen, was ich höre und spiele',
+    'Mostra cosa ascolto e a cosa gioco',
+  ],
+  listeningTo: ['Listening to {0}', 'Asculți {0}', 'Escuchando {0}', 'En écoute : {0}', 'Du hörst {0}', 'Stai ascoltando {0}'],
+  sharingTitle: [
+    'Your friends can see what’s playing',
+    'Prietenii tăi văd ce asculți și ce joci',
+    'Tus amigos pueden ver lo que suena',
+    'Tes amis peuvent voir ce que tu écoutes',
+    'Deine Freunde sehen, was gerade läuft',
+    'I tuoi amici possono vedere cosa stai ascoltando',
+  ],
+  sharingTitleEveryone: [
+    'Everyone can see what’s playing',
+    'Toată lumea vede ce asculți și ce joci',
+    'Todos pueden ver lo que suena',
+    'Tout le monde peut voir ce que tu écoutes',
+    'Alle sehen, was gerade läuft',
+    'Tutti possono vedere cosa stai ascoltando',
+  ],
+  sharingBody: [
+    '{0} is on your profile now. Choose who sees it in Settings → Activity, or turn it off from Budgie’s icon in the tray.',
+    '{0} apare acum pe profilul tău. Alege cine îl vede în Setări → Activitate sau oprește-l din iconița Budgie din bara de sistem.',
+    '{0} aparece ahora en tu perfil. Elige quién lo ve en Ajustes → Actividad, o desactívalo desde el icono de Budgie en la bandeja del sistema.',
+    '{0} est maintenant sur ton profil. Choisis qui le voit dans Paramètres → Activité, ou désactive-le depuis l’icône de Budgie dans la zone de notification.',
+    '{0} steht jetzt auf deinem Profil. Wer es sieht, legst du unter Einstellungen → Aktivität fest, oder schalte es über das Budgie-Symbol im Infobereich aus.',
+    '{0} ora è sul tuo profilo. Scegli chi lo vede in Impostazioni → Attività, o disattivalo dall’icona di Budgie nell’area di notifica.',
+  ],
+  playingGame: ['Playing {0}', 'Joci {0}', 'Jugando a {0}', 'En jeu : {0}', 'Du spielst {0}', 'Stai giocando a {0}'],
 };
 const LANGS = ['en', 'ro', 'es', 'fr', 'de', 'it'];
 

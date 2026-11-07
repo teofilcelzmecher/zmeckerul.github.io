@@ -10,10 +10,12 @@
  *   notifications       new messages, group messages, replies and the rest, while Budgie isn't in front
  *   unread              a count on its taskbar button (Windows) or in the dock (Linux), and a dot on its tray icon
  *   screen sharing      a picker for a screen or a window, and on Windows the computer's sound with it
+ *   playing             the song this computer is playing and the game it's running, for "Listening to" and
+ *                       "Playing" on Budgie (activity.js finds them; the website shows them), unless that's turned off
  *   the rest            links to other sites open in the browser; right-click to copy, paste and fix spelling; no ads
  *
  * The website only sees window.BUDGIE_DESKTOP (preload.js) and a small script that watches its unread counts
- * (desktop.js); nothing else of the computer reaches it.
+ * (desktop.js); nothing else of the computer reaches it (of what's running: a song's name and a game's name, no more).
  */
 'use strict';
 const { app, BrowserWindow, Tray, Menu, Notification, nativeImage, shell, session, desktopCapturer, ipcMain, nativeTheme, screen, net, clipboard } = require('electron');
@@ -21,6 +23,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const os = require('node:os');
 const words = require('./strings');
+const activity = require('./activity');
 
 const SITE = process.env.BUDGIE_SITE || 'https://budgiesocial.com/';
 const SITE_URL = new URL(SITE);
@@ -58,7 +61,8 @@ const kept = []; // notifications, kept so a click on one still reaches Budgie
 // ---- what Budgie remembers on this computer -------------------------------------------------------------------
 
 const SETTINGS = () => path.join(app.getPath('userData'), 'settings.json');
-const settings = { notifications: true, startup: null, told: false, bounds: null, maximized: false, lang: 'en', updateSeen: '' };
+// shareMusic, shareGames: what's playing and running may be shown on Budgie (both on unless turned off)
+const settings = { notifications: true, startup: null, told: false, bounds: null, maximized: false, lang: 'en', updateSeen: '', shareMusic: true, shareGames: true, shareBefore: null, shareTold: false };
 function load() {
   try {
     Object.assign(settings, JSON.parse(fs.readFileSync(SETTINGS(), 'utf8')));
@@ -181,7 +185,18 @@ function createWindow() {
   wc.on('dom-ready', () => {
     if (sameSite(wc.getURL())) wc.executeJavaScript(DESKTOP_JS).catch(() => {});
   });
-  wc.on('render-process-gone', (e, d) => d.reason !== 'clean-exit' && setTimeout(() => !win.isDestroyed() && win.loadURL(SITE), 1500));
+  wc.on('render-process-gone', (e, d) => {
+    pageLeft();
+    if (d.reason !== 'clean-exit') setTimeout(() => !win.isDestroyed() && win.loadURL(SITE), 1500);
+  });
+  // a new page (a reload, or the offline page) hasn't asked to hear what's playing yet; a link inside Budgie is the
+  // same page, still listening
+  wc.on('did-start-navigation', (e, url, inPlace, mainFrame) => {
+    const main = e && typeof e.isMainFrame === 'boolean' ? e.isMainFrame : mainFrame;
+    const same = e && typeof e.isSameDocument === 'boolean' ? e.isSameDocument : inPlace;
+    if (main && !same) pageLeft();
+  });
+  wc.on('did-stop-loading', askPage);
   wc.on('context-menu', contextMenu);
   win.loadURL(SITE);
 }
@@ -229,6 +244,10 @@ function trayMenu() {
     { type: 'separator' },
     { label: t('notifications'), type: 'checkbox', checked: settings.notifications, click: (i) => ((settings.notifications = i.checked), save()) },
     { label: t('startup'), type: 'checkbox', checked: startupOn(), visible: app.isPackaged, click: (i) => setStartup(i.checked) },
+    { label: t('sharePlaying'), type: 'checkbox', checked: sharing(), click: (i) => shareFromTray(i.checked) },
+    // what Budgie can see right now, so it's never a secret (only while it's shared); a menu takes "&" as the key
+    // to press for an item, so "Simon & Garfunkel" needs it twice to show it once
+    ...nowPlaying().map((label) => ({ label: label.replace(/&/g, '&&'), enabled: false })),
     ...(update ? [{ type: 'separator' }, { label: t('update', update.version), click: () => shell.openExternal(update.url) }] : []),
     { type: 'separator' },
     { label: t('quit'), click: quit },
@@ -237,7 +256,9 @@ function trayMenu() {
 function refreshTray() {
   if (!tray) return;
   tray.setImage(trayImage());
-  tray.setToolTip(unread ? `Budgie · ${t('unread', unread)}` : 'Budgie');
+  // pointing at the icon says it too: what's unread, and what's shared right now (Windows keeps 127 characters)
+  const tip = [unread ? `Budgie · ${t('unread', unread)}` : 'Budgie', ...nowPlaying()].join('\n');
+  tray.setToolTip(tip.length > 127 ? tip.slice(0, 126) + '…' : tip);
   tray.setContextMenu(trayMenu());
 }
 function quit() {
@@ -308,6 +329,120 @@ ipcMain.on('lang', (e, code) => {
   save();
   refreshTray();
   Menu.setApplicationMenu(appMenu());
+});
+
+// ---- what's playing and running: "Listening to" and "Playing" on Budgie (Budgie 1.4) ----------------------------
+
+/*
+ * activity.js looks (music from the computer's media controls, games from what's running) only while Budgie's page
+ * has asked to hear it (BUDGIE_DESKTOP.onActivity, preload.js) and sharing is on, and the page alone decides what to
+ * post: nothing, when nobody's signed in. A reload asks again. Until it does, looking goes on for a little while (a
+ * reload doesn't start it all over again); then the page is asked whether it's still listening (a download or a link
+ * opened in the browser starts leaving the page without leaving it), and looking stops if nobody says yes, as for the
+ * offline page or an older Budgie.
+ */
+let listening = false;
+let leftTimer = 0;
+let shown = { music: null, game: null }; // what the page heard last, for the tray
+const watcher = activity.create({
+  onChange: (a, beat) => tell(a, beat),
+  log: (...what) => console.error('Budgie:', ...what),
+});
+const shareOptions = () => ({ music: settings.shareMusic !== false, games: settings.shareGames !== false });
+const sharing = () => settings.shareMusic !== false || settings.shareGames !== false;
+
+/** the page hears what's playing and running (and the tray shows it, when it changed) */
+function tell(a, beat) {
+  if (!listening || !win || win.isDestroyed() || !sameSite(win.webContents.getURL())) return;
+  win.webContents.send('activity', a, !!beat);
+  const before = JSON.stringify(nowPlaying());
+  shown = a;
+  if (JSON.stringify(nowPlaying()) !== before) refreshTray();
+}
+/** the tray's lines for what's shared right now: a song that's playing, a game that's running */
+function nowPlaying() {
+  if (!listening) return [];
+  const out = [];
+  const m = shown.music;
+  if (m && m.playing && m.title) out.push(t('listeningTo', m.artist ? `${m.title} · ${m.artist}` : m.title));
+  if (shown.game && shown.game.name) out.push(t('playingGame', shown.game.name));
+  // a tray menu is no place for a whole paragraph
+  return out.map((s) => (s.length > 64 ? s.slice(0, 63) + '…' : s));
+}
+/** looking, or not: while the page listens and something may be shared */
+function watchActivity() {
+  const o = shareOptions();
+  if (listening && (o.music || o.games)) return watcher.start(o);
+  const was = watcher.running;
+  watcher.stop();
+  // turned off while the page listens: it hears that nothing's playing, so it can say so to Budgie at once
+  if (was && listening) tell({ music: null, game: null }, false);
+  else shown = { music: null, game: null };
+}
+function pageLeft() {
+  if (!listening) return;
+  listening = false;
+  shown = { music: null, game: null };
+  refreshTray();
+  clearTimeout(leftTimer);
+  leftTimer = setTimeout(() => {
+    askPage();
+    leftTimer = setTimeout(() => !listening && watcher.stop(), 3000);
+  }, 12000);
+}
+/** "still listening?": the page answers by asking again, if it is */
+function askPage() {
+  if (!listening && win && !win.isDestroyed() && sameSite(win.webContents.getURL())) win.webContents.send('activity-ask');
+}
+/** what may be shared changed (from the page's Settings, or the tray): kept, and the page hears it */
+function setShare(o) {
+  settings.shareMusic = !!o.music;
+  settings.shareGames = !!o.games;
+  save();
+  watchActivity();
+  refreshTray();
+  if (win && !win.isDestroyed()) win.webContents.send('activity-options', shareOptions());
+}
+/** the tray's switch: off turns both off; on brings back what was on before (both, the first time) */
+function shareFromTray(on) {
+  if (!on) {
+    settings.shareBefore = shareOptions();
+    return setShare({ music: false, games: false });
+  }
+  const b = settings.shareBefore;
+  setShare(b && (b.music || b.games) ? b : { music: true, games: true });
+}
+
+/** a message from Budgie's own page in the main window (not from a page it went to by mistake) */
+const fromSite = (e) => !!win && !win.isDestroyed() && e.sender === win.webContents && sameSite(e.sender.getURL());
+
+// the page's BUDGIE_DESKTOP.activityOptions(): asked once per page, synchronously, so it always has an answer
+ipcMain.on('activity-options', (e) => {
+  e.returnValue = fromSite(e) ? shareOptions() : null;
+});
+ipcMain.on('activity-set', (e, o) => {
+  if (!fromSite(e) || !o || typeof o !== 'object') return;
+  const now = shareOptions();
+  setShare({ music: typeof o.music === 'boolean' ? o.music : now.music, games: typeof o.games === 'boolean' ? o.games : now.games });
+});
+// the first time something found is shown on Budgie (desktop.js says so, as it knows whether anyone's signed in):
+// a word, once, about where to change it, since sharing is on unless turned off
+ipcMain.on('activity-shared', (e, who) => {
+  if (!fromSite(e) || settings.shareTold || !listening) return;
+  const what = shown.music && shown.music.playing && shown.music.title ? shown.music.title : shown.game && shown.game.name;
+  if (!what) return;
+  settings.shareTold = true;
+  save();
+  notify({ title: t(who === 'everyone' ? 'sharingTitleEveryone' : 'sharingTitle'), body: t('sharingBody', what.length > 60 ? what.slice(0, 59) + '…' : what), href: '#/settings' });
+});
+ipcMain.on('activity-listen', (e, on) => {
+  if (!fromSite(e)) return;
+  if (!on) return pageLeft();
+  clearTimeout(leftTimer);
+  listening = true;
+  watchActivity();
+  // already looking (this page asked before, or the last one did a moment ago): it hears what's known at once
+  if (watcher.ready()) tell(watcher.current(), false);
 });
 
 // ---- a call ringing while Budgie isn't in front: a window of its own, over everything ---------------------------
@@ -485,6 +620,7 @@ async function checkUpdate() {
 app.on('second-instance', show);
 app.on('before-quit', () => {
   quitting = true;
+  watcher.stop();
   keepBounds();
 });
 // the window closing never quits Budgie (only Quit does)

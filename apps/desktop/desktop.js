@@ -9,6 +9,8 @@
  *   in the tray    a website stops checking for news while its page is hidden; the app's window is hidden whenever
  *                  it's closed to the tray, so here it keeps checking, every 20 seconds (calls come on their own
  *                  live connection, which never stops)
+ *   playing        the first time the song or game this computer found is shown to someone signed in, the app says
+ *                  once where to change it (the website itself posts it; see presence.js)
  */
 (function () {
   'use strict';
@@ -85,8 +87,37 @@
     D.badge(n, png);
   }
 
+  // what's playing and running: the app is told once that it has been shown on Budgie
+  let playing = null;
+  let listened = false;
+  let told = false;
+  const shared = () => {
+    const a = playing;
+    if (told || !ready() || !a || !((a.music && a.music.playing) || a.game)) return;
+    told = true;
+    // who sees it, so what the app says about it is true (shown to nobody: there's nothing to say)
+    const ask = Nook.api && Nook.api.get ? Nook.api.get('/api/activity/settings') : Promise.resolve(null);
+    ask.then(
+      (s) => {
+        const who = s && s.visibility;
+        if (who !== 'nobody') D.activityShared(who === 'everyone' ? 'everyone' : 'friends');
+      },
+      () => {}
+    );
+  };
+  function listenPlaying() {
+    // only a website that shows it (an older one never asked the app to look)
+    if (listened || !D.onActivity || !D.activityShared || !(window.Nook && Nook.presence)) return;
+    listened = true;
+    D.onActivity((a) => {
+      playing = a;
+      shared();
+    });
+  }
+
   let hooked = false;
   function hook() {
+    listenPlaying();
     if (!ready()) return;
     if (!hooked) {
       hooked = true;
@@ -94,6 +125,7 @@
     }
     D.lang(document.documentElement.lang || 'en');
     check();
+    shared();
   }
   setInterval(hook, 3000);
   hook();
