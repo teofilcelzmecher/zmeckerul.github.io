@@ -44,17 +44,29 @@ def der_to_raw(der):
     return out
 
 
-now = int(time.time())
-head = b64(json.dumps({'alg': 'ES256', 'kid': key_id, 'typ': 'JWT'}).encode())
-body = b64(json.dumps({'iss': issuer, 'iat': now, 'exp': now + 600, 'aud': 'appstoreconnect-v1'}).encode())
-signed = subprocess.run(['openssl', 'dgst', '-sha256', '-sign', sys.argv[1]], input=f'{head}.{body}'.encode(), capture_output=True)
-if signed.returncode:
-    print('::error::The ASC_KEY_P8 secret isn\'t a key that can sign. Paste all of the .p8 file\'s text again.')
-    sys.exit(1)
-token = f'{head}.{body}.{b64(der_to_raw(signed.stdout))}'
+def token(claims):
+    now = int(time.time())
+    head = b64(json.dumps({'alg': 'ES256', 'kid': key_id, 'typ': 'JWT'}).encode())
+    body = b64(json.dumps(dict(claims, iat=now, exp=now + 600, aud='appstoreconnect-v1')).encode())
+    signed = subprocess.run(['openssl', 'dgst', '-sha256', '-sign', sys.argv[1]], input=f'{head}.{body}'.encode(), capture_output=True)
+    if signed.returncode:
+        print('::error::The ASC_KEY_P8 secret isn\'t a key that can sign. Paste all of the .p8 file\'s text again.')
+        sys.exit(1)
+    return f'{head}.{body}.{b64(der_to_raw(signed.stdout))}'
+
 
 url = f'https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]={BUNDLE}&limit=1'
-req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token})
+
+
+def works(claims):
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token(claims)}), timeout=30):
+            return True
+    except urllib.error.HTTPError:
+        return False
+
+
+req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token({'iss': issuer})})
 try:
     with urllib.request.urlopen(req, timeout=30) as r:
         apps = json.load(r).get('data', [])
@@ -64,7 +76,11 @@ except urllib.error.HTTPError as e:
     except Exception:
         err = {}
     said = ' '.join(x for x in [err.get('code'), err.get('title')] if x)
-    if e.code == 401:
+    if e.code == 401 and works({'sub': 'user'}):
+        print('::error::That key is an Individual Key, which can\'t make the signing certificates. In App Store Connect → Users and Access → '
+              'Integrations → App Store Connect API, open Team Keys (not Individual Keys), make a key with Admin access, and put its Key ID '
+              'and its file in ASC_KEY_ID and ASC_KEY_P8 (and the Issuer ID shown above Team Keys in ASC_ISSUER_ID).')
+    elif e.code == 401:
         print('::error::Apple didn\'t accept the key (' + said + '). ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 have to be the same key\'s: '
               'one made in App Store Connect → Users and Access → Integrations → App Store Connect API → Team Keys '
               '(not Individual Keys, and not the notifications key from developer.apple.com), its Key ID, and the Issuer ID above that list.')
