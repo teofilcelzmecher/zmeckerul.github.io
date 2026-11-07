@@ -1007,16 +1007,16 @@ c2b51e0	text	js/pickers.js:47	Couldn’t load the emoji. Check your connection a
 e98d00d	text	js/pickers.js:205	GIFs
 9e867d1	text	js/pickers.js:210	Search KLIPY
 46d0ddb	text	js/pickers.js:212	Powered by KLIPY
-b1d721a	text	js/pickers.js:227	Loading GIFs
-1721b67	pattern	js/pickers.js:247	No GIFs for “{0}”.
-f4ee722	text	js/pickers.js:247	No GIFs right now.
-22349a7	text	js/pickers.js:249	Couldn’t reach KLIPY. Try again in a moment.
-d461a13	text	js/pickers.js:290	That file isn’t a picture.
-64c20ff	text	js/pickers.js:292	That GIF is too big. Try one under 4 MB.
-c572d19	text	js/pickers.js:293	That picture is too big. Try one under 30 MB.
-c23f7c7	pattern	js/pickers.js:301	That GIF is too large. Try one at most {0}×{1} pixels.
-b680ece	text	js/pickers.js:304	Couldn’t read that GIF.
-e62a972	text	js/pickers.js:320	Couldn’t read that picture. Try a JPEG, PNG or GIF.
+b1d721a	text	js/pickers.js:230	Loading GIFs
+1721b67	pattern	js/pickers.js:253	No GIFs for “{0}”.
+f4ee722	text	js/pickers.js:253	No GIFs right now.
+22349a7	text	js/pickers.js:255	Couldn’t reach KLIPY. Try again in a moment.
+d461a13	text	js/pickers.js:297	That file isn’t a picture.
+64c20ff	text	js/pickers.js:299	That GIF is too big. Try one under 4 MB.
+c572d19	text	js/pickers.js:300	That picture is too big. Try one under 30 MB.
+c23f7c7	pattern	js/pickers.js:308	That GIF is too large. Try one at most {0}×{1} pixels.
+b680ece	text	js/pickers.js:311	Couldn’t read that GIF.
+e62a972	text	js/pickers.js:327	Couldn’t read that picture. Try a JPEG, PNG or GIF.
 af43448	text	js/presence.js:86	just started
 fcf7344	pattern	js/presence.js:87	for {0} min
 65a90e7	pattern	js/presence.js:90	for {0} h {1} min
