@@ -66,6 +66,22 @@ def works(claims):
         return False
 
 
+def is_push_key():
+    # whether the key in ASC_KEY_P8 is the notifications one (its id given by whoever started the run): Apple's
+    # notification service says BadDeviceToken to a made-up device when the key is right, InvalidProviderToken when not
+    push_id = re.sub(r'[^A-Za-z0-9]', '', os.environ.get('PUSH_KEY_ID', '')).upper()
+    if not re.fullmatch(r'[A-Z0-9]{10}', push_id):
+        return False
+    head = b64(json.dumps({'alg': 'ES256', 'kid': push_id}).encode())
+    body = b64(json.dumps({'iss': team, 'iat': int(time.time())}).encode())
+    signed = subprocess.run(['openssl', 'dgst', '-sha256', '-sign', sys.argv[1]], input=f'{head}.{body}'.encode(), capture_output=True)
+    jwt = f'{head}.{body}.{b64(der_to_raw(signed.stdout))}'
+    said = subprocess.run(['curl', '-sS', '--http2', '-m', '20', '-H', f'authorization: bearer {jwt}', '-H', f'apns-topic: {BUNDLE}',
+                           '-d', '{"aps":{}}', 'https://api.sandbox.push.apple.com/3/device/' + '0' * 64], capture_output=True, text=True).stdout
+    print('Apple\'s notification service, asked with that key: ' + (said.strip() or 'no answer'))
+    return 'BadDeviceToken' in said
+
+
 req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token({'iss': issuer})})
 try:
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -80,6 +96,12 @@ except urllib.error.HTTPError as e:
         print('::error::That key is an Individual Key, which can\'t make the signing certificates. In App Store Connect → Users and Access → '
               'Integrations → App Store Connect API, open Team Keys (not Individual Keys), make a key with Admin access, and put its Key ID '
               'and its file in ASC_KEY_ID and ASC_KEY_P8 (and the Issuer ID shown above Team Keys in ASC_ISSUER_ID).')
+    elif e.code == 401 and is_push_key():
+        print('::error::ASC_KEY_P8 holds the notifications key (the one from developer.apple.com → Keys), not the key made for GitHub. '
+              'Paste the text of the GitHub key\'s file instead: AuthKey_<the Key ID in ASC_KEY_ID>.p8.')
+    elif e.code == 401 and os.environ.get('PUSH_KEY_ID'):
+        print('::error::ASC_KEY_P8 isn\'t the notifications key, so it\'s the GitHub key\'s three that don\'t match: ASC_KEY_ID must be the Key ID '
+              'on the same row as the key whose file is in ASC_KEY_P8, and ASC_ISSUER_ID the Issuer ID above Team Keys (its Copy button).')
     elif e.code == 401:
         print('::error::Apple didn\'t accept the key (' + said + '). ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 have to be the same key\'s: '
               'one made in App Store Connect → Users and Access → Integrations → App Store Connect API → Team Keys '

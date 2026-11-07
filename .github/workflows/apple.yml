@@ -9,6 +9,10 @@ on:
     branches: [claude/community-social-media-app-m1k3uc]
     paths: ['apps/apple/**', 'nook/**', 'm3/**', '.github/workflows/apple.yml']
   workflow_dispatch:
+    inputs:
+      push_key_id:
+        description: The notifications key's id, to check that it isn't what's in ASC_KEY_P8
+        required: false
 
 permissions:
   contents: read
@@ -101,6 +105,7 @@ jobs:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      PUSH_KEY_ID: ${{ inputs.push_key_id }}
     steps:
       - uses: actions/checkout@v5
         with:
