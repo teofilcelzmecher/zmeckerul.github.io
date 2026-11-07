@@ -302,6 +302,10 @@
   });
   store.on('notify', (note) => {
     if (!note || note.kind !== 'nudge') return;
+    // the server keeps one unread note per friend that counts their nudges (×2, ×3): the one it replaced goes here too
+    const before = store.state.notes.length;
+    store.state.notes = store.state.notes.filter((x) => x === note || x.kind !== 'nudge' || x.href !== note.href || x.read);
+    if (store.state.notes.length !== before && /^#\/inbox/.test(location.hash)) setTimeout(() => app().render(), 0);
     const m = /^#\/messages\/([^/?#]+)$/.exec(note.href || '');
     const name = m ? decodeURIComponent(m[1]) : '';
     if (!name || (note.createdAt && Date.now() - note.createdAt > 5 * 60000)) return;

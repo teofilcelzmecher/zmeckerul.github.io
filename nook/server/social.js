@@ -368,8 +368,16 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
     if (received >= NUDGES_RECEIVED) fail(429, `u/${other.name} has had a lot of nudges this hour. Try a message instead?`);
     const t = now();
     db.run('INSERT INTO nudges (from_id, to_id, created_at) VALUES (?, ?, ?)', user.id, other.id, t);
-    // the inbox note (and with it, the notification on their phone), which opens the chat with whoever nudged
-    notify(other.id, { kind: 'nudge', text: `u/${user.name} wants your attention 👋`, href: '#/messages/' + encodeURIComponent(user.name), symbol: 'waving_hand', shape: 'sunny' });
+    // the inbox note (and with it, the notification on their phone), which opens the chat with whoever nudged.
+    // Nudged again before they've seen the last one (within the hour), it's one note that counts them, rather than
+    // a row of the same words: the earlier note goes, and the new one says ×2, ×3
+    const href = '#/messages/' + encodeURIComponent(user.name);
+    const earlier = db.all("SELECT id, text FROM notes WHERE user_id = ? AND kind = 'nudge' AND href = ? AND read_at IS NULL AND created_at > ?", other.id, href, t - HOUR);
+    const times = earlier.reduce((n, r) => n + (Number((/×(\d+)$/.exec(r.text) || [])[1]) || 1), 1);
+    notify(other.id, { kind: 'nudge', text: `u/${user.name} wants your attention 👋${times > 1 ? ' ×' + times : ''}`, href, symbol: 'waving_hand', shape: 'sunny' });
+    // (only once the new one is in: a note's number is reused if the newest goes first, and their app would think
+    // it already had it)
+    for (const r of earlier) db.run('DELETE FROM notes WHERE id = ?', r.id);
     // and their open devices hear it now, rather than at their next check for news
     signal(other.id, 'nudge', { from: user.name, at: t });
     if (modules.stats && modules.stats.add) modules.stats.add(user.id, 'nudges.sent');
