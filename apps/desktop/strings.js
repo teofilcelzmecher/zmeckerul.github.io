@@ -85,6 +85,14 @@ const WORDS = {
     'Deine Freunde sehen, was gerade läuft',
     'I tuoi amici possono vedere cosa stai ascoltando',
   ],
+  sharingTitleEveryone: [
+    'Everyone can see what’s playing',
+    'Toată lumea vede ce asculți și ce joci',
+    'Todos pueden ver lo que suena',
+    'Tout le monde peut voir ce que tu écoutes',
+    'Alle sehen, was gerade läuft',
+    'Tutti possono vedere cosa stai ascoltando',
+  ],
   sharingBody: [
     '{0} is on your profile now. Choose who sees it in Settings → Activity, or turn it off from Budgie’s icon in the tray.',
     '{0} apare acum pe profilul tău. Alege cine îl vede în Setări → Activitate sau oprește-l din iconița Budgie din bara de sistem.',

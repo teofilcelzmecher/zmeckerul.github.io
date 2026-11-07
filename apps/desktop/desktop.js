@@ -95,7 +95,15 @@
     const a = playing;
     if (told || !ready() || !a || !((a.music && a.music.playing) || a.game)) return;
     told = true;
-    D.activityShared();
+    // who sees it, so what the app says about it is true (shown to nobody: there's nothing to say)
+    const ask = Nook.api && Nook.api.get ? Nook.api.get('/api/activity/settings') : Promise.resolve(null);
+    ask.then(
+      (s) => {
+        const who = s && s.visibility;
+        if (who !== 'nobody') D.activityShared(who === 'everyone' ? 'everyone' : 'friends');
+      },
+      () => {}
+    );
   };
   function listenPlaying() {
     // only a website that shows it (an older one never asked the app to look)

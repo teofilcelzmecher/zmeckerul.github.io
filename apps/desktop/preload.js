@@ -98,8 +98,9 @@ contextBridge.exposeInMainWorld(
     activityOptions: () => Object.assign({}, currentOptions()),
     setActivityOptions,
     onActivityOptions,
-    // desktop.js: something found was shown to a signed-in person (the app says once where to change it)
-    activityShared: () => ipcRenderer.send('activity-shared'),
+    // desktop.js: something found was shown to a signed-in person's friends, or everyone (the app says once where to
+    // change it)
+    activityShared: (who) => ipcRenderer.send('activity-shared', who === 'everyone' ? 'everyone' : 'friends'),
   })
 );
 

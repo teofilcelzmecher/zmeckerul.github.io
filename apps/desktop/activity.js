@@ -639,7 +639,7 @@ function Get-Media {
       [void]$list.Add([ordered]@{ app = [string]$s.SourceAppUserModelId; status = [string]$info.PlaybackStatus; type = [string]$p.PlaybackType; title = [string]$p.Title; artist = [string]$p.Artist; album = [string]$p.AlbumTitle; albumArtist = [string]$p.AlbumArtist })
     } catch { }
   }
-  ConvertTo-Json -InputObject @{ media = $list.ToArray() } -Compress -Depth 3
+  ConvertTo-Json -InputObject @{ media = $list.ToArray() } -Compress -Depth 5
 }
 
 function Get-Programs {
@@ -660,7 +660,7 @@ function Get-Programs {
       [void]$list.Add($o)
     } catch { }
   }
-  ConvertTo-Json -InputObject @{ procs = $list.ToArray() } -Compress -Depth 3
+  ConvertTo-Json -InputObject @{ procs = $list.ToArray() } -Compress -Depth 5
 }
 
 $lastMedia = ''

@@ -245,8 +245,9 @@ function trayMenu() {
     { label: t('notifications'), type: 'checkbox', checked: settings.notifications, click: (i) => ((settings.notifications = i.checked), save()) },
     { label: t('startup'), type: 'checkbox', checked: startupOn(), visible: app.isPackaged, click: (i) => setStartup(i.checked) },
     { label: t('sharePlaying'), type: 'checkbox', checked: sharing(), click: (i) => shareFromTray(i.checked) },
-    // what Budgie can see right now, so it's never a secret (only while it's shared)
-    ...nowPlaying().map((label) => ({ label, enabled: false })),
+    // what Budgie can see right now, so it's never a secret (only while it's shared); a menu takes "&" as the key
+    // to press for an item, so "Simon & Garfunkel" needs it twice to show it once
+    ...nowPlaying().map((label) => ({ label: label.replace(/&/g, '&&'), enabled: false })),
     ...(update ? [{ type: 'separator' }, { label: t('update', update.version), click: () => shell.openExternal(update.url) }] : []),
     { type: 'separator' },
     { label: t('quit'), click: quit },
@@ -255,7 +256,9 @@ function trayMenu() {
 function refreshTray() {
   if (!tray) return;
   tray.setImage(trayImage());
-  tray.setToolTip(unread ? `Budgie · ${t('unread', unread)}` : 'Budgie');
+  // pointing at the icon says it too: what's unread, and what's shared right now (Windows keeps 127 characters)
+  const tip = [unread ? `Budgie · ${t('unread', unread)}` : 'Budgie', ...nowPlaying()].join('\n');
+  tray.setToolTip(tip.length > 127 ? tip.slice(0, 126) + '…' : tip);
   tray.setContextMenu(trayMenu());
 }
 function quit() {
@@ -424,13 +427,13 @@ ipcMain.on('activity-set', (e, o) => {
 });
 // the first time something found is shown on Budgie (desktop.js says so, as it knows whether anyone's signed in):
 // a word, once, about where to change it, since sharing is on unless turned off
-ipcMain.on('activity-shared', (e) => {
+ipcMain.on('activity-shared', (e, who) => {
   if (!fromSite(e) || settings.shareTold || !listening) return;
   const what = shown.music && shown.music.playing && shown.music.title ? shown.music.title : shown.game && shown.game.name;
   if (!what) return;
   settings.shareTold = true;
   save();
-  notify({ title: t('sharingTitle'), body: t('sharingBody', what.length > 60 ? what.slice(0, 59) + '…' : what), href: '#/settings' });
+  notify({ title: t(who === 'everyone' ? 'sharingTitleEveryone' : 'sharingTitle'), body: t('sharingBody', what.length > 60 ? what.slice(0, 59) + '…' : what), href: '#/settings' });
 });
 ipcMain.on('activity-listen', (e, on) => {
   if (!fromSite(e)) return;
