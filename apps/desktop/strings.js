@@ -67,6 +67,17 @@ const WORDS = {
   noSuggestions: ['No suggestions', 'Nicio sugestie', 'Sin sugerencias', 'Aucune suggestion', 'Keine Vorschläge', 'Nessun suggerimento'],
   answer: ['Answer', 'Răspunde', 'Contestar', 'Répondre', 'Annehmen', 'Rispondi'],
   decline: ['Decline', 'Respinge', 'Rechazar', 'Refuser', 'Ablehnen', 'Rifiuta'],
+  // the tray: whether Budgie may show the song you're listening to and the game you're playing, and what it sees now
+  sharePlaying: [
+    'Share what I’m playing',
+    'Arată ce ascult și ce joc',
+    'Mostrar lo que escucho y juego',
+    'Montrer ce que j’écoute et ce à quoi je joue',
+    'Zeigen, was ich höre und spiele',
+    'Mostra cosa ascolto e a cosa gioco',
+  ],
+  listeningTo: ['Listening to {0}', 'Asculți {0}', 'Escuchando {0}', 'En écoute : {0}', 'Du hörst {0}', 'Stai ascoltando {0}'],
+  playingGame: ['Playing {0}', 'Joci {0}', 'Jugando a {0}', 'En jeu : {0}', 'Du spielst {0}', 'Stai giocando a {0}'],
 };
 const LANGS = ['en', 'ro', 'es', 'fr', 'de', 'it'];
 

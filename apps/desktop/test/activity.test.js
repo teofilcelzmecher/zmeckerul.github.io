@@ -1,5 +1,5 @@
 // Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE.
-// What activity.js makes of what Windows and Linux say. Run with: npm test (or node --test test/)
+// What activity.js makes of what Windows and Linux say. Run with: npm test (or node --test "test/*.test.js")
 // The D-Bus answers in fixtures/ were recorded from gdbus and dbus-send asking pretend MPRIS players; the PowerShell
 // lines are what Windows PowerShell 5.1's ConvertTo-Json -Compress writes (with everything past ASCII as \uXXXX).
 'use strict';
