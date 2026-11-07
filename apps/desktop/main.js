@@ -62,7 +62,7 @@ const kept = []; // notifications, kept so a click on one still reaches Budgie
 
 const SETTINGS = () => path.join(app.getPath('userData'), 'settings.json');
 // shareMusic, shareGames: what's playing and running may be shown on Budgie (both on unless turned off)
-const settings = { notifications: true, startup: null, told: false, bounds: null, maximized: false, lang: 'en', updateSeen: '', shareMusic: true, shareGames: true, shareBefore: null };
+const settings = { notifications: true, startup: null, told: false, bounds: null, maximized: false, lang: 'en', updateSeen: '', shareMusic: true, shareGames: true, shareBefore: null, shareTold: false };
 function load() {
   try {
     Object.assign(settings, JSON.parse(fs.readFileSync(SETTINGS(), 'utf8')));
@@ -411,6 +411,16 @@ ipcMain.on('activity-set', (e, o) => {
   if (!fromSite(e) || !o || typeof o !== 'object') return;
   const now = shareOptions();
   setShare({ music: typeof o.music === 'boolean' ? o.music : now.music, games: typeof o.games === 'boolean' ? o.games : now.games });
+});
+// the first time something found is shown on Budgie (desktop.js says so, as it knows whether anyone's signed in):
+// a word, once, about where to change it, since sharing is on unless turned off
+ipcMain.on('activity-shared', (e) => {
+  if (!fromSite(e) || settings.shareTold || !listening) return;
+  const what = shown.music && shown.music.playing && shown.music.title ? shown.music.title : shown.game && shown.game.name;
+  if (!what) return;
+  settings.shareTold = true;
+  save();
+  notify({ title: t('sharingTitle'), body: t('sharingBody', what.length > 60 ? what.slice(0, 59) + '…' : what), href: '#/settings' });
 });
 ipcMain.on('activity-listen', (e, on) => {
   if (!fromSite(e)) return;
