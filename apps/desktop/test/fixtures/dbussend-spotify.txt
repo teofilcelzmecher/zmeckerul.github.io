@@ -1,0 +1,51 @@
+method return time=1793995887.607920 sender=:1.1 -> destination=:1.6 serial=5 reply_serial=2
+   array [
+      dict entry(
+         string "PlaybackStatus"
+         variant             string "Playing"
+      )
+      dict entry(
+         string "Metadata"
+         variant             array [
+               dict entry(
+                  string "mpris:trackid"
+                  variant                      object path "/org/budgie/track/0"
+               )
+               dict entry(
+                  string "mpris:length"
+                  variant                      int64 215000000
+               )
+               dict entry(
+                  string "xesam:title"
+                  variant                      string "Get Lucky"
+               )
+               dict entry(
+                  string "xesam:artist"
+                  variant                      array [
+                        string "Daft Punk"
+                        string "Pharrell Williams"
+                     ]
+               )
+               dict entry(
+                  string "xesam:album"
+                  variant                      string "Random Access Memories"
+               )
+            ]
+      )
+      dict entry(
+         string "Volume"
+         variant             double 1
+      )
+      dict entry(
+         string "Position"
+         variant             int64 42000000
+      )
+      dict entry(
+         string "CanPlay"
+         variant             boolean true
+      )
+      dict entry(
+         string "Rate"
+         variant             double 1
+      )
+   ]

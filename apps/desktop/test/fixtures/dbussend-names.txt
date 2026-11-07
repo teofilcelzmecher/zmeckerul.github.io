@@ -1,0 +1,11 @@
+method return time=1793995887.600931 sender=org.freedesktop.DBus -> destination=:1.4 serial=3 reply_serial=2
+   array [
+      string "org.freedesktop.DBus"
+      string "org.mpris.MediaPlayer2.spotify"
+      string ":1.4"
+      string ":1.0"
+      string ":1.1"
+      string "org.mpris.MediaPlayer2.firefox.instance_1_23"
+      string "org.mpris.MediaPlayer2.vlc"
+      string ":1.2"
+   ]

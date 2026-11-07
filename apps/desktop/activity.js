@@ -614,7 +614,7 @@ if ($music) {
   try {
     Add-Type -AssemblyName System.Runtime.WindowsRuntime
     $asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation${'`'}1' } | Select-Object -First 1
-    [void][Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
+    [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
     $mgr = Wait-Op ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
   } catch { $mgr = $null }
   if (-not $mgr) { Say '{"media":null,"unavailable":true}' }
@@ -814,7 +814,7 @@ function parseGVariant(text) {
       while (i < s.length && !/\s/.test(s[i])) i++;
       return value();
     }
-    const word = /^[A-Za-z_]+/.exec(s.slice(i));
+    const word = /^[A-Za-z_][A-Za-z0-9_]*/.exec(s.slice(i));
     if (word) {
       const w = word[0];
       i += w.length;
@@ -996,6 +996,7 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
   }
 
   // Linux ----------------------------------------------------------------------------------------------------------
+  const UTF8 = Object.assign({}, process.env, { CHARSET: 'UTF-8' });
   let bus = null; // 'gdbus' or 'dbus-send', once one works
   const names = new Map(); // a player's bus name -> its own name for itself
   async function busCall(dest, objectPath, method, args) {
@@ -1003,7 +1004,8 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
     for (const tool of tries) {
       const out =
         tool === 'gdbus'
-          ? await exec('gdbus', ['call', '--session', '--timeout', '2', '--dest', dest, '--object-path', objectPath, '--method', method, ...args])
+          ? // gdbus writes in the computer's language's character set: asked for UTF-8, titles keep their accents
+            await exec('gdbus', ['call', '--session', '--timeout', '2', '--dest', dest, '--object-path', objectPath, '--method', method, ...args], { env: UTF8 })
           : await exec('dbus-send', ['--session', '--print-reply', '--reply-timeout=2000', '--dest=' + dest, objectPath, method, ...args.map((a) => 'string:' + a)]);
       if (out.missing) continue;
       bus = tool;
@@ -1229,9 +1231,9 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
 }
 
 /** runs a program: its output, or { missing } when it isn't installed, or { error } */
-function run(cmd, args, timeout = 4000) {
+function run(cmd, args, { timeout = 4000, env } = {}) {
   return new Promise((resolve) => {
-    execFile(cmd, args, { timeout, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'utf8' }, (err, stdout) => {
+    execFile(cmd, args, { timeout, env, maxBuffer: 1024 * 1024, windowsHide: true, encoding: 'utf8' }, (err, stdout) => {
       if (err && err.code === 'ENOENT') return resolve({ missing: true });
       if (err) return resolve({ error: err });
       resolve({ text: stdout });
