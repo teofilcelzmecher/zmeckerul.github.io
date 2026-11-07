@@ -21,6 +21,17 @@ const quit = (message) => {
 const userNamed = (name) => db.get('SELECT * FROM users WHERE name = ?', name || '') || quit(`There's no user called "${name}". Try: nook users`);
 const date = (t) => (t ? new Date(t).toISOString().slice(0, 16).replace('T', ' ') : '');
 
+// a file someone names. `nook` runs as Budgie's own user, which can't look inside a home folder (most are private), so
+// there it says how to hand the file over through the shell, which reads it as the person
+function readGiven(source, viaShell) {
+  try {
+    return fs.readFileSync(source, 'utf8');
+  } catch (e) {
+    if (e.code === 'EACCES') quit(`Budgie can't open files in your home folder (it runs as its own user). Hand it over like this instead:\n  ${viaShell}`);
+    quit(`There's no file at ${source}.`);
+  }
+}
+
 const COMMANDS = {
   help() {
     out(
@@ -180,8 +191,7 @@ const COMMANDS = {
         process.stdin.on('end', () => resolve(got));
       });
     } else {
-      if (!fs.existsSync(source)) quit(`There's no file at ${source}.`);
-      text = fs.readFileSync(source, 'utf8');
+      text = readGiven(source, `sudo nook push paste < ${source}`);
     }
     let a;
     try {
@@ -258,11 +268,10 @@ const COMMANDS = {
         process.stdin.on('end', () => resolve(got));
       });
     } else {
-      if (!fs.existsSync(source)) quit(`There's no file at ${source}.`);
-      key = fs.readFileSync(source, 'utf8');
       const named = /AuthKey_([A-Z0-9]{10})\.p8$/i.exec(path.basename(source));
       keyId = rest.length > 1 ? rest[0] : named && named[1].toUpperCase();
       teamId = rest[rest.length - 1];
+      key = readGiven(source, `sudo nook push apple paste ${keyId || '<key id>'} ${teamId || '<team id>'} < ${source}`);
       if (!id(keyId)) quit('Which key is it? Give its id too: nook push apple <file.p8> <key id> <team id>');
       if (!id(teamId)) quit('Add your team id (10 letters and digits, on developer.apple.com → Membership): nook push apple <file.p8> <team id>');
     }
