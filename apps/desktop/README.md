@@ -23,7 +23,8 @@ install. Around the website, the app adds what a computer can do:
   Genshin, Elden Ring, Baldur's Gate 3…) and by anything running from a Steam, Epic, GOG, Riot, EA, Ubisoft, Xbox,
   Heroic or itch library (Proton and Wine games too), named after its folder. It's on unless turned off: in Settings
   → Activity (music and games apart), or **Share what I'm playing** in the tray, which also shows what Budgie sees
-  right now. The first time something is shown, the app says so once.
+  right now (so does pointing at the tray icon). The first time something is shown, the app says so once, and who
+  can see it (nothing, when that's nobody).
 - **The rest**: right-click to cut, copy, paste and fix spelling (Windows' own spelling); links to other sites open in
   the browser; no ads; the window remembers its size and place; a page that says so when there's no internet.
 - **A newer app?** The app checks GitHub twice a day and says so once (the tray then has a link).
