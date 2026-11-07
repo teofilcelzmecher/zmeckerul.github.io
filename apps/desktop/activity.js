@@ -549,18 +549,22 @@ function songOf(p) {
   }
   const type = String(p.type || '').toLowerCase();
   if (type === 'image') return null;
+  const audioFile = AUDIO_FILE.test(p.url || '');
   if (kind === 'video') {
     // a video player playing a song (a tagged file, or one Windows calls music); films and clips aren't
-    const audio = type === 'music' || AUDIO_FILE.test(p.url || '') || (!!song.artist && !VIDEO_FILE.test(p.url || '') && type !== 'video');
+    const audio = type === 'music' || audioFile || (!!song.artist && !VIDEO_FILE.test(p.url || '') && type !== 'video');
     if (!audio) return null;
   }
+  // a song file without tags: players call it by its file's name ("01_-_Song.flac" → "01 - Song")
+  if (AUDIO_FILE.test(song.title)) song.title = clip(song.title.replace(AUDIO_FILE, '').replace(/_/g, ' '), LIMITS.title) || song.title;
   if (kind === 'browser') {
     song = tidyBrowserSong(song);
     // a browser saying it's a video: only what looks like a music video ("Artist - Song", "(Official Video)")
     if (type === 'video' && !(/\s[-–—]\s/.test(p.title) || /official|lyric|\bmv\b|visuali[sz]er/i.test(p.title) || /VEVO$|- Topic$/.test(p.artist))) return null;
   }
-  // a song without anyone singing it is most likely something else (a video, a podcast's ad, the app's own sounds)
-  if (!song.artist && kind !== 'music') return null;
+  // a song without anyone singing it is most likely something else (a video, a podcast's ad, the app's own sounds),
+  // unless it's a song's own file
+  if (!song.artist && kind !== 'music' && !audioFile) return null;
   if (/^(advertisement|spotify|spotify free|spotify premium)$/i.test(song.title) && !song.artist) return null;
   const rank = (p.playing ? 100 : 0) + { music: 40, other: 30, video: 20, browser: 10 }[kind] + (song.album ? 2 : 0) + (song.artist ? 1 : 0);
   return { title: song.title, artist: song.artist, album: song.album, app: niceApp(name || p.appName || ''), playing: !!p.playing, rank };
