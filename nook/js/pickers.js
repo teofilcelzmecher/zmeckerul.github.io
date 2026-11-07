@@ -220,6 +220,9 @@
             page = 1;
             more = true;
             grid.innerHTML = '';
+            // the GIFs behind the buttons go with them: a search's results are numbered from the start again, and
+            // must not pick the trending GIF that used to be in that place
+            grid._items = [];
           }
           if (loading || !more) return;
           loading = true;
@@ -233,13 +236,16 @@
             const data = (json.data && json.data.data) || [];
             more = !!(json.data && json.data.has_next) && data.length > 0;
             page++;
+            // each button names its GIF by its place in grid._items (not among the buttons: a GIF without a preview
+            // has no button, and would shift every one after it)
+            const base = (grid._items || []).length;
             grid.insertAdjacentHTML(
               'beforeend',
               data
                 .map((item, i) => {
                   const preview = still ? fileOf(item, 'sm', ['jpg']) : fileOf(item, 'sm');
                   if (!preview) return '';
-                  return `<button type="button" class="gif-item" data-i="${grid.children.length + i}" aria-label="${esc(item.title || 'GIF')}"><img src="${esc(preview.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="aspect-ratio:${preview.width}/${preview.height}"></button>`;
+                  return `<button type="button" class="gif-item" data-i="${base + i}" aria-label="${esc(item.title || 'GIF')}"><img src="${esc(preview.url)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="aspect-ratio:${preview.width}/${preview.height}"></button>`;
                 })
                 .join('')
             );
@@ -264,6 +270,7 @@
           const b = e.target.closest('.gif-item');
           if (!b) return;
           const item = grid._items[Number(b.dataset.i)];
+          if (!item) return;
           const file = fileOf(item, 'md') || fileOf(item, 'sm');
           const jpg = fileOf(item, 'md', ['jpg']) || fileOf(item, 'sm', ['jpg']);
           if (!file) return;
