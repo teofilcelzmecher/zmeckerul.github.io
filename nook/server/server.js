@@ -284,6 +284,10 @@ const PRONOUNS_RE = /^[\p{L}\p{M}][\p{L}\p{M} /'’.,&-]{0,23}$/u;
 const USER_EXTRAS = [];
 // and what they add to "Export my data": fn(user) => { section: [...] }
 const EXPORT_EXTRAS = [];
+// 1.4: what else a chat message can carry ({ type: { read(user, body), out(media) } }: a sticker), and what else can
+// be reported and taken down ({ kind: { label, target(report), takeDown(id, reason, by) } }: stickers)
+const MEDIA_KINDS = {};
+const REPORT_KINDS = {};
 function publicUser(u) {
   const badges = badgesOf(u);
   const out = {
@@ -383,6 +387,7 @@ function mediaOut(json) {
   const m = JSON.parse(json);
   if (m.type === 'image') return { type: 'image', url: imageUrl(m.id), width: m.width, height: m.height, gif: m.gif };
   if (m.type === 'klipy') return { type: 'klipy', url: m.url, still: m.still, width: m.width, height: m.height, title: m.title };
+  if (MEDIA_KINDS[m.type]) return MEDIA_KINDS[m.type].out(m);
   return undefined;
 }
 /** a picture leaving with its message */
@@ -393,6 +398,10 @@ function dropMedia(json) {
 }
 /** reads what's attached to a message being sent: { media (to keep), picture (to save), review } or null */
 async function chatMedia(user, body) {
+  for (const kind of Object.values(MEDIA_KINDS)) {
+    const got = await kind.read(user, body);
+    if (got) return got;
+  }
   if (body.gif) {
     if (!db.meta('klipy-key')) fail(400, 'GIF search is off.');
     const url = text(body.gif.url, 600);
@@ -1631,13 +1640,13 @@ route('POST', '/api/notes/read', ({ user, body }) => {
 
 route('POST', '/api/reports', ({ user, body }) => {
   limit('report:' + user.id, 30, DAY);
-  const kind = ['post', 'comment', 'user', 'message', 'gmessage', 'group'].includes(body.kind) ? body.kind : null;
+  const kind = ['post', 'comment', 'user', 'message', 'gmessage', 'group'].includes(body.kind) || REPORT_KINDS[body.kind] ? body.kind : null;
   if (!kind) fail(400, 'Report a post, a comment, a person, a message or a group.');
   const target = text(body.id, 60);
   const reason = text(body.reason, 300) || 'No reason given';
   db.run('INSERT INTO reports (reporter_id, kind, target, reason, created_at) VALUES (?, ?, ?, ?, ?)', user.id, kind, target, reason, now());
   for (const admin of db.all("SELECT id FROM users WHERE role = 'admin'")) {
-    notify(admin.id, { kind: 'report', text: `New report: a ${KIND_LABEL[kind] || kind} for “${reason}”`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
+    notify(admin.id, { kind: 'report', text: `New report: a ${KIND_LABEL[kind] || (REPORT_KINDS[kind] && REPORT_KINDS[kind].label) || kind} for “${reason}”`, href: '#/admin', symbol: 'flag', shape: 'pixelCircle' });
   }
   return { ok: true };
 });
@@ -1719,7 +1728,7 @@ route('POST', '/api/messages', async ({ user, body }) => {
   const f = friendship(user.id, other.id);
   if (!f || f.status !== 'friends') fail(403, 'You can only message friends.');
   const messageBody = text(body.body, 2000);
-  if (!messageBody && !body.image && !body.gif) fail(400, 'Write something first.');
+  if (!messageBody && !body.image && !body.gif && body.sticker == null) fail(400, 'Write something first.');
   const verdict = vet([messageBody], { kind: 'message' });
   // in private messages the model only stops what it's very sure of, and only sexual ones are shown to a moderator
   const doubt = messageBody ? await checkText([messageBody], 'message') : null;
@@ -1731,7 +1740,7 @@ route('POST', '/api/messages', async ({ user, body }) => {
   if (verdict.flag) autoReport('message', Number(lastInsertRowid), verdict.flag.why);
   else if (attached && attached.review === 'review') autoReport('message', Number(lastInsertRowid), 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('message', Number(lastInsertRowid), doubt);
-  push.send([other.id], { kind: 'message', title: 'u/' + user.name, body: messageBody, word: messageBody ? '' : body.gif ? 'gif' : 'picture', href: '#/messages/' + encodeURIComponent(user.name), tag: 'chat-' + user.name });
+  push.send([other.id], { kind: 'message', title: 'u/' + user.name, body: messageBody, word: messageBody ? '' : body.sticker != null ? 'sticker' : body.gif ? 'gif' : 'picture', href: '#/messages/' + encodeURIComponent(user.name), tag: 'chat-' + user.name });
   return { message: messageOut(db.get(`${MESSAGE_SELECT} WHERE m.id = ?`, Number(lastInsertRowid)), user.id) };
 }, { body: 6 * 1024 * 1024 });
 
@@ -1875,7 +1884,7 @@ route('POST', '/api/groups/:id/messages', async ({ user, params, body }) => {
   limit('message:' + user.id, 40, MINUTE, 'You’re sending messages very fast. Slow down a little.');
   const g = groupFor(user, params.id);
   const messageBody = text(body.body, 2000);
-  if (!messageBody && !body.image && !body.gif) fail(400, 'Write something first.');
+  if (!messageBody && !body.image && !body.gif && body.sticker == null) fail(400, 'Write something first.');
   const verdict = vet([messageBody], { kind: 'message' });
   const doubt = messageBody ? await checkText([messageBody], 'message') : null;
   const attached = await chatMedia(user, body);
@@ -1886,7 +1895,7 @@ route('POST', '/api/groups/:id/messages', async ({ user, params, body }) => {
   else if (attached && attached.review === 'review') autoReport('gmessage', id, 'this picture might be sexual. Please take a look.');
   else if (doubt) autoReport('gmessage', id, doubt);
   const others = db.all('SELECT user_id FROM group_members WHERE group_id = ? AND user_id != ?', g.id, user.id).map((m) => m.user_id).filter((uid) => !hasBlocked(uid, user.id));
-  push.send(others, { kind: 'message', title: g.name, body: `u/${user.name}: ${messageBody || (body.gif ? 'GIF' : '📷')}`, href: '#/messages/g/' + g.id, tag: 'group-' + g.id });
+  push.send(others, { kind: 'message', title: g.name, body: `u/${user.name}: ${messageBody || (body.sticker != null ? 'Sticker' : body.gif ? 'GIF' : '📷')}`, href: '#/messages/g/' + g.id, tag: 'group-' + g.id });
   return { message: gmessageOut(db.get(`${GMESSAGE_SELECT} WHERE m.id = ?`, id), user.id) };
 }, { body: 6 * 1024 * 1024 });
 
@@ -2382,6 +2391,7 @@ function reportTarget(r) {
     const owner = g && db.get("SELECT u.name FROM group_members gm JOIN users u ON u.id = gm.user_id WHERE gm.group_id = ? AND gm.role = 'owner'", g.id);
     return g ? { title: g.name, author: owner ? owner.name : '[deleted]' } : null;
   }
+  if (REPORT_KINDS[r.kind]) return REPORT_KINDS[r.kind].target(r);
   return null;
 }
 
@@ -2455,6 +2465,7 @@ function takeDown(kind, id, reason, by = 'A moderator', parts = null) {
     notify(u.id, { kind: 'moderation', text: `A moderator removed your ${list}. Reason: ${reason}. If you think this was a mistake, contact Budgie.`, href: '#/u/' + u.name, symbol: 'gavel', shape: 'pixelCircle' });
     return true;
   }
+  if (REPORT_KINDS[kind]) return REPORT_KINDS[kind].takeDown(id, reason, by);
   return false;
 }
 
@@ -2657,6 +2668,9 @@ const moduleCtx = {
 moduleCtx.callSpan = callSpan;
 // the free name fonts (rewards adds the ones achievements unlock)
 moduleCtx.NAME_FONTS = NAME_FONTS;
+// stickers in chats, and reports about them (1.4)
+moduleCtx.MEDIA_KINDS = MEDIA_KINDS;
+moduleCtx.REPORT_KINDS = REPORT_KINDS;
 for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {

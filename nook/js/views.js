@@ -415,7 +415,10 @@
     return (
       '<form class="reply-box">' +
       `<textarea class="m3-field" rows="3" placeholder="${esc(placeholder)}" required>${esc(value)}</textarea>` +
-      `<div class="row"><button type="button" class="m3-icon-btn small only-hover" data-act="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button><span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
+      `<div class="row"><button type="button" class="m3-icon-btn small only-hover" data-act="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
+      // your own emojis (1.4) on a phone, whose keyboard can't have them (a computer's emoji picker has a Yours tab)
+      (Nook.stickers && Nook.stickers.available() ? `<button type="button" class="m3-icon-btn small stk-touch" data-stk-act="emojis" aria-label="Your emojis">${icon('add_reaction')}</button>` : '') +
+      `<span class="hint">**bold** *italic* \`code\` ||spoiler|| > quote</span>` +
       `<button type="button" class="m3-btn text" data-act="reply-cancel">Cancel</button>` +
       `<button type="submit" class="m3-btn filled">${icon('send')}${esc(submitLabel)}</button></div></form>`
     );
@@ -1297,10 +1300,12 @@
   const mediaWord = (x) => (x.type === 'klipy' || x.gif ? 'GIF' : 'Photo');
   /** the last message, for a list of chats */
   const preview = (m, inGroup) =>
-    !m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + (m.body ? plain(clean(m.body), 80) : m.media ? (mediaWord(m.media) === 'GIF' ? 'GIF' : '📷 Photo') : '');
+    !m ? '' : m.kind ? lineText(m, inGroup) : (m.mine ? 'You: ' : inGroup && m.from ? m.from + ': ' : '') + (m.body ? plain(clean(m.body), 80) : m.media ? (m.media.type === 'sticker' ? 'Sticker' : mediaWord(m.media) === 'GIF' ? 'GIF' : '📷 Photo') : '');
 
   /** a picture or GIF in a bubble; it opens full size when pressed */
   function mediaHTML(x) {
+    // a sticker (1.4) is drawn big, without a bubble (js/stickers.js)
+    if (x.type === 'sticker' && Nook.stickers) return Nook.stickers.mediaHTML(x);
     const moving = !ui.motionOff();
     const src = x.local || (x.type === 'klipy' && !moving && x.still ? x.still : Nook.api.url(x.url));
     const label = x.type === 'klipy' ? x.title || 'GIF' : mediaWord(x);
@@ -1366,9 +1371,10 @@
       .map((m, i) => {
         const where = n === 1 ? 'solo' : i === 0 ? 'first' : i === n - 1 ? 'last' : 'mid';
         const words = (m.body || '').trim();
-        const big = !m.media && JUMBO.test(words) ? ' jumbo' : '';
+        // up to three emoji on their own are drawn big, custom ones (1.4) among them
+        const big = !m.media && (JUMBO.test(words) || (Nook.stickers && Nook.stickers.jumbo(words))) ? ' jumbo' : '';
         const state = m.failed ? ' failed' : m.pending ? ' pending' : '';
-        const media = m.media ? ' has-media' + (words ? '' : ' only-media') : '';
+        const media = m.media ? ' has-media' + (words ? '' : ' only-media') + (m.media.type === 'sticker' ? ' is-sticker' : '') : '';
         return (
           `<div class="bubble ${where}${big}${state}${media}" data-message="${esc(String(m.id))}" title="${esc(new Date(m.createdAt).toLocaleString())}">` +
           (m.media ? mediaHTML(m.media) : '') +
@@ -1412,6 +1418,7 @@
       // a real file box under your finger, as the profile's photo pickers have: phones open it reliably
       `<label class="m3-icon-btn chat-tool photo-pick" data-tooltip="Photo or GIF">${icon('add_photo_alternate')}<input type="file" class="chat-file" accept="image/*" aria-label="Send a photo or GIF"></label>` +
       (Nook.pickers && Nook.pickers.gifsOn() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="gif" aria-label="Find a GIF" data-tooltip="GIFs">${icon('gif_box')}</button>` : '') +
+      (Nook.stickers && Nook.stickers.available() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="sticker" aria-label="Stickers and your emojis" data-tooltip="Stickers">${icon('sticky_note_2')}</button>` : '') +
       `<button type="button" class="m3-icon-btn chat-tool only-hover" data-chat="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
       '</div>'
     );
@@ -1444,6 +1451,8 @@
     const toEnd = (smooth) => scrollTo({ top: end(), behavior: smooth && !Nook.fx.reduced() ? 'smooth' : 'auto' });
 
     function arrive(el) {
+      // a sticker (1.4) is slapped down instead
+      if (el.classList.contains('is-sticker') && Nook.stickers) return Nook.stickers.popIn(el);
       const mine = !!el.closest('.mine');
       el.style.transformOrigin = mine ? '100% 100%' : '0 100%';
       Nook.fx.play(el, [{ opacity: 0, scale: 0.5, translate: `${mine ? 12 : -12}px 16px` }, { opacity: 1, scale: 1, translate: '0 0' }], {
@@ -1560,6 +1569,12 @@
       if (!tool || !Nook.pickers) return;
       const kind = tool.dataset.chat;
       if (kind === 'emoji') return Nook.pickers.emoji(tool, (emoji) => Nook.pickers.insertAt(input, emoji));
+      if (kind === 'sticker' && Nook.stickers) {
+        // a sticker goes as soon as it's picked, as its own message; one of your emojis goes where you're writing
+        const s = await Nook.stickers.pick({ field: input });
+        if (s) queue({ id: store.uid('local'), body: '', createdAt: Date.now(), mine: true, media: Nook.stickers.localMedia(s), extra: { sticker: s.id } });
+        return;
+      }
       if (kind === 'gif') {
         // a GIF goes as soon as it's picked, as its own message
         const g = await Nook.pickers.gif();
@@ -1653,12 +1668,16 @@
       const m = c.thread().messages.find((x) => String(x.id) === bubble.dataset.message);
       if (!m) return;
       Nook.fx.haptic(10);
+      const sticker = m.media && m.media.type === 'sticker' && Nook.stickers;
       ui.sheet({
         html:
           (m.body ? `<div class="msg-menu-quote">${esc(plain(clean(m.body), 160))}</div>` : '') +
+          (sticker ? Nook.stickers.menuHead(m) : '') +
           '<div class="list">' +
           (m.body ? `<button type="button" class="row-link" data-do="copy" data-m3-ripple>${icon('content_copy')}<span class="row-text"><b>Copy text</b></span></button>` : '') +
-          (m.media ? `<button type="button" class="row-link" data-do="open" data-m3-ripple>${icon('open_in_full')}<span class="row-text"><b>Open ${m.media.type === 'klipy' || m.media.gif ? 'GIF' : 'photo'}</b></span></button>` : '') +
+          // a sticker (1.4): save it, or report it to the moderators
+          (sticker ? Nook.stickers.menuRows(m) : '') +
+          (m.media && m.media.type !== 'sticker' ? `<button type="button" class="row-link" data-do="open" data-m3-ripple>${icon('open_in_full')}<span class="row-text"><b>Open ${m.media.type === 'klipy' || m.media.gif ? 'GIF' : 'photo'}</b></span></button>` : '') +
           (m.mine ? '' : `<button type="button" class="row-link" data-do="report" data-m3-ripple>${icon('flag')}<span class="row-text"><b>Report message</b><small>Moderators will see it, and who sent it</small></span></button>`) +
           '</div>',
         setup(body, close) {
@@ -1666,7 +1685,8 @@
             const act = e.target.closest('[data-do]');
             if (!act) return;
             close(null);
-            if (act.dataset.do === 'copy') navigator.clipboard.writeText(m.body).then(() => M3.snackbar('Copied'), () => M3.snackbar('Couldn’t copy that.'));
+            if (act.dataset.do.startsWith('sticker-')) Nook.stickers.menuAction(act.dataset.do, m);
+            else if (act.dataset.do === 'copy') navigator.clipboard.writeText(m.body).then(() => M3.snackbar('Copied'), () => M3.snackbar('Couldn’t copy that.'));
             else if (act.dataset.do === 'open') Nook.pickers.view(Nook.api.url(m.media.url), 'Picture');
             else app().report(c.reportKind, { id: m.id });
           });

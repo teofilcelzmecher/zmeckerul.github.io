@@ -78,10 +78,13 @@
     const section = (id, label, items) =>
       `<section id="ep-${id}" data-group="${id}"><h4>${esc(label)}</h4><div class="ep-row">${items.map(([e, name]) => `<button type="button" data-emoji="${esc(e)}" title="${esc(name)}" aria-label="${esc(name)}">${e}</button>`).join('')}</div></section>`;
     const named = new Map(groups.flatMap((g) => g.items));
+    // your own emojis (1.4, js/stickers.js) come first, in a tab of their own
+    const yours = Nook.stickers && Nook.stickers.available() ? Nook.stickers.pickerSection() : '';
     el.innerHTML =
       '<input class="m3-field ep-search" type="search" placeholder="Search emoji" aria-label="Search emoji" autocomplete="off">' +
-      `<div class="ep-tabs">${recent.length ? tab('recent', 'history', 'Recent') : ''}${groups.map((g, i) => tab(i, g.symbol, g.name)).join('')}</div>` +
+      `<div class="ep-tabs">${yours ? tab('yours', 'add_reaction', 'Yours') : ''}${recent.length ? tab('recent', 'history', 'Recent') : ''}${groups.map((g, i) => tab(i, g.symbol, g.name)).join('')}</div>` +
       '<div class="ep-grid">' +
+      yours +
       (recent.length ? section('recent', 'Recent', recent.map((e) => [e, named.get(e) || e])) : '') +
       groups.map((g, i) => section(i, g.name, g.items)).join('') +
       '<p class="ep-none muted" hidden>No emoji found.</p></div>';
@@ -112,7 +115,9 @@
       const b = e.target.closest('[data-emoji]');
       if (!b) return;
       const picked = b.dataset.emoji;
-      remember.set(RECENT, [picked, ...remember.get(RECENT, []).filter((x) => x !== picked)].slice(0, 24));
+      // one of your own (:name:) is remembered with your stickers instead
+      if (b.dataset.custom) Nook.stickers.used(b.dataset.custom);
+      else remember.set(RECENT, [picked, ...remember.get(RECENT, []).filter((x) => x !== picked)].slice(0, 24));
       onPick(picked);
       fx.pop(b, 0.7);
     });
@@ -127,8 +132,8 @@
           b.hidden = !hit;
           if (hit) shown++;
         }
-        // while searching, recent emoji would only show twice
-        sec.hidden = !shown || (words.length && sec.dataset.group === 'recent');
+        // while searching, recent emoji would only show twice; your own (1.4) always show their + when not searching
+        sec.hidden = (!shown && !(sec.dataset.group === 'yours' && !words.length)) || (words.length && sec.dataset.group === 'recent');
         any = any || (!sec.hidden && shown > 0);
       }
       grid.querySelector('.ep-none').hidden = any;

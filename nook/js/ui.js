@@ -27,6 +27,8 @@
     s = s.replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?!\w)/g, '$1<em>$2</em>');
     s = s.replace(/\|\|(.+?)\|\|/g, '<span class="spoiler" role="button" tabindex="0" aria-label="Spoiler, press to reveal">$1</span>');
     s = s.replace(/(^|[\s(])(n|u)\/([A-Za-z0-9_]{2,24})/g, '$1<a href="#/$2/$3">$2/$3</a>');
+    // a custom emoji (1.4): <:name:id> is its picture, the size of the words around it (js/stickers.js), or :name:
+    s = s.replace(/&lt;:([a-z0-9_]{2,32}):([A-Za-z0-9]{6,16})&gt;/g, (_, name, id) => (Nook.stickers ? Nook.stickers.emojiHTML(name, id) : `:${name}:`));
     return s.replace(/\u0000(\d+)\u0000/g, (_, index) => `<code>${codes[index]}</code>`);
   }
 
@@ -67,6 +69,7 @@
     let s = String(text || '')
       .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
       .replace(/\|\|(.+?)\|\|/g, '[spoiler]')
+      .replace(/<:([a-z0-9_]{2,32}):[A-Za-z0-9]{6,16}>/g, ':$1:')
       .replace(/[*`]|^> ?|^\s*[-*] |^\s*\d+[.)] /gm, '')
       .replace(/\s+/g, ' ')
       .trim();
@@ -178,6 +181,9 @@
   const PICTURE_SIZES = {
     photo: { width: 320, height: 320, gifMax: 2 * 1024 * 1024, maxSide: 1024 },
     banner: { width: 1500, height: 500, gifMax: 4 * 1024 * 1024, maxSide: 2048 },
+    // 1.4 (js/stickers.js): these may zoom out until the whole picture fits, leaving the rest see-through
+    emoji: { width: 128, height: 128, fit: true, headline: 'Fit your emoji' },
+    sticker: { width: 512, height: 512, fit: true, headline: 'Fit your sticker' },
   };
 
   /**
@@ -191,7 +197,7 @@
    * to keep, in its own pixels ({ sx, sy, sw, sh }), or null when they put it away.
    */
   function cropPicture(file, kind) {
-    const { width, height } = PICTURE_SIZES[kind];
+    const { width, height, fit = false, headline } = PICTURE_SIZES[kind];
     const ratio = width / height;
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -208,10 +214,11 @@
         let x = 0, y = 0; // where the picture's top-left corner is, from the frame's
         let stage, pic, slider;
         const scale = () => base * zoom;
-        // the picture always covers the whole frame
+        // the picture always covers the whole frame (or, for a sticker, stays in the middle of it while it's smaller)
         const keepIn = () => {
-          x = Math.min(0, Math.max(frame.w - w * scale(), x));
-          y = Math.min(0, Math.max(frame.h - h * scale(), y));
+          const pw = w * scale(), ph = h * scale();
+          x = fit && pw <= frame.w ? (frame.w - pw) / 2 : Math.min(0, Math.max(frame.w - pw, x));
+          y = fit && ph <= frame.h ? (frame.h - ph) / 2 : Math.min(0, Math.max(frame.h - ph, y));
         };
         const draw = () => {
           keepIn();
@@ -238,7 +245,7 @@
           stage.style.setProperty('--fy', frame.y + 'px');
           stage.style.setProperty('--fw', frame.w + 'px');
           stage.style.setProperty('--fh', frame.h + 'px');
-          base = Math.max(frame.w / w, frame.h / h);
+          base = fit ? Math.min(frame.w / w, frame.h / h) : Math.max(frame.w / w, frame.h / h);
           if (!old) {
             x = (frame.w - w * base) / 2;
             y = (frame.h - h * base) / 2;
@@ -249,12 +256,12 @@
           draw();
         };
         sheet({
-          headline: kind === 'banner' ? 'Fit your banner' : 'Fit your picture',
+          headline: headline || (kind === 'banner' ? 'Fit your banner' : 'Fit your picture'),
           symbol: 'crop',
           shape: 'cookie9',
           className: 'crop-sheet',
           html:
-            `<div class="crop-stage${kind === 'banner' ? ' banner' : ''}" tabindex="0" role="application" aria-label="The part of the picture to keep. Drag it, or use the arrow keys; + and - zoom.">` +
+            `<div class="crop-stage${kind === 'banner' ? ' banner' : fit ? ' see-through' : ''}" tabindex="0" role="application" aria-label="The part of the picture to keep. Drag it, or use the arrow keys; + and - zoom.">` +
             `<img class="crop-img" src="${url}" alt="" draggable="false"><div class="crop-frame"></div></div>` +
             `<div class="crop-zoom">${icon('zoom_out')}<input type="range" class="crop-slider" min="1" max="5" step="0.01" value="1" aria-label="Zoom">${icon('zoom_in')}</div>` +
             '<p class="muted crop-hint">Drag to move it. Pinch, scroll or use the slider to zoom.</p>',

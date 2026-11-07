@@ -2763,7 +2763,8 @@
       $('#f-write', root).hidden = preview;
       const box = $('#f-preview', root);
       box.hidden = !preview;
-      box.innerHTML = body.value.trim() ? ui.md(body.value) : '<p class="muted">Nothing to preview yet.</p>';
+      // your own emojis (1.4) show as they will once it's posted
+      box.innerHTML = body.value.trim() ? ui.md(Nook.stickers ? Nook.stickers.toTokens(body.value) : body.value) : '<p class="muted">Nothing to preview yet.</p>';
     });
 
     // the image: chosen or dropped, then shrunk to fit in local storage
@@ -3083,7 +3084,8 @@
 
   // ---- live: what the server says changed ------------------------------------------------------------
 
-  const said = (m, inGroup) => (m.kind ? views.lineText(m, inGroup) : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70));
+  const said = (m, inGroup) =>
+    m.kind ? views.lineText(m, inGroup) : !m.body && m.media && m.media.type === 'sticker' ? 'Sent a sticker' : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70);
   store.on('messages', (incoming = []) => {
     renderBadges();
     // a group's chat only listens for its own news
