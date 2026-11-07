@@ -1464,7 +1464,6 @@ ef36547	pattern	js/views.js:329	Reason: {2}. You can still read it.
 a55a275	text	js/views.js:360	Terms
 cf01481	text	js/views.js:360	Privacy
 ee92c8a	text	js/views.js:360	Licenses
-7713525	text	js/views.js:360	Design system
 f16bc65	text	js/views.js:361	Ads only between posts.
 466bd68	text	js/views.js:361	No ads, no trackers.
 79285d2	pattern	js/views.js:361	Built with Material 3 Expressive. {0}
@@ -1632,7 +1631,6 @@ d990b10	text	js/views.js:976	Can’t message you, call you or add you
 30dced6	text	js/views.js:991	Open-source licenses
 4b0a3f2	pattern	js/views.js:996	Version {0}
 40fbe26	text	js/views.js:998	Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols.
-1bcffbb	text	js/views.js:998	See the design system
 228e937	text	js/views.js:1059	Nobody can ring you now.
 ac378d4	text	js/views.js:1059	Your friends can call you.
 b3b5380	text	js/views.js:1094	Drafts save themselves as you type

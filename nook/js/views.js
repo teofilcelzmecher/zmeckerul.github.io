@@ -357,7 +357,7 @@
     '<div class="foot-links">' +
     (offerDesktop() ? '<a href="download.html">Budgie for Windows and Linux</a>' : '') +
     '<a href="#/settings">Settings</a><button type="button" data-act="shortcuts">Keyboard shortcuts</button>' +
-    '<button type="button" data-act="about-nook">What’s Budgie?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a><a href="../m3/">Design system</a>' +
+    '<button type="button" data-act="about-nook">What’s Budgie?</button><button type="button" data-act="credits">Credits</button><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="licenses.html">Licenses</a>' +
     `<span>Built with Material 3 Expressive. ${Nook.ads && Nook.ads.on ? 'Ads only between posts.' : 'No ads, no trackers.'}</span></div>`;
 
   // ---- comments -------------------------------------------------------------------------------
@@ -995,7 +995,7 @@
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
         `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Budgie</b><span class="muted">Version ${esc(store.VERSION)}</span></div></div>` +
         `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Budgie?</button>${offerDesktop() ? `<a class="m3-btn tonal" href="download.html">${icon('computer')}Budgie for Windows and Linux</a>` : ''}</div>` +
-        `<p class="muted">Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols. <a class="md" style="color:var(--m3-primary)" href="../m3/">See the design system</a>.</p>` +
+        `<p class="muted">Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols.</p>` +
         '</div></section>' +
         '</div></div>',
       mount(root) {
