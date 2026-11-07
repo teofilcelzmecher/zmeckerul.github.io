@@ -17,6 +17,11 @@
   const app = () => Nook.app;
   // Budgie's own words that are put together in code, said in the language (a sentence the page already holds is translated by js/i18n.js on its own)
   const tr = (s) => (Nook.i18n ? Nook.i18n.t(s) : s);
+  // what a nest owner wrote is theirs and stays as written; Budgie's own starter nests, and the three flairs every nest starts with, are Budgie's words
+  const OWN = ' translate="no"';
+  const ownText = (c) => (c && !c.starter ? OWN : '');
+  const DEFAULT_FLAIRS = ['Discussion', 'Question', 'Show off'];
+  const ownFlair = (c, f) => (c && !c.starter && !DEFAULT_FLAIRS.includes(f) ? OWN : '');
 
   const SORT_LABELS = { hot: ['Hot', 'local_fire_department'], new: ['New', 'new_releases'], top: ['Top', 'trending_up'], rising: ['Rising', 'rocket'] };
 
@@ -161,7 +166,7 @@
       '</header>';
 
     const title =
-      `<h2 class="post-title" id="t-${p.id}">${p.flair ? `<span class="flair">${esc(tr(p.flair))}</span> ` : ''}` +
+      `<h2 class="post-title" id="t-${p.id}">${p.flair ? `<span class="flair"${ownFlair(c, p.flair)}>${esc(ownFlair(c, p.flair) ? p.flair : tr(p.flair))}</span> ` : ''}` +
       (open ? esc(clean(p.title)) : `<a href="${href}">${esc(clean(p.title))}</a>`) +
       '</h2>';
 
@@ -277,7 +282,7 @@
     return (
       '<section class="card">' +
       `<h3 class="card-title">${nookIcon(c, 32, 18)}<span>About n/${esc(c.id)}</span></h3>` +
-      `<p class="muted">${esc(c.description || c.tagline)}</p>` +
+      `<p class="muted"${ownText(c)}>${esc(c.description || c.tagline)}</p>` +
       `<div class="about-stats"><div><b class="count">${num(a.posts)}</b><span>Posts</span></div>` +
       `<div><b class="count">${num(a.comments)}</b><span>Comments</span></div></div>` +
       pulse(c) +
@@ -291,7 +296,7 @@
     if ((!c.rules || !c.rules.length) && !edit) return '';
     return (
       `<section class="card"><h3 class="card-title">${icon('gavel')}<span>Nest rules</span>${edit}</h3>` +
-      (c.rules && c.rules.length ? `<ol class="rules">${c.rules.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>` : '<p class="muted">No rules yet.</p>') +
+      (c.rules && c.rules.length ? `<ol class="rules">${c.rules.map((r) => `<li${ownText(c)}>${esc(r)}</li>`).join('')}</ol>` : '<p class="muted">No rules yet.</p>') +
       '</section>'
     );
   }
@@ -540,7 +545,7 @@
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
         (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span translate="no" class="m3-icon">more_horiz</span></button></div></div>` +
-        `<p class="nook-tagline"${c.starter ? '' : ' translate="no"'}>${esc(c.tagline)}</p>` +
+        `<p class="nook-tagline"${ownText(c)}>${esc(c.tagline)}</p>` +
         pulse(c) +
         '</section>' +
         bannedNote(c) +
@@ -549,7 +554,7 @@
         // nobody banned from the nest is offered a Post button the server will refuse
         `${store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`}${compactToggle()}</div>` +
         (flairs.length
-          ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false">${esc(f)}</button>`).join('')}</div>`
+          ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false"${ownFlair(c, f)}>${esc(f)}</button>`).join('')}</div>`
           : '') +
         feedShell() +
         `</div><aside class="rail">${aboutCard(c)}${rulesCard(c)}${modsCard(c)}${footCard()}</aside></div>`,
@@ -643,7 +648,7 @@
             `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
             `<h3 class="m3-title" translate="no">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
-            `<p${c.starter ? '' : ' translate="no"'}>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
+            `<p${ownText(c)}>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
         )
         .join('');
     return {

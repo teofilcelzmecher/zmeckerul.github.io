@@ -54,7 +54,8 @@
         if (!m) return escapeRe(part);
         order.push(Number(m[1]));
         if (/(?:^|[\s(])[un]\/$|[“«„"]\s?$/.test(parts[i - 1] || '') || /^\s?[”»“"]|^[’']s\b/.test(parts[i + 1] || '')) raw.add(Number(m[1]));
-        return '(.+?)';
+        // a name made of several words, then a last slot ("Achievement unlocked: {0} {1}", with "Hello, Budgie" and "I"): the first takes all but the last word
+        return parts[i + 1] === ' ' && /^\{\d+\}$/.test(parts[i + 2] || '') && i + 3 >= parts.length - 1 ? '(.+)' : '(.+?)';
       })
       .join('');
     return { re: new RegExp('^' + source + '$', 's'), order, raw, out, fixed: en.replace(/\{\d+\}/g, '').length };
@@ -88,7 +89,7 @@
       if (out === undefined) {
         for (const p of patterns) {
           // a very short pattern ("{0} with {1}") only ever stands for a short phrase, never for a long sentence
-          if (p.fixed < 10 && (key.length > 70 || /[.!?] /.test(key))) continue;
+          if (p.fixed < 10 && (key.length > 60 || /[.!?] \S/.test(key) || (/[.!?]$/.test(key) && key.split(' ').length > 6))) continue;
           const m = p.re.exec(key);
           if (!m) continue;
           const slots = [];
