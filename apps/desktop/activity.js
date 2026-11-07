@@ -8,7 +8,7 @@
  *           speaks MPRIS over D-Bus (Spotify, Rhythmbox, Elisa, Strawberry, VLC, browsers…), asked every 12 seconds,
  *           and straight away when a player says its song changed. Music apps come before a video in a browser,
  *           and what clearly isn't music (a film, a stream, a call) is left out
- *   games   what's running, every 30 seconds: about 150 well-known games by their programs' names, and anything
+ *   games   what's running, every 30 seconds: about 240 well-known games by their programs' names, and anything
  *           run from a game library's folder (Steam, Epic, GOG, Riot, EA, Ubisoft, Xbox, Heroic, itch), named
  *           after its folder. Proton and Wine games run from those folders too, so they're found the same way
  *

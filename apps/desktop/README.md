@@ -14,6 +14,16 @@ install. Around the website, the app adds what a computer can do:
   the tray icon.
 - **Sharing a screen**: a picker for a screen or a window, and on Windows the computer's sound with it (everything the
   computer plays, the call included).
+- **What's playing** (Budgie 1.4): the song the computer is playing and the game it's running show on your Budgie
+  profile, in chats and in your friends' lists as "Listening to" and "Playing", for the people you choose
+  (Settings → Activity on the website). Music comes from the computer's own media controls (what the media keys and
+  the volume overlay use), so Spotify, Apple Music, TIDAL, foobar2000, VLC, Rhythmbox, YouTube Music in a browser and
+  most other players work; music apps come before a video in a browser, and films, streams and calls are left out.
+  Games are found by about 240 well-known games' programs (Minecraft, Roblox, Fortnite, Valorant, CS2, League,
+  Genshin, Elden Ring, Baldur's Gate 3…) and by anything running from a Steam, Epic, GOG, Riot, EA, Ubisoft, Xbox,
+  Heroic or itch library (Proton and Wine games too), named after its folder. It's on unless turned off: in Settings
+  → Activity (music and games apart), or **Share what I'm playing** in the tray, which also shows what Budgie sees
+  right now. The first time something is shown, the app says so once.
 - **The rest**: right-click to cut, copy, paste and fix spelling (Windows' own spelling); links to other sites open in
   the browser; no ads; the window remembers its size and place; a page that says so when there's no internet.
 - **A newer app?** The app checks GitHub twice a day and says so once (the tray then has a link).
@@ -28,19 +38,44 @@ language the website is in.
 | File | What it does |
 |---|---|
 | `main.js` | the window, the tray, starting with the computer, the ringing window, notifications, the screen picker, permissions, links |
-| `preload.js` | the only thing the website sees of the app: `window.BUDGIE_DESKTOP` (notify, unread count, language), and it notices a call ringing in the page |
+| `preload.js` | the only thing the website sees of the app: `window.BUDGIE_DESKTOP` (notify, unread count, language, what's playing), and it notices a call ringing in the page |
+| `activity.js` | what's playing and running: the media controls (Windows) or MPRIS (Linux), and the games among the programs running |
 | `desktop.js` | run inside the website by the app: turns new messages and inbox items into notifications, counts unread, keeps checking while the window is closed |
 | `pages/` | the app's own small pages: the ringing window, the screen picker, the offline page |
 | `strings.js` | the app's own words in six languages |
 | `tools/make-icons.js` | the icons, drawn from the design system (Playwright) |
 | `tools/aur.py` | the Arch User Repository package (PKGBUILD and .SRCINFO) for a release |
+| `test/` | tests for `activity.js` (`npm test`), with answers recorded from D-Bus |
+
+### What's playing, in detail
+
+No native modules: only what the computer already has.
+
+- **Windows 10 (1809 or newer) and 11**: one hidden Windows PowerShell 5.1 runs for as long as sharing is on. It asks
+  the System Media Transport Controls (`GlobalSystemMediaTransportControlsSessionManager`) every 2.5 seconds and prints
+  a line of JSON when the music changes (and every 15 seconds), and lists this person's programs (`Get-Process`, not
+  Windows' own) every 30 seconds. It ends itself when Budgie does. If PowerShell can't run, games come from
+  `tasklist` and music isn't found.
+- **Linux**: every MPRIS player on the session bus (`gdbus`, or `dbus-send`), every 12 seconds and at once when a
+  player says its song changed (`dbus-monitor`); this person's programs from `/proc/*/exe` and their command lines,
+  every 30 seconds.
+- **To the website**: `BUDGIE_DESKTOP.onActivity(cb)` gives `{ music: { title, artist, album, app, playing } | null,
+  game: { name } | null }` when it changes and every minute; `activityOptions()` and `setActivityOptions({ music,
+  games })` read and change what may be shared (kept in the app's `settings.json`); `onActivityOptions(cb)` hears
+  changes made from the tray. Nothing is looked for until the website asks, nor while sharing is off; after the page
+  goes, looking stops within 15 seconds.
+
+Only a song's title, artist, album and player's name, and a game's name, ever leave `activity.js` — never paths,
+other programs or anything else about the computer — and only to Budgie's page, which posts them to Budgie when
+someone is signed in. The app sends nothing anywhere itself.
 
 The website knows nothing about the app except that it shows no ads inside it (`nook/js/ads.js`) and doesn't offer
 it for download there (`nook/js/views.js`).
 
 Security: the website runs sandboxed, with context isolation and no Node.js; the app's windows only show
 budgiesocial.com and its own pages (anything else opens in the browser); the website may use the microphone, camera,
-screen sharing, notifications and full screen, and nothing else.
+screen sharing, notifications and full screen, and nothing else; only budgiesocial.com's own page hears what's
+playing.
 
 ## Try it
 
@@ -49,6 +84,7 @@ cd apps/desktop
 npm install
 npm start                               # the real website
 BUDGIE_SITE=http://localhost:8790/ npm start   # a Budgie running on your own computer
+npm test                                # what's playing and running: the parts that read Windows' and Linux's answers
 ```
 
 ## Releases
