@@ -1,0 +1,1538 @@
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+/*
+ * Profile rewards (Budgie 1.4): the fonts, name effects, frames and scenes achievements unlock, and Customise.
+ * Everything that moves here moves with transform and opacity where it can (the cheap kind of motion on a phone),
+ * and stands still in Calm mode and under reduced motion (the rules at the end).
+ */
+
+/* ---- the reward fonts --------------------------------------------------------------------------------------- */
+/* OFL fonts from Google Fonts' own files, Latin and Latin Extended apart: a browser only fetches the second if a
+   name ever needs it (a username can't, but the names of the fonts can be shown in any language). Each at one
+   weight, so no bolder one is made up; size-adjust evens out how big they look beside the others */
+@font-face {
+  font-family: 'Budgie Name Arcade';
+  src: url('../fonts/name-arcade.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+  size-adjust: 72%;
+}
+@font-face {
+  font-family: 'Budgie Name Arcade';
+  src: url('../fonts/name-arcade-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  font-display: swap;
+  size-adjust: 72%;
+}
+@font-face {
+  font-family: 'Budgie Name Marquee';
+  src: url('../fonts/name-marquee.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: 'Budgie Name Marquee';
+  src: url('../fonts/name-marquee-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: 'Budgie Name Graffiti';
+  src: url('../fonts/name-graffiti.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+  size-adjust: 112%;
+}
+@font-face {
+  font-family: 'Budgie Name Graffiti';
+  src: url('../fonts/name-graffiti-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  font-display: swap;
+  size-adjust: 112%;
+}
+@font-face {
+  font-family: 'Budgie Name Bubble';
+  src: url('../fonts/name-bubble.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: 'Budgie Name Bubble';
+  src: url('../fonts/name-bubble-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  font-display: swap;
+  size-adjust: 96%;
+}
+@font-face {
+  font-family: 'Budgie Name Future';
+  src: url('../fonts/name-future.woff2') format('woff2');
+  font-display: swap;
+  size-adjust: 86%;
+}
+@font-face {
+  font-family: 'Budgie Name Royal';
+  src: url('../fonts/name-royal.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+  font-display: swap;
+  size-adjust: 92%;
+}
+@font-face {
+  font-family: 'Budgie Name Royal';
+  src: url('../fonts/name-royal-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  font-display: swap;
+  size-adjust: 92%;
+}
+.name-font-arcade,
+.name-font-marquee,
+.name-font-graffiti,
+.name-font-bubble,
+.name-font-future,
+.name-font-royal {
+  font-synthesis: none;
+}
+.name-font-arcade {
+  font-family: 'Budgie Name Arcade', var(--m3-font);
+  letter-spacing: -0.02em;
+}
+.name-font-marquee {
+  font-family: 'Budgie Name Marquee', var(--m3-font);
+}
+.name-font-graffiti {
+  font-family: 'Budgie Name Graffiti', var(--m3-font);
+}
+.name-font-bubble {
+  font-family: 'Budgie Name Bubble', var(--m3-font);
+}
+.name-font-future {
+  font-family: 'Budgie Name Future', var(--m3-font);
+  letter-spacing: 0.02em;
+}
+.name-font-royal {
+  font-family: 'Budgie Name Royal', var(--m3-font);
+}
+/* "Name fonts" off in Settings: plain names, effects too (but Customise still shows what each looks like) */
+body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti, .name-font-bubble, .name-font-future, .name-font-royal):not(.font-sample, .rw-sample, .rw-stage-name *) {
+  font-family: var(--m3-font);
+  font-synthesis: initial;
+  letter-spacing: normal;
+}
+
+/* ---- colours the effects are made of, a darker set on light pages and a brighter one on dark ----------------- */
+
+:root {
+  --rw-fire-1: #f5a400;
+  --rw-fire-2: #e65100;
+  --rw-fire-3: #c41c1c;
+  --rw-gold-1: #b07a00;
+  --rw-gold-2: #e0a92a;
+  --rw-gold-3: #8a5a00;
+  --rw-gold-hi: #fff2b8;
+  --rw-rainbow: #d81b60, #e65100, #b58900, #2e7d32, #1565c0, #6a1b9a, #d81b60;
+  --rw-aurora: #00897b, #1e88e5, #8e24aa, #00acc1, #00897b;
+  --rw-shine: var(--m3-primary);
+  --rw-neon: color-mix(in oklab, var(--m3-primary) 80%, #000);
+  --rw-spark: #e0a000;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) {
+    --rw-fire-1: #ffe066;
+    --rw-fire-2: #ff9a3c;
+    --rw-fire-3: #ff5a3c;
+    --rw-gold-1: #ffd34d;
+    --rw-gold-2: #fff0a8;
+    --rw-gold-3: #c8901a;
+    --rw-gold-hi: #ffffff;
+    --rw-rainbow: #ff6b8b, #ffaa5c, #ffe066, #6bf0a0, #6bc8ff, #b98bff, #ff6b8b;
+    --rw-aurora: #64ffda, #80d8ff, #c3a0ff, #a7ffeb, #64ffda;
+    --rw-shine: #ffffff;
+    --rw-neon: color-mix(in oklab, var(--m3-primary) 45%, #fff);
+    --rw-spark: #ffe680;
+  }
+}
+:root[data-m3-theme='dark'] {
+  --rw-fire-1: #ffe066;
+  --rw-fire-2: #ff9a3c;
+  --rw-fire-3: #ff5a3c;
+  --rw-gold-1: #ffd34d;
+  --rw-gold-2: #fff0a8;
+  --rw-gold-3: #c8901a;
+  --rw-gold-hi: #ffffff;
+  --rw-rainbow: #ff6b8b, #ffaa5c, #ffe066, #6bf0a0, #6bc8ff, #b98bff, #ff6b8b;
+  --rw-aurora: #64ffda, #80d8ff, #c3a0ff, #a7ffeb, #64ffda;
+  --rw-shine: #ffffff;
+  --rw-neon: color-mix(in oklab, var(--m3-primary) 45%, #fff);
+  --rw-spark: #ffe680;
+}
+
+/* ---- name effects ------------------------------------------------------------------------------------------ */
+/* Everywhere a name is drawn (posts, comments, chats, lists) an effect is its gentle, still self: a colour, a
+   gradient, a glow. Big (the profile, Customise: .rw-live), or under a pointer on a computer, it moves. */
+
+.name-fx {
+  --rw-ink: var(--m3-on-surface);
+}
+/* the ones painted with a gradient through the letters */
+.name-fx:is(.name-fx-shimmer, .name-fx-fire, .name-fx-rainbow, .name-fx-aurora, .name-fx-gold) {
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /* room for letters that lean past their box (a script font's tails), so the paint reaches them */
+  padding-inline: 0.06em;
+  margin-inline: -0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.name-fx-glow {
+  text-shadow: 0 0 0.45em color-mix(in srgb, var(--m3-primary) 55%, transparent);
+}
+.name-fx-shimmer {
+  background-image: linear-gradient(100deg, var(--rw-ink) 0 38%, var(--rw-shine) 50%, var(--rw-ink) 62% 100%);
+  background-size: 260% 100%;
+  background-position: 70% 0;
+}
+.name-fx-fire {
+  background-image: linear-gradient(0deg, var(--rw-fire-3) 0%, var(--rw-fire-2) 45%, var(--rw-fire-1) 85%, var(--rw-fire-2) 100%);
+  background-size: 100% 220%;
+  background-position: 0 100%;
+}
+.name-fx-rainbow {
+  background-image: linear-gradient(90deg, var(--rw-rainbow));
+  background-size: 100% 100%;
+}
+.name-fx-neon {
+  color: var(--rw-neon);
+  -webkit-text-fill-color: var(--rw-neon);
+  text-shadow: 0 0 0.06em color-mix(in srgb, var(--m3-primary) 90%, transparent), 0 0 0.28em color-mix(in srgb, var(--m3-primary) 60%, transparent),
+    0 0 0.7em color-mix(in srgb, var(--m3-primary) 35%, transparent);
+}
+.name-fx-glitch {
+  text-shadow: 0.05em 0 rgba(255, 0, 90, 0.5), -0.05em 0 rgba(0, 200, 255, 0.5);
+}
+.name-fx-wave {
+  color: color-mix(in oklab, var(--m3-primary) 70%, var(--m3-tertiary));
+  -webkit-text-fill-color: currentColor;
+}
+.name-fx-sparkle {
+  position: relative;
+  text-shadow: 0 0 0.3em color-mix(in srgb, var(--rw-spark) 60%, transparent);
+}
+.name-fx-aurora {
+  background-image: linear-gradient(110deg, var(--rw-aurora));
+  background-size: 100% 100%;
+}
+.name-fx-gold {
+  background-image: linear-gradient(180deg, var(--rw-gold-2) 0%, var(--rw-gold-1) 38%, var(--rw-gold-3) 58%, var(--rw-gold-1) 80%, var(--rw-gold-2) 100%);
+  background-size: 100% 100%;
+}
+
+/* alive: on the profile, in Customise, and on a computer under the pointer */
+.name-fx.rw-live,
+.name-fx.rw-live * {
+  display: inline-block;
+}
+.name-fx-glow.rw-live {
+  animation: rw-glow 2.6s ease-in-out infinite;
+}
+.name-fx-shimmer.rw-live {
+  animation: rw-sweep 3.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+.name-fx-fire.rw-live {
+  animation: rw-rise 1.6s linear infinite, rw-flicker 2.1s ease-in-out infinite;
+}
+.name-fx-rainbow.rw-live,
+.name-fx-aurora.rw-live {
+  background-size: 200% 100%;
+  animation: rw-flow 7s linear infinite;
+}
+.name-fx-aurora.rw-live {
+  animation-duration: 11s;
+  filter: drop-shadow(0 0 0.18em color-mix(in srgb, var(--m3-tertiary) 45%, transparent));
+}
+.name-fx-neon.rw-live {
+  animation: rw-buzz 5s steps(1, end) infinite;
+}
+.name-fx-glitch.rw-live {
+  animation: rw-glitch 3.4s steps(1, end) infinite;
+}
+.name-fx-gold.rw-live {
+  background-image: linear-gradient(105deg, transparent 0 40%, color-mix(in srgb, var(--rw-gold-hi) 90%, transparent) 50%, transparent 60% 100%),
+    linear-gradient(180deg, var(--rw-gold-2) 0%, var(--rw-gold-1) 38%, var(--rw-gold-3) 58%, var(--rw-gold-1) 80%, var(--rw-gold-2) 100%);
+  background-size: 300% 100%, 100% 100%;
+  background-repeat: no-repeat;
+  animation: rw-shine 3.6s ease-in-out infinite;
+  filter: drop-shadow(0 0.04em 0 color-mix(in srgb, var(--rw-gold-3) 60%, transparent));
+}
+@media (hover: hover) {
+  a.name-fx:is(.name-fx-shimmer):hover {
+    animation: rw-sweep 2.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  }
+  a.name-fx:is(.name-fx-rainbow, .name-fx-aurora):hover {
+    background-size: 200% 100%;
+    animation: rw-flow 4s linear infinite;
+  }
+  a.name-fx-fire:hover {
+    animation: rw-rise 1.6s linear infinite;
+  }
+  a.name-fx-glow:hover {
+    animation: rw-glow 2.6s ease-in-out infinite;
+  }
+}
+/* wave: each letter rises and falls a beat after the one before, coloured along the way */
+.name-fx-wave.rw-live .rw-l {
+  color: color-mix(in oklab, var(--m3-tertiary) var(--p), var(--m3-primary));
+  -webkit-text-fill-color: currentColor;
+  animation: rw-bob 1.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.09s);
+}
+.name-fx-wave.rw-live .rw-l:first-child {
+  /* keeps a space for what follows, as a word would */
+  margin-left: 0;
+}
+/* sparkle: little four-pointed stars twinkling round the name */
+.rw-spark {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 0.42em;
+  height: 0.42em;
+  background: var(--rw-spark);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+  scale: 0;
+  animation: rw-twinkle 2.8s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+
+@keyframes rw-glow {
+  50% {
+    text-shadow: 0 0 0.2em color-mix(in srgb, var(--m3-primary) 90%, transparent), 0 0 0.8em color-mix(in srgb, var(--m3-primary) 55%, transparent);
+  }
+}
+@keyframes rw-sweep {
+  0% {
+    background-position: 100% 0;
+  }
+  70%,
+  100% {
+    background-position: 0 0;
+  }
+}
+@keyframes rw-rise {
+  to {
+    background-position: 0 -120%;
+  }
+}
+@keyframes rw-flicker {
+  0%,
+  100% {
+    filter: drop-shadow(0 -0.04em 0.16em color-mix(in srgb, var(--rw-fire-2) 50%, transparent));
+  }
+  40% {
+    filter: drop-shadow(0 -0.06em 0.28em color-mix(in srgb, var(--rw-fire-2) 70%, transparent));
+  }
+  70% {
+    filter: drop-shadow(0 -0.03em 0.12em color-mix(in srgb, var(--rw-fire-1) 45%, transparent));
+  }
+}
+@keyframes rw-flow {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes rw-shine {
+  0% {
+    background-position: 130% 0, 0 0;
+  }
+  60%,
+  100% {
+    background-position: -30% 0, 0 0;
+  }
+}
+/* a neon tube that buzzes now and then */
+@keyframes rw-buzz {
+  0%,
+  44%,
+  48%,
+  52%,
+  100% {
+    opacity: 1;
+  }
+  46%,
+  50% {
+    opacity: 0.55;
+  }
+}
+@keyframes rw-glitch {
+  0%,
+  80%,
+  100% {
+    translate: 0 0;
+    skew: 0deg;
+  }
+  82% {
+    translate: -0.04em 0;
+    text-shadow: 0.12em 0 rgba(255, 0, 90, 0.65), -0.1em 0 rgba(0, 200, 255, 0.65);
+  }
+  85% {
+    translate: 0.05em -0.02em;
+    skew: -8deg;
+    text-shadow: -0.12em 0 rgba(255, 0, 90, 0.65), 0.12em 0 rgba(0, 200, 255, 0.65);
+  }
+  88% {
+    translate: -0.02em 0.02em;
+    skew: 4deg;
+  }
+  91% {
+    translate: 0 0;
+    skew: 0deg;
+  }
+}
+@keyframes rw-bob {
+  0%,
+  100% {
+    translate: 0 0.06em;
+  }
+  50% {
+    translate: 0 -0.16em;
+  }
+}
+@keyframes rw-twinkle {
+  0%,
+  100% {
+    scale: 0;
+    rotate: 0deg;
+    opacity: 0;
+  }
+  30% {
+    scale: var(--z);
+    opacity: 1;
+  }
+  60% {
+    scale: 0;
+    rotate: 90deg;
+    opacity: 0;
+  }
+}
+
+/* ---- frames round a picture --------------------------------------------------------------------------------- */
+/* ui.avatar puts them in: a part behind the picture (before its shape) and a part in front. Their box is 20% bigger
+   than the picture on every side; --s is the picture's size */
+
+.avatar.framed {
+  isolation: isolate;
+}
+.rw-frame {
+  position: absolute;
+  inset: calc(var(--s) * -0.2);
+  pointer-events: none;
+}
+/* small pictures (a chat's header) wear a slimmer frame that keeps close to them */
+.rw-frame.rw-sm[style*='--rw-mask'] {
+  inset: calc(var(--s) * -0.13);
+}
+.chat-who > .avatar.framed,
+.chat-empty > .avatar.framed {
+  margin: 0 calc(var(--s) * 0.1);
+}
+/* the outlines that follow the picture's shape: a colour that turns, seen through the shape's outline */
+.rw-frame[style*='--rw-mask'] {
+  -webkit-mask: var(--rw-mask) center / 100% 100% no-repeat;
+  mask: var(--rw-mask) center / 100% 100% no-repeat;
+}
+.rw-frame[style*='--rw-mask'] > i {
+  position: absolute;
+  inset: -12%;
+  border-radius: 50%;
+  animation: rw-spin 9s linear infinite;
+}
+.rw-ring > i {
+  background: conic-gradient(var(--m3-primary), var(--m3-tertiary), var(--m3-secondary), var(--m3-primary));
+}
+.rw-rainbow > i {
+  background: conic-gradient(#ff5f6d, #ffb347, #ffe66b, #63e6be, #4dabf7, #b197fc, #f783ac, #ff5f6d);
+  animation-duration: 5s;
+}
+.rw-glow {
+  opacity: 0.4;
+}
+.rw-holo > i {
+  background: conic-gradient(#8ff7ff, #c9a7ff, #ffb3ec, #fff6a8, #b4ffcf, #8ff7ff);
+  animation-duration: 4s;
+  animation-direction: reverse;
+}
+.rw-holo.rw-glow {
+  opacity: 0.5;
+}
+.rw-gold-ring > i {
+  background: conic-gradient(#fff3b0, #ffc93c, #c98a0e, #ffe680, #ffc93c, #a86e00, #fff3b0);
+  animation-duration: 12s;
+}
+@keyframes rw-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* flames: tongues of fire round the picture, each flickering in its own time, and embers rising from the top */
+.rw-flames {
+  inset: calc(var(--s) * -0.24);
+}
+.rw-flames-glow {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 150, 40, 0.6) 52%, rgba(255, 90, 20, 0) 72%);
+  animation: rw-heat 1.9s ease-in-out infinite;
+}
+.rw-flames i {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: calc(var(--s) * 0.2);
+  height: calc(var(--s) * 0.34 * var(--h));
+  margin-left: calc(var(--s) * -0.1);
+  transform-origin: 50% 100%;
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.36));
+}
+.rw-flames i b {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='.5' cy='.86' r='.75'%3E%3Cstop offset='0' stop-color='%23fff7c2'/%3E%3Cstop offset='.25' stop-color='%23ffd23f'/%3E%3Cstop offset='.55' stop-color='%23ff8a1f'/%3E%3Cstop offset='.85' stop-color='%23f2401a'/%3E%3Cstop offset='1' stop-color='%23d8200f' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cpath d='M20 64C7 64 1 53 4 41 7 30 15 25 16 10c6 8 8 15 7 22 4-4 6-10 5-17 8 10 12 23 9 33-2 9-8 16-17 16z' fill='url(%23g)'/%3E%3C/svg%3E")
+    center bottom / 100% 100% no-repeat;
+  animation: rw-lick var(--t) ease-in-out infinite alternate;
+  animation-delay: var(--d);
+}
+.rw-flames s {
+  position: absolute;
+  left: var(--x);
+  top: 12%;
+  width: calc(var(--s) * 0.045);
+  height: calc(var(--s) * 0.045);
+  border-radius: 50%;
+  background: #ffd23f;
+  box-shadow: 0 0 calc(var(--s) * 0.04) #ff8a1f;
+  opacity: 0;
+  animation: rw-ember var(--t) ease-out infinite;
+  animation-delay: var(--d);
+}
+@keyframes rw-lick {
+  0% {
+    scale: 0.92 0.78;
+  }
+  50% {
+    scale: 1.06 1.08;
+  }
+  100% {
+    scale: 0.96 1.2;
+  }
+}
+@keyframes rw-heat {
+  50% {
+    opacity: 0.7;
+    scale: 1.04;
+  }
+}
+@keyframes rw-ember {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--s) * 0.06) calc(var(--s) * -0.32);
+  }
+}
+
+/* vinyl: the picture is the record's label, the record spins under it, the arm rests on it */
+.rw-vinyl {
+  inset: calc(var(--s) * -0.2);
+  border-radius: 50%;
+  background: #0f0f10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.rw-vinyl.rw-sm {
+  inset: calc(var(--s) * -0.12);
+}
+.rw-flames.rw-sm i {
+  height: calc(var(--s) * 0.26 * var(--h));
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.38));
+}
+.rw-petals.rw-sm .rw-flower i {
+  height: calc(var(--s) * 0.32);
+}
+.rw-vinyl i {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, transparent 0 63%, color-mix(in srgb, var(--m3-primary) 85%, #000) 63.5% 67%, transparent 67.5%),
+    conic-gradient(from 10deg, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0.24) 28deg, rgba(255, 255, 255, 0) 60deg 180deg, rgba(255, 255, 255, 0.17) 210deg, rgba(255, 255, 255, 0) 240deg),
+    repeating-radial-gradient(circle, #141415 0 1.4px, #262628 1.4px 2.6px);
+  animation: rw-spin 3.2s linear infinite;
+}
+.rw-vinyl-arm {
+  inset: calc(var(--s) * -0.2);
+}
+.rw-vinyl-arm svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* pixels: an 8-bit ring of lights chasing round, and pixel sparkles at the corners */
+.rw-pixels i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--s) * 0.075);
+  height: calc(var(--s) * 0.075);
+  margin: calc(var(--s) * -0.0375) 0 0 calc(var(--s) * -0.0375);
+  background: var(--c);
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.6)) rotate(calc(var(--a) * -1));
+  animation: rw-chase 1.6s steps(1, end) infinite;
+  animation-delay: calc(var(--d) * -1);
+}
+.rw-pixels.rw-sm i {
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.62)) rotate(calc(var(--a) * -1));
+  width: calc(var(--s) * 0.09);
+  height: calc(var(--s) * 0.09);
+}
+.rw-pixels b {
+  --px: calc(var(--s) * 0.035);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--px);
+  height: var(--px);
+  background: var(--m3-tertiary);
+  box-shadow: var(--px) 0 var(--m3-tertiary), calc(var(--px) * -1) 0 var(--m3-tertiary), 0 var(--px) var(--m3-tertiary), 0 calc(var(--px) * -1) var(--m3-tertiary);
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.76)) rotate(calc(var(--a) * -1));
+  animation: rw-blink 1.8s steps(2, jump-none) infinite;
+  animation-delay: var(--d);
+}
+@keyframes rw-chase {
+  0% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.25;
+  }
+}
+@keyframes rw-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+/* orbit: two little worlds going round on tilted paths, smaller and dimmer when they pass behind */
+.rw-orbit-lines svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.rw-orbit-lines path {
+  stroke: color-mix(in srgb, var(--m3-primary) 55%, transparent);
+}
+.rw-orbit-lines path.o2 {
+  stroke: color-mix(in srgb, var(--m3-tertiary) 55%, transparent);
+}
+.rw-plane {
+  position: absolute;
+  inset: 0;
+  rotate: -22deg;
+}
+.rw-plane.p2 {
+  rotate: 26deg;
+}
+.rw-plane i,
+.rw-plane b,
+.rw-plane s {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+}
+.rw-plane i {
+  --rx: calc(var(--s) * 0.66);
+  animation: rw-ox 2.3s ease-in-out infinite alternate;
+}
+.rw-plane b {
+  --ry: calc(var(--s) * 0.19);
+  animation: rw-oy 2.3s ease-in-out infinite alternate;
+  animation-delay: -1.15s;
+}
+.rw-plane s {
+  width: calc(var(--s) * 0.13);
+  height: calc(var(--s) * 0.13);
+  margin: calc(var(--s) * -0.065) 0 0 calc(var(--s) * -0.065);
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 32%, #fff 0 10%, var(--m3-tertiary) 42%, color-mix(in srgb, var(--m3-tertiary) 55%, #000) 100%);
+  box-shadow: 0 0 calc(var(--s) * 0.06) color-mix(in srgb, var(--m3-tertiary) 70%, transparent);
+  animation: rw-oz 2.3s ease-in-out infinite alternate;
+  animation-delay: -1.15s;
+}
+.rw-plane.p2 i {
+  --rx: calc(var(--s) * 0.58);
+  animation-duration: 3.4s;
+  animation-delay: -1.2s;
+}
+.rw-plane.p2 b {
+  --ry: calc(var(--s) * 0.15);
+  animation-duration: 3.4s;
+  animation-delay: -2.9s;
+}
+.rw-plane.p2 s {
+  width: calc(var(--s) * 0.09);
+  height: calc(var(--s) * 0.09);
+  margin: calc(var(--s) * -0.045) 0 0 calc(var(--s) * -0.045);
+  background: radial-gradient(circle at 34% 32%, #fff 0 10%, var(--m3-primary) 42%, color-mix(in srgb, var(--m3-primary) 55%, #000) 100%);
+  box-shadow: 0 0 calc(var(--s) * 0.05) color-mix(in srgb, var(--m3-primary) 70%, transparent);
+  animation-duration: 3.4s;
+  animation-delay: -2.9s;
+}
+@keyframes rw-ox {
+  from {
+    translate: calc(var(--rx) * -1) 0;
+  }
+  to {
+    translate: var(--rx) 0;
+  }
+}
+@keyframes rw-oy {
+  from {
+    translate: 0 calc(var(--ry) * -1);
+  }
+  to {
+    translate: 0 var(--ry);
+  }
+}
+@keyframes rw-oz {
+  from {
+    scale: 0.55;
+    opacity: 0.45;
+  }
+  to {
+    scale: 1.1;
+    opacity: 1;
+  }
+}
+
+/* petals: the picture in the middle of a flower that turns slowly, a petal or two drifting off */
+.rw-petals {
+  inset: calc(var(--s) * -0.22);
+}
+.rw-flower {
+  position: absolute;
+  inset: 0;
+  animation: rw-spin 48s linear infinite;
+}
+.rw-flower i {
+  position: absolute;
+  left: 50%;
+  bottom: 50%;
+  width: calc(var(--s) * 0.26);
+  height: calc(var(--s) * 0.42);
+  margin-left: calc(var(--s) * -0.13);
+  transform-origin: 50% 100%;
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.28));
+}
+.rw-flower i.in {
+  height: calc(var(--s) * 0.34);
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.26));
+}
+.rw-flower b {
+  position: absolute;
+  inset: 0;
+  border-radius: 50% 50% 46% 46% / 64% 64% 36% 36%;
+  background: linear-gradient(to top, color-mix(in srgb, var(--m3-tertiary-container) 70%, #fff), color-mix(in srgb, #ff8fb5 80%, var(--m3-tertiary)));
+  transform-origin: 50% 100%;
+  animation: rw-breathe 3.6s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+.rw-flower i.in b {
+  background: linear-gradient(to top, #fff, color-mix(in srgb, #ffc2d6 75%, var(--m3-tertiary-container)));
+}
+.rw-petals.rw-sm .rw-flower i {
+  transform: rotate(var(--a)) translateY(calc(var(--s) * -0.24));
+}
+.rw-petals-fall {
+  inset: calc(var(--s) * -0.3);
+  overflow: visible;
+}
+.rw-petals-fall s {
+  position: absolute;
+  left: var(--x);
+  top: 0;
+  width: calc(var(--s) * 0.09);
+  height: calc(var(--s) * 0.12);
+  border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+  background: #ff9ec0;
+  opacity: 0;
+  animation: rw-drift 7s ease-in infinite;
+  animation-delay: var(--d);
+}
+@keyframes rw-breathe {
+  50% {
+    scale: 1.08 1.12;
+  }
+}
+@keyframes rw-drift {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  80% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+    translate: calc(var(--s) * -0.5) calc(var(--s) * 1.3);
+    rotate: 260deg;
+  }
+}
+
+/* hologram: an iridescent outline, and a band of light that scans down the picture now and then */
+.rw-holo-scan {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask: var(--rw-fill) center / 100% 100% no-repeat;
+  mask: var(--rw-fill) center / 100% 100% no-repeat;
+  background: repeating-linear-gradient(0deg, rgba(160, 250, 255, 0.1) 0 1px, transparent 1px 3px);
+}
+.rw-holo-scan i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 30%;
+  background: linear-gradient(180deg, rgba(150, 250, 255, 0), rgba(170, 250, 255, 0.5) 50%, rgba(150, 250, 255, 0));
+  translate: 0 -110%;
+  animation: rw-scan 3.6s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+@keyframes rw-scan {
+  0% {
+    translate: 0 -110%;
+  }
+  55%,
+  100% {
+    translate: 0 360%;
+  }
+}
+
+/* crown: worn at a tilt, bobbing a little, a glint on it now and then */
+.rw-crown {
+  position: absolute;
+  left: calc(var(--s) * -0.1);
+  top: calc(var(--s) * -0.36);
+  width: calc(var(--s) * 0.58);
+  pointer-events: none;
+  transform-origin: 50% 100%;
+  rotate: -18deg;
+  animation: rw-bob-crown 3.2s ease-in-out infinite;
+}
+.rw-crown svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 2px 2px rgba(80, 50, 0, 0.35));
+}
+.rw-crown.rw-sm {
+  top: calc(var(--s) * -0.32);
+}
+.rw-twinkle {
+  position: absolute;
+  right: 4%;
+  top: -8%;
+  width: 34%;
+  aspect-ratio: 1;
+  background: #fff;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  scale: 0;
+  animation: rw-twinkle 3.2s ease-in-out infinite 0.6s;
+  --z: 1;
+}
+@keyframes rw-bob-crown {
+  50% {
+    translate: 0 calc(var(--s) * -0.03);
+    rotate: -14deg;
+  }
+}
+
+/* a framed picture on a profile keeps room round it for its frame (more above a crown) */
+.profile-hero:not(.has-banner) .profile-main > .avatar.framed {
+  margin: calc(var(--s) * 0.08);
+}
+.profile-hero:not(.has-banner) .profile-main > .avatar.framed:has(.rw-crown) {
+  margin-top: calc(var(--s) * 0.26);
+}
+.profile-hero.has-banner .profile-main > .avatar.framed:has(.rw-crown) {
+  z-index: 1;
+}
+
+/* on a banner the picture's outline is the frame's job (the outline there would redraw the frame every frame) */
+.profile-hero.has-banner .profile-main > .avatar.framed {
+  filter: none;
+}
+
+/* ---- scenes behind a profile's header ----------------------------------------------------------------------- */
+
+.rw-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.rw-scene canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rw-scene-embers::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(120% 60% at 50% 115%, rgba(255, 110, 40, 0.28), transparent 70%);
+}
+.rw-scene-northern-lights::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, #0b1640 22%, transparent), transparent 75%);
+  opacity: 0;
+}
+:root[data-m3-theme='dark'] .rw-scene-northern-lights::after {
+  opacity: 1;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) .rw-scene-northern-lights::after {
+    opacity: 1;
+  }
+}
+/* a few still stars above the northern lights, on a dark page */
+.rw-scene-northern-lights::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    radial-gradient(1.2px 1.2px at 12% 18%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 27% 8%, #fff 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 46% 22%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 63% 11%, #fff 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 78% 26%, #fff 50%, transparent 51%), radial-gradient(1px 1px at 90% 9%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 34%, #fff 50%, transparent 51%), radial-gradient(1.3px 1.3px at 6% 40%, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 84% 44%, #fff 50%, transparent 51%), radial-gradient(1.1px 1.1px at 55% 4%, #fff 50%, transparent 51%);
+}
+:root[data-m3-theme='dark'] .rw-scene-northern-lights::before {
+  opacity: 0.7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) .rw-scene-northern-lights::before {
+    opacity: 0.7;
+  }
+}
+.profile-hero.rw-scened {
+  isolation: isolate;
+}
+/* the small words over a scene keep a soft edge of the page's colour, so they read over anything moving */
+.profile-hero.rw-scened :is(.who > .muted, .bio, .interests .chip) {
+  text-shadow: 0 0 6px var(--m3-surface-container-low), 0 0 2px var(--m3-surface-container-low);
+}
+/* a scene takes the place of the floating shapes */
+.profile-hero.rw-scened > .m3-stickers {
+  display: none;
+}
+
+/* your own profile: Edit profile and Customise side by side */
+.rw-own-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rw-customise {
+  position: relative;
+}
+.rw-dot {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--m3-error);
+  box-shadow: 0 0 0 2px var(--m3-secondary-container);
+}
+
+/* ---- Customise ---------------------------------------------------------------------------------------------- */
+
+.rw-sheet .sheet-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+/* the sheet doesn't scroll as a whole: the preview and the tabs stay put, the tiles scroll under them */
+.m3-dialog.rw-sheet {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.rw-sheet .m3-dialog-header {
+  align-items: center;
+}
+.rw-done {
+  margin-left: auto;
+}
+/* the preview: you, wearing what you're trying, the scene moving behind */
+.rw-stage {
+  position: relative;
+  flex: none;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 150px;
+  padding: 26px 22px;
+  overflow: hidden;
+  border-radius: var(--m3-r-very-large);
+  background: linear-gradient(150deg, var(--m3-secondary-container), var(--m3-surface-container-low) 75%);
+}
+.rw-stage-av {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 118px;
+  height: 118px;
+}
+.rw-stage-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rw-stage-name {
+  font-size: clamp(1.45rem, 6.4vw, 2.1rem);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.rw-stage-cap {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.rw-tabs {
+  flex: none;
+  align-self: stretch;
+  justify-self: stretch;
+  width: auto;
+  max-width: none;
+}
+.rw-tabs .m3-segment {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+}
+.rw-panel {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 10px;
+  min-height: 120px;
+  margin: 0 -24px;
+  padding: 2px 24px 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rw-panel-head {
+  display: grid;
+  gap: 2px;
+}
+.rw-panel-head p {
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.rw-count {
+  color: var(--m3-primary);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+}
+.rw-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+.rw-grid-scene {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.rw-group {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+}
+.rw-group .m3-icon {
+  font-size: 18px;
+}
+.rw-tile {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 6px;
+  min-width: 0;
+  min-height: 112px;
+  padding: 10px 8px 9px;
+  border: 1px solid var(--m3-outline-variant);
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-low);
+  color: var(--m3-on-surface);
+  font: inherit;
+  cursor: pointer;
+  transition: border-radius var(--nook-spring-gentle, 300ms), background-color 150ms, border-color 150ms;
+}
+.rw-tile:hover {
+  background: var(--m3-surface-container);
+}
+.rw-tile[aria-checked='true'] {
+  border-color: var(--m3-primary);
+  border-radius: var(--m3-r-very-large);
+  background: color-mix(in srgb, var(--m3-primary-container) 55%, var(--m3-surface-container-low));
+  box-shadow: inset 0 0 0 1px var(--m3-primary);
+}
+.rw-tile:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.rw-tile-art {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 62px;
+}
+.rw-tile.locked .rw-tile-art {
+  opacity: 0.62;
+  filter: saturate(0.6);
+}
+.rw-tile-label {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.rw-tile-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 1px 8px;
+  overflow: hidden;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface-variant);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rw-chip .m3-icon {
+  flex: none;
+  font-size: 14px;
+}
+/* what unlocks a locked one, in full ("On fire IV") where it fits on a line, or the achievement's badge and tier */
+.rw-chip.locked {
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: normal;
+}
+.rw-need-short {
+  display: none;
+  align-items: center;
+  gap: 3px;
+}
+.rw-need-short m3-shape-icon {
+  --m3-shape-icon-color: var(--m3-secondary);
+  --m3-shape-icon-on-color: var(--m3-on-secondary);
+}
+.rw-chip.locked.tight .rw-need-full {
+  display: none;
+}
+.rw-chip.locked.tight .rw-need-short {
+  display: inline-flex;
+}
+.rw-chip.on {
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.rw-chip.new {
+  background: var(--m3-tertiary);
+  color: var(--m3-on-tertiary);
+}
+.rw-sample {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* an effect's sample keeps its own box, so its glow and sparkles have room */
+.rw-sample.name-fx.rw-live {
+  max-width: calc(100% - 8px);
+  overflow: visible;
+}
+.rw-sample.name-fx.rw-live > span[aria-hidden] {
+  white-space: nowrap;
+}
+.rw-thumb {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--m3-r-normal);
+  background: linear-gradient(150deg, var(--m3-secondary-container), var(--m3-surface-container-low) 80%);
+  color: var(--m3-on-surface-variant);
+}
+/* the bar at the bottom: what you're trying, and Wear */
+.rw-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  margin: -12px -24px 0;
+  padding: 12px 24px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--m3-outline-variant);
+  background: var(--m3-surface-container-high);
+}
+.rw-bar-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.rw-bar-text b {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.rw-bar-text b .m3-icon {
+  margin-inline-end: 4px;
+  font-size: 18px;
+  vertical-align: -3px;
+}
+.rw-bar-text small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.rw-bar .m3-btn {
+  flex: none;
+}
+/* locked: the bar is one big way to the achievement that unlocks it */
+.rw-how {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 56px;
+  margin: -2px -8px;
+  padding: 8px 8px 8px 10px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: color-mix(in srgb, var(--m3-secondary-container) 75%, transparent);
+  color: var(--m3-on-secondary-container);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-radius var(--nook-spring-gentle, 300ms), background-color 150ms;
+}
+.rw-how:hover {
+  background: var(--m3-secondary-container);
+}
+.rw-how:active {
+  border-radius: var(--m3-r-very-large);
+}
+.rw-how:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.rw-how m3-shape-icon {
+  flex: none;
+  --m3-shape-icon-color: var(--m3-secondary);
+  --m3-shape-icon-on-color: var(--m3-on-secondary);
+}
+.rw-how-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.rw-how-text b {
+  line-height: 1.3;
+}
+.rw-how-text b .m3-icon {
+  margin-inline-end: 4px;
+  font-size: 17px;
+  vertical-align: -3px;
+}
+.rw-how-text small {
+  opacity: 0.85;
+  font-size: var(--m3-fs-smaller);
+}
+.rw-how-go {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  color: var(--m3-on-secondary-container);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+}
+.rw-how-go .m3-icon {
+  font-size: 20px;
+}
+/* where there's no room for the words, the arrow says it */
+@media (max-width: 520px) {
+  .rw-how-go > span:not(.m3-icon),
+  .rw-how-go > .m3-icon:first-child {
+    display: none;
+  }
+}
+.rw-error {
+  color: var(--m3-error) !important;
+}
+
+/* a reward shown small where an achievement says what it unlocks (Nook.rewards.preview) */
+.rw-preview {
+  display: inline-grid;
+  place-items: center;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.rw-preview.rw-sample {
+  font-size: 1.1rem;
+}
+.rw-preview-frame {
+  padding: 8px;
+}
+.rw-preview.rw-thumb {
+  width: 132px;
+}
+
+/* ---- in Edit profile ---------------------------------------------------------------------------------------- */
+
+.rw-ep-fonts {
+  display: contents;
+}
+.rw-font-tile small {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.rw-font-tile small .m3-icon {
+  font-size: 14px;
+}
+.font-grid .rw-font-tile.locked {
+  border-style: dashed;
+}
+.font-grid .rw-font-tile.locked .font-sample {
+  opacity: 0.55;
+}
+.rw-ep-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: color-mix(in srgb, var(--m3-tertiary-container) 70%, var(--m3-surface-container-low));
+  color: var(--m3-on-tertiary-container);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.rw-ep-card .row-text {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.rw-ep-card small {
+  opacity: 0.85;
+  font-size: var(--m3-fs-smaller);
+}
+
+/* ---- phones ----------------------------------------------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .rw-stage {
+    gap: 14px;
+    min-height: 132px;
+    padding: 20px 16px;
+  }
+  .rw-stage-av {
+    width: 104px;
+    height: 104px;
+  }
+  .rw-grid {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  }
+  .rw-grid-scene {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rw-panel {
+    margin: 0 -20px;
+    padding: 2px 20px 14px;
+  }
+  .rw-bar {
+    margin: -12px -20px 0;
+    padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+  .rw-tabs .m3-segment {
+    padding: 0 4px;
+    font-size: var(--m3-fs-smaller);
+  }
+}
+
+@media (max-height: 720px) {
+  .rw-stage {
+    min-height: 0;
+    padding: 12px 16px;
+  }
+  .rw-stage-av {
+    width: 84px;
+    height: 84px;
+  }
+  .rw-stage-av .avatar {
+    --s: 64px !important;
+  }
+}
+
+/* ---- standing still: Calm mode and reduced motion (the system's or Budgie's own) --------------------------- */
+/* effects keep their colours, frames and scenes stand where they are (the scenes are painted once by the script) */
+
+body.calm :is(.name-fx, .name-fx *, .rw-frame, .rw-frame *, .rw-crown, .rw-crown *, .rw-holo-scan *),
+:root[data-m3-reduce-motion] :is(.name-fx, .name-fx *, .rw-frame, .rw-frame *, .rw-crown, .rw-crown *, .rw-holo-scan *) {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.name-fx, .name-fx *, .rw-frame, .rw-frame *, .rw-crown, .rw-crown *, .rw-holo-scan *) {
+    animation: none !important;
+  }
+}
+/* still, the pieces that only show while moving are hidden, and the rest sits where it looks best */
+body.calm :is(.rw-spark, .rw-flames s, .rw-petals-fall, .rw-holo-scan i, .rw-twinkle),
+:root[data-m3-reduce-motion] :is(.rw-spark, .rw-flames s, .rw-petals-fall, .rw-holo-scan i, .rw-twinkle) {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.rw-spark, .rw-flames s, .rw-petals-fall, .rw-holo-scan i, .rw-twinkle) {
+    display: none;
+  }
+}
+body.calm .rw-plane i,
+:root[data-m3-reduce-motion] .rw-plane i {
+  translate: calc(var(--rx) * 0.7) 0;
+}
+body.calm .rw-plane b,
+:root[data-m3-reduce-motion] .rw-plane b {
+  translate: 0 calc(var(--ry) * 0.7);
+}
+@media (prefers-reduced-motion: reduce) {
+  .rw-plane i {
+    translate: calc(var(--rx) * 0.7) 0;
+  }
+  .rw-plane b {
+    translate: 0 calc(var(--ry) * 0.7);
+  }
+}
+
+/* "Name fonts" off in Settings: plain names everywhere but Customise */
+body.plain-names .name-fx:not(.rw-sample, .rw-stage-name *) {
+  background: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+  filter: none !important;
+  animation: none !important;
+}
+body.plain-names .name-fx:not(.rw-sample, .rw-stage-name *) :is(.rw-l, .rw-spark) {
+  animation: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+body.plain-names .name-fx:not(.rw-sample, .rw-stage-name *) .rw-spark {
+  display: none;
+}
+
+/* high contrast: names are just text */
+@media (forced-colors: active) {
+  .name-fx,
+  .name-fx * {
+    background: none !important;
+    color: CanvasText !important;
+    -webkit-text-fill-color: CanvasText !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+  .rw-frame,
+  .rw-crown,
+  .rw-holo-scan,
+  .rw-scene {
+    display: none;
+  }
+}
+.rw-orbit.rw-sm .rw-plane i {
+  --rx: calc(var(--s) * 0.6);
+}

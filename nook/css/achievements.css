@@ -1,0 +1,1518 @@
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+/*
+ * Achievements and the streak (Budgie 1.4): tier metals, badges, the flame, profile pieces, the celebrations and the
+ * streak's full-screen moment. Everything that moves holds still under reduced motion and calm mode (at the end).
+ */
+
+/* ---- the tiers' metals: a light, a middle and a dark tone, and the ink for a symbol on them --------------------- */
+
+.ach-t0 {
+  --ach-a: var(--m3-surface-container-highest);
+  --ach-b: var(--m3-surface-container-highest);
+  --ach-c: var(--m3-surface-container-high);
+  --ach-ink: var(--m3-outline);
+  --ach-glow: transparent;
+}
+.ach-t1 {
+  --ach-a: #f7d6b6;
+  --ach-b: #c9834a;
+  --ach-c: #7d4520;
+  --ach-ink: #fffaf5;
+  --ach-glow: #e89a5c;
+}
+.ach-t2 {
+  --ach-a: #ffffff;
+  --ach-b: #c3cbd6;
+  --ach-c: #6f7b8b;
+  --ach-ink: #26303c;
+  --ach-glow: #a9b7c9;
+}
+.ach-t3 {
+  --ach-a: #fff4b0;
+  --ach-b: #f5c518;
+  --ach-c: #a26a00;
+  --ach-ink: #3a2600;
+  --ach-glow: #ffc21a;
+}
+.ach-t4 {
+  --ach-a: #f0fdff;
+  --ach-b: #8fdcf2;
+  --ach-c: #2f7fa6;
+  --ach-ink: #032a3b;
+  --ach-glow: #5fd2f5;
+}
+.ach-t5 {
+  --ach-a: #ffd6e8;
+  --ach-b: #c9a7ff;
+  --ach-c: #6fd3ff;
+  --ach-ink: #ffffff;
+  --ach-glow: #c58bff;
+}
+/* a special one Budgie gave, with no tier: in its own colour */
+.ach-sp {
+  --ach-color: var(--m3-tertiary);
+  --ach-a: color-mix(in srgb, var(--ach-color) 30%, #ffffff);
+  --ach-b: var(--ach-color);
+  --ach-c: color-mix(in srgb, var(--ach-color) 70%, #000000);
+  --ach-ink: #ffffff;
+  --ach-glow: var(--ach-color);
+}
+@property --ach-turn {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+/* ---- a badge: the achievement's shape in its metal, its symbol, and its tier --------------------------------------- */
+
+.ach-badge {
+  --ach-size: 56px;
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--ach-size);
+  height: var(--ach-size);
+  filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--ach-glow) 45%, transparent));
+}
+.ach-fill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.6), transparent 42%),
+    linear-gradient(145deg, var(--ach-a) 0%, var(--ach-b) 50%, var(--ach-c) 100%);
+  -webkit-mask: var(--ach-mask) center / contain no-repeat;
+  mask: var(--ach-mask) center / contain no-repeat;
+}
+/* V: a prism that slowly turns, with light running over it */
+.ach-t5 .ach-fill {
+  background: #fff;
+}
+.ach-t5 .ach-fill::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from 0deg, #ff7eb3, #ffb46b, #fff176, #7dffb0, #6fd3ff, #b98bff, #ff7eb3);
+  animation: ach-turn 7s linear infinite;
+}
+.ach-t5 .ach-fill::after,
+.ach-badge.shine .ach-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 32%, rgb(255 255 255 / 0.75) 48%, transparent 62%);
+  transform: translateX(-120%);
+  animation: ach-sheen 3.6s ease-in-out 0.6s infinite;
+}
+.ach-badge.shine:not(.ach-t5) .ach-fill::after {
+  animation-iteration-count: 2;
+}
+.ach-badge > .m3-icon {
+  --m3-icon-fill: 1;
+  position: relative;
+  color: var(--ach-ink);
+  font-size: calc(var(--ach-size) * 0.42);
+  font-variation-settings: 'FILL' 1, 'wght' 500;
+}
+.ach-t5 > .m3-icon,
+.ach-sp > .m3-icon {
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+.ach-mark {
+  position: absolute;
+  right: -4%;
+  bottom: -4%;
+  display: inline-grid;
+  place-items: center;
+  min-width: calc(var(--ach-size) * 0.36);
+  height: calc(var(--ach-size) * 0.36);
+  padding: 0 calc(var(--ach-size) * 0.06);
+  border: 2px solid var(--m3-surface-container-low);
+  border-radius: var(--m3-r-full);
+  background: var(--ach-c);
+  color: #fff;
+  font-size: max(10px, calc(var(--ach-size) * 0.18));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.ach-t2 .ach-mark,
+.ach-t4 .ach-mark {
+  background: var(--ach-c);
+}
+.ach-t5 .ach-mark {
+  background: linear-gradient(90deg, #ff5f9e, #8a6bff, #3fb7ff);
+}
+.ach-t0 .ach-mark {
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface-variant);
+}
+.ach-mark .m3-icon {
+  --m3-icon-size: max(11px, calc(var(--ach-size) * 0.2));
+  font-size: max(11px, calc(var(--ach-size) * 0.2));
+}
+.ach-t0 > .m3-icon {
+  opacity: 0.8;
+}
+
+/* ---- the little flame: three flickering layers ----------------------------------------------------------------------- */
+
+.ach-flame {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 1.15em;
+  height: 1.3em;
+  vertical-align: -0.2em;
+}
+.ach-flame i {
+  position: absolute;
+  inset: 0;
+  -webkit-mask: var(--ach-flame-mask) center bottom / contain no-repeat;
+  mask: var(--ach-flame-mask) center bottom / contain no-repeat;
+  transform-origin: 50% 100%;
+}
+.ach-flame .o {
+  background: linear-gradient(to top, #ff3d00, #ff7a00 55%, #ffc400);
+  animation: ach-flicker 1.6s ease-in-out infinite alternate;
+}
+.ach-flame .m {
+  background: linear-gradient(to top, #ff9100, #ffe082);
+  transform: scale(0.7);
+  animation: ach-flicker-m 1.1s ease-in-out infinite alternate;
+}
+.ach-flame .c {
+  background: linear-gradient(to top, #fff3c4, #fffbe6);
+  transform: scale(0.4);
+  animation: ach-flicker-c 0.9s ease-in-out infinite alternate;
+}
+.ach-flame.big {
+  width: 64px;
+  height: 72px;
+  filter: drop-shadow(0 4px 14px rgb(255 120 0 / 0.45));
+}
+.ach-flame.tiny {
+  width: 14px;
+  height: 16px;
+}
+.ach-flame.tiny i {
+  animation: none;
+}
+.cold .ach-flame {
+  filter: grayscale(1) opacity(0.5);
+}
+
+/* ---- under a profile's name: the streak and featured achievements --------------------------------------------------- */
+
+.ach-hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ach-hero:empty {
+  display: none;
+}
+.ach-streak-pill,
+.ach-feat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  font: inherit;
+  font-size: var(--m3-fs-small);
+  font-weight: 650;
+  cursor: pointer;
+  transition: transform var(--nook-spring-snappy, 200ms ease), background-color 160ms;
+}
+.ach-streak-pill:active,
+.ach-feat:active {
+  transform: scale(0.95);
+}
+.ach-streak-pill {
+  background: linear-gradient(100deg, #fff1e0, #ffd9b8);
+  color: #6b2b00;
+  font-size: var(--m3-fs-small);
+}
+.ach-streak-pill .ach-flame {
+  font-size: 18px;
+}
+.ach-streak-pill b {
+  font-size: 1.15em;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+.ach-streak-pill span:last-child {
+  font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-m3-theme='light']) .ach-streak-pill {
+    background: linear-gradient(100deg, #3d1f0c, #5a2a0a);
+    color: #ffd9b8;
+  }
+}
+html[data-m3-theme='dark'] .ach-streak-pill {
+  background: linear-gradient(100deg, #3d1f0c, #5a2a0a);
+  color: #ffd9b8;
+}
+.ach-feat {
+  padding-left: 4px;
+  background: color-mix(in srgb, var(--m3-surface-container-lowest) 72%, transparent);
+  color: var(--m3-on-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ach-b) 55%, transparent);
+}
+.ach-feat .ach-badge {
+  filter: none;
+}
+.ach-feat b {
+  color: color-mix(in srgb, var(--ach-c) 70%, var(--m3-on-surface));
+  font-weight: 850;
+}
+.ach-feat:hover {
+  background: var(--m3-surface-container-lowest);
+}
+@media (max-width: 719px) {
+  .ach-hero {
+    gap: 5px;
+  }
+  .ach-streak-pill,
+  .ach-feat {
+    min-height: 30px;
+    font-size: var(--m3-fs-smaller);
+  }
+  .ach-feat .ach-badge {
+    --ach-size: 22px !important;
+  }
+}
+
+/* tiny, by a name on posts and comments */
+.ach-tags {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.ach-tag {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / 0.6), transparent 45%),
+    linear-gradient(145deg, var(--ach-a), var(--ach-b) 50%, var(--ach-c));
+  -webkit-mask: var(--ach-mask) center / contain no-repeat;
+  mask: var(--ach-mask) center / contain no-repeat;
+}
+.ach-tag.ach-t5 {
+  background: conic-gradient(#ff7eb3, #ffb46b, #fff176, #7dffb0, #6fd3ff, #b98bff, #ff7eb3);
+}
+@media (max-width: 719px) {
+  .ach-tags .ach-tag:nth-child(n + 2) {
+    display: none;
+  }
+}
+
+/* ---- the achievements section --------------------------------------------------------------------------------------- */
+
+.ach-section {
+  display: grid;
+  gap: 12px;
+}
+.ach-section[hidden] {
+  display: none;
+}
+.ach-section .m3-section-header {
+  margin-bottom: 0;
+}
+.ach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+.ach-tile {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 14px 8px 12px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-low);
+  color: var(--m3-on-surface);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: transform var(--nook-spring-snappy, 200ms ease), background-color 160ms;
+}
+.ach-tile:not(.locked) {
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--ach-b) 22%, transparent), transparent 70%),
+    var(--m3-surface-container-low);
+}
+.ach-tile:hover {
+  background-color: var(--m3-surface-container);
+}
+.ach-tile:active {
+  transform: scale(0.96);
+}
+.ach-tile:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.ach-tile .ach-badge {
+  margin-bottom: 4px;
+}
+.ach-tile:hover .ach-badge {
+  animation: ach-wiggle 520ms var(--m3-ease-expressive-fast-spatial, ease) both;
+}
+.ach-tile .ach-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--m3-fs-smallie);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.ach-tile .ach-sub {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallest);
+  font-weight: 600;
+}
+.ach-tile:not(.locked) .ach-sub {
+  color: color-mix(in srgb, var(--ach-c) 65%, var(--m3-on-surface));
+}
+.ach-tile.locked .ach-badge {
+  opacity: 0.6;
+  filter: grayscale(0.4);
+}
+.ach-tile.locked .ach-name {
+  color: var(--m3-on-surface-variant);
+}
+.ach-tile .ach-bar {
+  width: 70%;
+  margin-top: 4px;
+}
+.ach-tile small.count {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallest);
+  font-variant-numeric: tabular-nums;
+}
+.ach-tile .ach-maxed {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: var(--m3-r-full, 999px);
+  background: color-mix(in srgb, var(--ach-b) 26%, transparent);
+  color: color-mix(in srgb, var(--ach-c) 70%, var(--m3-on-surface));
+  font-size: var(--m3-fs-smallest);
+  font-weight: 700;
+}
+.ach-tile .ach-maxed .m3-icon {
+  font-size: 14px;
+}
+.ach-tile.special::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ach-b, var(--m3-tertiary)) 60%, transparent);
+  pointer-events: none;
+}
+.ach-tile.ghost {
+  min-height: 132px;
+  cursor: default;
+  background: linear-gradient(100deg, var(--m3-surface-container-low) 30%, var(--m3-surface-container) 50%, var(--m3-surface-container-low) 70%);
+  background-size: 300% 100%;
+  animation: ach-ghost 1.4s ease-in-out infinite;
+}
+.ach-more {
+  justify-self: center;
+}
+.ach-tile[hidden],
+.ach-more[hidden] {
+  display: none;
+}
+
+/* a progress bar: --p from 0 to 1 */
+.ach-bar {
+  display: block;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--m3-primary) 16%, transparent);
+}
+.ach-bar > span {
+  display: block;
+  width: calc(var(--p, 0) * 100%);
+  min-width: 6px;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--m3-primary);
+  transform-origin: left;
+  animation: ach-grow 900ms var(--m3-ease-emphasized-decel, ease-out) both;
+}
+
+/* ---- your streak card ------------------------------------------------------------------------------------------------ */
+
+.ach-streak-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--m3-r-very-large, 28px);
+  background:
+    radial-gradient(90% 120% at 0% 0%, rgb(255 140 0 / 0.16), transparent 60%),
+    linear-gradient(160deg, var(--m3-tertiary-container), var(--m3-surface-container-low) 75%);
+  color: var(--m3-on-surface);
+}
+.ach-sc-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ach-sc-count {
+  display: grid;
+  flex: 1;
+  line-height: 1.05;
+}
+.ach-sc-count b {
+  font-size: 44px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: 'wdth' 110, 'ROND' 100;
+}
+.ach-sc-count span {
+  color: var(--m3-on-surface-variant);
+  font-weight: 600;
+}
+.ach-sc-freezes {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-items: center;
+  gap: 2px 4px;
+}
+.ach-sc-freezes small {
+  grid-column: 1 / -1;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallest);
+}
+.ach-freeze {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--m3-on-surface) 7%, transparent);
+  color: var(--m3-outline);
+}
+.ach-freeze .m3-icon {
+  --m3-icon-size: 18px;
+  font-size: 18px;
+}
+.ach-freeze.have {
+  background: linear-gradient(145deg, #e1f5fe, #4fc3f7);
+  color: #01579b;
+  box-shadow: 0 2px 8px rgb(79 195 247 / 0.45);
+}
+.ach-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.ach-day {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+.ach-day small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallest);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.ach-day .dot {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--m3-on-surface) 6%, transparent);
+}
+.ach-day.on .dot {
+  background: linear-gradient(160deg, #fff1e0, #ffcc99);
+}
+.ach-day.frozen .dot {
+  background: linear-gradient(160deg, #e1f5fe, #81d4fa);
+  color: #01579b;
+}
+.ach-day.frozen .m3-icon {
+  --m3-icon-size: 16px;
+  font-size: 16px;
+}
+.ach-day.is-today .dot {
+  box-shadow: 0 0 0 2px var(--m3-primary);
+}
+.ach-day.is-today small {
+  color: var(--m3-primary);
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-m3-theme='light']) .ach-day.on .dot {
+    background: linear-gradient(160deg, #5a2a0a, #8a3d00);
+  }
+}
+html[data-m3-theme='dark'] .ach-day.on .dot {
+  background: linear-gradient(160deg, #5a2a0a, #8a3d00);
+}
+.ach-sc-goal {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+}
+.ach-sc-goal .ach-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 4px;
+}
+.ach-sc-goal .ach-bar > span {
+  background: linear-gradient(90deg, #ff6d00, #ffc400);
+}
+.ach-sc-goal small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.ach-sc-goal small.best {
+  font-weight: 650;
+}
+.ach-next {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--m3-r-large);
+  background: color-mix(in srgb, var(--m3-surface-container-lowest) 60%, transparent);
+  font-size: var(--m3-fs-small);
+}
+.ach-next-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.ach-next-head .m3-icon {
+  color: var(--m3-tertiary);
+}
+.ach-next-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ach-next .ach-reward {
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+}
+
+/* ---- one achievement, in a sheet -------------------------------------------------------------------------------------- */
+
+.ach-detail {
+  outline: none;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 8px 16px;
+  border-radius: var(--m3-r-very-large, 28px);
+  background: radial-gradient(80% 90% at 50% 0%, color-mix(in srgb, var(--ach-b) 32%, transparent), transparent 75%);
+  text-align: center;
+}
+.ach-detail-badge {
+  margin-bottom: 6px;
+}
+.ach-detail-badge .ach-badge {
+  filter: drop-shadow(0 6px 18px color-mix(in srgb, var(--ach-glow) 55%, transparent));
+}
+.ach-detail-tier {
+  margin: 0;
+  color: color-mix(in srgb, var(--ach-c) 70%, var(--m3-on-surface));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.ach-t0 .ach-detail-tier,
+.ach-detail.ach-t0 .ach-detail-tier {
+  color: var(--m3-on-surface-variant);
+}
+.ach-detail-desc {
+  margin: 0;
+  font-size: var(--m3-fs-larger, 18px);
+  font-weight: 600;
+}
+.ach-detail-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+.ach-detail-progress {
+  display: grid;
+  gap: 6px;
+  width: min(320px, 100%);
+  margin-top: 6px;
+}
+.ach-detail-progress small {
+  color: var(--m3-on-surface-variant);
+}
+.ach-ladder {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ach-ladder li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--m3-r-large);
+}
+.ach-ladder li:not(.got) .ach-badge {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+.ach-ladder li.got {
+  background: color-mix(in srgb, var(--m3-surface-container-high) 70%, transparent);
+}
+.ach-ladder li.next {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--m3-primary) 40%, transparent);
+}
+.ach-step {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+.ach-step b {
+  font-size: var(--m3-fs-small);
+}
+.ach-step small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.ach-step-when {
+  flex: none;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallest);
+  text-align: right;
+}
+.ach-step-when .m3-icon {
+  --m3-icon-size: 18px;
+  font-size: 18px;
+}
+.ach-ladder li.got .ach-step-when .m3-icon {
+  color: var(--m3-primary);
+}
+.ach-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ach-reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+}
+.ach-reward small {
+  font-weight: 500;
+  opacity: 0.8;
+}
+.ach-reward .m3-icon {
+  --m3-icon-size: 16px;
+  font-size: 16px;
+}
+.ach-reward.have {
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+}
+.ach-reward[role='button'] {
+  cursor: pointer;
+}
+
+/* picking what to feature */
+.ach-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.ach-pick-item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 6px 10px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container);
+  color: var(--m3-on-surface);
+  font: inherit;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 160ms, transform var(--nook-spring-snappy, 200ms ease);
+}
+.ach-pick-item:active {
+  transform: scale(0.95);
+}
+.ach-pick-item[aria-pressed='true'] {
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  box-shadow: inset 0 0 0 2px var(--m3-primary);
+}
+.ach-pick-item[aria-disabled='true'] {
+  opacity: 0.5;
+}
+.ach-pick-item .check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.ach-pick-item .check .m3-icon {
+  --m3-icon-size: 16px;
+  font-size: 16px;
+}
+.ach-pick-item[aria-pressed='true'] .check {
+  display: grid;
+}
+.ach-pick-count {
+  margin: 0;
+}
+
+/* ---- the Flex card ----------------------------------------------------------------------------------------------------- */
+
+.ach-flex-preview {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+}
+.ach-flex-preview img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: min(52dvh, 460px);
+  aspect-ratio: 4 / 5;
+  border-radius: 22px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.22);
+}
+.ach-flex-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.ach-flex-actions .m3-btn {
+  justify-content: center;
+  min-height: 44px;
+}
+.ach-flex-actions .m3-btn:first-child:nth-last-child(odd) {
+  grid-column: 1 / -1;
+}
+.ach-friends {
+  display: grid;
+  gap: 2px;
+  margin: 0 -8px;
+}
+.ach-friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: none;
+  color: var(--m3-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ach-friend:hover {
+  background: var(--m3-surface-container-high);
+}
+.ach-friend b {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ach-friend > .m3-icon {
+  color: var(--m3-primary);
+}
+.ach-friend.sending > .m3-icon {
+  animation: ach-send 700ms ease-in-out infinite;
+}
+
+/* ---- a new tier: the pill that springs up ----------------------------------------------------------------------------- */
+
+.ach-pop {
+  position: fixed;
+  inset: auto 0 calc(24px + env(safe-area-inset-bottom, 0px)) 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(420px, 100vw - 32px);
+  margin: 0 auto;
+  padding: 10px 14px 10px 10px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 30px;
+  background: var(--m3-inverse-surface);
+  color: var(--m3-inverse-on-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.28), 0 0 0 1px color-mix(in srgb, var(--ach-b, transparent) 40%, transparent);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ach-pop:popover-open {
+  inset: auto 0 calc(24px + env(safe-area-inset-bottom, 0px)) 0;
+  width: min(420px, 100vw - 32px);
+  height: auto;
+  margin: 0 auto;
+  padding: 10px 14px 10px 10px;
+}
+@media (max-width: 719px) {
+  .ach-pop,
+  .ach-pop:popover-open {
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  /* in a chat, or while typing, the bottom is the message box: the pill comes in at the top instead, under the
+     chat's header, so it never covers the box or takes the taps meant for it */
+  body:is([data-view='thread'], [data-view='groupThread'], .typing) .ach-pop,
+  body:is([data-view='thread'], [data-view='groupThread'], .typing) .ach-pop:popover-open {
+    top: calc(var(--nook-bar) + var(--nook-top) + 72px);
+    bottom: auto;
+  }
+}
+.ach-pop > .m3-icon {
+  flex: none;
+  opacity: 0.7;
+}
+.ach-pop-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.ach-pop-text small {
+  color: color-mix(in srgb, var(--ach-a, #fff) 65%, var(--m3-inverse-on-surface));
+  font-size: var(--m3-fs-smallest);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ach-pop-text b {
+  overflow: hidden;
+  font-size: var(--m3-fs-large, 17px);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ach-pop-text b i {
+  color: var(--ach-a, inherit);
+  font-style: normal;
+}
+.ach-pop-sub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  font-size: var(--m3-fs-smaller);
+  opacity: 0.85;
+  white-space: nowrap;
+}
+.ach-pop-sub > span:last-child,
+.ach-pop-sub {
+  text-overflow: ellipsis;
+}
+.ach-pop-sub .m3-icon {
+  --m3-icon-size: 16px;
+  font-size: 16px;
+  color: var(--ach-a, inherit);
+}
+.ach-pop-more {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.ach-pop-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 35%, rgb(255 255 255 / 0.18) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: ach-sheen 1.4s ease-out 0.35s 1 both;
+  pointer-events: none;
+}
+/* an SVG badge whose shape springs from a circle into its own */
+.ach-morph {
+  --ach-size: 52px;
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--ach-size);
+  height: var(--ach-size);
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--ach-glow) 60%, transparent));
+}
+.ach-morph svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.ach-morph path {
+  transform-box: view-box;
+  transform-origin: 50px 50px;
+}
+.ach-morph > .m3-icon {
+  position: relative;
+  color: var(--ach-ink);
+  font-size: calc(var(--ach-size) * 0.44);
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ---- the streak's moment ------------------------------------------------------------------------------------------------ */
+
+.ach-moment {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: color-mix(in srgb, var(--m3-primary) 22%, #0d0710);
+  color: #fff;
+  color-scheme: dark;
+}
+.ach-moment::backdrop {
+  background: transparent;
+}
+.ach-moment.icy:not(.thawed) {
+  background: color-mix(in srgb, #0288d1 26%, #050b14);
+}
+.ach-moment.thawed {
+  transition: background-color 900ms ease;
+}
+.ach-m-bg,
+.ach-m-sparks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.ach-m-glow {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(38% 30% at 50% 40%, color-mix(in srgb, #ff8a00 50%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 50% 42%, color-mix(in srgb, var(--m3-primary) 60%, transparent), transparent 72%),
+    radial-gradient(50% 40% at 30% 80%, color-mix(in srgb, var(--m3-tertiary) 35%, transparent), transparent 70%);
+  animation: ach-breathe 3.2s ease-in-out infinite alternate;
+}
+.ach-moment.icy:not(.thawed) .ach-m-glow {
+  background:
+    radial-gradient(38% 30% at 50% 40%, rgb(129 212 250 / 0.45), transparent 70%),
+    radial-gradient(60% 50% at 50% 42%, rgb(2 136 209 / 0.4), transparent 72%);
+}
+.ach-m-body {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  /* centred, but never pushed off the top when a small screen has to scroll */
+  align-content: safe center;
+  gap: 6px;
+  height: 100%;
+  padding: calc(var(--nook-top, 0px) + 24px) 24px calc(env(safe-area-inset-bottom, 0px) + 24px);
+  text-align: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ach-m-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(56vw, 240px, 32dvh);
+  aspect-ratio: 1;
+  margin-bottom: -6px;
+}
+.ach-moment.big .ach-m-stage {
+  width: min(64vw, 280px, 36dvh);
+}
+.ach-m-ring {
+  position: absolute;
+  inset: -8%;
+  width: 116%;
+  height: 116%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+.ach-m-ring circle {
+  fill: none;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+}
+.ach-m-ring .track {
+  stroke: rgb(255 255 255 / 0.12);
+}
+.ach-m-ring .arc {
+  stroke: color-mix(in srgb, var(--m3-primary) 55%, #ffc400);
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--m3-primary) 70%, #ff9100));
+}
+.ach-moment.icy:not(.thawed) .ach-m-ring .arc {
+  stroke: #81d4fa;
+}
+.ach-m-flame {
+  position: relative;
+  width: 76%;
+  height: 76%;
+  overflow: visible;
+  filter: drop-shadow(0 0 18px rgb(255 120 0 / 0.55));
+}
+.ach-moment.icy:not(.thawed) .ach-m-flame {
+  filter: drop-shadow(0 0 18px rgb(79 195 247 / 0.55));
+}
+.ach-m-spark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 30%;
+  height: 30%;
+  color: #ffd54f;
+  pointer-events: none;
+}
+.ach-moment.icy .ach-m-spark {
+  color: #e1f5fe;
+}
+.ach-m-spark m3-shape {
+  width: 100%;
+  height: 100%;
+  color: inherit;
+}
+.ach-m-count {
+  /* big, but never so big that a short screen loses the rest below it */
+  font-size: clamp(64px, min(26vw, 15dvh), 128px);
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  font-variation-settings: 'wdth' 115, 'ROND' 100;
+  line-height: 1.1;
+}
+/* the glow goes round the digits themselves (a text shadow would be cut off by their rolling columns) */
+.odo {
+  display: inline-flex;
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--m3-primary) 70%, #ff9100));
+}
+.odo-col {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.1em;
+  line-height: 1.1;
+}
+.odo-col.gone {
+  display: none;
+}
+.odo-strip {
+  display: flex;
+  flex-direction: column;
+}
+.odo-strip i {
+  display: block;
+  height: 1.1em;
+  font-style: normal;
+}
+.ach-m-label {
+  margin-top: -6px;
+  color: color-mix(in srgb, #ffc400 70%, #fff);
+  font-size: var(--m3-fs-larger, 18px);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ach-m-title {
+  margin: 10px 0 0;
+  font-size: clamp(24px, 6.5vw, 32px);
+  font-weight: 800;
+  line-height: 1.15;
+}
+.ach-m-sub {
+  max-width: 34ch;
+  margin: 0;
+  color: rgb(255 255 255 / 0.78);
+  font-size: var(--m3-fs-normal, 16px);
+  line-height: 1.4;
+}
+.ach-m-extras {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ach-m-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 14px 6px 10px;
+  border-radius: var(--m3-r-full);
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+  text-align: left;
+}
+.ach-m-chip.ice .m3-icon {
+  color: #81d4fa;
+}
+.ach-m-chip:not(.ice) .m3-icon {
+  color: #ffc400;
+}
+.ach-m-rewards {
+  display: grid;
+  gap: 8px;
+  width: min(360px, 100%);
+  margin-top: 12px;
+}
+/* on a wide screen, the rewards side by side (the title across the top) */
+@media (min-width: 600px) {
+  .ach-m-rewards {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    width: min(720px, 100%);
+  }
+  .ach-m-rewards-title {
+    grid-column: 1 / -1;
+  }
+}
+.ach-m-rewards-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #ffc400;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ach-m-reward {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 20px;
+  background: linear-gradient(110deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.06));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ach-m-reward > .m3-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fff176, #ff9100);
+  color: #4a1f00;
+}
+.ach-m-reward .txt {
+  display: grid;
+  flex: 1;
+}
+.ach-m-reward small {
+  opacity: 0.75;
+}
+.ach-m-reward .try {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: var(--m3-r-full);
+  background: #fff;
+  color: #4a1f00;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 750;
+}
+.ach-m-go {
+  min-width: 200px;
+  margin-top: 18px;
+}
+.ach-m-hint {
+  color: rgb(255 255 255 / 0.5);
+  font-size: var(--m3-fs-smallest);
+}
+@media (max-height: 620px) {
+  .ach-m-title {
+    margin-top: 4px;
+  }
+  .ach-m-go {
+    margin-top: 10px;
+  }
+  .ach-m-hint {
+    display: none;
+  }
+}
+/* held still: a calm card in the middle */
+.ach-moment.still .ach-m-glow {
+  animation: none;
+}
+.ach-moment.still .ach-m-spark {
+  display: none;
+}
+
+/* ---- for admins: special achievements ------------------------------------------------------------------------------- */
+
+.ach-admin {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+.ach-make {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+.ach-make-preview {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container);
+}
+.ach-make-fields {
+  display: grid;
+  flex: 1 1 260px;
+  gap: 10px;
+  min-width: 0;
+}
+.ach-make-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: end;
+}
+.ach-make-row .field:first-child {
+  flex: 1 1 160px;
+}
+.ach-shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.ach-shape {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--m3-on-surface-variant);
+  cursor: pointer;
+}
+.ach-shape m3-shape {
+  width: 26px;
+  height: 26px;
+  color: currentColor;
+}
+.ach-shape[aria-checked='true'] {
+  background: var(--m3-secondary-container);
+  color: var(--m3-primary);
+}
+.ach-give-list {
+  display: grid;
+  gap: 4px;
+}
+.ach-give-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--m3-r-large);
+  background: none;
+  color: var(--m3-on-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ach-give-item span {
+  display: grid;
+}
+.ach-give-item small {
+  color: var(--m3-on-surface-variant);
+}
+.ach-give-item[aria-pressed='true'] {
+  background: var(--m3-secondary-container);
+  box-shadow: inset 0 0 0 2px var(--m3-primary);
+}
+
+/* ---- motion ------------------------------------------------------------------------------------------------------------ */
+
+@keyframes ach-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes ach-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  45%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+@keyframes ach-flicker {
+  0% {
+    transform: scale(1, 1) skewX(-2deg);
+  }
+  50% {
+    transform: scale(0.97, 1.05) skewX(1.5deg);
+  }
+  100% {
+    transform: scale(1.02, 0.97) skewX(-1deg);
+  }
+}
+@keyframes ach-flicker-m {
+  0% {
+    transform: scale(0.7, 0.68) translateX(-2%);
+  }
+  100% {
+    transform: scale(0.66, 0.76) translateX(3%);
+  }
+}
+@keyframes ach-flicker-c {
+  0% {
+    transform: scale(0.4, 0.38);
+  }
+  100% {
+    transform: scale(0.36, 0.46) translateX(2%);
+  }
+}
+@keyframes ach-wiggle {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: rotate(-9deg) scale(1.08);
+  }
+  60% {
+    transform: rotate(6deg) scale(1.04);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes ach-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes ach-ghost {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes ach-breathe {
+  from {
+    opacity: 0.75;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+@keyframes ach-send {
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+/* reduced motion (the system's or Budgie's own setting) and calm mode: nothing moves on its own */
+@media (prefers-reduced-motion: reduce) {
+  .ach-flame i,
+  .ach-t5 .ach-fill::before,
+  .ach-t5 .ach-fill::after,
+  .ach-badge.shine .ach-fill::after,
+  .ach-pop-shine,
+  .ach-m-glow,
+  .ach-tile .ach-badge,
+  .ach-tile.ghost,
+  .ach-bar > span,
+  .ach-friend.sending > .m3-icon {
+    animation: none !important;
+  }
+}
+html[data-m3-reduce-motion] :is(.ach-flame i, .ach-t5 .ach-fill::before, .ach-t5 .ach-fill::after, .ach-badge.shine .ach-fill::after, .ach-pop-shine, .ach-m-glow, .ach-tile .ach-badge, .ach-tile.ghost, .ach-bar > span, .ach-friend.sending > .m3-icon),
+body.calm :is(.ach-flame i, .ach-t5 .ach-fill::before, .ach-t5 .ach-fill::after, .ach-badge.shine .ach-fill::after, .ach-pop-shine, .ach-m-glow, .ach-tile .ach-badge, .ach-bar > span) {
+  animation: none !important;
+}
+html[data-m3-reduce-motion] .ach-t5 .ach-fill::after,
+body.calm .ach-t5 .ach-fill::after,
+html[data-m3-reduce-motion] .ach-badge.shine .ach-fill::after,
+body.calm .ach-badge.shine .ach-fill::after {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ach-t5 .ach-fill::after,
+  .ach-badge.shine .ach-fill::after {
+    display: none;
+  }
+}
+/* calm mode: no streaks and no numbers */
+body.calm :is(.ach-streak-pill, .ach-streak-card, .ach-tile small.count, .ach-tile .ach-bar) {
+  display: none;
+}

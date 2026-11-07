@@ -1,0 +1,614 @@
+/* social (Budgie 1.4): nudges, and network bans on the Moderation page */
+
+/* ---- the Nudge button ------------------------------------------------------------------------------------ */
+
+.nudge-btn {
+  gap: 6px;
+}
+.nudge-btn .nudge-hand {
+  display: inline-grid;
+  place-items: center;
+  margin-inline-start: -4px;
+  transform-origin: 70% 80%;
+}
+.nudge-btn .nudge-hand .m3-icon {
+  --m3-icon-fill: 1;
+  --m3-icon-size: 20px;
+  color: var(--m3-tertiary);
+}
+/* the hand gives a little wave when you're about to press it */
+@media (hover: hover) {
+  .nudge-btn:not([aria-disabled='true']):hover .nudge-hand {
+    animation: nudge-wave 0.9s ease-in-out;
+  }
+}
+.nudge-btn.is-sending .nudge-hand {
+  animation: nudge-wave 0.6s ease-in-out infinite;
+}
+@keyframes nudge-wave {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: -22deg; }
+  40% { rotate: 16deg; }
+  60% { rotate: -12deg; }
+  80% { rotate: 8deg; }
+}
+/* this hour's nudges: three dots that empty as they're used */
+.nudge-pips {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-start: 2px;
+}
+.nudge-pips[hidden] {
+  display: none;
+}
+.nudge-pips i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--m3-tertiary);
+  transition: background var(--nook-spring-snappy, 300ms ease), scale var(--nook-spring-lively, 400ms ease);
+}
+.nudge-pips i.used {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--m3-on-secondary-container) 45%, transparent);
+  scale: 0.85;
+}
+.nudge-wait {
+  padding: 1px 7px;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, var(--m3-on-secondary-container) 12%, transparent);
+  font-size: var(--m3-fs-smaller);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.nudge-wait[hidden] {
+  display: none;
+}
+.nudge-btn[aria-disabled='true'] {
+  opacity: 0.72;
+}
+.nudge-btn.is-off .nudge-hand .m3-icon {
+  color: inherit;
+  opacity: 0.6;
+}
+/* calm mode hides tallies: the dots here, and how many nudges came in a row */
+body.calm :is(.nudge-pips, .nm-count) {
+  display: none !important;
+}
+
+/* ---- the flight, and the rings ------------------------------------------------------------------------------ */
+
+.social-layer {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  pointer-events: none;
+  z-index: 1200;
+}
+.nudge-flyer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+  box-shadow: var(--m3-elevation-2);
+  will-change: transform;
+}
+.nudge-flyer .m3-icon {
+  --m3-icon-fill: 1;
+  --m3-icon-size: 26px;
+}
+.nudge-ring {
+  position: absolute;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+/* ---- a nudge arriving ------------------------------------------------------------------------------------- */
+
+.nudge-moment {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  color: var(--m3-on-surface);
+  pointer-events: none;
+  z-index: 1150;
+}
+/* the friend's colour glows down from the top of the screen */
+.nm-glow {
+  position: absolute;
+  inset: 0 0 auto;
+  height: min(60vh, 460px);
+  background: radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, var(--av) 42%, transparent), transparent 70%);
+}
+.nm-card {
+  position: absolute;
+  top: calc(var(--nook-top, 0px) + 12px);
+  left: 50%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    'face words close'
+    'face actions actions';
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 8px;
+  width: min(420px, calc(100vw - 24px));
+  margin-left: calc(min(420px, calc(100vw - 24px)) / -2);
+  padding: 16px 12px 16px 16px;
+  overflow: hidden;
+  border-radius: 32px;
+  background: var(--m3-surface-container-low);
+  background: radial-gradient(160px 140px at 56px 56px, color-mix(in srgb, var(--m3-primary-container) 70%, transparent), transparent), var(--m3-surface-container-low);
+  box-shadow: var(--m3-elevation-3), 0 0 0 1px color-mix(in srgb, var(--av) 22%, transparent);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+.nm-face {
+  grid-area: face;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+}
+.nm-halo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: color-mix(in srgb, var(--av) 30%, var(--m3-surface-container-high));
+  animation: nm-spin 9s linear infinite;
+}
+.nm-halo-b {
+  inset: 8px;
+  width: auto;
+  height: auto;
+  color: color-mix(in srgb, var(--av) 55%, var(--m3-surface-container-high));
+  animation-duration: 6s;
+  animation-direction: reverse;
+}
+@keyframes nm-spin {
+  to { rotate: 360deg; }
+}
+.nm-ring {
+  position: absolute;
+  inset: 14px;
+  border: 2px solid var(--av);
+  border-radius: 50%;
+  opacity: 0;
+  animation: nm-ring 1.8s cubic-bezier(0.2, 0.7, 0.3, 1) 0.5s infinite;
+}
+.nm-ring + .nm-ring {
+  animation-delay: 1.1s;
+}
+@keyframes nm-ring {
+  0% { scale: 0.9; opacity: 0.7; }
+  100% { scale: 1.75; opacity: 0; }
+}
+.nm-face .avatar {
+  position: relative;
+  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
+}
+/* a waving hand at the picture's corner */
+.nm-hand {
+  position: absolute;
+  right: -4px;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--av) 10%, var(--m3-surface-container-high)), var(--m3-elevation-1);
+  transform-origin: 70% 85%;
+  animation: nudge-wave 1.1s ease-in-out 0.55s 4;
+}
+.nm-hand .m3-icon {
+  --m3-icon-fill: 1;
+  --m3-icon-size: 22px;
+}
+.nm-words {
+  grid-area: words;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: var(--m3-fs-normal);
+  color: var(--m3-on-surface-variant);
+}
+.nm-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+  color: var(--m3-on-surface);
+  font-size: var(--m3-fs-large);
+  font-weight: 750;
+  line-height: 1.2;
+}
+.nm-name > span:first-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nm-count {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-tertiary);
+  color: var(--m3-on-tertiary);
+  font: 750 var(--m3-fs-smaller) / 1.5 var(--m3-font);
+  font-variant-numeric: tabular-nums;
+}
+.nm-count[hidden] {
+  display: none;
+}
+.nm-tag {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+  font: 700 var(--m3-fs-smaller) / 1.5 var(--m3-font);
+}
+.nm-about {
+  grid-area: actions;
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-small);
+  line-height: 1.4;
+}
+.nm-close {
+  grid-area: close;
+  align-self: start;
+  margin: -6px -2px 0 0;
+}
+.nm-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.nm-actions .m3-btn {
+  min-height: 40px;
+}
+/* how long it stays: a thin line along the bottom that runs out */
+.nm-timer {
+  position: absolute;
+  inset: auto 24px 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: color-mix(in srgb, var(--av) 70%, var(--m3-on-surface));
+  opacity: 0.55;
+  transform-origin: left;
+}
+/* on a phone the picture sits above the words, and the buttons share the width */
+@media (max-width: 400px) {
+  .nm-card {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      'face words close'
+      'actions actions actions';
+    padding: 14px 10px 16px 14px;
+    column-gap: 12px;
+  }
+  .nm-face {
+    width: 80px;
+    height: 80px;
+  }
+  .nm-face .avatar {
+    --s: 56px !important;
+  }
+  .nm-hand {
+    width: 32px;
+    height: 32px;
+    right: -6px;
+  }
+  .nm-actions .m3-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+.nudge-moment.is-still .nm-halo,
+.nudge-moment.is-still .nm-ring,
+.nudge-moment.is-still .nm-hand {
+  animation: none;
+}
+.nudge-moment.is-still .nm-ring {
+  display: none;
+}
+html[data-m3-reduce-motion] :is(.nm-halo, .nm-ring, .nm-hand, .nudge-btn .nudge-hand),
+body.calm :is(.nm-halo, .nm-ring, .nm-hand, .nudge-btn .nudge-hand) {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nm-halo,
+  .nm-ring,
+  .nm-hand,
+  .nudge-btn .nudge-hand {
+    animation: none !important;
+  }
+}
+
+/* ---- Settings → Nudges --------------------------------------------------------------------------------- */
+
+.nudge-settings .toolbar {
+  margin-top: 4px;
+}
+
+/* ---- banning someone and their networks ------------------------------------------------------------------------ */
+
+.social-ban-btn .m3-icon {
+  color: var(--m3-error);
+}
+.social-ban-sheet .sheet-body {
+  display: grid;
+  gap: 14px;
+}
+.sb-who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sb-who .row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sb-who b {
+  font-size: var(--m3-fs-large);
+  overflow-wrap: anywhere;
+}
+.sb-who small {
+  color: var(--m3-on-surface-variant);
+  line-height: 1.4;
+  white-space: normal;
+}
+.sb-impact {
+  display: grid;
+  gap: 8px;
+  min-height: 48px;
+}
+.sb-impact m3-loading {
+  justify-self: center;
+}
+.sb-facts {
+  display: grid;
+  gap: 3px;
+  overflow: hidden;
+  border-radius: 22px;
+}
+.sb-fact {
+  display: grid;
+  grid-template-columns: 32px auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--m3-surface-container);
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-small);
+  line-height: 1.35;
+}
+.sb-fact-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--m3-surface-container-highest);
+}
+.sb-fact-icon .m3-icon {
+  --m3-icon-size: 18px;
+}
+.sb-fact b {
+  min-width: 1ch;
+  color: var(--m3-on-surface);
+  font-size: var(--m3-fs-larger, 22px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.sb-fact.is-ban {
+  background: var(--m3-error-container);
+  color: var(--m3-on-error-container);
+}
+.sb-fact.is-ban b {
+  color: inherit;
+}
+.sb-fact.is-ban .sb-fact-icon {
+  background: color-mix(in srgb, var(--m3-error) 16%, transparent);
+  color: var(--m3-error);
+}
+.sb-fact.is-kept .sb-fact-icon {
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.sb-fact.is-others .sb-fact-icon {
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+}
+.sb-note {
+  margin: 0;
+}
+.sb-warn {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--m3-surface-container-low);
+  box-shadow: inset 0 0 0 1px var(--m3-outline-variant);
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-small);
+  line-height: 1.45;
+}
+.sb-warn .m3-icon {
+  flex: none;
+  color: var(--m3-tertiary);
+  --m3-icon-fill: 1;
+}
+.sb-warn p {
+  margin: 0;
+}
+.sb-reasons {
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.social-ban-sheet .m3-segmented {
+  width: 100%;
+}
+.social-ban-sheet .m3-segment {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 6px;
+}
+.sb-after {
+  margin: 0;
+}
+
+/* on a banned person's profile, for an admin */
+.social-banned-strip {
+  width: 100%;
+}
+
+/* ---- the Moderation page's list ------------------------------------------------------------------------------ */
+
+.social-admin {
+  display: grid;
+  gap: 12px;
+}
+.sb-form p {
+  margin: 0 0 10px;
+}
+.sb-form .toolbar {
+  flex-wrap: wrap;
+}
+.sb-form .m3-field {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.sb-list {
+  display: grid;
+  gap: 8px;
+}
+.sb-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px 12px 14px;
+}
+.sb-row .row-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.sb-row .row-text b {
+  overflow-wrap: anywhere;
+}
+.sb-row .row-text small {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  white-space: normal;
+}
+.sb-left {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 56px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.sb-ring {
+  width: 32px;
+  height: 32px;
+  rotate: -90deg;
+}
+span.sb-ring {
+  display: grid;
+  place-items: center;
+  rotate: 0deg;
+  border-radius: 50%;
+  background: var(--m3-error-container);
+  color: var(--m3-on-error-container);
+}
+span.sb-ring .m3-icon {
+  --m3-icon-size: 18px;
+}
+.sb-track {
+  fill: none;
+  stroke: var(--m3-surface-container-highest);
+  stroke-width: 4;
+}
+.sb-fill {
+  fill: none;
+  stroke: var(--m3-error);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+.sb-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sb-empty div {
+  display: grid;
+  gap: 2px;
+}
+/* on a phone, the time left and Lift go under the words */
+@media (max-width: 520px) {
+  .sb-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'face words left'
+      'face lift lift';
+    row-gap: 4px;
+  }
+  .sb-row > :first-child {
+    grid-area: face;
+    align-self: start;
+  }
+  .sb-row .row-text {
+    grid-area: words;
+  }
+  .sb-row .sb-left {
+    grid-area: left;
+  }
+  .sb-row [data-lift] {
+    grid-area: lift;
+    justify-self: start;
+    margin-left: -10px;
+  }
+}
+
+/* the "can't be used from this network" screen: no "Free · No email needed" tag, that's for joining */
+.gate-network .gate-tag {
+  display: none;
+}

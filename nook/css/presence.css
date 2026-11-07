@@ -1,0 +1,832 @@
+/* presence (Budgie 1.4): what people are listening to and playing */
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+
+/* ---- the cards on a profile ------------------------------------------------------------------------------ */
+
+/* side by side when there's room, one under the other on a phone */
+.pres-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+.pres-hero[hidden] {
+  display: none;
+}
+
+.pres-card {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  min-height: 100px;
+  padding: 12px 8px 12px 12px;
+  overflow: hidden;
+  border-radius: var(--m3-r-large);
+  color: var(--m3-on-primary-container);
+  /* the album's colours, once the card wears them (until then, the page's) */
+  background: linear-gradient(118deg, var(--m3-primary-container) 10%, color-mix(in srgb, var(--m3-tertiary-container) 70%, var(--m3-primary-container)));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--m3-shadow, #000) 12%, transparent);
+  transition: background-color 400ms ease, color 400ms ease;
+}
+/* the cover, huge and blurred, glows behind everything */
+.pres-glow {
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  width: 180%;
+  height: 180%;
+  object-fit: cover;
+  opacity: 0.32;
+  filter: blur(28px) saturate(1.5);
+  pointer-events: none;
+}
+
+/* the cover on its record, which peeks out from behind it and turns */
+.pres-art {
+  position: relative;
+  flex: none;
+  width: 98px;
+  height: 76px;
+}
+.pres-cover {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 1;
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  object-fit: cover;
+  box-shadow: 0 6px 14px -4px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.08) inset;
+}
+.pres-cover-empty {
+  display: grid;
+  place-items: center;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.pres-cover-empty .m3-icon {
+  --m3-icon-size: 36px;
+}
+.pres-vinyl {
+  position: absolute;
+  top: 5px;
+  left: 30px;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  /* the label in the middle is the cover again (or the card's colour); grooves round it */
+  background:
+    radial-gradient(circle, transparent 0 17%, #0c0c0e 17.5% 19%, transparent 19.5%),
+    repeating-radial-gradient(circle, #19191c 0 1.4px, #2a2a30 1.4px 2.6px);
+  box-shadow: 0 3px 10px -2px rgb(0 0 0 / 0.5), inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  animation: pres-spin 5s linear infinite;
+}
+/* the label is a round crop of the cover (or the card's colour), with the hole in the middle */
+.pres-vinyl::before {
+  content: '';
+  position: absolute;
+  inset: 31%;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0c0c0e 0 9%, transparent 10%), var(--art, var(--m3-primary)) center / cover;
+}
+.pres-vinyl::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  /* light catching the grooves */
+  background: conic-gradient(from 20deg, transparent 0 8%, rgb(255 255 255 / 0.16) 12%, transparent 18% 55%, rgb(255 255 255 / 0.1) 60%, transparent 66%);
+}
+@keyframes pres-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* the words */
+.pres-info {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.pres-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  margin-bottom: 2px;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.pres-word {
+  flex: none;
+  white-space: nowrap;
+}
+.pres-tag {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  height: 20px;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}
+.pres-tag:has(.m3-icon) {
+  padding-inline-start: 4px;
+}
+.pres-tag .m3-icon {
+  --m3-icon-size: 14px;
+}
+.pres-title {
+  overflow: hidden;
+  font-size: var(--m3-fs-larger);
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pres-sub {
+  overflow: hidden;
+  font-size: var(--m3-fs-small);
+  font-weight: 560;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pres-album {
+  opacity: 0.75;
+}
+.pres-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin-top: 3px;
+  font-size: var(--m3-fs-smaller);
+  opacity: 0.78;
+}
+.pres-genres {
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* someone else's card answers a tap with a little burst */
+.pres-card:not([data-pres-act]) {
+  -webkit-tap-highlight-color: transparent;
+  transition: scale var(--m3-motion-bounce, 300ms ease), background-color 400ms ease, color 400ms ease;
+}
+.pres-card:not([data-pres-act]):active {
+  scale: 0.98;
+}
+/* your own card is a button: it opens Change / Clear */
+.pres-card[data-pres-act] {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: scale var(--m3-motion-bounce, 300ms ease), background-color 400ms ease, color 400ms ease;
+}
+.pres-card[data-pres-act]:active {
+  scale: 0.98;
+}
+.pres-card[data-pres-act]:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: 2px;
+}
+.pres-card[data-pres-act] .pres-info {
+  padding-right: 30px;
+}
+.pres-edit {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  opacity: 0.8;
+}
+.pres-edit .m3-icon {
+  --m3-icon-size: 16px;
+}
+
+/* an equaliser: four bars that bounce (a calm card holds them still, at different heights) */
+.pres-eq {
+  display: inline-flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 2px;
+  width: 17px;
+  height: 13px;
+}
+.pres-eq i {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transform-origin: bottom;
+  animation: pres-eq 0.9s ease-in-out infinite alternate;
+}
+.pres-eq i:nth-child(1) {
+  animation-duration: 0.74s;
+  scale: 1 0.45;
+}
+.pres-eq i:nth-child(2) {
+  animation-duration: 0.95s;
+  animation-delay: -0.3s;
+  scale: 1 0.9;
+}
+.pres-eq i:nth-child(3) {
+  animation-duration: 0.62s;
+  animation-delay: -0.5s;
+  scale: 1 0.6;
+}
+.pres-eq i:nth-child(4) {
+  animation-duration: 1.05s;
+  animation-delay: -0.15s;
+  scale: 1 0.75;
+}
+@keyframes pres-eq {
+  0% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.55);
+  }
+}
+.pres-eq.mini {
+  width: 11px;
+  height: 10px;
+  gap: 1.5px;
+}
+
+/* the game card: a controller on a shape that morphs, little pixels floating up, and a live dot */
+.pres-game {
+  color: var(--m3-on-tertiary-container);
+  background: linear-gradient(118deg, var(--m3-tertiary-container) 10%, color-mix(in srgb, var(--m3-secondary-container) 75%, var(--m3-tertiary-container)));
+}
+.pres-pad {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  color: var(--m3-on-tertiary);
+}
+.pres-pad m3-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-tertiary);
+  animation: pres-breathe 2.4s ease-in-out infinite alternate;
+}
+.pres-pad > .m3-icon {
+  position: relative;
+  --m3-icon-size: 38px;
+  font-variation-settings: 'FILL' 1;
+}
+.pres-pad i {
+  position: absolute;
+  bottom: 16px;
+  z-index: 1;
+  width: 5px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--m3-on-tertiary);
+  opacity: 0;
+  animation: pres-pixel 2.6s ease-out infinite;
+}
+.pres-pad i:nth-of-type(1) {
+  left: 16px;
+}
+.pres-pad i:nth-of-type(2) {
+  right: 15px;
+  animation-delay: 0.9s;
+}
+.pres-pad i:nth-of-type(3) {
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  animation-delay: 1.7s;
+}
+@keyframes pres-breathe {
+  to {
+    scale: 1.06;
+  }
+}
+/* little pixels float up out of the controller and fade before they leave the shape */
+@keyframes pres-pixel {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  25% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px) scale(1);
+  }
+}
+.pres-live {
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pres-game-dot, #8e5cf2);
+}
+.pres-live::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: pres-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes pres-ping {
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* your own profile with nothing on: a way to share something */
+.pres-add {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px 0 14px;
+  border: 1.5px dashed color-mix(in srgb, var(--m3-primary) 55%, transparent);
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, var(--m3-surface-container-lowest, #fff) 55%, transparent);
+  color: var(--m3-primary);
+  font: 650 var(--m3-fs-smallie) / 1.2 var(--m3-font);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color 160ms ease, scale var(--m3-motion-bounce, 300ms ease);
+}
+.pres-add:hover {
+  background: var(--m3-layer1-hover, color-mix(in srgb, var(--m3-primary) 8%, transparent));
+}
+.pres-add:active {
+  scale: 0.96;
+}
+.pres-add .m3-icon {
+  --m3-icon-size: 20px;
+}
+
+/* ---- a line under a name (friends, chats) --------------------------------------------------------------- */
+
+.pres-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pres-line[hidden] {
+  display: none;
+}
+.pres-bit {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.pres-bit > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pres-roll {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+/* a song and a game take turns: one fades and lifts away as the other settles in */
+.pres-roll > .pres-bit {
+  grid-area: 1 / 1;
+  transition: opacity 280ms ease, translate 520ms cubic-bezier(0.3, 1.5, 0.5, 1), filter 280ms ease;
+}
+.pres-roll[data-show='0'] > .pres-bit:nth-child(2),
+.pres-roll[data-show='1'] > .pres-bit:nth-child(1) {
+  opacity: 0;
+  translate: 0 7px;
+  filter: blur(2px);
+  pointer-events: none;
+}
+.pres-also {
+  display: none;
+  flex: none;
+  color: var(--pres-game);
+}
+.pres-bit.music {
+  flex: 0 1 auto;
+  color: var(--pres-music, #1a7f45);
+}
+.pres-bit.game {
+  flex: 0 1 auto;
+  color: var(--pres-game, #6d3fd0);
+}
+.pres-bit .m3-icon,
+.pres-also .m3-icon {
+  --m3-icon-size: 15px;
+  flex: none;
+}
+/* the row's own text stays one line each; this one too */
+.row-text .pres-line,
+.chat-who .pres-line {
+  color: inherit;
+}
+.chat-who .pres-line {
+  margin-top: 1px;
+}
+
+/* ---- the badge on a picture in Messages ---------------------------------------------------------------------- */
+
+.avatar .pres-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--pres-music-bg, #1db954);
+  color: #fff;
+  box-shadow: 0 0 0 2.5px var(--m3-surface-container-low, var(--m3-background));
+}
+.avatar .pres-dot.game {
+  background: var(--pres-game-bg, #7c4dff);
+}
+/* (the avatar sizes its own icon from its size, so this one says its size outright) */
+.avatar .pres-dot .m3-icon {
+  --m3-icon-size: 13px;
+  font-size: 13px;
+  color: #fff;
+  font-variation-settings: 'FILL' 1, 'wght' 600;
+}
+
+/* the colours of music and games, readable in light and dark */
+:root {
+  --pres-music: #17733f;
+  --pres-game: #6a3dcc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) {
+    --pres-music: #6fdc95;
+    --pres-game: #c3a6ff;
+  }
+}
+:root[data-m3-theme='dark'] {
+  --pres-music: #6fdc95;
+  --pres-game: #c3a6ff;
+}
+
+/* ---- Lately ------------------------------------------------------------------------------------------------ */
+
+.pres-lately[hidden] {
+  display: none;
+}
+.pres-lately .m3-section-header > .muted {
+  flex: none;
+  font-size: var(--m3-fs-smaller);
+}
+.pres-lately-card {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  min-width: 0;
+}
+.pres-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pres-totals > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px 0 10px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+  font-size: var(--m3-fs-smallie);
+}
+.pres-totals .m3-icon {
+  --m3-icon-size: 18px;
+}
+.pres-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.pres-group-title {
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallie);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.pres-shelf {
+  margin: -4px -16px 0;
+  padding: 4px 16px 8px;
+  gap: 12px;
+  scroll-padding-inline: 16px;
+  scroll-snap-type: x proximity;
+}
+.pres-shelf .m3-media-card {
+  --m3-card-size: 128px;
+  cursor: default;
+  scroll-snap-align: start;
+}
+.pres-shelf .m3-media-badge {
+  display: none;
+}
+/* the place in the chart, on the cover's corner */
+.pres-rank {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, #000 55%, transparent);
+  color: #fff;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+}
+/* how many times it played, on the cover's other corner */
+.pres-plays {
+  position: absolute;
+  top: calc(var(--m3-card-size) - 32px);
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 8px 0 3px;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, #000 55%, transparent);
+  color: #fff;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 750;
+  backdrop-filter: blur(6px);
+}
+.pres-plays .m3-icon {
+  --m3-icon-size: 16px;
+  font-variation-settings: 'FILL' 1;
+}
+.pres-lately .chips.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.pres-lately .chip small {
+  margin-inline-start: 2px;
+  color: var(--m3-on-surface-variant);
+  font-weight: 700;
+}
+.pres-lately .chip > span[translate] {
+  overflow: hidden;
+  max-width: 220px;
+  text-overflow: ellipsis;
+}
+
+/* ---- Settings → Activity ------------------------------------------------------------------------------------ */
+
+.pres-settings {
+  display: grid;
+  gap: 14px;
+}
+.pres-loading {
+  justify-self: center;
+  margin: 12px;
+}
+.pres-settings .m3-segmented {
+  max-width: 100%;
+}
+.pres-nows {
+  display: grid;
+  gap: 6px;
+}
+.pres-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 8px 4px 8px 14px;
+  border-radius: var(--m3-r-normal);
+  background: var(--m3-surface-container-high);
+}
+.pres-now-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--m3-primary);
+}
+.pres-now-icon .pres-eq {
+  width: 15px;
+  height: 13px;
+}
+.pres-source {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--m3-outline-variant);
+}
+.pres-source-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pres-source-head > m3-shape-icon {
+  flex: none;
+}
+.pres-source-head > b {
+  font-size: var(--m3-fs-normal);
+}
+.pres-source > small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smallie);
+  line-height: 1.45;
+}
+.pres-source .toolbar {
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.pres-source .switch-row {
+  margin: 0;
+}
+.pres-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.pres-link .m3-field {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.pres-linked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.pres-linked .chip {
+  max-width: 100%;
+  background: var(--m3-secondary-container);
+  box-shadow: none;
+  color: var(--m3-on-secondary-container);
+}
+.pres-linked .chip > span[translate] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pres-off {
+  margin: 2px 0 0;
+  font-size: var(--m3-fs-smallie);
+}
+.pres-get {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pres-get a {
+  color: var(--m3-primary);
+  font-weight: 650;
+}
+.pres-privacy {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--m3-outline-variant);
+  font-size: var(--m3-fs-smallie);
+}
+
+/* what went wrong, in the error colour, right under what it's about */
+.pres-settings .error,
+.pres-sheet .error {
+  color: var(--m3-error);
+  font-size: var(--m3-fs-smallie);
+  font-weight: 560;
+}
+.pres-settings .error:empty,
+.pres-sheet .error:empty {
+  display: none;
+}
+
+/* the sheet to type a status */
+.pres-sheet .sheet-body {
+  display: grid;
+  gap: 12px;
+}
+.pres-sheet .chip {
+  height: 40px;
+}
+.pres-sheet .chips.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.pres-note {
+  margin: 0;
+  font-size: var(--m3-fs-smallie);
+}
+
+/* ---- phones ----------------------------------------------------------------------------------------------- */
+
+@media (max-width: 420px) {
+  .pres-card {
+    gap: 12px;
+    min-height: 92px;
+    padding: 10px 4px 10px 10px;
+  }
+  .pres-art {
+    width: 88px;
+    height: 68px;
+  }
+  .pres-cover {
+    width: 68px;
+    height: 68px;
+    border-radius: 14px;
+  }
+  .pres-vinyl {
+    top: 5px;
+    left: 28px;
+    width: 58px;
+    height: 58px;
+  }
+  .pres-pad {
+    width: 66px;
+    height: 66px;
+  }
+  .pres-title {
+    font-size: var(--m3-fs-large);
+  }
+  .pres-shelf .m3-media-card {
+    --m3-card-size: 112px;
+  }
+}
+
+/* ---- holding still: reduced motion, and Budgie's calm mode ------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .pres-also {
+    display: grid;
+  }
+  .pres-vinyl,
+  .pres-eq i,
+  .pres-pad m3-shape,
+  .pres-pad i,
+  .pres-live::after {
+    animation: none !important;
+  }
+}
+:root[data-m3-reduce-motion] :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after),
+body.calm :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after) {
+  animation: none !important;
+}
+:root[data-m3-reduce-motion] .pres-pad i,
+body.calm .pres-pad i {
+  display: none;
+}
+:root[data-m3-reduce-motion] .pres-also,
+body.calm .pres-also {
+  display: grid;
+}

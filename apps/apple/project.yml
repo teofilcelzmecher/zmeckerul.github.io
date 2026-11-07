@@ -1,0 +1,114 @@
+# Budgie for iPhone, iPhone Duo, iPad and Mac: one target, built for iOS (iPhone and iPad) and macOS, with one bundle
+# id, so it's one app on the App Store that people buy (for free) once for all their devices.
+# The Xcode project is made from this file with XcodeGen (`xcodegen generate`); see README.md.
+name: Budgie
+options:
+  bundleIdPrefix: com.budgiesocial
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "17.0"
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.2.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+    DEAD_CODE_STRIPPING: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: NO
+targets:
+  Budgie:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Budgie
+        excludes:
+          - "AppIcon.icon"
+          - "AppIcon.icon/**"
+          - "*.entitlements"
+          - "Info.plist"
+      # the Icon Composer icon (tools/fix-project.py makes sure Xcode reads it as one)
+      - path: Budgie/AppIcon.icon
+        type: file
+        buildPhase: resources
+      # Budgie's screens, built by tools/build-www.py, copied as they are
+      - path: www
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.budgiesocial.app
+        PRODUCT_NAME: Budgie
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
+        CODE_SIGN_STYLE: Automatic
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]": Budgie/Budgie.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]": Budgie/Budgie.entitlements
+        "CODE_SIGN_ENTITLEMENTS[sdk=macosx*]": Budgie/BudgieMac.entitlements
+        ENABLE_HARDENED_RUNTIME: YES
+        # the build machine adds BUDGIE_HINGE when it builds with the iOS 27.1 SDK (iPhone Duo's hinge)
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) $(BUDGIE_FLAGS)"
+        BUDGIE_FLAGS: ""
+    info:
+      path: Budgie/Info.plist
+      properties:
+        CFBundleDisplayName: Budgie
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ro, es, fr, de, it]
+        LSApplicationCategoryType: public.app-category.social-networking
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: © 2026 Budgie
+        # only standard encryption (HTTPS, and calls' own): nothing to declare for export
+        ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: Budgie uses the camera for video calls, and for photos you choose to take for a post or a chat.
+        NSMicrophoneUsageDescription: Budgie uses the microphone for voice and video calls, and only while you’re in one.
+        NSPhotoLibraryAddUsageDescription: Budgie saves pictures to your library only when you choose to save one.
+        # the build machine's checks talk to a Budgie server on the same machine
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # several windows on iPad, Mac and iPhone Duo open
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+          UIImageName: LaunchLogo
+          UIImageRespectsSafeAreaInsets: true
+        # every way up, as iPhone Duo and iPad expect (and Split View, and being resized)
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIRequiresFullScreen: false
+        # Handoff between iPhone, iPad and Mac
+        NSUserActivityTypes:
+          - com.budgiesocial.app.view
+        # touch and hold the app's icon
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: com.budgiesocial.app.new-post
+            UIApplicationShortcutItemTitle: New Post
+            UIApplicationShortcutItemIconSymbolName: square.and.pencil
+          - UIApplicationShortcutItemType: com.budgiesocial.app.chats
+            UIApplicationShortcutItemTitle: Chats
+            UIApplicationShortcutItemIconSymbolName: bubble.left.and.bubble.right
+          - UIApplicationShortcutItemType: com.budgiesocial.app.inbox
+            UIApplicationShortcutItemTitle: Inbox
+            UIApplicationShortcutItemIconSymbolName: bell
+          - UIApplicationShortcutItemType: com.budgiesocial.app.search
+            UIApplicationShortcutItemTitle: Search
+            UIApplicationShortcutItemIconSymbolName: magnifyingglass
+    scheme:
+      testTargets: []

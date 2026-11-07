@@ -1,0 +1,9 @@
+/* What the system shows for Budgie: why it asks for the camera, microphone and photos, and the Home Screen's quick actions. */
+"CFBundleDisplayName" = "Budgie";
+"NSCameraUsageDescription" = "Budgie usa la fotocamera per le videochiamate e per le foto che scegli di scattare per un post o una chat.";
+"NSMicrophoneUsageDescription" = "Budgie usa il microfono per le chiamate vocali e video, e solo mentre sei in una chiamata.";
+"NSPhotoLibraryAddUsageDescription" = "Budgie salva immagini nella tua libreria solo quando scegli di salvarne una.";
+"New Post" = "Nuovo post";
+"Chats" = "Chat";
+"Inbox" = "Notifiche";
+"Search" = "Cerca";

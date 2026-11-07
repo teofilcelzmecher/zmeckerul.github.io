@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data: file:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>Budgie</title>
+    <link rel="stylesheet" href="page.css" />
+    <style>
+      html,
+      body {
+        background: var(--surface-high);
+        overflow: hidden;
+      }
+      /* the whole window can be dragged, except its buttons */
+      .ring {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        height: 100vh;
+        padding: 0 18px;
+        -webkit-app-region: drag;
+        animation: in 360ms cubic-bezier(0.05, 0.7, 0.1, 1);
+      }
+      @keyframes in {
+        from {
+          opacity: 0;
+          transform: translateY(16px);
+        }
+      }
+      .face {
+        position: relative;
+        width: 64px;
+        height: 64px;
+      }
+      .face img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      .face .logo {
+        width: 100%;
+        height: 100%;
+        animation: breathe 1.4s ease-in-out infinite;
+      }
+      @keyframes breathe {
+        50% {
+          transform: scale(1.08) rotate(6deg);
+        }
+      }
+      .text {
+        display: grid;
+        gap: 2px;
+        min-width: 0;
+      }
+      .text b,
+      .text small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .text b {
+        font-size: 17px;
+        font-weight: 750;
+      }
+      .text small {
+        color: var(--on-variant);
+        font-size: 13px;
+      }
+      .buttons {
+        display: flex;
+        gap: 12px;
+        -webkit-app-region: no-drag;
+      }
+      .round {
+        display: grid;
+        place-items: center;
+        width: 52px;
+        height: 52px;
+        border: 0;
+        border-radius: 50%;
+        color: #fff;
+        transition: transform 120ms;
+      }
+      .round:hover {
+        transform: scale(1.06);
+      }
+      .round:active {
+        transform: scale(0.94);
+      }
+      .round svg {
+        width: 26px;
+        height: 26px;
+        fill: currentColor;
+      }
+      .decline {
+        background: var(--decline);
+      }
+      .answer {
+        background: var(--answer);
+        animation: nudge 1.4s ease-in-out infinite;
+      }
+      @keyframes nudge {
+        10%,
+        30% {
+          transform: rotate(-12deg);
+        }
+        20%,
+        40% {
+          transform: rotate(12deg);
+        }
+        50% {
+          transform: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ring,
+        .face .logo,
+        .answer {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="ring" role="alertdialog" aria-labelledby="who" aria-describedby="what">
+      <div class="face"><img id="img" alt="" hidden /><img class="logo" id="logo" src="../icons/logo-128.png" alt="" /></div>
+      <div class="text"><b id="who"></b><small id="what"></small></div>
+      <div class="buttons">
+        <button type="button" class="round decline" id="decline">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.996.996 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28a11.27 11.27 0 0 0-2.67-1.85.996.996 0 0 1-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z" /></svg>
+        </button>
+        <button type="button" class="round answer" id="answer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" /></svg>
+        </button>
+      </div>
+    </div>
+    <script src="ring.js"></script>
+  </body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Budgie for Windows and Linux</title>
+  <meta name="description" content="Budgie for your computer: calls that ring even with its window closed, notifications for messages, and screen sharing with sound.">
+  <link rel="stylesheet" href="../m3/fonts/fonts.css">
+  <link rel="stylesheet" href="../m3/m3.css">
+  <link rel="stylesheet" href="legal.css">
+  <style>
+    .get {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .os {
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 24px;
+      border-radius: 28px;
+      background: var(--m3-surface-container);
+    }
+    .os h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 24px;
+    }
+    .os h2 .m3-icon {
+      color: var(--m3-primary);
+      font-size: 30px;
+    }
+    .os p {
+      margin: 0;
+    }
+    .os .m3-btn {
+      justify-self: start;
+    }
+    /* the legal pages colour their links; the button keeps its own colours */
+    .os .m3-btn.filled {
+      color: var(--m3-on-primary);
+      text-decoration: none;
+    }
+    .os .files {
+      display: grid;
+      gap: 8px;
+    }
+    .os .files a {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 2px 12px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      background: var(--m3-surface-container-high);
+      color: inherit;
+      text-decoration: none;
+    }
+    .os .files a:hover {
+      background: var(--m3-surface-container-highest);
+    }
+    .os .files .m3-icon {
+      grid-row: span 2;
+      color: var(--m3-primary);
+    }
+    .os .files small {
+      color: var(--m3-on-surface-variant);
+      font-size: 14px;
+    }
+    .os .note {
+      color: var(--m3-on-surface-variant);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .why {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      padding: 0;
+      list-style: none;
+    }
+    .why li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+    .why .m3-icon {
+      color: var(--m3-primary);
+    }
+    code {
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: var(--m3-surface-container-high);
+      font-size: 0.92em;
+    }
+  </style>
+</head>
+<body class="m3-base">
+  <main class="legal">
+    <div class="legal-top">
+      <a class="brand" href="./"><m3-shape shape="cookie9" aria-hidden="true"></m3-shape>budgie</a>
+      <a href="./">Open Budgie in your browser</a>
+    </div>
+
+    <h1>Budgie for your computer</h1>
+    <p class="meta">Version 1.4.0 · Windows 10 and 11, and Linux (x64 and ARM)</p>
+
+    <ul class="why">
+      <li><span class="m3-icon" aria-hidden="true">ring_volume</span><span><b>Calls ring, always.</b> Close the window and Budgie waits in the tray; it starts with your computer, so a call rings even when you haven’t opened it.</span></li>
+      <li><span class="m3-icon" aria-hidden="true">notifications</span><span><b>Notifications</b> for messages, group chats and replies, with the unread count on Budgie’s icon.</span></li>
+      <li><span class="m3-icon" aria-hidden="true">present_to_all</span><span><b>Share your screen</b> or one window, and on Windows its sound too.</span></li>
+      <li><span class="m3-icon" aria-hidden="true">music_note</span><span><b>What you’re playing.</b> Your friends see the song you’re listening to and the game you’re playing, found by the app itself. Turn it off any time.</span></li>
+      <li><span class="m3-icon" aria-hidden="true">update</span><span><b>Always the newest Budgie.</b> Its screens come from budgiesocial.com, so there’s nothing to update. No ads.</span></li>
+    </ul>
+
+    <div class="get">
+      <section class="os" id="windows">
+        <h2><span class="m3-icon" aria-hidden="true">desktop_windows</span>Windows</h2>
+        <p>For Windows 10 and 11 (64-bit). It installs for you alone, with no administrator needed.</p>
+        <a class="m3-btn filled" href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/Budgie-Setup.exe"><span class="m3-icon" aria-hidden="true">download</span>Download for Windows</a>
+        <p class="note">Budgie’s installer isn’t signed with a certificate yet, so Windows may say <i>Windows protected your PC</i>. Choose <b>More info</b>, then <b>Run anyway</b>.</p>
+      </section>
+
+      <section class="os" id="linux">
+        <h2><span class="m3-icon" aria-hidden="true">terminal</span>Linux</h2>
+        <p>Pick the one for your Linux. Most computers are <b>x64</b>; <b>ARM</b> is for a Raspberry Pi and ARM laptops.</p>
+        <div class="files">
+          <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-amd64.deb"><span class="m3-icon" aria-hidden="true">download</span><b>.deb</b><small>Linux Mint, Ubuntu, Debian, Pop!_OS, Zorin, elementary: open it to install, or <code>sudo apt install ./budgie-social-amd64.deb</code></small></a>
+          <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-x86_64.rpm"><span class="m3-icon" aria-hidden="true">download</span><b>.rpm</b><small>Fedora, openSUSE, Nobara: <code>sudo dnf install ./budgie-social-x86_64.rpm</code> (openSUSE: <code>sudo zypper install</code>)</small></a>
+          <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-x64.pacman"><span class="m3-icon" aria-hidden="true">download</span><b>Arch</b><small>Arch, Manjaro, EndeavourOS, CachyOS: <code>sudo pacman -U budgie-social-x64.pacman</code></small></a>
+          <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/Budgie-x86_64.AppImage"><span class="m3-icon" aria-hidden="true">download</span><b>AppImage</b><small>Any Linux: make it executable (<code>chmod +x Budgie-x86_64.AppImage</code>), then open it</small></a>
+          <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-x64.tar.gz"><span class="m3-icon" aria-hidden="true">download</span><b>.tar.gz</b><small>Any Linux, by hand: unpack it anywhere and run <code>budgie-social</code></small></a>
+        </div>
+        <p class="note"><b>ARM:</b> <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-arm64.deb">.deb</a> · <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-aarch64.rpm">.rpm</a> · <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-aarch64.pacman">Arch</a> · <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/Budgie-arm64.AppImage">AppImage</a> · <a href="https://github.com/teofilcelzmecher/zmeckerul.github.io/releases/latest/download/budgie-social-arm64.tar.gz">.tar.gz</a></p>
+        <p class="note">On Ubuntu 24.04 and newer, choose the .deb: AppImages need an extra step there. Budgie waits in the tray on Cinnamon, KDE, Xfce and most others; on GNOME, its icon shows with the AppIndicator extension (without it, open Budgie from your apps to bring its window back).</p>
+      </section>
+    </div>
+
+    <h2>Good to know</h2>
+    <ul>
+      <li>Budgie keeps running in the tray when you close its window, so calls and messages still reach you. To quit it, right-click its tray icon and choose <b>Quit Budgie</b>, or press <b>Ctrl+Q</b>. Starting with your computer can be turned off there too.</li>
+      <li>On Windows you can share your computer’s sound along with your screen. It shares everything your computer plays, the call included, so it’s best for videos and games.</li>
+      <li>On a Mac? Budgie’s Mac app is on its way to the Mac App Store. Until then, Budgie works in Safari, Chrome and Firefox.</li>
+      <li>The files come from Budgie’s releases on GitHub. What the app keeps and sends is in the <a href="privacy.html">Privacy Policy</a> (section 4).</li>
+    </ul>
+
+    <footer>
+      <p><a href="./">Back to Budgie</a> · <a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a></p>
+    </footer>
+  </main>
+  <script src="../m3/m3-shapes.js"></script>
+  <script src="../m3/m3.js"></script>
+</body>
+</html>
