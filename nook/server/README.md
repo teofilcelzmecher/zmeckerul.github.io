@@ -298,6 +298,30 @@ sudo cp /var/lib/nook/backups/nook-$(date +%F).db /run/media/$USER/YOUR_USB/
 To restore: `sudo systemctl stop nook`, copy the backup over `/var/lib/nook/nook.db`
 (and delete `nook.db-wal` and `nook.db-shm` next to it), then `sudo systemctl start nook`.
 
+## Network bans (1.4)
+
+Someone banned who comes straight back with a new account can be stopped by their internet connection too. The
+server notes which networks (IP addresses) each account uses Budgie from, as a keyed hash only (HMAC-SHA256 with a
+secret made on this laptop and kept in its database, never the address itself), once an hour at most, and forgets
+them after 90 days. For IPv6 it's the address's /64 block, since phones and homes move around inside it by themselves.
+
+"Ban account and network" (on someone's profile, or the Moderation page) bans the account and every network it used in
+the last 90 days, for a day, a week, a month or for good. While it lasts, nobody can use Budgie from those networks
+(signing up and signing in included); when it ends or you lift it, the account can come back too. Phone networks,
+schools and cafés give lots of people the same address, so the app says how many other accounts used those networks
+lately before you ban. You can't be locked out: admins can't be banned, a network any admin used in the last 90 days
+is never banned, and an admin who's signed in gets through a network ban anyway (so a VPN you share with others is fine).
+
+| Command | What it does |
+|---|---|
+| `sudo nook ipban NAME [DAYS] [reason…]` | Bans an account and the networks it used (DAYS: 1, 7, 30, or 0 for good; 7 if left out) |
+| `sudo nook ipban 203.0.113.5 [DAYS] [reason…]` | Bans one address's network by itself (only its hash is kept) |
+| `sudo nook ipbans` | Lists the network bans in force, with their ids |
+| `sudo nook ipunban ID` / `ipunban NAME` | Lifts one (and the account ban that came with it) |
+
+It only works when whatever brings Budgie to the internet says who's calling (Tailscale Funnel does, in
+`X-Forwarded-For`); without that, every request looks the same and nothing is noted or banned.
+
 ## Good to know
 
 - **Keep it plugged in and on.** If the laptop is off, Budgie is off too: the app says it can't reach the server.

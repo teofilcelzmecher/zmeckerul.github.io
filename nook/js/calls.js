@@ -416,6 +416,8 @@
         if (active && active.id === d.call) inbox = inbox.then(() => signalled(d.from, d.type, d.data)).catch(() => {});
         return;
       default:
+        // anything else is for the parts added in 1.4 (a nudge)
+        if (Nook.runHooks) Nook.runHooks('signal', item.type, d);
     }
   }
 

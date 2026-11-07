@@ -16,6 +16,9 @@
  *   Nook.hook('adminSections', () => html)           sections on the Moderation page
  *   Nook.hook('adminMount', (root) => {})
  *   Nook.hook('afterRender', (route, main) => {})    after every page is drawn
+ *   Nook.hook('personMenu', (name, u) => [items])    more items for someone's More menu (on their profile, in a chat)
+ *   Nook.hook('signal', (type, data) => {})          something the server said over the live connection that calls.js
+ *                                                    doesn't handle itself (a nudge, say)
  *
  * A hook that fails is left out (and said in the console), so one part can't break a page.
  */
@@ -36,6 +39,17 @@
         }
       })
       .join('');
+  /** every hook's menu items ({ label, symbol, onSelect }), joined */
+  Nook.hookItems = (name, ...args) =>
+    (hooks[name] || []).flatMap((fn) => {
+      try {
+        const items = fn(...args);
+        return Array.isArray(items) ? items.filter(Boolean) : [];
+      } catch (error) {
+        console.error('hook', name, error);
+        return [];
+      }
+    });
   /** runs every hook */
   Nook.runHooks = (name, ...args) => {
     for (const fn of hooks[name] || []) {

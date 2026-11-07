@@ -2671,6 +2671,8 @@ moduleCtx.NAME_FONTS = NAME_FONTS;
 // stickers in chats, and reports about them (1.4)
 moduleCtx.MEDIA_KINDS = MEDIA_KINDS;
 moduleCtx.REPORT_KINDS = REPORT_KINDS;
+// something for one person's open devices, over the live connection (1.4: a nudge arrives at once)
+moduleCtx.signal = signal;
 for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {

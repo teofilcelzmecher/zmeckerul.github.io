@@ -1438,8 +1438,11 @@
     const mod = store.isAdmin() && views.serverAt('1.0.0');
     // in a chat with them (1.0): the chat's colour
     const inChat = route && route.view === 'thread' && views.serverAt('1.0.0') && store.friendStatus(name) === 'friends';
+    // what the parts added in 1.4 put here (a nudge, say)
+    const more = Nook.hookItems ? Nook.hookItems('personMenu', name, u) : [];
     menu(btn, [
       ...(inChat ? [{ label: 'Chat colour', symbol: 'palette', onSelect: () => chatColour(name) }, { separator: true }] : []),
+      ...(more.length ? [...more, { separator: true }] : []),
       { label: `Report u/${name}`, symbol: 'flag', onSelect: () => report('user', { name }) },
       store.isBlocked(name)
         ? { label: `Unblock u/${name}`, symbol: 'lock_open', onSelect: () => unblockPerson(name) }
