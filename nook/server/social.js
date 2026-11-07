@@ -217,7 +217,8 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
   /** bans one address's network by itself (`nook ipban <address>`): the owner may have it from somewhere else */
   function banAddress(ip, { days = 7, reason = '', by = '' } = {}) {
     const hash = hashOf(ip);
-    if (!hash) fail(400, 'That isn’t an IP address.');
+    // this computer's own address (or "nobody said") stands for everyone behind a proxy: banning it would ban all
+    if (!hash) fail(400, net.isIP(String(ip).replace(/^\[|\]$/g, '').replace(/%.*$/, '')) ? 'That’s this computer’s own address, which stands for everyone, so it can’t be banned.' : 'That isn’t an IP address.');
     const users = db.all("SELECT u.name, u.role FROM ip_seen s JOIN users u ON u.id = s.user_id WHERE s.ip_hash = ? AND s.last_at > ?", hash, now() - SEEN_FOR * DAY);
     const admin = users.find((u) => u.role === 'admin');
     if (admin) fail(400, `An admin (u/${admin.name}) used that network in the last ${SEEN_FOR} days, so it can’t be banned.`);
