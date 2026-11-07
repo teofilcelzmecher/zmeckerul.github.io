@@ -8,7 +8,7 @@
 #                               affected: Apple signs what it sends out itself)
 #
 # Needs ASC_KEY_ID, ASC_ISSUER_ID and AuthKey.p8 (cleaned by clean-p8.py) at $ASC_KEY_PATH.
-import base64, json, os, re, subprocess, sys, time, urllib.error, urllib.request
+import base64, json, os, re, shlex, subprocess, sys, time, urllib.error, urllib.request
 
 API = 'https://api.appstoreconnect.apple.com/v1'
 BUNDLE = 'com.budgiesocial.app'
@@ -101,9 +101,13 @@ def setup(d):
             os.makedirs(folder, exist_ok=True)
             open(os.path.join(folder, f'{p["attributes"]["uuid"]}.{ext}'), 'wb').write(content)
         profiles[platform] = name
+    values = {'SIGN_DIST': names['dist'], 'SIGN_INSTALLER': names['installer'], 'PROFILE_IOS': profiles['ios'],
+              'PROFILE_MAC': profiles['mac'], 'P12_PASS': P12_PASS}
+    # as they are, for $GITHUB_ENV; and quoted, for the shell (the names have spaces and brackets)
     with open(os.path.join(d, 'env'), 'w') as f:
-        f.write(f'SIGN_DIST={names["dist"]}\nSIGN_INSTALLER={names["installer"]}\n'
-                f'PROFILE_IOS={profiles["ios"]}\nPROFILE_MAC={profiles["mac"]}\nP12_PASS={P12_PASS}\n')
+        f.write(''.join(f'{k}={v}\n' for k, v in values.items()))
+    with open(os.path.join(d, 'env.sh'), 'w') as f:
+        f.write(''.join(f'{k}={shlex.quote(v)}\n' for k, v in values.items()))
     # (their names hold the account's legal name, which the build's public log never shows)
     print('Made an Apple Distribution and a Mac Installer Distribution certificate, and App Store profiles for iPhone/iPad and Mac.')
 

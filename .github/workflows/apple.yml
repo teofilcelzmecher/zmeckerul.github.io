@@ -161,7 +161,7 @@ jobs:
           set -eo pipefail
           SIGN="$RUNNER_TEMP/signing"
           ASC_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" python3 tools/asc-sign.py setup "$SIGN"
-          set -a; . "$SIGN/env"; set +a
+          set -a; . "$SIGN/env.sh"; set +a
           # the certificates' names hold the account's legal name: never in the (public) log
           for v in "$SIGN_DIST" "$SIGN_INSTALLER" "$(printf '%s' "$SIGN_DIST" | sed -E 's/^[^:]*: (.*) \([A-Z0-9]{10}\)$/\1/')"; do echo "::add-mask::$v"; done
           # a keychain of its own for them, searched by Xcode and codesign
