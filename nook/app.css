@@ -509,14 +509,17 @@ body.bars-hidden .bottom-nav {
 .bottom-nav a[aria-current='page'] .m3-icon {
   --m3-icon-fill: 1;
 }
-.bottom-nav .create .nav-ind {
-  width: 52px;
+/* Create is the bar's one action, not a place: a small filled button, so it never reads as the tab you're on
+   (only that one wears the pill) */
+.bottom-nav .create .nav-ind,
+.bottom-nav .create[aria-current='page'] .nav-ind {
+  width: 56px;
   height: 36px;
   /* taller than the others by 4px, half above and half below, so its word lines up with theirs */
   margin: -2px 0;
   border-radius: 14px;
-  background: var(--m3-primary-container);
-  color: var(--m3-on-primary-container);
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
 }
 .bottom-nav .badge {
   top: -4px;
@@ -725,21 +728,44 @@ body.bars-hidden .bottom-nav {
 .post-head {
   position: relative;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 4px 6px;
-  min-height: 28px;
-  /* room for the ⋯ button, which stays in the top corner however long the line gets */
-  padding-right: 34px;
+  gap: 10px;
+  min-height: 40px;
+  /* room for the ⋯ button, which stays at the end of the header however long its lines get */
+  padding-right: 36px;
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smallie);
 }
-.post-head .nook-link {
-  display: inline-flex;
+.post-head .ph-icon {
+  display: grid;
+  flex: none;
+}
+.post-head .ph-text {
+  display: grid;
+  flex: 1;
+  gap: 1px;
+  min-width: 0;
+}
+.post-head :is(.ph-top, .ph-sub) {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 2px 6px;
+  min-width: 0;
+}
+.post-head .ph-top {
   color: var(--m3-on-surface);
+  font-size: var(--m3-fs-small);
   font-weight: 700;
+  line-height: 20px;
+}
+.post-head .ph-sub {
+  line-height: 18px;
+}
+.post-head .ph-top > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .post-head .nook-link:hover,
 .post-head .author:hover {
@@ -764,7 +790,7 @@ body.bars-hidden .bottom-nav {
 }
 .post-head .post-more {
   position: absolute;
-  top: 14px;
+  top: 50%;
   right: -6px;
   translate: 0 -50%;
 }

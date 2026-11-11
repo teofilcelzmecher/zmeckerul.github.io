@@ -153,15 +153,21 @@
     const comments = store.commentCount(p.id);
     const when = new Date(p.createdAt);
 
+    // two lines beside a picture: where it was posted (or, inside a nest, who posted it), then who and when
+    const who = `<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag(p.n, name)}`;
+    const time = `<time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time>`;
+    const marks =
+      (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
+      (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '');
     const head =
       '<header class="post-head">' +
       (inNook
-        ? `${avatar(u, 24)}<a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag(p.n, name)}`
-        : `<a class="nook-link" href="#/n/${c.id}">${nookIcon(c, 26, 15)}n/${esc(c.id)}</a><span class="by"><span class="dot"></span><a class="author${nameFont(u)}" href="#/u/${esc(name)}">u/${esc(name)}</a></span>${prideFlag(u)}${devTag(u)}${Nook.hooksHTML('nameTags', u)}${roleTag(p.n, name)}`) +
-      // the dot travels with what follows it, so a line that wraps never ends in a lone "·"
-      `<span class="when"><span class="dot"></span><time datetime="${when.toISOString()}" title="${esc(when.toLocaleString())}">${ago(p.createdAt)}</time></span>` +
-      (p.pinned && (inNook || open) ? `<span class="tag pin">${icon('push_pin')}Pinned</span>` : '') +
-      (p.spoiler ? `<span class="tag">${icon('visibility_off')}Spoiler</span>` : '') +
+        ? `<a class="ph-icon" href="#/u/${esc(name)}" tabindex="-1" aria-hidden="true">${avatar(u, 40)}</a>` +
+          `<div class="ph-text"><div class="ph-top">${who}</div><div class="ph-sub"><span class="when">${time}</span>${marks}</div></div>`
+        : `<a class="ph-icon" href="#/n/${c.id}" tabindex="-1" aria-hidden="true">${nookIcon(c, 40, 22)}</a>` +
+          `<div class="ph-text"><div class="ph-top"><a class="nook-link" href="#/n/${c.id}">n/${esc(c.id)}</a></div>` +
+          // the dot travels with what follows it, so a line that wraps never ends in a lone "·"
+          `<div class="ph-sub"><span class="by">${who}</span><span class="when"><span class="dot"></span>${time}</span>${marks}</div></div>`) +
       `<button class="m3-icon-btn small post-more" data-act="post-menu" aria-label="More options"><span translate="no" class="m3-icon">more_horiz</span></button>` +
       '</header>';
 

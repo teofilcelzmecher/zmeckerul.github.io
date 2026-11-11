@@ -257,7 +257,7 @@
   // line is hidden, and what follows it moves over into its place (moved, not resized, so the line can't change
   // its mind and jump back up).
   const tidyHead = (head) => {
-    for (const el of head.querySelectorAll(':scope > :is(.by, .when)')) {
+    for (const el of head.querySelectorAll('.ph-sub > .when')) {
       const prev = el.previousElementSibling;
       const starts = !!prev && el.offsetTop >= prev.offsetTop + prev.offsetHeight - 2;
       const dot = el.querySelector('.dot');
