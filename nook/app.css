@@ -2292,7 +2292,7 @@ h1 .pride-flag,
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .pronouns {
   color: var(--m3-on-surface);
@@ -2593,36 +2593,55 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   border-radius: var(--m3-r-very-large);
   background: linear-gradient(150deg, var(--m3-secondary-container), var(--m3-surface-container-low) 70%);
 }
+/* the picture and the name share a row; what's said under the name (badges, what's playing, the bio, the
+   interests) gets the card's whole width, and what you can do there sits in a row of its own */
 .profile-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 18px;
-}
-.profile-main .who {
   display: grid;
-  flex: 1;
-  gap: 2px;
-  min-width: 180px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 16px;
   container-type: inline-size;
 }
-/* a name eases down (to a floor) where its column is narrow, so it and its flag share a line */
+.profile-main > .avatar {
+  grid-row: 1 / span 2;
+}
+.profile-main .who {
+  display: contents;
+}
+.profile-main .who > h1 {
+  grid-column: 2;
+  align-self: end;
+}
+.profile-main .who > h1 + .muted {
+  grid-column: 2;
+  align-self: start;
+}
+.profile-main .who > :not(h1, h1 + .muted),
+.profile-main > :not(.avatar, .who) {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.profile-main > :not(.avatar, .who) {
+  margin-top: 12px;
+}
+/* a name eases down (to a floor) where its column is narrow, so it and its flag share a line: the column is the
+   card less the picture and the gap beside it */
 .profile-main h1 {
   --flag-room: 0;
-  font-size: clamp(var(--m3-fs-huge), calc(100cqi / (var(--name-len, 10) * 0.6 + var(--flag-room))), var(--m3-fs-headline));
+  font-size: clamp(var(--m3-fs-huge), calc((100cqi - 112px) / (var(--name-len, 10) * 0.6 + var(--flag-room))), var(--m3-fs-headline));
   overflow-wrap: anywhere;
 }
 .profile-main h1.has-flag {
   --flag-room: 1.4;
 }
 .stats {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 148px));
   gap: 8px;
 }
 .stat {
   display: grid;
-  min-width: 96px;
+  min-width: 0;
   padding: 10px 14px;
   border-radius: var(--m3-r-normal);
   background: color-mix(in srgb, var(--m3-surface-container-lowest) 60%, transparent);
@@ -4917,16 +4936,14 @@ html.framed body {
   object-fit: cover;
 }
 /* the picture sits half over the banner, outlined in the page colour so it reads against any image */
-.profile-hero.has-banner .profile-main {
-  align-items: flex-start;
+/* the name's two lines start just under the banner, beside the picture that hangs over it */
+.profile-hero.has-banner .profile-main .who > h1 {
+  padding-top: 8px;
 }
 .profile-hero.has-banner .profile-main > .avatar {
   margin-top: -52px;
   filter: drop-shadow(3px 0 0 var(--m3-surface-container-low)) drop-shadow(-3px 0 0 var(--m3-surface-container-low))
     drop-shadow(0 3px 0 var(--m3-surface-container-low)) drop-shadow(0 -3px 0 var(--m3-surface-container-low));
-}
-.profile-hero.has-banner .profile-main .who {
-  padding-top: 8px;
 }
 .profile-main .bio {
   margin-top: 6px;
