@@ -22,6 +22,9 @@
  *   --nook-card         a card on it                      --nook-card-hover   that card, hovered
  *   --nook-chrome       a bar or a pill straight on the page (the bottom bar, a date between messages)
  *   --nook-raised       a control straight on the page (search, sort tabs, a message's bubble, the message box)
+ * A post is the one card that's coloured: it wears its nest's colour (a wash of the nest's primary container over
+ * the card), in mixed feeds and in the nest alike, which is what tells nests apart at a glance.
+ *   --nook-wash-on      what the wash goes over            --nook-wash / --nook-wash-hover   how much of it
  */
 :root,
 [style*='--m3-surface-bright'] {
@@ -30,6 +33,9 @@
   --nook-card-hover: var(--m3-surface-container-low);
   --nook-chrome: var(--m3-surface-bright);
   --nook-raised: var(--m3-surface-bright);
+  --nook-wash-on: var(--m3-surface-bright);
+  --nook-wash: 34%;
+  --nook-wash-hover: 48%;
 }
 :root[data-m3-theme='dark'],
 [style*='color-scheme: dark'],
@@ -41,6 +47,9 @@
   --nook-card-hover: var(--m3-surface-container);
   --nook-chrome: var(--m3-surface-container);
   --nook-raised: var(--m3-surface-container-high);
+  --nook-wash-on: var(--m3-surface-container-low);
+  --nook-wash: 18%;
+  --nook-wash-hover: 26%;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-m3-theme='light']) {
@@ -49,6 +58,9 @@
     --nook-card-hover: var(--m3-surface-container);
     --nook-chrome: var(--m3-surface-container);
     --nook-raised: var(--m3-surface-container-high);
+    --nook-wash-on: var(--m3-surface-container-low);
+    --nook-wash: 18%;
+    --nook-wash-hover: 26%;
   }
 }
 
@@ -68,6 +80,10 @@ body {
   transition: var(--nook-surface-fade);
 }
 /* (the kit paints the body in its page colour; Budgie's page is its own) */
+.post {
+  --nook-card: color-mix(in srgb, var(--m3-primary-container) var(--nook-wash), var(--nook-wash-on));
+  --nook-card-hover: color-mix(in srgb, var(--m3-primary-container) var(--nook-wash-hover), var(--nook-wash-on));
+}
 body.m3-base {
   background: var(--nook-page);
 }
