@@ -382,7 +382,7 @@
   padding: 0 12px 0 14px;
   border: 1.5px dashed color-mix(in srgb, var(--m3-primary) 55%, transparent);
   border-radius: var(--m3-r-full);
-  background: color-mix(in srgb, var(--m3-surface-container-lowest, #fff) 55%, transparent);
+  background: color-mix(in srgb, var(--nook-cardest, #fff) 55%, transparent);
   color: var(--m3-primary);
   font: 650 var(--m3-fs-smallie) / 1.2 var(--m3-font);
   text-align: start;
@@ -482,7 +482,7 @@
   border-radius: 50%;
   background: var(--pres-music-bg, #1db954);
   color: #fff;
-  box-shadow: 0 0 0 2.5px var(--m3-surface-container-low, var(--m3-background));
+  box-shadow: 0 0 0 2.5px var(--nook-card, var(--m3-background));
 }
 .avatar .pres-dot.game {
   background: var(--pres-game-bg, #7c4dff);

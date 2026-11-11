@@ -291,7 +291,7 @@ img.cemoji {
   align-content: center;
   padding: 14px 16px;
   border-radius: 22px;
-  background: var(--m3-surface-container-low, var(--m3-surface-container));
+  background: var(--nook-card, var(--m3-surface-container));
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smaller);
   line-height: 1.45;

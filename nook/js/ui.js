@@ -454,7 +454,13 @@
 
     afterRoot() {
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.content = getComputedStyle(document.documentElement).getPropertyValue('--m3-background').trim();
+      if (!meta) return;
+      // the page's colour, which the phone's status bar and the browser's own bars take (the welcome page and the
+      // gate keep the brightest one)
+      const root = document.documentElement;
+      const style = getComputedStyle(root);
+      const page = (!root.classList.contains('gated') && style.getPropertyValue('--nook-page').trim()) || style.getPropertyValue('--m3-background').trim();
+      if (page) meta.content = page;
     },
 
     /** one element in a nook's colours; `always` for what stands for the nook itself */

@@ -198,7 +198,7 @@
       `<button class="m3-btn tonal act" data-act="spark-picker" aria-label="Add a Spark" data-tooltip="Spark it">${icon('add_reaction')}<span class="label-wide">Spark</span></button>` +
       `<button class="m3-btn tonal act" data-act="share" aria-label="Share">${icon('ios_share')}<span class="label-wide">Share</span></button>` +
       '<span class="spacer"></span>' +
-      `<button class="m3-icon-btn" data-act="save" data-burst="pin" aria-pressed="${saved}" aria-label="Save" data-tooltip="${saved ? 'Saved' : 'Save'}"><span translate="no" class="m3-icon">bookmark</span></button>` +
+      `<button class="m3-icon-btn" data-act="save" data-burst="pin" data-toggled-shape="cookie4" aria-pressed="${saved}" aria-label="Save" data-tooltip="${saved ? 'Saved' : 'Save'}"><span translate="no" class="m3-icon">bookmark</span></button>` +
       '</footer>';
 
     const tint = !inNook ? ` data-tint="${c.color}"` : '';

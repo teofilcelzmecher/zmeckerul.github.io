@@ -13,6 +13,45 @@
   scroll-padding-top: calc(var(--nook-bar) + var(--nook-top) + 16px);
 }
 
+/*
+ * The page and what sits on it. In light, cards are the brightest surface and the page is a step deeper, so cards
+ * stand out from it; in dark the page is the deepest and cards step up from it (as they always have). Each of these
+ * follows the colours an element wears: the app's own (:root), a nest's or a person's (M3.color.apply writes those
+ * on the element itself, which is what the [style] selectors catch), or a call's, which is always dark.
+ *   --nook-page         the page
+ *   --nook-card         a card on it                      --nook-card-hover   that card, hovered
+ *   --nook-chrome       a bar or a pill straight on the page (the bottom bar, a date between messages)
+ *   --nook-raised       a control straight on the page (search, sort tabs, a message's bubble, the message box)
+ */
+:root,
+[style*='--m3-surface-bright'] {
+  --nook-page: var(--m3-surface-container);
+  --nook-card: var(--m3-surface-bright);
+  --nook-card-hover: var(--m3-surface-container-low);
+  --nook-chrome: var(--m3-surface-bright);
+  --nook-raised: var(--m3-surface-bright);
+}
+:root[data-m3-theme='dark'],
+[style*='color-scheme: dark'],
+.call-ring,
+.call-screen,
+.call-bar {
+  --nook-page: var(--m3-background);
+  --nook-card: var(--m3-surface-container-low);
+  --nook-card-hover: var(--m3-surface-container);
+  --nook-chrome: var(--m3-surface-container);
+  --nook-raised: var(--m3-surface-container-high);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-m3-theme='light']) {
+    --nook-page: var(--m3-background);
+    --nook-card: var(--m3-surface-container-low);
+    --nook-card-hover: var(--m3-surface-container);
+    --nook-chrome: var(--m3-surface-container);
+    --nook-raised: var(--m3-surface-container-high);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -27,6 +66,10 @@ body {
   min-height: 100dvh;
   overflow-x: hidden;
   transition: var(--nook-surface-fade);
+}
+/* (the kit paints the body in its page colour; Budgie's page is its own) */
+body.m3-base {
+  background: var(--nook-page);
 }
 
 a {
@@ -89,7 +132,7 @@ p {
   gap: 6px;
   height: calc(var(--nook-bar) + var(--nook-top));
   padding: var(--nook-top) 12px 0 14px;
-  background: color-mix(in srgb, var(--m3-background) 84%, transparent);
+  background: color-mix(in srgb, var(--nook-page) 84%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   backdrop-filter: blur(16px) saturate(1.3);
   transition: var(--nook-surface-fade), box-shadow 250ms var(--m3-ease-standard);
@@ -123,6 +166,11 @@ p {
   width: auto;
   height: 44px;
   margin: 0 auto;
+  background: var(--nook-raised);
+}
+/* sort tabs above a feed sit straight on the page too (inside a card the kit's own track colour is right) */
+.col > .toolbar .m3-segmented {
+  background: var(--nook-raised);
 }
 
 .topbar-actions {
@@ -439,7 +487,7 @@ p {
   justify-content: space-around;
   height: calc(76px + env(safe-area-inset-bottom, 0px));
   padding: 10px 4px env(safe-area-inset-bottom, 0px);
-  background: var(--m3-surface-container);
+  background: var(--nook-chrome);
   transition: var(--nook-surface-fade), translate 320ms var(--m3-ease-emphasized-decel);
 }
 /* reading down, the bottom bar steps out of the way; scrolling up brings it back */
@@ -531,7 +579,7 @@ body.bars-hidden .bottom-nav {
 .card {
   padding: 18px;
   border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   color: var(--m3-on-surface);
   transition: var(--nook-surface-fade);
 }
@@ -699,7 +747,7 @@ body.bars-hidden .bottom-nav {
   gap: 10px;
   padding: 16px 16px 10px;
   border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   color: var(--m3-on-surface);
   cursor: pointer;
   transition:
@@ -709,7 +757,7 @@ body.bars-hidden .bottom-nav {
     scale var(--m3-motion-bounce);
 }
 .post:hover {
-  background: var(--m3-surface-container);
+  background: var(--nook-card-hover);
 }
 .post[data-href]:hover {
   translate: 0 -2px;
@@ -719,7 +767,7 @@ body.bars-hidden .bottom-nav {
   cursor: auto;
 }
 .post.is-open:hover {
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
 }
 .post.kb-focus {
   box-shadow: 0 0 0 2px var(--m3-primary);
@@ -1219,21 +1267,31 @@ mark {
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
+/* voted: the pill takes the colour's container (not the solid colour, which outweighed the post's own title), and
+   the arrow you pressed fills in */
 .vote[data-dir='1'] {
-  background: var(--m3-primary);
-  color: var(--m3-on-primary);
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
 }
 .vote[data-dir='-1'] {
-  background: var(--m3-tertiary);
-  color: var(--m3-on-tertiary);
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
 }
 .vote[data-dir='1'] .up .m3-icon,
 .vote[data-dir='-1'] .down .m3-icon {
   --m3-icon-fill: 1;
 }
-.vote[data-dir='1'] .m3-icon-btn:hover,
+.vote[data-dir='1'] .up {
+  --m3-btn-fg: var(--m3-primary);
+}
+.vote[data-dir='-1'] .down {
+  --m3-btn-fg: var(--m3-tertiary);
+}
+.vote[data-dir='1'] .m3-icon-btn:hover {
+  --m3-btn-bg-hover: var(--m3-primary-container-hover);
+}
 .vote[data-dir='-1'] .m3-icon-btn:hover {
-  --m3-btn-bg-hover: rgb(255 255 255 / 0.14);
+  --m3-btn-bg-hover: var(--m3-tertiary-container-hover);
 }
 .vote.small {
   height: 30px;
@@ -1283,7 +1341,7 @@ mark {
 .ad-card:has(ins[data-ad-status='filled']) {
   padding: 12px 16px 14px;
   border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
 }
 .ad-card .ad-label {
   display: none;
@@ -1392,7 +1450,7 @@ body.calm :is(.badge, .badge-dot) {
   gap: 12px;
   padding: 10px 10px 10px 12px;
   border-radius: var(--m3-r-full);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   transition: var(--nook-surface-fade);
 }
 .composer .fake-input {
@@ -1457,7 +1515,7 @@ body.calm :is(.badge, .badge-dot) {
   overflow: hidden;
   padding: 92px 24px 20px;
   border-radius: var(--m3-r-very-large);
-  background: linear-gradient(180deg, var(--m3-primary-container) 0, var(--m3-primary-container) 70px, var(--m3-surface-container-low) 70px);
+  background: linear-gradient(180deg, var(--m3-primary-container) 0, var(--m3-primary-container) 70px, var(--nook-card) 70px);
   transition: var(--nook-surface-fade);
 }
 .nook-hero::before {
@@ -1707,12 +1765,12 @@ body.calm :is(.badge, .badge-dot) {
   gap: 10px;
   padding: 10px 12px;
   border-radius: var(--m3-r-normal);
-  background: color-mix(in srgb, var(--m3-surface-container-lowest) 55%, transparent);
+  background: color-mix(in srgb, var(--nook-cardest) 55%, transparent);
   color: var(--m3-on-surface);
   cursor: pointer;
 }
 .highlights li:hover {
-  background: color-mix(in srgb, var(--m3-surface-container-lowest) 85%, transparent);
+  background: color-mix(in srgb, var(--nook-cardest) 85%, transparent);
 }
 .highlights li .hl-text {
   display: grid;
@@ -2509,7 +2567,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   padding: 18px;
   overflow: hidden;
   border-radius: var(--m3-r-large);
-  background: linear-gradient(120deg, var(--m3-primary-container), var(--m3-surface-container-low) 75%);
+  background: linear-gradient(120deg, var(--m3-primary-container), var(--nook-card) 75%);
   color: var(--m3-on-surface);
   transition: var(--nook-surface-fade);
 }
@@ -2546,7 +2604,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   padding: 18px;
   overflow: hidden;
   border-radius: var(--m3-r-large);
-  background: linear-gradient(160deg, var(--m3-primary-container) 0, var(--m3-surface-container-low) 46%);
+  background: linear-gradient(160deg, var(--m3-primary-container) 0, var(--nook-card) 46%);
   color: var(--m3-on-surface);
   cursor: pointer;
   transition: var(--nook-surface-fade), scale var(--m3-motion-bounce), box-shadow 250ms var(--m3-ease-standard);
@@ -2617,7 +2675,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   overflow: hidden;
   padding: 24px;
   border-radius: var(--m3-r-very-large);
-  background: linear-gradient(150deg, var(--m3-secondary-container), var(--m3-surface-container-low) 70%);
+  background: linear-gradient(150deg, var(--m3-secondary-container), var(--nook-card) 70%);
 }
 /* the picture and the name share a row; what's said under the name (badges, what's playing, the bio, the
    interests) gets the card's whole width, and what you can do there sits in a row of its own */
@@ -2670,7 +2728,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   min-width: 0;
   padding: 10px 14px;
   border-radius: var(--m3-r-normal);
-  background: color-mix(in srgb, var(--m3-surface-container-lowest) 60%, transparent);
+  background: color-mix(in srgb, var(--nook-cardest) 60%, transparent);
 }
 .stat b {
   font-size: var(--m3-fs-larger);
@@ -2720,12 +2778,12 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   gap: 6px;
   padding: 14px 16px;
   border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   cursor: pointer;
   transition: background-color var(--m3-motion-element-move-fast);
 }
 .comment-card:hover {
-  background: var(--m3-surface-container);
+  background: var(--nook-card-hover);
 }
 .comment-card .cc-head {
   color: var(--m3-on-surface-variant);
@@ -2742,7 +2800,7 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
   gap: 4px;
   padding: 6px;
   border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
 }
 .note {
   position: relative;
@@ -3013,7 +3071,7 @@ kbd {
     height: 100dvh;
     padding: 0 16px calc(24px + env(safe-area-inset-bottom, 0px));
     border-radius: 0;
-    background: var(--m3-surface-container-low);
+    background: var(--nook-card);
     opacity: 0;
     translate: 0 -14px;
     visibility: hidden;
@@ -3042,7 +3100,7 @@ kbd {
     height: calc(var(--nook-bar) + env(safe-area-inset-top, 0px));
     margin: 0 -16px 6px;
     padding: env(safe-area-inset-top, 0px) 6px 0 14px;
-    background: var(--m3-surface-container-low);
+    background: var(--nook-card);
     transition: var(--nook-surface-fade);
   }
   .bottom-nav {
@@ -4492,7 +4550,7 @@ body:has(.call-screen:not([hidden])) .m3-toaster {
   margin: 0 -8px;
   padding: 6px 8px;
   border-bottom: 1px solid transparent;
-  background: var(--m3-background);
+  background: var(--nook-page);
 }
 .chat-who {
   display: flex;
@@ -4551,7 +4609,7 @@ button.chat-who {
 .chat-day span {
   padding: 4px 12px;
   border-radius: 12px;
-  background: var(--m3-surface-container);
+  background: var(--nook-chrome);
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smaller);
   font-weight: 600;
@@ -4585,7 +4643,7 @@ button.chat-who {
   max-width: 100%;
   padding: 9px 14px;
   border-radius: var(--r);
-  background: var(--m3-surface-container-high);
+  background: var(--nook-raised);
   color: var(--m3-on-surface);
   line-height: 1.4;
   overflow-wrap: anywhere;
@@ -4757,7 +4815,7 @@ button.chat-who {
   max-height: min(300px, 40dvh);
   overflow-y: auto;
   border-radius: var(--m3-r-normal);
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   padding: 4px;
 }
 .pick-row {
@@ -4832,7 +4890,7 @@ button.chat-who {
   gap: 6px;
   padding: 6px;
   border-radius: 28px;
-  background: var(--m3-surface-container-high);
+  background: var(--nook-raised);
   box-shadow: 0 2px 14px rgb(0 0 0 / 0.1);
   transition: bottom 200ms var(--m3-ease-emphasized-decel);
 }
@@ -4968,8 +5026,8 @@ html.framed body {
 }
 .profile-hero.has-banner .profile-main > .avatar {
   margin-top: -52px;
-  filter: drop-shadow(3px 0 0 var(--m3-surface-container-low)) drop-shadow(-3px 0 0 var(--m3-surface-container-low))
-    drop-shadow(0 3px 0 var(--m3-surface-container-low)) drop-shadow(0 -3px 0 var(--m3-surface-container-low));
+  filter: drop-shadow(3px 0 0 var(--nook-card)) drop-shadow(-3px 0 0 var(--nook-card))
+    drop-shadow(0 3px 0 var(--nook-card)) drop-shadow(0 -3px 0 var(--nook-card));
 }
 .profile-main .bio {
   margin-top: 6px;
@@ -5102,7 +5160,7 @@ html.framed body {
 .call-btn.off {
   border-radius: 20px;
   background: var(--m3-on-surface);
-  color: var(--m3-surface-container-lowest);
+  color: var(--nook-cardest);
 }
 .call-btn.hang {
   background: #dc362e;
@@ -5204,7 +5262,7 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   /* above snackbars and toasts, which mustn't cover Answer */
   z-index: 955;
   display: flex;
-  background: var(--m3-surface-container-lowest);
+  background: var(--nook-cardest);
   color: var(--m3-on-surface);
 }
 .ring-card {
@@ -5294,7 +5352,7 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  background: var(--m3-surface-container-lowest);
+  background: var(--nook-cardest);
   color: var(--m3-on-surface);
 }
 .call-screen[hidden] {
@@ -6214,7 +6272,7 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
 .ring-cam[aria-pressed='true'] {
   border-color: transparent;
   background: var(--m3-on-surface);
-  color: var(--m3-surface-container-lowest);
+  color: var(--nook-cardest);
 }
 .ring-cam .m3-icon {
   font-size: 20px;
@@ -6790,7 +6848,7 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
   margin-top: 14px;
   padding: 14px;
   border-radius: 20px;
-  background: var(--m3-surface-container-low);
+  background: var(--nook-card);
   color: var(--m3-on-surface);
   transition: background-color 300ms;
 }
