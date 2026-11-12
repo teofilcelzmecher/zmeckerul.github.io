@@ -227,6 +227,8 @@
 
     const navKey = NAV_FOR[route.view] || '';
     $$('[data-nav]').forEach((el) => (el.dataset.nav === navKey ? el.setAttribute('aria-current', 'page') : el.removeAttribute('aria-current')));
+    // the phone menu's tiles: where you are keeps its shape's other form
+    for (const shape of $$('.nav-shape')) shape.toggleAttribute('hovered', shape.closest('[data-nav]').dataset.nav === navKey);
 
     if (view.mount) {
       try {
@@ -333,7 +335,7 @@
     const row = $('#drawer-me');
     row.href = '#/u/' + encodeURIComponent(me.name);
     row.setAttribute('aria-label', `Your profile, u/${me.name}`);
-    row.innerHTML = `${avatar(me, 44)}<span class="row-text"><b translate="no">${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
+    row.innerHTML = `<m3-shape class="me-deco" shape="cookie12" aria-hidden="true"></m3-shape>${avatar(me, 52)}<span class="row-text"><b translate="no">${esc(me.name)}</b><small>View your profile</small></span>${icon('chevron_right')}`;
   }
 
   let lastUnread = -1;

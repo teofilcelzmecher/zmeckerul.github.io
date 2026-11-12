@@ -701,10 +701,10 @@
     const list = s.saved.map((id) => store.post(id)).filter((p) => p && !store.isRemoved(p.id));
     return {
       title: 'Saved',
-      brand: 'clover4',
+      brand: 'arch',
       html:
         '<div class="page single"><div class="col">' +
-        `<div class="page-head"><m3-shape-icon shape="clover4" symbol="bookmarks" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Saved</h1><span class="muted">${plural(list.length, 'post')} saved, ${plural(s.collections.length, 'collection')}</span></div></div>` +
+        `<div class="page-head"><m3-shape-icon shape="arch" symbol="bookmarks" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Saved</h1><span class="muted">${plural(list.length, 'post')} saved, ${plural(s.collections.length, 'collection')}</span></div></div>` +
         `<section class="section"><header class="m3-section-header" data-m3-hover-root><m3-shape-icon shape="gem" symbol="collections_bookmark" size="34" icon-size="18"></m3-shape-icon><h2 class="m3-title">Collections</h2><m3-wavy-line></m3-wavy-line>` +
         `<button class="m3-btn tonal small" data-act="new-collection">${icon('add')}New</button></header>` +
         '<div class="shelf">' +
@@ -867,10 +867,10 @@
     const notes = store.notifications();
     return {
       title: 'Inbox',
-      brand: 'clover4',
+      brand: 'puffy',
       html:
         '<div class="page single"><div class="col">' +
-        `<div class="page-head"><m3-shape-icon shape="clover4" symbol="notifications" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Inbox</h1><span class="muted">${plural(store.unread(), 'unread notification')}</span></div><span class="spacer"></span>` +
+        `<div class="page-head"><m3-shape-icon shape="puffy" symbol="notifications" size="48" icon-size="24"></m3-shape-icon><div><h1 class="m3-title">Inbox</h1><span class="muted">${plural(store.unread(), 'unread notification')}</span></div><span class="spacer"></span>` +
         `<button class="m3-btn tonal small" data-act="read-all">${icon('done_all')}Mark all read</button></div>` +
         (notes.length
           ? `<div class="notes">${notes

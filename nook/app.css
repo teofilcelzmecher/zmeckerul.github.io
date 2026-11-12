@@ -36,6 +36,9 @@
   --nook-wash-on: var(--m3-surface-bright);
   --nook-wash: 34%;
   --nook-wash-hover: 48%;
+  --nook-bar-scrolled: var(--m3-surface-container-high);
+  --nook-tile: var(--m3-surface-container);
+  --nook-tile-hover: var(--m3-surface-container-high);
 }
 :root[data-m3-theme='dark'],
 [style*='color-scheme: dark'],
@@ -50,6 +53,9 @@
   --nook-wash-on: var(--m3-surface-container-low);
   --nook-wash: 18%;
   --nook-wash-hover: 26%;
+  --nook-bar-scrolled: var(--m3-surface-container);
+  --nook-tile: var(--m3-surface-container-high);
+  --nook-tile-hover: var(--m3-surface-container-highest);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-m3-theme='light']) {
@@ -61,6 +67,9 @@
     --nook-wash-on: var(--m3-surface-container-low);
     --nook-wash: 18%;
     --nook-wash-hover: 26%;
+    --nook-bar-scrolled: var(--m3-surface-container);
+    --nook-tile: var(--m3-surface-container-high);
+    --nook-tile-hover: var(--m3-surface-container-highest);
   }
 }
 
@@ -153,13 +162,18 @@ p {
   background: color-mix(in srgb, var(--nook-page) 84%, transparent);
   -webkit-backdrop-filter: blur(16px) saturate(1.3);
   backdrop-filter: blur(16px) saturate(1.3);
-  transition: var(--nook-surface-fade), box-shadow 250ms var(--m3-ease-standard);
+  transition:
+    var(--nook-surface-fade),
+    background-color 300ms var(--m3-ease-standard);
 }
-/* scrolled under, the bar lifts off the page */
+/* scrolled under, the bar takes a deeper tone instead of a shadow (Material 3's top app bar on scroll) */
 .topbar.scrolled {
-  box-shadow:
-    0 1px 0 color-mix(in srgb, var(--m3-outline-variant) 60%, transparent),
-    0 8px 20px -14px var(--m3-shadow-color);
+  background: color-mix(in srgb, var(--nook-bar-scrolled) 90%, transparent);
+}
+
+/* the phone menu's tile pictures (only there) */
+.nav-shape {
+  display: none;
 }
 
 .brand {
@@ -3148,6 +3162,10 @@ kbd {
   .topbar {
     padding: var(--nook-top) 6px 0;
   }
+  /* the search box only shows while searching, so here search and you sit at the bar's far end */
+  .topbar-search + .topbar-actions {
+    margin-inline-start: auto;
+  }
   .brand-word {
     font-size: 22px;
   }
@@ -3397,6 +3415,7 @@ html[data-vt='morph']::view-transition-new(*.card) {
   .not-phone {
     display: none !important;
   }
+  /* you, on your own colour: your picture, your name in the kit's rounded title voice, a soft shape behind */
   .drawer-me {
     position: relative;
     isolation: isolate;
@@ -3404,70 +3423,135 @@ html[data-vt='morph']::view-transition-new(*.card) {
     flex: none;
     align-items: center;
     gap: 14px;
-    margin: 2px 0 10px;
-    padding: 12px 10px 12px 12px;
+    margin: 4px 0 12px;
+    padding: 14px 12px 14px 14px;
     overflow: hidden;
     border-radius: var(--m3-r-very-large);
-    background: var(--m3-surface-container-high);
-    color: var(--m3-on-surface);
-    --m3-ripple: var(--m3-layer1-active);
+    background: linear-gradient(
+      135deg,
+      var(--m3-primary-container),
+      color-mix(in srgb, var(--m3-tertiary-container) 55%, var(--m3-primary-container))
+    );
+    color: var(--m3-on-primary-container);
+    --m3-ripple: var(--m3-primary-container-active, var(--m3-layer1-active));
+  }
+  .drawer-me .me-deco {
+    position: absolute;
+    top: -38px;
+    right: -30px;
+    z-index: -1;
+    width: 132px;
+    height: 132px;
+    color: color-mix(in srgb, var(--m3-tertiary-container) 85%, transparent);
+    rotate: 14deg;
+    pointer-events: none;
   }
   .drawer-me .row-text {
     display: grid;
     flex: 1;
+    gap: 2px;
     min-width: 0;
   }
   .drawer-me b {
     overflow: hidden;
-    font-size: var(--m3-fs-large);
-    font-weight: 650;
+    font-size: 21px;
+    font-weight: 720;
+    font-variation-settings:
+      'wdth' 110,
+      'ROND' 100;
+    line-height: 1.2;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   .drawer-me small {
-    color: var(--m3-on-surface-variant);
-    font-size: var(--m3-fs-smaller);
+    color: color-mix(in srgb, var(--m3-on-primary-container) 78%, transparent);
+    font-size: var(--m3-fs-smallie);
   }
   .drawer-me > .m3-icon {
-    color: var(--m3-on-surface-variant);
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--m3-on-primary-container) 10%, transparent);
   }
+  /* the main pages: two even columns of tiles, each with its page's own shape (the one its title wears), in the
+     theme's primary or tertiary tones; where you are is filled (Material 3's active indicator) and keeps the
+     shape's other form. A last tile left on its own takes the whole row. */
   .nav-main {
     display: grid;
     flex: none;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
   .nav-main .nav-item {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-    min-height: 88px;
-    padding: 14px 14px 12px;
+    --tile: var(--nook-tile);
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 12px;
     border-radius: var(--m3-r-large);
-    background: var(--m3-surface-container);
+    background: var(--tile);
     color: var(--m3-on-surface);
+    font-size: var(--m3-fs-small);
+    font-weight: 620;
   }
   .nav-main .nav-item:hover {
-    background: var(--m3-surface-container-high);
+    --tile: var(--nook-tile-hover);
   }
-  .nav-main .nav-item .m3-icon {
-    font-size: 26px;
+  .drawer .nav-main .nav-item[aria-current='page'],
+  .drawer.has-glide .nav-main .nav-item[aria-current='page'] {
+    --tile: var(--m3-secondary-container);
+    background: var(--tile);
+    color: var(--m3-on-secondary-container);
+    font-weight: 700;
   }
+  .nav-main > .nav-item:last-child:nth-child(odd of :not([hidden])) {
+    grid-column: 1 / -1;
+  }
+  .nav-main .nav-ind {
+    display: none;
+  }
+  .nav-main .nav-shape {
+    display: inline-block;
+    --m3-shape-icon-color: var(--m3-primary-container);
+    --m3-shape-icon-on-color: var(--m3-on-primary-container);
+    transition: scale var(--m3-motion-bounce);
+  }
+  .nav-main .nav-item[data-tone='t'] .nav-shape {
+    --m3-shape-icon-color: var(--m3-tertiary-container);
+    --m3-shape-icon-on-color: var(--m3-on-tertiary-container);
+  }
+  .nav-main .nav-item[aria-current='page'] .nav-shape {
+    --m3-shape-icon-color: var(--m3-primary);
+    --m3-shape-icon-on-color: var(--m3-on-primary);
+  }
+  .nav-main .nav-item:active .nav-shape {
+    scale: 0.9;
+  }
+  .nav-main .nav-label {
+    white-space: normal;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+  /* a count sits on its tile's picture, cut out of the tile (Material 3's badge on an icon) */
   .nav-main .nav-count {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 4px;
+    left: 38px;
     display: grid;
     place-items: center;
-    min-width: 22px;
-    height: 22px;
+    min-width: 20px;
+    height: 20px;
     margin: 0;
-    padding: 0 6px;
-    border-radius: 11px;
+    padding: 0 5px;
+    border-radius: 10px;
     background: var(--m3-error);
+    box-shadow: 0 0 0 2px var(--tile);
     color: var(--m3-on-error);
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
   }
   .nav-main .nav-count:empty {
     display: none;
