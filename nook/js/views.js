@@ -549,6 +549,8 @@
         `<m3-shape-icon class="nook-avatar" shape="${c.shape}" hover-shape="${c.shape === 'heart' ? 'flower' : 'heart'}" symbol="${c.symbol}" size="104" icon-size="48"></m3-shape-icon>` +
         `<div class="nook-id"><h1 class="m3-title" translate="no">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
+        // (on a phone Post sits here beside Join, so the row of sort tabs stays one row)
+        (store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled only-phone" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`) +
         (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span translate="no" class="m3-icon">more_horiz</span></button></div></div>` +
         `<p class="nook-tagline"${ownText(c)}>${esc(c.tagline)}</p>` +
@@ -558,7 +560,7 @@
         `<div class="toolbar">${sortControl('hot')}<span class="spacer"></span>` +
         `<button class="m3-btn tonal small only-tablet" data-act="nook-about" data-nook="${c.id}">${icon('info')}About</button>` +
         // nobody banned from the nest is offered a Post button the server will refuse
-        `${store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled small" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`}${compactToggle()}</div>` +
+        `${store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled small not-phone" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`}${compactToggle()}</div>` +
         (flairs.length
           ? `<div class="chips" role="group" aria-label="Filter by flair"><button class="chip" data-m3-ripple data-flair="" aria-pressed="true">All</button>${flairs.map((f) => `<button class="chip" data-m3-ripple data-flair="${esc(f)}" aria-pressed="false"${ownFlair(c, f)}>${esc(f)}</button>`).join('')}</div>`
           : '') +

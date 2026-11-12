@@ -412,15 +412,18 @@
   });
 
   // light or dark spreads out from the button in a circle
-  $('#theme-btn').addEventListener('click', (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    fx.haptic(6);
-    fx.reveal(r.left + r.width / 2, r.top + r.height / 2, () => {
-      S().mode = ui.theme.isDark() ? 'light' : 'dark';
-      store.save();
-      return applySettings();
+  // (on a phone the button is in the drawer, so the bar stays light)
+  for (const id of ['#theme-btn', '#drawer-theme']) {
+    $(id).addEventListener('click', (e) => {
+      const r = e.currentTarget.getBoundingClientRect();
+      fx.haptic(6);
+      fx.reveal(r.left + r.width / 2, r.top + r.height / 2, () => {
+        S().mode = ui.theme.isDark() ? 'light' : 'dark';
+        store.save();
+        return applySettings();
+      });
     });
-  });
+  }
 
   // the brand takes a spin home
   $('.brand').addEventListener('click', () => {
@@ -477,7 +480,7 @@
     document.body.classList.toggle('compact', !!s.compact);
     document.body.classList.toggle('plain-names', s.nameFonts === false);
     $$('[data-act="compact"]').forEach((b) => b.setAttribute('aria-pressed', String(!!s.compact)));
-    $('#theme-btn .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
+    for (const id of ['#theme-btn', '#drawer-theme']) $(id + ' .m3-icon').textContent = ui.theme.isDark() ? 'light_mode' : 'dark_mode';
     const wear = wearing();
     ui.favicon(brandShape.showing, (wear && wear.color) || s.seed);
     scheduleBreak();

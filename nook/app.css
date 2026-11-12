@@ -2847,8 +2847,20 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
 .note small {
   color: var(--m3-on-surface-variant);
 }
-.note.unread {
-  background: color-mix(in srgb, var(--m3-primary-container) 55%, transparent);
+/* what's been read steps back; what's new keeps its colour, heavier words and the dot */
+.note m3-shape-icon {
+  --m3-shape-icon-color: var(--m3-surface-container-high);
+  --m3-shape-icon-on-color: var(--m3-on-surface-variant);
+}
+.note:not(.unread) .note-text > span {
+  color: var(--m3-on-surface-variant);
+}
+.note.unread m3-shape-icon {
+  --m3-shape-icon-color: var(--m3-primary-container);
+  --m3-shape-icon-on-color: var(--m3-on-primary-container);
+}
+.note.unread .note-text > span {
+  font-weight: 650;
 }
 .note.unread::after {
   content: '';
@@ -3112,12 +3124,15 @@ kbd {
     display: flex;
     flex: none;
     align-items: center;
-    justify-content: space-between;
+    gap: 4px;
     height: calc(var(--nook-bar) + env(safe-area-inset-top, 0px));
     margin: 0 -16px 6px;
     padding: env(safe-area-inset-top, 0px) 6px 0 14px;
     background: var(--nook-card);
     transition: var(--nook-surface-fade);
+  }
+  .drawer-head .brand {
+    margin-inline-end: auto;
   }
   .bottom-nav {
     display: flex;
@@ -3189,8 +3204,18 @@ kbd {
   .comment .avatar {
     --s: 26px !important;
   }
+  /* a page's name is clearly the biggest thing on it (26px: between the kit's title and headline sizes), always
+     beside its shape with the line under it wrapping there; what the page offers goes on the row below */
   .page-head h1 {
-    font-size: var(--m3-fs-huge);
+    font-size: calc((var(--m3-fs-huge) + var(--m3-fs-headline)) / 2);
+    line-height: 1.15;
+  }
+  .page-head > div {
+    flex: 1 1 calc(100% - 72px);
+    min-width: 0;
+  }
+  .page-head > .spacer {
+    display: none;
   }
 }
 
