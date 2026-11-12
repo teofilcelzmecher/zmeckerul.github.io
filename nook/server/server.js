@@ -18,6 +18,7 @@
 
 const http = require('node:http');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -105,19 +106,80 @@ const now = () => Date.now();
 const sha256 = (text) => crypto.createHash('sha256').update(text).digest('hex');
 const randomId = (prefix, bytes = 9) => prefix + crypto.randomBytes(bytes).toString('base64url');
 const scrypt = promisify(crypto.scrypt);
-const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+// s1: the first setting; s2 (1.6): OWASP's scrypt setting (N=2^14, r=8, p=5), five times the work for the same memory.
+// A password kept as s1 is kept again as s2 the next time its owner signs in with it.
+const SCRYPTS = { s1: { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }, s2: { N: 16384, r: 8, p: 5, maxmem: 64 * 1024 * 1024 } };
+const HASH_NOW = 's2';
 
 async function hashPassword(password) {
   const salt = crypto.randomBytes(16);
-  const key = await scrypt(password.normalize('NFKC'), salt, 64, SCRYPT);
-  return `s1$${salt.toString('base64')}$${key.toString('base64')}`;
+  const key = await scrypt(password.normalize('NFKC'), salt, 64, SCRYPTS[HASH_NOW]);
+  return `${HASH_NOW}$${salt.toString('base64')}$${key.toString('base64')}`;
 }
 async function checkPassword(password, stored) {
   const [version, salt, key] = String(stored).split('$');
-  if (version !== 's1' || !salt || !key) return false;
+  if (!SCRYPTS[version] || !salt || !key) return false;
   const want = Buffer.from(key, 'base64');
-  const got = await scrypt(String(password).normalize('NFKC'), Buffer.from(salt, 'base64'), want.length, SCRYPT);
+  const got = await scrypt(String(password).normalize('NFKC'), Buffer.from(salt, 'base64'), want.length, SCRYPTS[version]);
   return crypto.timingSafeEqual(want, got);
+}
+const oldHash = (stored) => !String(stored).startsWith(HASH_NOW + '$');
+
+// the 46,000 most used passwords of 8 characters or more (from SecLists, MIT licence), so nobody picks one an
+// attacker would try first; kept on this computer, never looked up anywhere else
+const COMMON_PASSWORDS = (() => {
+  try {
+    return new Set(zlib.gunzipSync(fs.readFileSync(path.join(__dirname, 'common-passwords.txt.gz'))).toString('utf8').split('\n'));
+  } catch (_) {
+    return new Set();
+  }
+})();
+/** why a new password won't do, or '' */
+function weakPassword(password, name) {
+  if (password.length < 8) return 'Use at least 8 characters for your password.';
+  if (password.length > 200) return 'That password is too long.';
+  const low = password.toLowerCase();
+  if (name && low.includes(String(name).toLowerCase())) return 'Your password can’t have your username in it.';
+  if (/^(.)\1+$/.test(password) || COMMON_PASSWORDS.has(low))
+    return 'That password is one of the most used ones, so it’s easy to guess. Try something longer or less common: a few random words work well.';
+  return '';
+}
+
+// ---- two-step sign-in (1.6): a code from an authenticator app (RFC 6238: 6 digits, every 30 seconds, SHA-1) ----
+const B32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function base32(buf) {
+  let bits = 0, value = 0, out = '';
+  for (const b of buf) {
+    value = ((value << 8) | b) & 0xffff;
+    bits += 8;
+    while (bits >= 5) out += B32[(value >>> (bits -= 5)) & 31];
+  }
+  return bits ? out + B32[(value << (5 - bits)) & 31] : out;
+}
+function unbase32(text) {
+  let bits = 0, value = 0;
+  const out = [];
+  for (const c of String(text).toUpperCase().replace(/[^A-Z2-7]/g, '')) {
+    value = ((value << 5) | B32.indexOf(c)) & 0xffff;
+    bits += 5;
+    if (bits >= 8) out.push((value >>> (bits -= 8)) & 255);
+  }
+  return Buffer.from(out);
+}
+function totpAt(secret, step) {
+  const msg = Buffer.alloc(8);
+  msg.writeBigUInt64BE(BigInt(step));
+  const h = crypto.createHmac('sha1', unbase32(secret)).update(msg).digest();
+  const o = h[h.length - 1] & 15;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1000000).padStart(6, '0');
+}
+/** the time step a code is right for (now, or one step either side, never one already used), or 0 */
+function totpStep(secret, code, lastUsed) {
+  code = String(code || '').replace(/\D/g, '');
+  if (!secret || code.length !== 6) return 0;
+  const step = Math.floor(Date.now() / 30000);
+  for (const s of [step, step - 1, step + 1]) if (s > (Number(lastUsed) || 0) && crypto.timingSafeEqual(Buffer.from(totpAt(secret, s)), Buffer.from(code))) return s;
+  return 0;
 }
 
 // recovery codes: 16 letters and digits that are hard to mix up, in four groups
@@ -302,7 +364,7 @@ function publicUser(u) {
   return out;
 }
 function meOut(u) {
-  return Object.assign(publicUser(u), { role: u.role, joinedAt: u.created_at, calls: u.calls === 'off' ? 'off' : 'on' });
+  return Object.assign(publicUser(u), { role: u.role, joinedAt: u.created_at, calls: u.calls === 'off' ? 'off' : 'on', twofa: !!u.totp || undefined });
 }
 
 function nookOut(row) {
@@ -674,9 +736,8 @@ route('POST', '/api/signup', async ({ body, ip }) => {
   vet([name.replace(/_/g, ' ')], { kind: 'profile' }, { strongNames: true });
   if (db.get('SELECT 1 AS x FROM users WHERE name = ?', name)) fail(409, `u/${name} is taken. Try another name.`, { field: 'name' });
   const nameDoubt = await checkName(name);
-  if (password.length < 8) fail(400, 'Use at least 8 characters for your password.', { field: 'password' });
-  if (password.length > 200) fail(400, 'That password is too long.', { field: 'password' });
-  if (password.toLowerCase() === name.toLowerCase()) fail(400, 'Your password can’t be your username.', { field: 'password' });
+  const weak = weakPassword(password, name);
+  if (weak) fail(400, weak, { field: 'password' });
   // last of all, so a taken name or a short password doesn't use up the answer
   await checkCaptcha(body.captcha);
 
@@ -709,9 +770,18 @@ route('POST', '/api/login', async ({ body, ip }) => {
   limit('login-name:' + name.toLowerCase(), 10, 15 * MINUTE);
   const user = name ? db.get('SELECT * FROM users WHERE name = ?', name) : null;
   // the same work and the same answer whether or not the name exists
-  const ok = await checkPassword(body.password || '', user ? user.pass : 's1$AAAAAAAAAAAAAAAAAAAAAA==$' + 'A'.repeat(86) + '==');
+  const ok = await checkPassword(body.password || '', user ? user.pass : HASH_NOW + '$AAAAAAAAAAAAAAAAAAAAAA==$' + 'A'.repeat(86) + '==');
   if (!user || !ok) fail(401, 'Wrong username or password.');
   if (user.banned_at) fail(403, 'This account has been banned' + (user.ban_reason ? ': ' + user.ban_reason : '.'), { banned: true });
+  // two-step sign-in: the password was right, and now the code from the authenticator app
+  if (user.totp) {
+    if (!body.code) fail(401, 'Enter the 6-digit code from your authenticator app.', { twofa: true, field: 'code' });
+    limit('totp:' + user.id, 6, HOUR, 'Too many wrong codes. Wait a while, or use your recovery code.');
+    const step = totpStep(user.totp, body.code, user.totp_step);
+    if (!step) fail(401, 'That code isn’t right. Check the time on your phone, and use the newest code.', { twofa: true, field: 'code' });
+    db.run('UPDATE users SET totp_step = ? WHERE id = ?', String(step), user.id);
+  }
+  if (oldHash(user.pass)) db.run('UPDATE users SET pass = ? WHERE id = ?', await hashPassword(String(body.password)), user.id);
   return { token: newSession(user.id), me: meOut(user) };
 }, { auth: false });
 
@@ -722,13 +792,16 @@ route('POST', '/api/recover', async ({ body, ip }) => {
   const user = name ? db.get('SELECT * FROM users WHERE name = ?', name) : null;
   const given = recoveryHash(body.recovery || '');
   if (!user || !crypto.timingSafeEqual(Buffer.from(user.recovery), Buffer.from(given))) fail(401, 'That username and recovery code don’t match.');
-  const password = typeof body.password === 'string' ? body.password : '';
-  if (password.length < 8 || password.length > 200) fail(400, 'Use at least 8 characters for your new password.', { field: 'password' });
-  const recovery = recoveryCode();
-  db.run('UPDATE users SET pass = ?, recovery = ? WHERE id = ?', await hashPassword(password), recoveryHash(recovery), user.id);
-  db.run('DELETE FROM sessions WHERE user_id = ?', user.id);
   if (user.banned_at) fail(403, 'This account has been banned' + (user.ban_reason ? ': ' + user.ban_reason : '.'), { banned: true });
-  return { token: newSession(user.id), recovery, me: meOut(user) };
+  const password = typeof body.password === 'string' ? body.password : '';
+  const weak = weakPassword(password, user.name);
+  if (weak) fail(400, weak, { field: 'password' });
+  const recovery = recoveryCode();
+  // the recovery code is the way back in when the authenticator app is lost too, so two-step sign-in goes off
+  const twofaOff = !!user.totp;
+  db.run("UPDATE users SET pass = ?, recovery = ?, totp = '', totp_step = '' WHERE id = ?", await hashPassword(password), recoveryHash(recovery), user.id);
+  db.run('DELETE FROM sessions WHERE user_id = ?', user.id);
+  return { token: newSession(user.id), recovery, twofaOff: twofaOff || undefined, me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
 }, { auth: false });
 
 // a phone that wants notifications (1.1): its token from Firebase (Android) or Apple (iPhone, iPad and Mac, 1.2), kept
@@ -762,11 +835,54 @@ route('POST', '/api/account/password', async ({ user, session, body }) => {
   limit('password:' + user.id, 10, HOUR);
   if (!(await checkPassword(body.current || '', user.pass))) fail(401, 'Your current password isn’t right.', { field: 'current' });
   const password = typeof body.password === 'string' ? body.password : '';
-  if (password.length < 8 || password.length > 200) fail(400, 'Use at least 8 characters for your new password.', { field: 'password' });
+  const weak = weakPassword(password, user.name);
+  if (weak) fail(400, weak, { field: 'password' });
   db.run('UPDATE users SET pass = ? WHERE id = ?', await hashPassword(password), user.id);
   // everywhere else is signed out; this device stays in
   db.run('DELETE FROM sessions WHERE user_id = ? AND token != ?', user.id, session);
   return { ok: true };
+});
+
+// two-step sign-in: set up (password, then a secret for the authenticator app), turned on by a code from it, off again
+// with the password and a code
+const totpPending = new Map(); // user id -> { secret, until }
+route('POST', '/api/account/2fa/setup', async ({ user, body }) => {
+  limit('2fa-setup:' + user.id, 10, HOUR);
+  if (!(await checkPassword(body.password || '', user.pass))) fail(401, 'That password isn’t right.', { field: 'password' });
+  if (user.totp) fail(409, 'Two-step sign-in is already on.');
+  const secret = base32(crypto.randomBytes(20));
+  totpPending.set(user.id, { secret, until: now() + 15 * MINUTE });
+  const label = encodeURIComponent('Budgie:u/' + user.name);
+  return { secret, uri: `otpauth://totp/${label}?secret=${secret}&issuer=Budgie&algorithm=SHA1&digits=6&period=30` };
+});
+route('POST', '/api/account/2fa/enable', ({ user, session, body }) => {
+  limit('2fa-enable:' + user.id, 10, HOUR);
+  const pending = totpPending.get(user.id);
+  if (!pending || pending.until < now()) fail(400, 'That took a while. Start again.');
+  const step = totpStep(pending.secret, body.code, 0);
+  if (!step) fail(400, 'That code isn’t right. Type the newest one your app shows.', { field: 'code' });
+  totpPending.delete(user.id);
+  db.run('UPDATE users SET totp = ?, totp_step = ? WHERE id = ?', pending.secret, String(step), user.id);
+  // anyone already signed in somewhere else would have to sign in again with a code
+  db.run('DELETE FROM sessions WHERE user_id = ? AND token != ?', user.id, session);
+  return { ok: true, me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
+});
+route('POST', '/api/account/2fa/disable', async ({ user, body }) => {
+  limit('2fa-disable:' + user.id, 10, HOUR);
+  if (!(await checkPassword(body.password || '', user.pass))) fail(401, 'That password isn’t right.', { field: 'password' });
+  if (!user.totp) return { ok: true, me: meOut(user) };
+  if (!totpStep(user.totp, body.code, user.totp_step)) fail(401, 'That code isn’t right.', { field: 'code' });
+  db.run("UPDATE users SET totp = '', totp_step = '' WHERE id = ?", user.id);
+  return { ok: true, me: meOut(db.get('SELECT * FROM users WHERE id = ?', user.id)) };
+});
+// where else this account is signed in, and signing out of all of them
+route('GET', '/api/account/sessions', ({ user, session }) => ({
+  others: (db.get('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND token != ?', user.id, session) || { n: 0 }).n,
+}));
+route('POST', '/api/account/sessions/end', ({ user, session }) => {
+  db.run('DELETE FROM sessions WHERE user_id = ? AND token != ?', user.id, session);
+  db.run('DELETE FROM push_tokens WHERE user_id = ? AND session != ?', user.id, session);
+  return { ok: true, others: 0 };
 });
 
 route('POST', '/api/account/recovery', async ({ user, body }) => {
@@ -2576,6 +2692,15 @@ function send(res, status, payload) {
   res.end(json);
 }
 
+/** who's asking. Behind Tailscale Funnel (or another proxy on this computer) it's the address the proxy added last to
+ *  X-Forwarded-For: the ones before it are whatever the client claimed, so they'd let anyone dodge limits and bans */
+function clientIp(req) {
+  const peer = String((req.socket && req.socket.remoteAddress) || '').replace(/^::ffff:/, '');
+  const proxy = peer === '127.0.0.1' || peer === '::1' || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(peer) || /^fd7a:115c:a1e0:/i.test(peer);
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',').map((a) => a.trim()).filter(Boolean);
+  return (proxy && forwarded.length ? forwarded[forwarded.length - 1] : peer) || 'unknown';
+}
+
 async function handle(req, res) {
   const url = new URL(req.url, 'http://nook.local');
   const origin = req.headers.origin;
@@ -2593,7 +2718,7 @@ async function handle(req, res) {
     return res.end();
   }
   // checks every request goes through first (1.4: a banned network): guard(req, url, ip) throws to refuse
-  const ip = req.headers['x-forwarded-for'] ? String(req.headers['x-forwarded-for']).split(',')[0].trim() : 'unknown';
+  const ip = clientIp(req);
   for (const guard of REQUEST_GUARDS) await guard(req, url, ip);
   const image = /^\/api\/images\/([^/]+)$/.exec(url.pathname);
   if (image && req.method === 'GET') return serveImage(res, image[1]);
