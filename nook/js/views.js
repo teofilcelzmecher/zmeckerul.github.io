@@ -996,9 +996,9 @@
         `<section>${header('pixelCircle', 'manage_accounts', 'Account')}<div class="card setting-card">` +
         `<div class="about-app">${avatar(store.user(store.ME), 48)}<div><b class="m3-title">u/${esc(store.state.me.name)}</b><span class="muted">Signed in${store.isAdmin() ? ' · Admin' : ''}</span></div></div>` +
         // keeping the account safe (1.6): two-step sign-in, and signing out everywhere else
-        `<div class="sec-rows"><div class="sec-row">${icon('verified_user')}<span class="row-text"><b>Two-step sign-in</b><small>${store.state.me.twofa ? 'On: signing in also asks for a code from your authenticator app' : 'Off. Turn it on, and signing in also asks for a code from an app on your phone'}</small></span>` +
+        (serverAt('1.6.0') ? `<div class="sec-rows"><div class="sec-row">${icon('verified_user')}<span class="row-text"><b>Two-step sign-in</b><small>${store.state.me.twofa ? 'On: signing in also asks for a code from your authenticator app' : 'Off. Turn it on, and signing in also asks for a code from an app on your phone'}</small></span>` +
         `<button class="m3-btn ${store.state.me.twofa ? 'text' : 'filled'}" data-act="twofa">${store.state.me.twofa ? 'Turn off' : 'Set up'}</button></div>` +
-        `<div class="sec-row">${icon('devices')}<span class="row-text"><b>Where you’re signed in</b><small data-sessions>This device</small></span><button class="m3-btn tonal" data-act="end-sessions">Sign out everywhere else</button></div></div>` +
+        `<div class="sec-row">${icon('devices')}<span class="row-text"><b>Where you’re signed in</b><small data-sessions>This device</small></span><button class="m3-btn tonal" data-act="end-sessions">Sign out everywhere else</button></div></div>` : '') +
         `<div class="toolbar"><button class="m3-btn tonal" data-act="change-password">${icon('password')}Change password</button><button class="m3-btn tonal" data-act="new-recovery">${icon('key')}New recovery code</button><button class="m3-btn tonal" data-act="export">${icon('download')}Export my data</button></div>` +
         `<div class="toolbar"><button class="m3-btn outlined" data-act="sign-out">${icon('logout')}Sign out</button><button class="m3-btn text danger" data-act="delete-account">${icon('person_remove')}Delete account</button></div>` +
         '</div></section>' +
