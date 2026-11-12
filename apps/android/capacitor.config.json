@@ -24,9 +24,6 @@
       "androidScaleType": "CENTER_INSIDE",
       "showSpinner": false
     },
-    "Keyboard": {
-      "resizeOnFullScreen": true
-    },
     "PushNotifications": {
       "presentationOptions": []
     }

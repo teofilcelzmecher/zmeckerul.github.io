@@ -16,7 +16,9 @@ struct BrowserView: View {
 
     var body: some View {
         HostedWebView(webView: web.webView)
-            .ignoresSafeArea()
+            // under the bars, the notch and the home indicator, but not the keyboard: the page ends where the keyboard
+            // starts, so iOS doesn't slide the whole page (top bar and all) up to show the box being typed in
+            .ignoresSafeArea(.container)
             .modifier(FoldWatcher(web: web))
             .sheet(item: $web.captcha) { request in
                 CaptchaSheet(request: request)
