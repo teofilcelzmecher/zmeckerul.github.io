@@ -1,7 +1,7 @@
 {
   "name": "budgie-social",
   "productName": "Budgie",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "Budgie for Windows and Linux: small, friendly communities, chats and calls",
   "homepage": "https://budgiesocial.com",
   "author": {
@@ -166,6 +166,36 @@
         "xdg-utils"
       ]
     },
-    "publish": null
+    "publish": null,
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "category": "public.app-category.social-networking",
+      "icon": "build/icons/1024x1024.png",
+      "hardenedRuntime": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Budgie uses your microphone in voice and video calls.",
+        "NSCameraUsageDescription": "Budgie uses your camera in video calls."
+      },
+      "artifactName": "Budgie-mac.${ext}"
+    },
+    "dmg": {
+      "artifactName": "Budgie.dmg",
+      "title": "Budgie"
+    }
   }
 }

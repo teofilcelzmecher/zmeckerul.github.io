@@ -31,11 +31,22 @@ const REPO = 'teofilcelzmecher/zmeckerul.github.io';
 const DOWNLOAD = 'https://budgiesocial.com/download.html';
 const WIN = process.platform === 'win32';
 const LINUX = process.platform === 'linux';
+// a Mac (1.6): started at login it stays in the menu bar, and the Dock brings the window back
+const MAC = process.platform === 'darwin';
 const ICONS = path.join(__dirname, 'icons');
 const PAGES = path.join(__dirname, 'pages');
 const APP_ICON = path.join(ICONS, 'icon-256.png');
 const DESKTOP_JS = fs.readFileSync(path.join(__dirname, 'desktop.js'), 'utf8');
-const startHidden = process.argv.includes('--hidden');
+const startHidden =
+  process.argv.includes('--hidden') ||
+  (MAC &&
+    (() => {
+      try {
+        return app.getLoginItemSettings().wasOpenedAtLogin;
+      } catch (_) {
+        return false;
+      }
+    })());
 // for testing: a profile of its own, apart from the real one
 if (process.env.BUDGIE_DATA) app.setPath('userData', process.env.BUDGIE_DATA);
 
@@ -236,7 +247,9 @@ function contextMenu(e, p) {
 // ---- the tray, and starting with the computer --------------------------------------------------------------------
 
 function trayImage() {
-  return nativeImage.createFromPath(path.join(ICONS, `${LINUX ? 'tray-linux' : 'tray'}${unread ? '-unread' : ''}.png`));
+  const image = nativeImage.createFromPath(path.join(ICONS, `${LINUX ? 'tray-linux' : 'tray'}${unread ? '-unread' : ''}.png`));
+  // the Mac's menu bar is 22 points tall: its icons are 18
+  return MAC ? image.resize({ height: 18 }) : image;
 }
 function trayMenu() {
   return Menu.buildFromTemplate([
@@ -270,6 +283,7 @@ const autostartFile = () => path.join(process.env.XDG_CONFIG_HOME || path.join(o
 function startupOn() {
   if (!app.isPackaged) return false;
   if (WIN) return app.getLoginItemSettings({ args: ['--hidden'] }).openAtLogin;
+  if (MAC) return app.getLoginItemSettings().openAtLogin;
   if (LINUX) return fs.existsSync(autostartFile());
   return false;
 }
@@ -280,6 +294,7 @@ function setStartup(on) {
   if (!app.isPackaged) return;
   try {
     if (WIN) app.setLoginItemSettings({ openAtLogin: on, args: ['--hidden'] });
+    else if (MAC) app.setLoginItemSettings({ openAtLogin: on });
     else if (LINUX) {
       const file = autostartFile();
       if (!on) fs.rmSync(file, { force: true });
@@ -618,6 +633,8 @@ async function checkUpdate() {
 }
 
 app.on('second-instance', show);
+// on a Mac, clicking Budgie in the Dock brings its window back
+app.on('activate', () => app.isReady() && show());
 app.on('before-quit', () => {
   quitting = true;
   watcher.stop();
