@@ -416,13 +416,37 @@
       const key = `${seed}|${this.isDark()}|${variant}`;
       if (!this.cache.has(key)) {
         const promise = M3.color.scheme({ seed, dark: this.isDark(), variant });
-        promise.catch(() => {
-          this.cache.delete(key);
-          this.offline = true;
-        });
+        promise.then(
+          (colors) => this.ready.set(key, colors),
+          () => {
+            this.cache.delete(key);
+            this.offline = true;
+          }
+        );
         this.cache.set(key, promise);
       }
       return this.cache.get(key);
+    },
+    // the colours already worked out, to wear at once (with the page they're for, in the same frame)
+    ready: new Map(),
+    schemeNow(seed, variant = store.state.settings.variant) {
+      return this.ready.get(`${seed}|${this.isDark()}|${variant}`) || null;
+    },
+
+    /**
+     * Works out, one at a time while the app has nothing else to do, the colours of the nests and people it knows,
+     * so a page in their colours comes in without that work first (and wears them in the same frame)
+     */
+    warm(seeds) {
+      const variant = store.state.settings.variant;
+      const todo = [...new Set(seeds.filter(Boolean).map((s) => String(s).toLowerCase()))].filter((s) => !this.cache.has(`${s}|${this.isDark()}|${variant}`));
+      if (!todo.length) return;
+      const idle = window.requestIdleCallback ? (fn) => requestIdleCallback(fn, { timeout: 5000 }) : (fn) => setTimeout(fn, 250);
+      const next = () => {
+        const seed = todo.shift();
+        if (seed) this.scheme(seed, variant).then(() => idle(next), () => idle(next));
+      };
+      idle(next);
     },
 
     /** the whole app in one seed's colours (the default seed is baked into m3.css), in a style when given */
@@ -434,6 +458,11 @@
       root.toggleAttribute('data-m3-reduce-motion', !!settings.reduceMotion);
       const want = (seed || settings.seed).toLowerCase();
       const variant = (seed && style) || settings.variant;
+      // the same colours as now (most pages of the same nest, or none): nothing to change, so nothing for the
+      // browser to work out again across the whole page while the new one is being drawn
+      const worn = `${want}|${variant}|${this.isDark()}`;
+      if (worn === this.worn && !this.pending) return;
+      this.worn = worn;
       const token = ++this.token;
       this.current = want;
       if (want === DEFAULT_SEED && variant === 'tonalSpot') {
@@ -441,6 +470,14 @@
         this.afterRoot();
         return;
       }
+      // worked out before: worn now, so the page and its colours are laid out together, once
+      const now = this.schemeNow(want, variant);
+      if (now) {
+        M3.color.apply(now, root);
+        this.afterRoot();
+        return;
+      }
+      this.pending = true;
       try {
         const colors = await this.scheme(want, variant);
         if (token !== this.token) return;
@@ -449,18 +486,27 @@
       } catch (_) {
         clearVars(root);
         this.afterRoot();
+      } finally {
+        if (token === this.token) this.pending = false;
       }
     },
 
     afterRoot() {
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (!meta) return;
+      if (this.barSoon) return;
       // the page's colour, which the phone's status bar and the browser's own bars take (the welcome page and the
-      // gate keep the brightest one)
-      const root = document.documentElement;
-      const style = getComputedStyle(root);
-      const page = (!root.classList.contains('gated') && style.getPropertyValue('--nook-page').trim()) || style.getPropertyValue('--m3-background').trim();
-      if (page) meta.content = page;
+      // gate keep the brightest one). Read once the new colours are drawn: reading them at once would make the
+      // browser work out the whole page's styles there and then, in the middle of drawing the new page
+      this.barSoon = requestAnimationFrame(() =>
+        setTimeout(() => {
+          this.barSoon = 0;
+          const meta = document.querySelector('meta[name="theme-color"]');
+          if (!meta) return;
+          const root = document.documentElement;
+          const style = getComputedStyle(root);
+          const page = (!root.classList.contains('gated') && style.getPropertyValue('--nook-page').trim()) || style.getPropertyValue('--m3-background').trim();
+          if (page) meta.content = page;
+        })
+      );
     },
 
     /** one element in a nook's colours; `always` for what stands for the nook itself */
@@ -470,6 +516,12 @@
       const variant = (el.dataset && el.dataset.tintVariant) || undefined;
       if (!seed || (!always && !store.state.settings.tintPosts) || (!variant && seed.toLowerCase() === this.current)) {
         clearVars(el);
+        return Promise.resolve();
+      }
+      // worked out before: worn at once, so it's drawn with the page and not a frame later
+      const now = this.schemeNow(seed.toLowerCase(), variant);
+      if (now) {
+        M3.color.apply(now, el);
         return Promise.resolve();
       }
       return this.scheme(seed.toLowerCase(), variant).then(

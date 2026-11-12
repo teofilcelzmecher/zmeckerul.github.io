@@ -3031,9 +3031,24 @@
     return d + 'Z';
   }
 
+  // A shape's path is the same every time it's drawn at a size, so it's worked out once. A morph's in-between paths
+  // are kept too, with the progress rounded to a 160th (finer than a frame of any morph moves it, and than a pixel at
+  // the sizes shapes are drawn): a
+  // shape that morphs again, or a loading indicator going round its shapes, draws from what's kept instead of
+  // working it all out again on every frame. The newest few thousand are kept, the oldest let go.
+  const paths = new Map();
+  const morphed = new Map();
+  const MORPHS_KEPT = 4000;
+
   /** SVG path data for a shape, fitted to a size x size box (default 100). */
   function path(name, size) {
-    return cubicsToPath(polygon(name).cubics, size || 100);
+    const key = name + '@' + (size || 100);
+    let d = paths.get(key);
+    if (d === undefined) {
+      d = cubicsToPath(polygon(name).cubics, size || 100);
+      paths.set(key, d);
+    }
+    return d;
   }
 
   /**
@@ -3042,9 +3057,17 @@
    */
   function morphPath(from, to, progress, size) {
     if (from === to) return path(from, size);
-    const key = from + '>' + to;
-    if (!morphs[key]) morphs[key] = new Morph(polygon(from), polygon(to));
-    return cubicsToPath(morphs[key].asCubics(progress), size || 100);
+    const step = Math.round(progress * 160) / 160;
+    const key = from + '>' + to + '@' + (size || 100) + ':' + step;
+    let d = morphed.get(key);
+    if (d === undefined) {
+      const pair = from + '>' + to;
+      if (!morphs[pair]) morphs[pair] = new Morph(polygon(from), polygon(to));
+      d = cubicsToPath(morphs[pair].asCubics(step), size || 100);
+      if (morphed.size >= MORPHS_KEPT) morphed.delete(morphed.keys().next().value);
+      morphed.set(key, d);
+    }
+    return d;
   }
 
   global.M3Shapes = { names, polygon, path, morphPath };

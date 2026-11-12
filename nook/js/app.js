@@ -281,23 +281,42 @@
 
   // ---- the shell -------------------------------------------------------------------
 
+  // the nests in the menu are drawn again only when they change (every page drawing them anew, with their shapes,
+  // is work done while the page itself is coming in); where you are is marked on what's there
+  const drawn = { nests: null, recent: null };
   function renderDrawerNooks() {
     const s = store.state;
     const here = viewNook ? viewNook.id : '';
     const row = (c) =>
-      `<a class="nav-item nav-nook" href="#/n/${c.id}" data-m3-ripple data-tooltip="n/${esc(c.id)}"${c.id === here ? ' aria-current="page"' : ''}>` +
+      `<a class="nav-item nav-nook" href="#/n/${c.id}" data-m3-ripple data-tooltip="n/${esc(c.id)}">` +
       `<span class="nav-ind">${nookIcon(c, 28, 16)}</span><span class="nav-label">n/${esc(c.id)}</span></a>`;
-    $('#nav-nooks').innerHTML = s.joined
+    const nests = s.joined
       .map(store.community)
       .filter(Boolean)
       .map(row)
       .join('');
     const recent = s.recent.filter((id) => !s.joined.includes(id)).map(store.community).filter(Boolean).slice(0, 3);
-    $('#nav-recent').innerHTML = recent.length
+    const recentHTML = recent.length
       ? `<div class="nav-heading"><span>Recently visited</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>${recent.map(row).join('')}`
       : '';
-    placeGlide();
+    if (nests !== drawn.nests) $('#nav-nooks').innerHTML = drawn.nests = nests;
+    if (recentHTML !== drawn.recent) $('#nav-recent').innerHTML = drawn.recent = recentHTML;
+    for (const a of drawer.querySelectorAll('.nav-nook')) {
+      if (a.getAttribute('href') === '#/n/' + here) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
+    placeGlideSoon();
   }
+  // the highlight is placed once the page is drawn (measuring where a row is in the middle of drawing would make
+  // the browser lay the whole page out there and then)
+  let glideSoon = 0;
+  const placeGlideSoon = () => {
+    if (!glideSoon)
+      glideSoon = requestAnimationFrame(() => {
+        glideSoon = 0;
+        placeGlide();
+      });
+  };
 
   // in the full drawer the highlight glides from one row to the next
   const glide = document.createElement('span');
@@ -3338,6 +3357,15 @@
   });
   store.on('error', (error) => showError(error));
   store.on('changed', () => render());
+  // once the app knows its nests, their colours are worked out while it has nothing else to do, so going into one
+  // doesn't wait on that (and the page and its colours are drawn together)
+  let warmed = false;
+  store.on('changed', () => {
+    const nests = store.allCommunities();
+    if (warmed || !nests.length) return;
+    warmed = true;
+    ui.theme.warm(nests.map((c) => c.color).concat(S().seed, store.state.me && store.state.me.color));
+  });
   Nook.api.onSignedOut(() => {
     M3.snackbar('You’ve been signed out. Sign in again to carry on.');
     setTimeout(() => location.replace(location.pathname), 1800);

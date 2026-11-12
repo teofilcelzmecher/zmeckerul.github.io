@@ -593,7 +593,7 @@
         const m = 0.5 - 0.5 * Math.cos(k * Math.PI * 2);
         const size = tg.size * (0.6 + k * 0.7);
         const y = 100 - k * 90;
-        tg.el.setAttribute('d', M3Shapes.morphPath(tg.a, tg.b, m, 100));
+        tg.el.setAttribute('d', M3Shapes.morphPath(tg.a, tg.b, Math.round(m * 48) / 48, 100)); // (a small shape: 48 steps are plenty, each worked out once)
         tg.el.setAttribute('transform', `translate(${(tg.x - size / 2 + Math.sin(tt * 2 + tg.phase * 9) * 4).toFixed(1)} ${(y - size / 2).toFixed(1)}) scale(${(size / 100).toFixed(3)}) rotate(${(k * 140).toFixed(0)} 50 50)`);
         tg.el.setAttribute('opacity', (0.6 * Math.sin(k * Math.PI)).toFixed(2));
       }
@@ -612,9 +612,15 @@
     const parts = [];
     const palette = (icy ? ICE : FIRE).slice();
     const stage = dlg.querySelector('.ach-m-stage');
+    // where the flame is: measured once (and again after the window changes size), not on every frame, as measuring
+    // makes the browser lay out the page there and then, while the app behind may still be drawing itself
+    let at = null;
     const origin = () => {
-      const b = stage.getBoundingClientRect();
-      return { x: b.left + b.width / 2, y: b.top + b.height * 0.58, r: b.width / 2 };
+      if (!at) {
+        const b = stage.getBoundingClientRect();
+        at = { x: b.left + b.width / 2, y: b.top + b.height * 0.58, r: b.width / 2 };
+      }
+      return at;
     };
     const ember = (o, burst) => {
       const angle = burst ? Math.random() * Math.PI * 2 : -Math.PI / 2 + (Math.random() - 0.5) * 0.9;
@@ -746,7 +752,7 @@
     });
     later(() => (emberRate = 4), landAt + 2600);
     later(close, big || rewards.length ? 14000 : 7500);
-    addEventListener('resize', fit, { once: true });
+    addEventListener('resize', () => ((at = null), fit()), { once: true });
     return finished;
   }
 
