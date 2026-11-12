@@ -527,8 +527,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '1.4.0, 2026-11-07',
-  text: 'Budgie’s Terms and Privacy Policy have changed for Budgie 1.4: achievements and streaks, profile rewards, Activity (what you listen to and play, from Last.fm, Steam or Budgie for Windows and Linux, shown to friends unless you choose otherwise), stickers and emojis, and nudges. To make bans hold, Budgie now keeps a scrambled form of the networks you use it from, never the address itself, for 90 days. Read them in Settings → Privacy and legal.',
+  version: '1.6.0, 2026-11-12',
+  text: 'Budgie’s Terms and Privacy Policy have changed: sticker blasts, stickers you share with everyone and nests’ chats (1.5), and two-step sign-in and Budgie for Mac (1.6). Read them in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
