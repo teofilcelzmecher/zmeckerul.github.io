@@ -887,8 +887,9 @@
       return Promise.resolve(null);
     }
     const me = store.state.me;
+    // opened on a reward (trying it on), or on one kind of them ('font' opens on the fonts)
     const want = REWARD.get(rewardId);
-    let kind = want ? want.kind : 'effect';
+    let kind = want ? want.kind : KIND.has(rewardId) ? rewardId : 'effect';
     const trying = Object.assign(wearingNow(), want ? { [want.kind]: want.id } : {});
     let changed = false;
     let busy = false;
@@ -1182,18 +1183,31 @@
     isUnlocked(r)
       ? `<button type="button" data-font="${r.id}" aria-pressed="${r.id === current}" class="rw-font-tile"><span class="font-sample name-font-${r.id}" translate="no">${esc(name)}</span><small>${icon('workspace_premium')}${esc(r.name)}</small></button>`
       : `<button type="button" class="rw-font-tile locked" data-rw-locked="${r.id}" aria-label="${esc(r.name)}, locked: unlock with ${esc(needsName(r))}"><span class="font-sample name-font-${r.id}" translate="no">${esc(name)}</span><small>${icon('lock')}${esc(needsName(r))}</small></button>`;
-  /** the reward fonts, for the editor's font grid (they go in once the server says which are yours) */
+  /**
+   * the reward fonts for the editor's font grid (they go in once the server says which are yours): the ones you have,
+   * and one tile for the rest, which opens Customise on its fonts (where each says what unlocks it)
+   */
   function fontTiles(name, current) {
     if (!supported) return '';
     const fonts = ofKind('font');
-    if (mine) return fonts.map((r) => fontTile(r, name, current)).join('');
+    const tiles = (sample, pressed) => {
+      const yours = fonts.filter(isUnlocked);
+      const more = fonts.length - yours.length;
+      return (
+        yours.map((r) => fontTile(r, sample, pressed)).join('') +
+        (more
+          ? `<button type="button" class="rw-font-tile more" data-rw-open="font"><span class="font-sample">${icon('auto_awesome')}</span><small><b>More fonts</b><span>Unlock them with achievements</span></small></button>`
+          : '')
+      );
+    };
+    if (mine) return tiles(name, current);
     load().then(
       () => {
         const box = document.getElementById('rw-ep-fonts');
         if (!box) return;
         const sample = (box.closest('.sheet-body') || document).querySelector('#ep-input');
         const pressed = box.closest('.font-grid').querySelector('[data-font][aria-pressed="true"]');
-        box.outerHTML = fonts.map((r) => fontTile(r, sample ? sample.value || name : name, pressed ? pressed.dataset.font : current)).join('');
+        box.outerHTML = tiles(sample ? sample.value || name : name, pressed ? pressed.dataset.font : current);
       },
       () => {
         const box = document.getElementById('rw-ep-fonts');

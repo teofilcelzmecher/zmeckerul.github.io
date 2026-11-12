@@ -3772,6 +3772,13 @@ html[data-vt='morph']::view-transition-new(*.card) {
   .m3-dialog.sheet[open] {
     gap: 14px;
   }
+  /* Edit profile takes nearly the whole screen, so each tab has room (still a sheet: it swipes away) */
+  .m3-dialog.sheet.ep-sheet[open] {
+    gap: 10px;
+    height: calc(94dvh - var(--kb, 0px) - var(--vv-top, 0px));
+    max-height: calc(94dvh - var(--kb, 0px) - var(--vv-top, 0px));
+  }
+  /* (the preview keeps its size while you type: changing it as a field let go would move what you tap next mid-tap) */
   .sheet-grip {
     display: grid;
     flex: none;
@@ -5269,6 +5276,116 @@ html.framed body {
 .ep-top {
   overflow: hidden;
   border-radius: var(--m3-r-large);
+}
+
+/* Edit profile as one screen: the preview of you and the tabs stay in view, only the tab's content scrolls, and Save
+   stays at the bottom (on a phone it takes nearly the whole screen, below) */
+.m3-dialog.ep-sheet {
+  width: min(560px, 100vw - 48px);
+}
+.m3-dialog.ep-sheet[open] {
+  display: flex;
+  flex-direction: column;
+  height: min(840px, calc(100dvh - 48px));
+  overflow: hidden;
+}
+.ep-sheet > .m3-dialog-header {
+  flex: none;
+}
+.ep-sheet .sheet-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.ep-fixed {
+  display: grid;
+  flex: none;
+  gap: 12px;
+}
+.ep-fixed > .m3-segmented {
+  width: 100%;
+}
+.ep-fixed > .m3-segmented > .m3-segment {
+  flex: 1;
+  min-width: 0;
+}
+.ep-scroll {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -6px;
+  padding: 4px 6px 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ep-panel {
+  display: grid;
+  gap: 22px;
+  align-content: start;
+}
+.ep-panel[hidden] {
+  display: none;
+}
+.ep-sheet .m3-dialog-actions {
+  flex: none;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--m3-outline-variant);
+}
+/* what Save is doing (uploading pictures), beside it */
+.ep-status {
+  margin-inline-end: auto;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+/* the preview, compact enough to stay: the banner a strip, your picture over its edge, your name beside it */
+.ep-sheet .ep-top {
+  background: linear-gradient(120deg, var(--m3-primary-container), var(--nook-card) 75%);
+}
+.ep-sheet .ep-banner {
+  aspect-ratio: auto;
+  height: 72px;
+}
+.ep-sheet .ep-top .nook-preview {
+  gap: 12px;
+  padding: 10px 14px 12px;
+  background: transparent;
+}
+.ep-sheet .ep-banner + .nook-preview {
+  align-items: flex-end;
+  margin-top: -28px;
+  padding-top: 0;
+}
+.ep-sheet .ep-banner + .nook-preview .np-text {
+  margin-top: 28px;
+}
+.ep-sheet #ep-avatar {
+  --s: 60px !important;
+}
+.ep-sheet .ep-top .np-text b {
+  font-size: var(--m3-fs-larger);
+}
+/* the long grids of shapes: two rows until "Show all" (no box scrolling inside the sheet) */
+.ep-fold {
+  display: grid;
+  gap: 2px;
+}
+.ep-fold > .shape-grid {
+  max-height: none;
+  overflow: visible;
+}
+.ep-fold:not(.open) > .shape-grid > :nth-child(n + 13) {
+  display: none;
+}
+.ep-fold-btn {
+  justify-self: start;
+}
+.ep-fold-btn .m3-icon {
+  transition: rotate 200ms var(--m3-ease-standard);
+}
+.ep-fold.open .ep-fold-btn .m3-icon {
+  rotate: 180deg;
 }
 .ep-banner {
   display: grid;

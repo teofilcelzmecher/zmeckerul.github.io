@@ -2204,69 +2204,96 @@
         actions: FLAGS_MAX > 1 ? [{ label: 'Cancel' }, { label: 'Done', variant: 'filled', run: () => picked }] : [{ label: 'Cancel' }],
       });
     };
-    const section = (shape, symbol, title) =>
-      `<header class="m3-section-header ep-section"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="30" icon-size="16"></m3-shape-icon><h3 class="m3-title">${title}</h3><m3-wavy-line></m3-wavy-line></header>`;
     const BIO_MAX = media ? 300 : 160;
     let saving = false;
+    // In four tabs under a preview of you that stays in view, with Save always at the bottom: About (your name,
+    // pronouns, bio, flags and interests), Picture (a photo, or a symbol on your shape, and the banner), Colours (yours,
+    // your profile's style, the shapes behind your name) and Name (its font, and Customise for the rest). The long
+    // grids of shapes show two rows until asked for all.
+    const TABS = [['about', 'About'], ['picture', 'Picture'], ['colours', 'Colours']].concat(fonts ? [['name', 'Name']] : []);
+    const panel = (id, inner) => `<section class="ep-panel" data-ep-panel="${id}"${id === 'about' ? '' : ' hidden'}>${inner}</section>`;
+    const foldButton = () => `<button type="button" class="m3-btn text small ep-fold-btn" data-ep-fold aria-expanded="false">${icon('expand_more')}<span class="ep-fold-label">Show all</span></button>`;
     ui.sheet({
       headline: 'Edit profile',
       symbol: 'face',
       shape: me.shape,
+      className: 'ep-sheet',
       html:
+        '<div class="ep-fixed">' +
         `<div class="ep-top" id="ep-top" style="--av:${me.color}">${media ? `<label class="ep-banner" id="ep-banner" for="ep-banner-file" title="Change your banner">${bannerPreview()}</label>` : ''}` +
         `<div class="nook-preview"><label class="ep-pick" for="ep-photo" title="Change your picture"><span class="avatar" id="ep-avatar" style="--av:${me.color};--av-ink:${ui.ink(me.color)};--s:80px"><m3-shape shape="${me.shape}" id="ep-shape"></m3-shape><span class="face" id="ep-face">${face()}</span></span></label>` +
         `<div class="np-text"><b class="m3-title"><span class="${fonts ? ui.nameFont(model).trim() : ''}" id="ep-name" translate="no">${esc(me.name)}</span><span id="ep-flag">${more ? ui.prideFlag(model) : ''}</span></b>` +
         `<span class="muted" id="ep-sub">${more && me.pronouns ? esc(me.pronouns) : 'Your shape and colour follow you everywhere'}</span></div></div></div>` +
-        (more ? section('cookie9', 'person', 'You') : '') +
-        `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
-        (more
-          ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
-            `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>` +
-            '<div class="field"><span class="field-label" id="ep-flag-label">Pride flag</span>' +
-            `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flags)}</button>` +
-            '<small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>'
-          : '') +
+        views.segmented('ep-tabs', TABS, 'about', 'Edit profile') +
+        '</div><div class="ep-scroll">' +
+        // ---- About: who you are
+        panel(
+          'about',
+          `<div class="field"><label for="ep-input">Username</label><input class="m3-field" id="ep-input" maxlength="20" value="${esc(me.name)}" autocomplete="off"><span class="error" id="ep-err"></span></div>` +
+            (more
+              ? `<div class="field"><label for="ep-pronouns">Pronouns</label><input class="m3-field" id="ep-pronouns" maxlength="24" placeholder="Optional, like she/they" value="${esc(me.pronouns || '')}" autocomplete="off">` +
+                `<div class="chips wrap" role="group" aria-label="Quick picks">${PRONOUN_PICKS.map((p) => `<button type="button" class="chip" data-pronouns="${p}">${p}</button>`).join('')}</div><span class="error" id="ep-pronouns-err"></span></div>`
+              : '') +
+            `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
+            `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
+            (more
+              ? '<div class="field"><span class="field-label" id="ep-flag-label">Pride flag</span>' +
+                `<button type="button" class="flag-pick" id="ep-flag-pick" aria-haspopup="dialog" aria-labelledby="ep-flag-label ep-flag-pick" data-m3-ripple>${flagRow(model.flags)}</button>` +
+                '<small class="muted">A small flag next to your name, everywhere it shows. Your pronouns and flag are optional, everyone on Budgie can see them, and you can change or remove them any time.</small></div>' +
+                `<div class="field"><span class="field-label">What you’re into <small class="muted" id="ep-int-count">${model.interests.length}/${ui.INTERESTS_MAX}</small></span>` +
+                `<div class="chips wrap" role="group" aria-label="Interests">${ui.INTERESTS.map(([id, label, symbol]) => `<button type="button" class="chip" data-interest="${id}" aria-pressed="${model.interests.includes(id)}">${icon(symbol)}${label}</button>`).join('')}</div>` +
+                '<span class="error" id="ep-int-err"></span></div>'
+              : '')
+        ) +
+        // ---- Picture: a photo first (what most people want), or a symbol on your shape; the shape; the banner
+        panel(
+          'picture',
+          '<div class="field"><span class="field-label">Picture</span>' +
+            `<div class="toolbar"><label class="m3-btn filled small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
+            `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
+            `<span class="error" id="ep-photo-err"></span><small class="muted">${media ? 'A photo from your gallery, or a GIF up to 2 MB that moves on your profile.' : 'A photo from your gallery.'} Everyone on Budgie can see it.</small></div>` +
+            '<div class="field"><span class="field-label">Or a symbol on your shape</span>' +
+            `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
+            ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('') +
+            '</div></div>' +
+            `<div class="field"><span class="field-label">Shape</span><div class="ep-fold">${shapeGridHTML(me.shape)}${foldButton()}</div><small class="muted">The outline round your picture, everywhere it shows.</small></div>` +
+            (media
+              ? '<div class="field"><span class="field-label">Banner</span>' +
+                `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_photo_alternate')}<span id="ep-banner-label">${model.banner ? 'Change banner' : 'Upload a banner'}</span><input type="file" id="ep-banner-file" accept="image/*"></label>` +
+                `<button type="button" class="m3-btn text small" id="ep-banner-remove"${model.banner ? '' : ' hidden'}>${icon('delete')}Remove banner</button></div>` +
+                '<span class="error" id="ep-banner-err"></span><small class="muted">A wide picture across the top of your profile (3:1 fits best), or a GIF up to 4 MB. Everyone on Budgie can see it.</small></div>'
+              : '')
+        ) +
+        // ---- Colours: yours, your profile page's style, and what floats behind your name
+        panel(
+          'colours',
+          `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}<small class="muted">Your picture and your profile page wear it.</small></div>` +
+            (more
+              ? '<div class="field"><span class="field-label">Profile colours</span><div class="scheme-grid" role="group" aria-label="Profile colours">' +
+                ui.PROFILE_SCHEMES.map(([id, label]) => `<button type="button" data-scheme="${id}" aria-pressed="${id === model.scheme}"><span class="scheme-dots" data-dots="${id}"><i></i><i></i><i></i><i></i></span><small>${label}</small></button>`).join('') +
+                '</div><small class="muted">Your profile page wears your colour, worked into a whole Material palette in this style.</small></div>' +
+                '<div class="field"><span class="field-label">Background shapes</span><div class="ep-fold"><div class="shape-grid sticker-grid" role="group" aria-label="Background shapes">' +
+                `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span translate="no" class="m3-icon">auto_awesome</span></button>` +
+                `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span translate="no" class="m3-icon">block</span></button>` +
+                M3Shapes.names.filter((n) => n !== 'softCookie').map((n) => `<button type="button" data-sticker="${n}" aria-pressed="${n === model.sticker}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('') +
+                '</div>' +
+                foldButton() +
+                '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>'
+              : '')
+        ) +
+        // ---- Name: its font (the ones you have; Customise holds the rest, with effects, frames and scenes)
         (fonts
-          ? '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
-            ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
-            // and the fonts achievements unlock (1.4), with Customise for the rest of what they unlock
-            (Nook.rewards ? Nook.rewards.fontTiles(me.name, model.font) : '') +
-            '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small>' +
-            (Nook.rewards ? Nook.rewards.editorCard() : '') +
-            '</div>'
+          ? panel(
+              'name',
+              '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
+                ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
+                (Nook.rewards ? Nook.rewards.fontTiles(me.name, model.font) : '') +
+                '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small>' +
+                (Nook.rewards ? Nook.rewards.editorCard() : '') +
+                '</div>'
+            )
           : '') +
-        `<div class="field"><label for="ep-bio">Bio</label><textarea class="m3-field" id="ep-bio" rows="4" maxlength="${BIO_MAX}" placeholder="Tell people what you’re into">${esc(me.bio || '')}</textarea>` +
-        `<div class="field-foot"><small class="muted">${media ? 'Line breaks, **bold**, *italics* and links work' : ''}</small><small class="muted" id="ep-bio-count"></small></div></div>` +
-        (more ? section('flower', 'palette', 'Look') : '') +
-        '<div class="field"><span class="field-label">Picture</span>' +
-        `<div class="symbol-grid face-grid" role="group" aria-label="Picture"><button type="button" data-face="" aria-pressed="${!model.icon && !model.photo}" aria-label="Your first letter"><b>Aa</b></button>` +
-        ui.PROFILE_ICONS.map((s) => `<button type="button" data-face="${s}" aria-pressed="${!model.photo && s === model.icon}" aria-label="${s.replace(/_/g, ' ')}"><span translate="no" class="m3-icon">${s}</span></button>`).join('') +
-        '</div>' +
-        `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_a_photo')}<span id="ep-photo-label">${model.photo ? 'Change photo' : 'Upload a photo'}</span><input type="file" id="ep-photo" accept="image/*"></label>` +
-        `<button type="button" class="m3-btn text small" id="ep-photo-remove"${model.photo ? '' : ' hidden'}>${icon('delete')}Remove photo</button></div>` +
-        `<span class="error" id="ep-photo-err"></span><small class="muted">${media ? 'A photo from your gallery, or a GIF up to 2 MB that moves on your profile.' : 'A photo from your gallery.'} Everyone on Budgie can see it.</small></div>` +
-        (media
-          ? '<div class="field"><span class="field-label">Banner</span>' +
-            `<div class="toolbar"><label class="m3-btn tonal small photo-pick">${icon('add_photo_alternate')}<span id="ep-banner-label">${model.banner ? 'Change banner' : 'Upload a banner'}</span><input type="file" id="ep-banner-file" accept="image/*"></label>` +
-            `<button type="button" class="m3-btn text small" id="ep-banner-remove"${model.banner ? '' : ' hidden'}>${icon('delete')}Remove banner</button></div>` +
-            '<span class="error" id="ep-banner-err"></span><small class="muted">A wide picture across the top of your profile (3:1 fits best), or a GIF up to 4 MB. Everyone on Budgie can see it.</small></div>'
-          : '') +
-        `<div class="field"><span class="field-label">Colour</span>${swatchesHTML(me.color, 'me')}</div>` +
-        `<div class="field"><span class="field-label">Shape</span>${shapeGridHTML(me.shape)}</div>` +
-        (more
-          ? '<div class="field"><span class="field-label">Profile colours</span><div class="scheme-grid" role="group" aria-label="Profile colours">' +
-            ui.PROFILE_SCHEMES.map(([id, label]) => `<button type="button" data-scheme="${id}" aria-pressed="${id === model.scheme}"><span class="scheme-dots" data-dots="${id}"><i></i><i></i><i></i><i></i></span><small>${label}</small></button>`).join('') +
-            '</div><small class="muted">Your profile page wears your colour, worked into a whole Material palette in this style.</small></div>' +
-            '<div class="field"><span class="field-label">Background shapes</span><div class="shape-grid sticker-grid" role="group" aria-label="Background shapes">' +
-            `<button type="button" data-sticker="" aria-pressed="${!model.sticker}" aria-label="A mix" data-tooltip="A mix"><span translate="no" class="m3-icon">auto_awesome</span></button>` +
-            `<button type="button" data-sticker="none" aria-pressed="${model.sticker === 'none'}" aria-label="None" data-tooltip="None"><span translate="no" class="m3-icon">block</span></button>` +
-            M3Shapes.names.filter((n) => n !== 'softCookie').map((n) => `<button type="button" data-sticker="${n}" aria-pressed="${n === model.sticker}" aria-label="${n}" data-tooltip="${n}"><m3-shape shape="${n}"></m3-shape></button>`).join('') +
-            '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>' +
-            section('heart', 'interests', 'Interests') +
-            `<div class="field"><span class="field-label">What you’re into <small class="muted" id="ep-int-count">${model.interests.length}/${ui.INTERESTS_MAX}</small></span>` +
-            `<div class="chips wrap" role="group" aria-label="Interests">${ui.INTERESTS.map(([id, label, symbol]) => `<button type="button" class="chip" data-interest="${id}" aria-pressed="${model.interests.includes(id)}">${icon(symbol)}${label}</button>`).join('')}</div>` +
-            '<span class="error" id="ep-int-err"></span></div>'
-          : ''),
+        '</div>',
       setup(body) {
         const $$ = (sel) => body.querySelector(sel);
         const av = $$('#ep-avatar');
@@ -2275,6 +2302,45 @@
         const faceEl = $$('#ep-face');
         const bio = $$('#ep-bio');
         const paint = () => (faceEl.innerHTML = face(input.value || '?'));
+        // the tabs: one part of you at a time, each from its top
+        const scroller = $$('.ep-scroll');
+        const showTab = (id) => {
+          body.querySelectorAll('[data-ep-panel]').forEach((p) => (p.hidden = p.dataset.epPanel !== id));
+          scroller.scrollTop = 0;
+        };
+        $$('#ep-tabs').addEventListener('change', (e) => showTab(e.detail.value));
+        // a problem Save finds is shown where it is: its tab comes forward, and the line that says it into view
+        // (only when an error's own words change, so one left showing doesn't pull you back while you edit elsewhere)
+        new MutationObserver((records) => {
+          for (const r of records) {
+            const at = r.target.nodeType === Node.TEXT_NODE ? r.target.parentElement : r.target;
+            const bad = at && at.closest ? at.closest('.ep-panel .error') : null;
+            if (!bad || !bad.textContent.trim()) continue;
+            const where = bad.closest('[data-ep-panel]');
+            if (where.hidden) {
+              const tab = $$(`#ep-tabs [value="${where.dataset.epPanel}"]`);
+              if (tab) tab.click();
+              else showTab(where.dataset.epPanel);
+            }
+            requestAnimationFrame(() => bad.scrollIntoView({ block: 'nearest' }));
+            return;
+          }
+        }).observe(scroller, { subtree: true, childList: true, characterData: true });
+        // what Save is up to (uploading pictures) shows beside it, whichever tab is open
+        const bar = body.closest('dialog').querySelector('.m3-dialog-actions');
+        if (bar) bar.insertAdjacentHTML('afterbegin', '<span class="ep-status" id="ep-status" role="status"></span>');
+        // the long grids of shapes: two rows, until asked for all (or open already, when what's chosen is further in)
+        body.querySelectorAll('[data-ep-fold]').forEach((btn) => {
+          const box = btn.closest('.ep-fold');
+          const items = [...box.querySelector('.shape-grid').children];
+          const set = (open) => {
+            box.classList.toggle('open', open);
+            btn.setAttribute('aria-expanded', String(open));
+            btn.querySelector('.ep-fold-label').textContent = open ? 'Show fewer' : 'Show all';
+          };
+          set(items.findIndex((b) => b.getAttribute('aria-pressed') === 'true') >= 12);
+          btn.addEventListener('click', () => set(!box.classList.contains('open')));
+        });
         const count = () => {
           $$('#ep-bio-count').textContent = `${bio.value.length}/${BIO_MAX}`;
         };
@@ -2477,7 +2543,9 @@
             if (model.banner !== (me.banner || '')) Object.assign(fields, { banner: model.banner, bannerGif: model.bannerGif });
             const uploading = fields.photoGif || fields.bannerGif || fields.photo || fields.banner;
             saving = true;
-            err.textContent = uploading ? 'Uploading…' : '';
+            err.textContent = '';
+            const status = body.closest('dialog').querySelector('#ep-status');
+            if (status) status.textContent = uploading ? 'Uploading…' : '';
             store
               .updateProfile(fields)
               .then((updated) => {
@@ -2489,6 +2557,7 @@
               })
               .catch((error) => {
                 saving = false;
+                if (status) status.textContent = '';
                 err.textContent = error.message;
               });
             return false;

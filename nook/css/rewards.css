@@ -1388,6 +1388,25 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 .font-grid .rw-font-tile.locked {
   border-style: dashed;
 }
+/* the fonts you haven't unlocked yet: one tile that opens them in Customise */
+.font-grid .rw-font-tile.more {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--m3-primary) 50%, transparent);
+  color: var(--m3-primary);
+}
+.font-grid .rw-font-tile.more .font-sample .m3-icon {
+  font-size: 22px;
+}
+.font-grid .rw-font-tile.more small {
+  display: grid;
+  justify-items: center;
+  white-space: normal;
+  text-align: center;
+}
+.font-grid .rw-font-tile.more small b {
+  color: var(--m3-primary);
+  font-weight: 700;
+}
 .font-grid .rw-font-tile.locked .font-sample {
   opacity: 0.55;
 }

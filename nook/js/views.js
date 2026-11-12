@@ -2290,6 +2290,6 @@
     home, popular, community, postPage, explore, saved, collection, profile, inbox, searchPage, settingsPage, submit, notFound,
     friendsPage, messagesPage, thread, groupThread, adminPage, friendButtons, lineText, groupIcon, chatsPlus, serverAt, nestManage, banSheet, roleTag,
     postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
-    submitRail, empty, mountFeed,
+    submitRail, empty, mountFeed, segmented,
   };
 })();
