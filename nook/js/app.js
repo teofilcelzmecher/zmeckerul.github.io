@@ -1688,6 +1688,35 @@
       ],
     });
   };
+  // Budgie's Android app (1.6): whether this phone gets notifications, and turning them on after a "Not now"
+  const PUSH_WORDS = {
+    on: 'On. Messages, calls and replies reach you here.',
+    off: 'Off. Turn them on to hear about messages, calls and replies.',
+    blocked: 'Blocked in Android’s settings. To get them, allow notifications for Budgie there.',
+    unavailable: 'This version of Budgie can’t get notifications yet.',
+  };
+  const paintPush = (root, state) => {
+    const note = root.querySelector('[data-push-state]');
+    const go = root.querySelector('[data-act="push-on"]');
+    if (note) note.textContent = PUSH_WORDS[state] || PUSH_WORDS.unavailable;
+    if (go) go.hidden = state !== 'off';
+  };
+  if (window.BudgieNotifications) {
+    Nook.hook(
+      'settingsSections',
+      (header) =>
+        `<section>${header('cookie9', 'notifications', 'Notifications')}<div class="card setting-card"><div class="sec-row">${icon('notifications_active')}` +
+        `<span class="row-text"><b>On this phone</b><small data-push-state>…</small></span><button class="m3-btn filled" data-act="push-on" hidden>Turn on</button></div></div></section>`
+    );
+    Nook.hook('settingsMount', (root) => {
+      window.BudgieNotifications.state().then((state) => paintPush(root, state), () => paintPush(root, 'unavailable'));
+    });
+    ACTIONS['push-on'] = async () => {
+      const state = await window.BudgieNotifications.turnOn().catch(() => 'unavailable');
+      paintPush(document, state);
+      if (state === 'on') M3.toast('Notifications are on', { symbol: 'notifications_active', shape: 'cookie9' });
+    };
+  }
   ACTIONS['end-sessions'] = async () => {
     try {
       await store.endOtherSessions();

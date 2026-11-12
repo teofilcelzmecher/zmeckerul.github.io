@@ -44,6 +44,12 @@ jobs:
             printf '%s' "$GOOGLE_SERVICES_JSON" > apps/android/android/app/google-services.json
           else
             echo "::warning::No GOOGLE_SERVICES_JSON secret, so this build has no notifications"
+            # said where it's seen: on the run's page, and in the files' names
+            echo "BUDGIE_NO_PUSH=-no-notifications" >> "$GITHUB_ENV"
+            {
+              echo "### This build can't get notifications"
+              echo "Firebase's file for the app is missing. In Firebase, add an Android app with the package **com.budgiesocial.app** and download its **google-services.json**; then in this repository's Settings → Secrets and variables → Actions, add a secret named **GOOGLE_SERVICES_JSON** with the file's whole contents, and build again."
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: The upload key
@@ -79,8 +85,8 @@ jobs:
         run: |
           mkdir out
           v=$(node -p "require('./apps/android/package.json').version")
-          cp apps/android/android/app/build/outputs/bundle/release/app-release.aab "out/budgie-$v-$GITHUB_RUN_NUMBER.aab"
-          cp apps/android/android/app/build/outputs/apk/release/app-release*.apk "out/budgie-$v-$GITHUB_RUN_NUMBER.apk"
+          cp apps/android/android/app/build/outputs/bundle/release/app-release.aab "out/budgie-$v-$GITHUB_RUN_NUMBER$BUDGIE_NO_PUSH.aab"
+          cp apps/android/android/app/build/outputs/apk/release/app-release*.apk "out/budgie-$v-$GITHUB_RUN_NUMBER$BUDGIE_NO_PUSH.apk"
           rm -f "$RUNNER_TEMP/budgie-upload.jks" apps/android/android/app/google-services.json
 
       - uses: actions/upload-artifact@v5

@@ -293,6 +293,24 @@
     const got = await Push.requestPermissions().catch(() => null);
     if (got && got.receive === 'granted') register();
   }
+  // for Settings (1.6): whether this phone gets notifications, and turning them on after a "Not now"
+  window.BudgieNotifications = {
+    async state() {
+      if (!PUSH) return 'unavailable';
+      const now = await Push.checkPermissions().catch(() => null);
+      if (!now) return 'unavailable';
+      return now.receive === 'granted' ? 'on' : now.receive === 'denied' ? 'blocked' : 'off';
+    },
+    async turnOn() {
+      if (!PUSH) return 'unavailable';
+      const got = await Push.requestPermissions().catch(() => null);
+      if (got && got.receive === 'granted') {
+        await register();
+        return 'on';
+      }
+      return got && got.receive === 'denied' ? 'blocked' : 'off';
+    },
+  };
   quiet(Push.addListener('registration', (t) => ((deviceToken = t.value), tell())));
   // tapped: open what it's about
   quiet(
