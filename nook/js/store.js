@@ -527,8 +527,10 @@
     checkBadges();
   }
 
-  async function createPost({ n, title, body, type, flair, link, image, video, gif, poll, spoiler }) {
-    const { post: p } = await api.post('/api/posts', { n, title, body, type, flair, link: link ? { url: link.url } : null, image, video, gif, poll, spoiler });
+  async function createPost({ n, title, body, type, flair, link, image, video, gif, poll, spoiler }, onProgress) {
+    const payload = { n, title, body, type, flair, link: link ? { url: link.url } : null, image, video, gif, poll, spoiler };
+    // a photo goes with how far it's got (1.6), so a slow connection shows it moving
+    const { post: p } = await (onProgress && image && api.postProgress ? api.postProgress('/api/posts', payload, onProgress) : api.post('/api/posts', payload));
     ingestPost(p);
     state.votes[p.id] = 1;
     state.draft = null;

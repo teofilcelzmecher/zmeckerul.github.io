@@ -117,6 +117,10 @@
         xhr.send(file);
       });
     },
+    /** JSON sent with how far it's got, for a big one (a post with a photo, 1.6): onProgress(0 to 1) */
+    postProgress(path, body, onProgress) {
+      return this.upload(path, new Blob([JSON.stringify(body || {})], { type: 'application/json' }), onProgress);
+    },
     /** an answer that keeps coming (the live event stream), read as it arrives */
     stream: (path, signal) =>
       base

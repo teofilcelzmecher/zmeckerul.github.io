@@ -3317,9 +3317,17 @@
       try {
         const video = model.type === 'image' && model.video;
         const gif = model.type === 'image' && !video && model.gif;
-        p = await store.createPost({ n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : gif ? 'gif' : model.type, flair: model.flair, link, image: video || gif ? null : model.image, video: video ? video.id : undefined, gif: gif || undefined, poll: options, spoiler: spoiler.checked });
+        p = await store.createPost(
+          { n: model.nook.id, title: t, body: body.value.trim(), type: video ? 'video' : gif ? 'gif' : model.type, flair: model.flair, link, image: video || gif ? null : model.image, video: video ? video.id : undefined, gif: gif || undefined, poll: options, spoiler: spoiler.checked },
+          // a photo on its way: how far it's got, on the button's bar
+          (part) => {
+            status.textContent = part < 1 ? `Posting… ${Math.round(part * 100)}%` : 'Posting…';
+            submitBtn.style.setProperty('--sent', Math.round(part * 100) + '%');
+          }
+        );
       } catch (error) {
         submitBtn.disabled = false;
+        submitBtn.style.removeProperty('--sent');
         M3.rollText(status, 'Not posted yet');
         if (error.field && $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root)) $('#f-' + (error.field === 'poll' ? 'poll' : error.field) + '-err', root).textContent = error.message;
         else showError(error);
