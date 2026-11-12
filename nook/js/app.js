@@ -2882,6 +2882,7 @@
     shortcuts();
   };
 
+  ACTIONS.tour = () => Nook.intro && Nook.intro.open();
   ACTIONS['about-nook'] = () => {
     closeDrawer();
     const points = [

@@ -1012,7 +1012,7 @@
         '</div></section>' +
         `<section>${header('sunny', 'info', 'About')}<div class="card setting-card">` +
         `<div class="about-app"><m3-shape-icon shape="cookie9" symbol="diversity_3" size="56" icon-size="28"></m3-shape-icon><div><b class="m3-title">Budgie</b><span class="muted">Version ${esc(store.VERSION)}</span></div></div>` +
-        `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Budgie?</button>${offerDesktop() ? `<a class="m3-btn tonal" href="download.html">${icon('computer')}Budgie for your computer</a>` : ''}</div>` +
+        `<div class="toolbar"><button class="m3-btn filled" data-act="credits">${icon('stars')}Credits</button><button class="m3-btn tonal" data-act="about-nook">${icon('help')}What’s Budgie?</button>${Nook.intro ? `<button class="m3-btn tonal" data-act="tour">${icon('slideshow')}Take the tour</button>` : ''}${offerDesktop() ? `<a class="m3-btn tonal" href="download.html">${icon('computer')}Budgie for your computer</a>` : ''}</div>` +
         `<p class="muted">Built on a Material 3 Expressive design system ported from Swiftify. Shapes and morphing from rounded-polygon-qmljs (Apache 2.0); colour from Google’s material-color-utilities (Apache 2.0); type in Google Sans Flex and Material Symbols.</p>` +
         '</div></section>' +
         '</div></div>',

@@ -10,7 +10,9 @@ const APP_FILES = ['js/account.js', 'js/app.js', 'js/calls.js', 'js/pickers.js',
   // 1.4
   'js/achievements-data.js', 'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js',
   // 1.5
-  'js/blasts.js', 'js/channels.js'];
+  'js/blasts.js', 'js/channels.js',
+  // 1.6
+  'js/intro.js'];
 const M3_FILES = ['../m3/m3.js'];
 const SERVER = 'server/server.js';
 

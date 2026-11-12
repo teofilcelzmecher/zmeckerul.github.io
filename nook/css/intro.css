@@ -1,0 +1,526 @@
+/* Budgie's welcome (1.6, js/intro.js): five screens swiped sideways, each with its own small animation. What moves
+   is transforms and opacity, so it runs on the compositor; everything holds still for anyone who'd rather. */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background:
+    radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--m3-primary-container) 75%, transparent), transparent 55%),
+    radial-gradient(circle at 100% 100%, color-mix(in srgb, var(--m3-tertiary-container) 65%, transparent), transparent 55%),
+    var(--m3-surface);
+  color: var(--m3-on-surface);
+  overflow: hidden;
+}
+.intro[open] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  animation: intro-fade 380ms var(--m3-ease-emphasized-decel, ease-out) both;
+}
+.intro::backdrop {
+  background: var(--m3-surface);
+}
+@keyframes intro-fade {
+  from {
+    opacity: 0;
+  }
+}
+.intro-skip {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  z-index: 2;
+}
+.intro-track {
+  display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.intro-track::-webkit-scrollbar {
+  display: none;
+}
+.intro-slide {
+  flex: 0 0 100%;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 28px 8px;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  text-align: center;
+}
+.intro-slide h2 {
+  margin: 10px 0 0;
+  font-size: clamp(28px, 8vw, 38px);
+  line-height: 1.1;
+}
+.intro-slide p {
+  max-width: 34ch;
+  margin: 0;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-normal);
+  line-height: 1.5;
+}
+.intro-slide.on h2,
+.intro-slide.on p {
+  animation: intro-up 640ms var(--m3-ease-emphasized-decel, cubic-bezier(0.05, 0.7, 0.1, 1)) both;
+}
+.intro-slide.on p {
+  animation-delay: 90ms;
+}
+@keyframes intro-up {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+.intro-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 24px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.intro-dots {
+  display: flex;
+  gap: 8px;
+}
+.intro-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--m3-outline-variant);
+  transition: width 320ms var(--m3-ease-emphasized, ease), background-color 320ms;
+}
+.intro-dots i.on {
+  width: 26px;
+  background: var(--m3-primary);
+}
+.intro-next {
+  min-width: 132px;
+  min-height: 52px;
+}
+.intro-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(280px, 72vw);
+  aspect-ratio: 1;
+}
+
+/* 1. hello: Budgie's shape grows in and turns (and becomes others), small shapes fly out round it and bob */
+.ih-blob {
+  width: 58%;
+  height: 58%;
+  color: var(--m3-primary);
+  filter: drop-shadow(0 18px 30px color-mix(in srgb, var(--m3-primary) 35%, transparent));
+}
+.on .ih-blob {
+  animation: intro-grow 900ms var(--m3-ease-expressive-default-spatial, cubic-bezier(0.38, 1.21, 0.22, 1)) both, intro-turn 24s linear 900ms infinite;
+}
+.ih-o {
+  position: absolute;
+  width: 15%;
+  height: 15%;
+}
+.ih-o.o1 { top: 6%; left: 14%; color: var(--m3-tertiary); --dx: 110%; --dy: 160%; }
+.ih-o.o2 { top: 12%; right: 8%; color: var(--m3-secondary); --dx: -150%; --dy: 120%; }
+.ih-o.o3 { bottom: 16%; right: 4%; color: #e2557f; --dx: -170%; --dy: -90%; }
+.ih-o.o4 { bottom: 16%; left: 4%; color: #2e9d5b; --dx: 120%; --dy: -150%; }
+.ih-o.o5 { top: 46%; left: 0; width: 11%; height: 11%; color: #f0a020; --dx: 200%; --dy: 0%; }
+.on .ih-o {
+  animation: intro-fly 900ms var(--m3-ease-expressive-default-spatial, cubic-bezier(0.38, 1.21, 0.22, 1)) both, intro-bob 4.6s ease-in-out 900ms infinite;
+}
+.on .ih-o.o2 { animation-delay: 60ms, 1.4s; }
+.on .ih-o.o3 { animation-delay: 120ms, 1.9s; }
+.on .ih-o.o4 { animation-delay: 180ms, 2.4s; }
+.on .ih-o.o5 { animation-delay: 240ms, 2.9s; }
+.ih-word {
+  position: absolute;
+  bottom: -2%;
+  font: 800 clamp(26px, 8vw, 34px) / 1 var(--m3-font-brand, var(--m3-font));
+  letter-spacing: -0.02em;
+}
+.on .ih-word {
+  animation: intro-up 700ms var(--m3-ease-emphasized-decel, ease-out) 350ms both;
+}
+@keyframes intro-grow {
+  from {
+    opacity: 0;
+    scale: 0.2;
+    rotate: -90deg;
+  }
+}
+@keyframes intro-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes intro-fly {
+  from {
+    opacity: 0;
+    translate: var(--dx) var(--dy);
+    scale: 0.3;
+  }
+}
+@keyframes intro-bob {
+  50% {
+    translate: 0 -10px;
+    rotate: 20deg;
+  }
+}
+
+/* 2. nests: six nests pop in one after another, then bob gently */
+.art-nests {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.in-nest {
+  display: grid;
+  place-items: center;
+}
+.on .in-nest {
+  animation: intro-pop 620ms var(--m3-ease-expressive-fast-spatial, cubic-bezier(0.42, 1.67, 0.21, 0.9)) calc(var(--i) * 80ms) both,
+    intro-bob 5s ease-in-out calc(700ms + var(--i) * -700ms) infinite;
+}
+@keyframes intro-pop {
+  from {
+    opacity: 0;
+    scale: 0;
+  }
+}
+
+/* 3. a post: the card slides up, its Spark button pulses and reactions rise from it */
+.ip-card {
+  display: grid;
+  gap: 10px;
+  width: 88%;
+  padding: 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-high);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.12);
+  text-align: start;
+}
+.on .ip-card {
+  animation: intro-up 700ms var(--m3-ease-emphasized-decel, ease-out) both;
+}
+.ip-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ip-av {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--m3-tertiary);
+}
+.ip-lines {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+}
+.ip-lines i {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--m3-outline-variant);
+}
+.ip-lines i:last-child {
+  width: 60%;
+}
+.ip-pic {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+  border-radius: var(--m3-r-normal);
+  background: linear-gradient(160deg, var(--m3-primary-container), var(--m3-tertiary-container));
+}
+.ip-pic m3-shape:first-child {
+  position: absolute;
+  top: 14px;
+  right: 22px;
+  width: 38px;
+  height: 38px;
+  color: #f6b93b;
+}
+.ip-pic m3-shape:last-child {
+  position: absolute;
+  bottom: -20px;
+  left: -10%;
+  width: 120%;
+  height: 60px;
+  color: color-mix(in srgb, var(--m3-primary) 55%, transparent);
+}
+.ip-actions {
+  display: flex;
+  gap: 8px;
+}
+.ip-actions span {
+  display: grid;
+  place-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface-variant);
+}
+.ip-actions .ip-spark {
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.on .ip-spark {
+  animation: intro-pulse 1.8s ease-in-out 800ms infinite;
+}
+@keyframes intro-pulse {
+  20% {
+    scale: 1.18;
+  }
+  40% {
+    scale: 1;
+  }
+}
+.ip-float {
+  position: absolute;
+  bottom: 18%;
+  right: 16%;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+  opacity: 0;
+}
+.on .ip-float {
+  animation: intro-rise 2.4s var(--m3-ease-emphasized-decel, ease-out) infinite;
+}
+.on .ip-float.f2 { animation-delay: 0.6s; --x: -40px; }
+.on .ip-float.f3 { animation-delay: 1.2s; --x: 26px; }
+.on .ip-float.f4 { animation-delay: 1.8s; --x: -14px; }
+@keyframes intro-rise {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    scale: 0.4;
+  }
+  20% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--x, 10px) -150px;
+    scale: 0.9;
+  }
+}
+
+/* 4. a chat: bubbles come in one after another, someone's typing, and a call rings */
+.ic-col {
+  display: grid;
+  gap: 10px;
+  width: 92%;
+}
+.ic-b {
+  justify-self: start;
+  padding: 10px 16px;
+  border-radius: 20px 20px 20px 6px;
+  background: var(--m3-surface-container-highest);
+  font-size: 22px;
+  line-height: 1.2;
+}
+.ic-b.me {
+  justify-self: end;
+  border-radius: 20px 20px 6px 20px;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+}
+.on .ic-b {
+  animation: intro-pop 520ms var(--m3-ease-expressive-fast-spatial, cubic-bezier(0.42, 1.67, 0.21, 0.9)) calc(200ms + var(--i) * 420ms) both;
+}
+.ic-b.them {
+  transform-origin: 0 100%;
+}
+.ic-b.me {
+  transform-origin: 100% 100%;
+}
+.ic-b.typing {
+  display: flex;
+  gap: 5px;
+  padding: 16px 18px;
+}
+.ic-b.typing i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+.on .ic-b.typing i {
+  animation: intro-dot 1.1s ease-in-out infinite;
+}
+.on .ic-b.typing i:nth-child(2) { animation-delay: 0.15s; }
+.on .ic-b.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes intro-dot {
+  30% {
+    opacity: 1;
+    translate: 0 -5px;
+  }
+}
+.ic-call {
+  position: absolute;
+  right: -2%;
+  bottom: -4%;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: #2e9d5b;
+  color: #fff;
+  box-shadow: 0 0 0 0 rgb(46 157 91 / 0.5);
+}
+.on .ic-call {
+  animation: intro-pop 520ms var(--m3-ease-expressive-fast-spatial, ease-out) 1.9s both, intro-ring 1.6s ease-out 2.4s infinite;
+}
+@keyframes intro-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(46 157 91 / 0.55);
+    rotate: 0deg;
+  }
+  10% {
+    rotate: -14deg;
+  }
+  20% {
+    rotate: 14deg;
+  }
+  30% {
+    rotate: 0deg;
+  }
+  100% {
+    box-shadow: 0 0 0 26px rgb(46 157 91 / 0);
+  }
+}
+
+/* 5. a profile made your own: a banner, a frame turning round the picture, a name that shimmers, sparkles */
+.iy-card {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 86%;
+  padding-bottom: 18px;
+  overflow: hidden;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-high);
+  box-shadow: 0 14px 34px rgb(0 0 0 / 0.12);
+}
+.on .iy-card {
+  animation: intro-up 700ms var(--m3-ease-emphasized-decel, ease-out) both;
+}
+.iy-banner {
+  justify-self: stretch;
+  height: 70px;
+  background: linear-gradient(120deg, #7c4dff, #e2557f, #f0a020);
+}
+.iy-ring {
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  margin-top: -50px;
+  border-radius: 50%;
+  background: conic-gradient(#7c4dff, #3d7bff, #2e9d5b, #f0a020, #e2557f, #7c4dff);
+}
+.on .iy-ring {
+  animation: intro-turn 4s linear infinite;
+}
+.iy-av {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 4px solid var(--m3-surface-container-high);
+  border-radius: 50%;
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+  font-size: 34px;
+}
+.on .iy-av {
+  animation: intro-turn 4s linear infinite reverse;
+}
+.iy-av .m3-icon {
+  font-size: 36px;
+}
+.iy-name {
+  font: 800 26px / 1.1 var(--m3-font-brand, var(--m3-font));
+  background: linear-gradient(90deg, var(--m3-primary), #e2557f, var(--m3-primary));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.on .iy-name {
+  animation: intro-shimmer 2.6s linear infinite;
+}
+@keyframes intro-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.iy-chips {
+  display: flex;
+  gap: 6px;
+}
+.iy-chips i {
+  width: 44px;
+  height: 18px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-secondary-container);
+}
+.iy-spark {
+  position: absolute;
+  color: #f0a020;
+  opacity: 0;
+}
+.iy-spark.s1 { top: 4%; left: 8%; }
+.iy-spark.s2 { top: 22%; right: 2%; color: #e2557f; }
+.iy-spark.s3 { bottom: 8%; right: 12%; color: var(--m3-primary); }
+.on .iy-spark {
+  animation: intro-twinkle 2.2s ease-in-out infinite;
+}
+.on .iy-spark.s2 { animation-delay: 0.7s; }
+.on .iy-spark.s3 { animation-delay: 1.4s; }
+@keyframes intro-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    scale: 0.4;
+    rotate: 0deg;
+  }
+  50% {
+    opacity: 1;
+    scale: 1.2;
+    rotate: 90deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro *,
+  .intro[open] {
+    animation: none !important;
+  }
+  .ip-float,
+  .iy-spark {
+    opacity: 1;
+  }
+}
