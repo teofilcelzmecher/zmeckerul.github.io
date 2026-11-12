@@ -7511,3 +7511,54 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
     display: none;
   }
 }
+
+/* ---- keeping your account safe (1.6): two-step sign-in and where you're signed in, in Settings → Account ------ */
+.sec-rows {
+  display: grid;
+  gap: 4px;
+  margin: 4px 0;
+}
+.sec-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+.sec-row > .m3-icon {
+  flex: none;
+  color: var(--m3-primary);
+}
+.sec-row > .row-text {
+  flex: 1;
+  min-width: 0;
+}
+.sec-row > .m3-btn {
+  flex: none;
+}
+@media (max-width: 520px) {
+  .sec-row {
+    flex-wrap: wrap;
+  }
+  .sec-row > .m3-btn {
+    margin-left: 38px;
+  }
+}
+.tf-qr {
+  width: min(220px, 70vw);
+  margin: 4px auto 8px;
+  padding: 10px;
+  border-radius: var(--m3-r-large);
+  background: #fff;
+}
+.tf-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.tf-key {
+  font-size: clamp(14px, 4.2vw, 18px);
+}
+.tf-setup a {
+  color: var(--m3-primary);
+  font-weight: 650;
+}

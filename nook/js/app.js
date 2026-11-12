@@ -1556,6 +1556,126 @@
     });
   };
 
+  // ---- two-step sign-in and signing out everywhere else (1.6) ----------------------------------------------------
+  const loadQR = () =>
+    window.qrcode
+      ? Promise.resolve(window.qrcode)
+      : new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'js/vendor/qrcode.js';
+          s.onload = () => resolve(window.qrcode);
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+  const refreshSettings = () => /^#\/settings/.test(location.hash) && render();
+  ACTIONS.twofa = () => {
+    if (store.state.me.twofa) {
+      return ui.sheet({
+        headline: 'Turn off two-step sign-in?',
+        symbol: 'gpp_maybe',
+        shape: 'softBoom',
+        html:
+          '<p>Signing in will only ask for your password again.</p>' +
+          '<div class="field"><label for="tf-pass">Your password</label><input class="m3-field" id="tf-pass" type="password" autocomplete="current-password"></div>' +
+          '<div class="field"><label for="tf-code">A code from your authenticator app</label><input class="m3-field" id="tf-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"><span class="error" id="tf-err"></span></div>',
+        actions: [
+          { label: 'Cancel', value: null },
+          {
+            label: 'Turn off',
+            variant: 'filled',
+            run(close, body) {
+              const err = body.querySelector('#tf-err');
+              store
+                .twofaOff(body.querySelector('#tf-pass').value, body.querySelector('#tf-code').value)
+                .then(() => {
+                  close(true);
+                  M3.toast('Two-step sign-in is off', { symbol: 'gpp_maybe', shape: 'softBoom' });
+                  refreshSettings();
+                })
+                .catch((error) => (err.textContent = error.message));
+              return false;
+            },
+          },
+        ],
+      });
+    }
+    ui.sheet({
+      headline: 'Two-step sign-in',
+      symbol: 'verified_user',
+      shape: 'gem',
+      html:
+        '<p>Even with your password, nobody can sign in as you without a code from your phone. You’ll need an authenticator app, like Google Authenticator, Microsoft Authenticator, 2FAS or your password manager.</p>' +
+        '<div class="field"><label for="tf-pass">First, your password</label><input class="m3-field" id="tf-pass" type="password" autocomplete="current-password"><span class="error" id="tf-err"></span></div>' +
+        '<div class="tf-setup" hidden><div class="tf-qr" aria-label="A QR code for your authenticator app"></div>' +
+        '<p class="muted">Scan it with your authenticator app, or <a class="tf-link" href="#">open it in the app</a> on this phone. Or type this key into the app:</p>' +
+        '<output class="gate-recovery tf-key"></output>' +
+        '<div class="field"><label for="tf-code">Then type the 6-digit code it shows</label><input class="m3-field" id="tf-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"><span class="error" id="tf-err2"></span></div>' +
+        '<p class="muted">Keep your recovery code safe too: it gets you in if you lose your phone.</p></div>',
+      actions: [
+        { label: 'Cancel', value: null },
+        {
+          label: 'Continue',
+          variant: 'filled',
+          id: 'tf-go',
+          run(close, body) {
+            const go = body.closest('dialog').querySelector('#tf-go');
+            const setup = body.querySelector('.tf-setup');
+            if (setup.hidden) {
+              const err = body.querySelector('#tf-err');
+              err.textContent = '';
+              Promise.all([store.twofaSetup(body.querySelector('#tf-pass').value), loadQR().catch(() => null)])
+                .then(([r, qrcode]) => {
+                  body.querySelector('#tf-pass').closest('.field').hidden = true;
+                  setup.hidden = false;
+                  if (qrcode) {
+                    const qr = qrcode(0, 'M');
+                    qr.addData(r.uri);
+                    qr.make();
+                    body.querySelector('.tf-qr').innerHTML = qr.createSvgTag({ cellSize: 5, margin: 3, scalable: true });
+                  }
+                  body.querySelector('.tf-link').href = r.uri;
+                  body.querySelector('.tf-key').textContent = r.secret.match(/.{1,4}/g).join(' ');
+                  go.textContent = 'Turn on';
+                  body.querySelector('#tf-code').focus({ preventScroll: true });
+                })
+                .catch((error) => (err.textContent = error.message));
+              return false;
+            }
+            const err = body.querySelector('#tf-err2');
+            store
+              .twofaOn(body.querySelector('#tf-code').value)
+              .then(() => {
+                close(true);
+                M3.toast('Two-step sign-in is on', { symbol: 'verified_user', shape: 'gem' });
+                fx.haptic([10, 40, 10]);
+                refreshSettings();
+              })
+              .catch((error) => (err.textContent = error.message));
+            return false;
+          },
+        },
+      ],
+    });
+  };
+  ACTIONS['end-sessions'] = async () => {
+    try {
+      await store.endOtherSessions();
+      M3.toast('Signed out everywhere else', { symbol: 'devices', shape: 'pixelCircle' });
+      const note = $('[data-sessions]');
+      if (note) note.textContent = 'Only this device';
+    } catch (error) {
+      showError(error);
+    }
+  };
+  Nook.hook('settingsMount', (root) => {
+    const note = root.querySelector('[data-sessions]');
+    if (note)
+      store.otherSessions().then(
+        (n) => (note.textContent = n ? (n === 1 ? 'This device and 1 other' : `This device and ${n} others`) : 'Only this device'),
+        () => {}
+      );
+  });
+
   ACTIONS['new-recovery'] = () => {
     ui.sheet({
       headline: 'New recovery code',

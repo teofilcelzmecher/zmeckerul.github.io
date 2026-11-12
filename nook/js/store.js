@@ -76,6 +76,8 @@
     joinedAt: me.joinedAt || me.createdAt, role: me.role || 'member', badges: me.badges || [], calls: me.calls || 'on',
     // what you wear from the rewards achievements unlock (1.4): a name effect, a frame round your picture, a scene
     effect: me.effect || '', frame: me.frame || '', scene: me.scene || '',
+    // two-step sign-in is on (1.6)
+    twofa: !!me.twofa,
   });
 
   const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});
@@ -625,6 +627,13 @@
   }
   const changePassword = (current, password) => api.post('/api/account/password', { current, password });
   const newRecoveryCode = (password) => api.post('/api/account/recovery', { password }).then((r) => r.recovery);
+  // two-step sign-in (1.6): set up with the password (a secret and a link for the authenticator app), on with a code
+  const twofaSetup = (password) => api.post('/api/account/2fa/setup', { password });
+  const twofaOn = (code) => api.post('/api/account/2fa/enable', { code }).then((r) => ((state.me = Object.assign({}, state.me, { twofa: true })), r));
+  const twofaOff = (password, code) => api.post('/api/account/2fa/disable', { password, code }).then((r) => ((state.me = Object.assign({}, state.me, { twofa: false })), r));
+  // how many other places this account is signed in, and signing out of all of them
+  const otherSessions = () => api.get('/api/account/sessions').then((r) => r.others);
+  const endOtherSessions = () => api.post('/api/account/sessions/end', {});
   const exportData = () => api.get('/api/account/export');
   async function deleteAccount(password) {
     await api.post('/api/account/delete', { password });
@@ -979,7 +988,7 @@
     userStats, history, search, membersOf, activity, notifications, isRead, unread, notify, touchStreak, checkBadges, award,
     vote, voteComment, react, votePoll, join, toggleSave, hide, visit, createPost, uploadVideo,
     addOwnComment, editComment, remove, isRemoved, createCommunity, createCollection, collect, updateProfile,
-    markRead, signOut, changePassword, newRecoveryCode, exportData, deleteAccount,
+    markRead, signOut, changePassword, newRecoveryCode, twofaSetup, twofaOn, twofaOff, otherSessions, endOtherSessions, exportData, deleteAccount,
     friendStatus, friends, befriend, unfriend, isBlocked, block, unblock, chatTheme, setChatTheme, thread, conversation, unreadMessages, loadThread, sendMessage, markThreadRead,
     NEST_PERMS, NEST_ROLES, ROLE_LABELS, nestPerms, nestCan, nestRole, bannedFrom, manageNest, setNestRole, removeNestRole, editNest, banFromNest, unbanFromNest,
     dismissNestReport, pinPost, nestRemove,
