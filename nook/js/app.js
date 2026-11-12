@@ -46,6 +46,8 @@
         const id = { nookhq: 'budgiehq', asknook: 'askbudgie' }[parts[1]] || parts[1];
         if (parts[2] === 'p' && parts[3]) return at('postPage', { nook: id, post: parts[3] });
         if (parts[2] === 'manage') return at('nestManage', { nook: id });
+        // a nest's chat and its channels (1.5, js/channels.js)
+        if (parts[2] === 'chat' && views.nestChat) return at('nestChat', { nook: id, channel: parts[3] ? decodeURIComponent(parts[3]) : '' });
         return at('community', { nook: id });
       }
       case 'u':

@@ -2673,6 +2673,9 @@ moduleCtx.MEDIA_KINDS = MEDIA_KINDS;
 moduleCtx.REPORT_KINDS = REPORT_KINDS;
 // something for one person's open devices, over the live connection (1.4: a nudge arrives at once)
 moduleCtx.signal = signal;
+// 1.5: what nest chat checks and keeps a message with (as group chats do), and what someone may do in a nest
+Object.assign(moduleCtx, { vet, checkText, chatMedia, keepMedia, mediaOut });
+moduleCtx.nest = { perms: nestPerms, ban: nestBan, row: nestRow };
 for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {

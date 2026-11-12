@@ -538,6 +538,7 @@
     const c = store.community(params.nook);
     if (!c) return notFound(`There’s no nest called n/${params.nook}. Yet.`);
     const flairs = c.flairs || [];
+    const chatOn = !!(Nook.views && Nook.views.nestChat) && serverAt('1.5.0');
     return {
       title: `${c.title} (n/${c.id})`,
       nook: c,
@@ -549,8 +550,11 @@
         `<m3-shape-icon class="nook-avatar" shape="${c.shape}" hover-shape="${c.shape === 'heart' ? 'flower' : 'heart'}" symbol="${c.symbol}" size="104" icon-size="48"></m3-shape-icon>` +
         `<div class="nook-id"><h1 class="m3-title" translate="no">${esc(c.title)}</h1><span class="muted">n/${esc(c.id)}<span class="count"> · ${plural(store.activity(c).posts, 'post')}</span></span></div>` +
         `<div class="nook-hero-actions">${joinButton(c, false)}` +
+        // its chat (1.5, js/channels.js): a button with its name on a computer, one more round button on a phone
+        (chatOn ? `<a class="m3-btn tonal ch-open only-wide" href="#/n/${esc(c.id)}/chat">${icon('forum')}Chat</a>` : '') +
         // (on a phone Post sits here beside Join, so the row of sort tabs stays one row)
         (store.bannedFrom(c.id) ? '' : `<a class="m3-btn filled only-phone" href="#/submit?n=${c.id}">${icon('edit')}Post</a>`) +
+        (chatOn ? `<a class="m3-icon-btn tonal ch-open only-phone" href="#/n/${esc(c.id)}/chat" aria-label="Chat in n/${esc(c.id)}" data-tooltip="Chat">${icon('forum')}</a>` : '') +
         (store.nestPerms(c).length && serverAt('0.9.5') ? `<a class="m3-icon-btn tonal" href="#/n/${esc(c.id)}/manage" aria-label="Manage n/${esc(c.id)}" data-tooltip="Manage">${icon('tune')}</a>` : '') +
         `<button class="m3-icon-btn tonal" data-act="nook-menu" data-nook="${c.id}" aria-label="More" data-tooltip="More"><span translate="no" class="m3-icon">more_horiz</span></button></div></div>` +
         `<p class="nook-tagline"${ownText(c)}>${esc(c.tagline)}</p>` +
@@ -1556,6 +1560,8 @@
       toEnd(true);
       jump.hidden = true;
     });
+    // pressing Send leaves the box focused: the keyboard stays up, and nothing moves out from under the press
+    send.addEventListener('mousedown', (e) => e.preventDefault());
     const grow = () => {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 160) + 'px';
@@ -1700,6 +1706,8 @@
           (sticker ? Nook.stickers.menuRows(m) : '') +
           (m.media && m.media.type !== 'sticker' ? `<button type="button" class="row-link" data-do="open" data-m3-ripple>${icon('open_in_full')}<span class="row-text"><b>Open ${m.media.type === 'klipy' || m.media.gif ? 'GIF' : 'photo'}</b></span></button>` : '') +
           (m.mine ? '' : `<button type="button" class="row-link" data-do="report" data-m3-ripple>${icon('flag')}<span class="row-text"><b>Report message</b><small>Moderators will see it, and who sent it</small></span></button>`) +
+          // (1.5, nest chat) yours, or anyone's for the nest's team
+          (c.canDelete && c.canDelete(m) ? `<button type="button" class="row-link" data-do="delete" data-m3-ripple>${icon('delete')}<span class="row-text"><b>Delete message</b><small>${m.mine ? 'It goes for everyone' : 'As one of the nest’s team'}</small></span></button>` : '') +
           '</div>',
         setup(body, close) {
           body.addEventListener('click', (e) => {
@@ -1709,6 +1717,7 @@
             if (act.dataset.do.startsWith('sticker-')) Nook.stickers.menuAction(act.dataset.do, m);
             else if (act.dataset.do === 'copy') navigator.clipboard.writeText(m.body).then(() => M3.snackbar('Copied'), () => M3.snackbar('Couldn’t copy that.'));
             else if (act.dataset.do === 'open') Nook.pickers.view(Nook.api.url(m.media.url), 'Picture');
+            else if (act.dataset.do === 'delete') c.remove(m);
             else app().report(c.reportKind, { id: m.id });
           });
         },
@@ -2297,5 +2306,7 @@
     friendsPage, messagesPage, thread, groupThread, adminPage, friendButtons, lineText, groupIcon, chatsPlus, serverAt, nestManage, banSheet, roleTag,
     postCard, pollBlock, sparksRow, sparkChip, commentHTML, commentTree, replyBox, joinButton, aboutCard, rulesCard, modsCard,
     submitRail, empty, mountFeed, segmented,
+    // the chat's parts, for nest chat (1.5, js/channels.js)
+    chatPage, mountChat, chatHTML,
   };
 })();

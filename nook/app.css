@@ -1618,6 +1618,7 @@ body.calm :is(.badge, .badge-dot) {
 }
 .nook-hero-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
 }
