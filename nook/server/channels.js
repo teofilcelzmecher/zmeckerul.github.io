@@ -37,6 +37,7 @@ function install(ctx) {
   // a server.js from before 1.5 doesn't hand these over: no channels then
   if (!nest || !ctx.vet || !ctx.chatMedia) return {};
   const { vet, checkText, chatMedia, keepMedia, mediaOut } = ctx;
+  const dropMedia = ctx.dropMedia || (() => {});
 
   db.raw.exec(`
 CREATE TABLE IF NOT EXISTS nest_channels (
@@ -166,6 +167,7 @@ CREATE INDEX IF NOT EXISTS channel_messages_from ON channel_messages(from_id);
     if (!isAdmin(user, ch.nook)) fail(403, `Only n/${ch.nook}’s admins can delete channels.`);
     if (ch.name === 'general') fail(400, '#general stays: every nest has one.');
     db.tx(() => {
+      for (const r of db.all("SELECT media FROM channel_messages WHERE channel_id = ? AND media != ''", ch.id)) dropMedia(r.media);
       db.run('DELETE FROM channel_messages WHERE channel_id = ?', ch.id);
       db.run('DELETE FROM nest_channels WHERE id = ?', ch.id);
     });
@@ -232,6 +234,7 @@ CREATE INDEX IF NOT EXISTS channel_messages_from ON channel_messages(from_id);
     const m = db.get('SELECT m.*, c.nook, c.id AS cid FROM channel_messages m JOIN nest_channels c ON c.id = m.channel_id WHERE m.id = ?', Number(params.id) || 0);
     if (!m) return { ok: true };
     if (m.from_id !== user.id && !canRemove(user, m.nook)) fail(403, 'You can only delete your own messages.');
+    dropMedia(m.media);
     db.run('DELETE FROM channel_messages WHERE id = ?', m.id);
     for (const other of watchersOf(m.cid)) signal(other, 'channel', { nook: m.nook, channel: m.cid, deleted: m.id });
     return { ok: true };
@@ -250,6 +253,7 @@ CREATE INDEX IF NOT EXISTS channel_messages_from ON channel_messages(from_id);
       takeDown(id, reason) {
         const m = db.get('SELECT m.*, c.nook, c.name AS cname FROM channel_messages m JOIN nest_channels c ON c.id = m.channel_id WHERE m.id = ?', Number(id) || 0);
         if (!m) return false;
+        dropMedia(m.media);
         db.run('DELETE FROM channel_messages WHERE id = ?', m.id);
         if (notify) notify(m.from_id, { kind: 'mod', text: `A moderator removed your message in n/${m.nook} #${m.cname}: ${reason}`, href: `#/n/${m.nook}/chat/${m.cname}`, symbol: 'gavel', shape: 'pixelCircle' });
         return true;
