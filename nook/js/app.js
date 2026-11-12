@@ -2148,7 +2148,7 @@
     const model = {
       color: me.color, shape: me.shape, icon: me.icon || '', photo: me.photo || '', photoGif: me.photoGif || '', banner: me.banner || '', bannerGif: me.bannerGif || '',
       font: me.font || '', flags: [...(me.flags || [])], interests: [...(me.interests || [])], scheme: me.scheme || 'tonalSpot', sticker: me.sticker || '',
-      effect: me.effect || '',
+      effect: me.effect || '', frame: me.frame || '', scene: me.scene || '',
     };
     const face = (name) => ui.avatarFace({ name: name || me.name, shape: model.shape, icon: model.icon, photo: model.photo, photoGif: model.photoGif }, { moving: true });
     const bannerPreview = () => ui.bannerImage(model) || `<span class="ep-banner-empty">${icon('panorama')}No banner yet</span>`;
@@ -2206,11 +2206,12 @@
     };
     const BIO_MAX = media ? 300 : 160;
     let saving = false;
-    // In four tabs under a preview of you that stays in view, with Save always at the bottom: About (your name,
-    // pronouns, bio, flags and interests), Picture (a photo, or a symbol on your shape, and the banner), Colours (yours,
-    // your profile's style, the shapes behind your name) and Name (its font, and Customise for the rest). The long
-    // grids of shapes show two rows until asked for all.
-    const TABS = [['about', 'About'], ['picture', 'Picture'], ['colours', 'Colours']].concat(fonts ? [['name', 'Name']] : []);
+    // In tabs under a preview of you that stays in view, with Save always at the bottom: About (your name, pronouns,
+    // bio, flags and interests), Picture (a photo, or a symbol on your shape, and the banner), Colours (yours, your
+    // profile's style, the shapes behind your name), Name (its font) and Effects (what achievements unlock: name
+    // effects, frames and scenes, from Budgie 1.4). The long grids of shapes show two rows until asked for all.
+    const effects = !!(fonts && Nook.rewards && Nook.rewards.editorPanel && views.serverAt('1.4.0'));
+    const TABS = [['about', 'About'], ['picture', 'Picture'], ['colours', 'Colours']].concat(fonts ? [['name', 'Name']] : [], effects ? [['effects', 'Effects']] : []);
     const panel = (id, inner) => `<section class="ep-panel" data-ep-panel="${id}"${id === 'about' ? '' : ' hidden'}>${inner}</section>`;
     const foldButton = () => `<button type="button" class="m3-btn text small ep-fold-btn" data-ep-fold aria-expanded="false">${icon('expand_more')}<span class="ep-fold-label">Show all</span></button>`;
     ui.sheet({
@@ -2281,18 +2282,18 @@
                 '</div><small class="muted">They float behind your name on your profile, when it has no banner.</small></div>'
               : '')
         ) +
-        // ---- Name: its font (the ones you have; Customise holds the rest, with effects, frames and scenes)
+        // ---- Name: its font (the ones you have; "More fonts" opens the rest in Customise)
         (fonts
           ? panel(
               'name',
               '<div class="field"><span class="field-label">Name font</span><div class="font-grid" role="group" aria-label="Name font">' +
                 ui.NAME_FONTS.map(([id, label]) => `<button type="button" data-font="${id}" aria-pressed="${id === model.font}"><span class="font-sample${id ? ' name-font-' + id : ''}" translate="no">${esc(me.name)}</span><small>${label}</small></button>`).join('') +
                 (Nook.rewards ? Nook.rewards.fontTiles(me.name, model.font) : '') +
-                '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small>' +
-                (Nook.rewards ? Nook.rewards.editorCard() : '') +
-                '</div>'
+                '</div><small class="muted">Your name shows in it on your profile, posts, comments and chats.</small></div>'
             )
           : '') +
+        // ---- Effects: name effects, frames and scenes (js/rewards.js draws the tiles when the tab opens)
+        (effects ? panel('effects', Nook.rewards.editorPanel()) : '') +
         '</div>',
       setup(body) {
         const $$ = (sel) => body.querySelector(sel);
@@ -2302,11 +2303,62 @@
         const faceEl = $$('#ep-face');
         const bio = $$('#ep-bio');
         const paint = () => (faceEl.innerHTML = face(input.value || '?'));
+        // the preview wears what's picked: your name its font and effect (alive, as on your profile), your picture
+        // its frame, and the scene behind it all
+        const nameEl = $$('#ep-name');
+        const paintName = (pop) => {
+          nameEl.className = fonts ? ui.nameFont(model).trim() : '';
+          nameEl.textContent = input.value || '…';
+          if (model.effect && Nook.rewards) Nook.rewards.liven(nameEl);
+          if (pop) fx.pop(nameEl, 0.4);
+        };
+        const paintFrame = (pop) => {
+          av.querySelectorAll(':scope > [data-ep-frame]').forEach((n) => n.remove());
+          const worn = model.frame && Nook.rewards ? Nook.rewards.frame({ frame: model.frame, shape: model.shape }, 60) : null;
+          av.classList.toggle('framed', !!worn);
+          if (worn) {
+            const nodes = (html) => {
+              const t = document.createElement('template');
+              t.innerHTML = html;
+              for (const n of t.content.children) n.setAttribute('data-ep-frame', '');
+              return t.content;
+            };
+            av.insertBefore(nodes(worn.back), shape);
+            av.appendChild(nodes(worn.front));
+          }
+          if (pop) fx.pop(av, 0.7);
+        };
+        let scene = null;
+        let sceneId = '';
+        const paintScene = () => {
+          if ((model.scene || '') === sceneId) return;
+          if (scene) scene.destroy();
+          sceneId = model.scene || '';
+          scene = sceneId && Nook.rewards ? Nook.rewards.mountScene($$('#ep-top'), sceneId) : null;
+        };
+        body.closest('dialog').addEventListener('close', () => scene && scene.destroy(), { once: true });
+        if (Nook.rewards) {
+          paintName();
+          paintFrame();
+          paintScene();
+        }
+        // the Effects tab: its tiles are drawn when it opens, in how you look by then; a dot on it says what's new
+        const fxTab = effects
+          ? Nook.rewards.mountEditor($$('[data-ep-panel="effects"]'), model, {
+              name: () => input.value || me.name,
+              picked: (kind) => (kind === 'effect' ? paintName(true) : kind === 'frame' ? paintFrame(true) : paintScene()),
+            })
+          : null;
+        if (fxTab) $$('#ep-tabs [value="effects"]').insertAdjacentHTML('beforeend', Nook.rewards.dot());
         // the tabs: one part of you at a time, each from its top
         const scroller = $$('.ep-scroll');
         const showTab = (id) => {
           body.querySelectorAll('[data-ep-panel]').forEach((p) => (p.hidden = p.dataset.epPanel !== id));
           scroller.scrollTop = 0;
+          if (id === 'effects' && fxTab) {
+            fxTab.paint();
+            Nook.rewards.seen();
+          }
         };
         $$('#ep-tabs').addEventListener('change', (e) => showTab(e.detail.value));
         // a problem Save finds is shown where it is: its tab comes forward, and the line that says it into view
@@ -2348,7 +2400,7 @@
         bio.addEventListener('input', count);
         input.addEventListener('input', () => {
           input.value = input.value.replace(/[^A-Za-z0-9_]/g, '');
-          $$('#ep-name').textContent = input.value || '…';
+          paintName();
           body.querySelectorAll('.font-sample').forEach((el) => (el.textContent = input.value || '…'));
           $$('#ep-err').textContent = '';
           paint();
@@ -2361,15 +2413,22 @@
             if (!b) return;
             model.font = b.dataset.font;
             fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other === b)));
-            $$('#ep-name').className = ui.nameFont(model).trim();
-            fx.pop($$('#ep-name'), 0.4);
+            paintName(true);
           });
-          // what you put on in Customise (opened from here) shows here too, and Save keeps it
+          // what you put on in Customise (opened from here) shows here too, and Save keeps it: only what changed
+          // there, so what's picked here and not saved yet stays picked
+          const styleOf = (s) => ({ font: s.font || '', effect: s.effect || '', frame: s.frame || '', scene: s.scene || '' });
+          let wearing = styleOf(me);
           const onStyle = (e) => {
             if (!body.isConnected) return document.removeEventListener('nook:style', onStyle);
-            Object.assign(model, { font: e.detail.font || '', effect: e.detail.effect || '' });
+            const now = styleOf(e.detail);
+            for (const k of Object.keys(now)) if (now[k] !== wearing[k]) model[k] = now[k];
+            wearing = now;
             fontGrid.querySelectorAll('[data-font]').forEach((other) => other.setAttribute('aria-pressed', String(other.dataset.font === model.font)));
-            $$('#ep-name').className = ui.nameFont(model).trim();
+            paintName();
+            paintFrame();
+            paintScene();
+            if (fxTab && !$$('[data-ep-panel="effects"]').hidden) fxTab.paint();
           };
           document.addEventListener('nook:style', onStyle);
         }
@@ -2498,6 +2557,8 @@
           model.shape = name;
           shape.transitionTo(name, { spring: true });
           if (model.photo) paint();
+          // a frame follows the picture's outline
+          if (model.frame) paintFrame();
         });
       },
       actions: [
@@ -2546,8 +2607,23 @@
             err.textContent = '';
             const status = body.closest('dialog').querySelector('#ep-status');
             if (status) status.textContent = uploading ? 'Uploading…' : '';
+            // what's picked in Effects is put on too, once the rest is saved (a problem with it shows in Effects)
+            const style = {};
+            if (effects) for (const k of ['effect', 'frame', 'scene']) if ((model[k] || '') !== (store.state.me[k] || '')) style[k] = model[k] || '';
+            let styleFailed = false;
             store
               .updateProfile(fields)
+              .then((updated) =>
+                Object.keys(style).length
+                  ? Nook.rewards.wearAll(style).then(
+                      () => updated,
+                      (error) => {
+                        styleFailed = true;
+                        throw error;
+                      }
+                    )
+                  : updated
+              )
               .then((updated) => {
                 close(true);
                 renderMe();
@@ -2558,7 +2634,7 @@
               .catch((error) => {
                 saving = false;
                 if (status) status.textContent = '';
-                err.textContent = error.message;
+                (styleFailed ? body.querySelector('#rw-ep-err') : err).textContent = error.message;
               });
             return false;
           },

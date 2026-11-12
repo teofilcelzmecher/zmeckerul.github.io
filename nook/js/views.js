@@ -793,15 +793,17 @@
         (banner
           ? `<section class="profile-hero has-banner"><div class="profile-banner">${banner}</div>`
           : `<section class="profile-hero"${stickers}>`) +
-        `<div class="profile-main">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}" translate="no">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
+        `<div class="profile-main${me ? ' mine' : ''}">${avatar(u, 96, { moving: true })}<div class="who"><h1 class="m3-title${who.flag ? ' has-flag' : ''}" style="--name-len: ${u.name.length}"><span class="${nameFont(who).trim()}" translate="no">${esc(u.name)}</span>${prideFlag(who)}</h1>` +
         `<span class="muted">u/${esc(u.name)}${who.pronouns ? ` · <span class="pronouns">${esc(who.pronouns)}</span>` : ''} · joined ${joinedDays <= 1 ? 'today' : plural(joinedDays, 'day') + ' ago'}${u.admin ? ' · <span class="tag">Admin</span>' : ''}${u.banned ? ' · <span class="tag">Banned</span>' : ''}</span>` +
         specialBadges(who) +
         Nook.hooksHTML('profileHero', u, who, me) +
         (u.bio ? `<div class="md bio">${md(clean(u.bio))}</div>` : me ? '<p class="muted bio">No bio yet. Tell people what you’re into!</p>' : '') +
         (interests.length ? `<div class="interests" aria-label="Into">${interests.map(([, label, symbol]) => `<span class="chip static">${icon(symbol)}${label}</span>`).join('')}</div>` : '') +
         '</div>' +
+        // your own: a pencil beside your name, for Edit profile (your picture, colours, name, and the effects,
+        // frames and scenes achievements unlock); js/rewards.js gives it a dot when something new is unlocked
         (me
-          ? `<button class="m3-btn tonal" data-act="edit-profile">${icon('edit')}Edit profile</button>`
+          ? `<button class="m3-icon-btn filled profile-edit" data-act="edit-profile" aria-label="Edit profile" data-tooltip="Edit profile">${icon('edit')}${Nook.rewards ? Nook.rewards.dot() : ''}</button>`
           : u.banned
           ? ''
           : store.isBlocked(u.name)

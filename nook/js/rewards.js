@@ -96,7 +96,8 @@
       seen = null;
     }
     fresh = new Set([...mine.unlocked].filter((id) => !(seen || []).includes(id)));
-    document.querySelectorAll('.rw-customise .rw-dot').forEach((dot) => (dot.hidden = !fresh.size));
+    // the dots that say so: on the pencil on your profile, and on Edit profile's Effects tab
+    document.querySelectorAll('[data-rw-dot]').forEach((dot) => (dot.hidden = !fresh.size));
   }
   function sawAll() {
     if (!mine) return;
@@ -863,9 +864,9 @@
     const me = store.state.me;
     return { effect: me.effect || '', font: me.font || '', frame: me.frame || '', scene: me.scene || '' };
   };
-  /** wears one thing (or takes it off with ''), and tells whoever's listening */
-  async function wear(kind, id) {
-    const { style } = await api.put('/api/me/style', { [kind]: id });
+  /** wears what's in `changes` ({ effect, frame, scene, font }: '' takes one off), and tells whoever's listening */
+  async function wearAll(changes) {
+    const { style } = await api.put('/api/me/style', changes);
     Object.assign(store.state.me, style);
     if (mine) mine.wearing = style;
     document.dispatchEvent(new CustomEvent('nook:style', { detail: style }));
@@ -873,11 +874,27 @@
     store.sync();
     return style;
   }
+  /** wears one thing (or takes it off with '') */
+  const wear = (kind, id) => wearAll({ [kind]: id });
+
+  // ---- what a reward is called, and what unlocks it (Customise and Edit profile's Effects tab) ----------------
+
+  const NAME_FONTS = () => ui.NAME_FONTS || [['', 'Budgie']];
+  const label = (k, id) => (id ? (REWARD.get(id) || { name: (NAME_FONTS().find(([f]) => f === id) || [id, id])[1] }).name : KIND.get(k).none);
+  // what unlocks a locked one: "On fire IV". Where that doesn't fit on a line, it's the achievement's own badge and
+  // the tier instead (fit() decides; Customise's bar says it in full when the tile's tapped)
+  const lockChip = (r) => {
+    const f = FAMILY.get(r.needs.family);
+    const full = needsName(r);
+    const badge = f
+      ? `<span class="rw-need-short" aria-hidden="true"><m3-shape-icon shape="${esc(f.shape || 'circle')}" symbol="${esc(f.symbol || 'emoji_events')}" size="18" icon-size="12"></m3-shape-icon>${TIERS[r.needs.tier - 1] || r.needs.tier}</span>`
+      : '';
+    return `<span class="rw-chip locked">${icon('lock')}<span class="rw-need-full">${esc(full)}</span>${badge}</span>`;
+  };
 
   // ---- Customise -----------------------------------------------------------------------------------------
 
   let sheetOpen = false;
-  const NAME_FONTS = () => ui.NAME_FONTS || [['', 'Budgie']];
 
   /** Customise: every reward tried on your own name and picture. `rewardId` opens it on that one, tried on. */
   function open(rewardId) {
@@ -899,7 +916,6 @@
     const newAtOpen = new Set(fresh);
 
     const shortName = esc(me.name);
-    const label = (k, id) => (id ? (REWARD.get(id) || { name: (NAME_FONTS().find(([f]) => f === id) || [id, id])[1] }).name : KIND.get(k).none);
 
     const stage =
       '<div class="rw-stage" id="rw-stage">' +
@@ -911,16 +927,6 @@
         (k) => `<button class="m3-segment" role="radio" aria-checked="${k.id === kind}" value="${k.id}">${esc(k.label)}</button>`
       ).join('')}</div>`;
 
-    // what unlocks a locked one: "On fire IV". Where that doesn't fit on a line, it's the achievement's own badge and
-    // the tier instead (fit() decides; the bar says it in full when the tile's tapped)
-    const lockChip = (r) => {
-      const f = FAMILY.get(r.needs.family);
-      const full = needsName(r);
-      const badge = f
-        ? `<span class="rw-need-short" aria-hidden="true"><m3-shape-icon shape="${esc(f.shape || 'circle')}" symbol="${esc(f.symbol || 'emoji_events')}" size="18" icon-size="12"></m3-shape-icon>${TIERS[r.needs.tier - 1] || r.needs.tier}</span>`
-        : '';
-      return `<span class="rw-chip locked">${icon('lock')}<span class="rw-need-full">${esc(full)}</span>${badge}</span>`;
-    };
     // one tile: what it looks like on you, its name, and whether it's yours
     const tile = (k, id, art) => {
       const r = REWARD.get(id);
@@ -1216,17 +1222,102 @@
     );
     return '<span id="rw-ep-fonts" class="rw-ep-fonts"></span>';
   }
-  /** a card in the editor that opens Customise */
-  function editorCard() {
+  // ---- Edit profile's Effects tab: name effects, frames and scenes, worn when Edit profile saves --------------
+
+  const EDITOR_KINDS = [
+    ['effect', 'Name effects'],
+    ['frame', 'Frames'],
+    ['scene', 'Scenes'],
+  ];
+  /** the Effects tab: a section for each kind, its tiles drawn by mountEditor */
+  function editorPanel() {
     if (!supported) return '';
     return (
-      `<button type="button" class="rw-ep-card" data-rw-open data-m3-ripple>` +
-      `<m3-shape-icon shape="sunny" symbol="auto_awesome" size="40" icon-size="20" aria-hidden="true"></m3-shape-icon>` +
-      `<span class="row-text"><b>Customise</b><small>Name effects, frames round your picture, and scenes behind your profile. Achievements unlock more.</small></span>${icon('chevron_right')}</button>`
+      '<p class="muted rw-ep-lead">Achievements unlock these. Tap a locked one to see how to get it.</p>' +
+      EDITOR_KINDS.map(
+        ([kind, title]) =>
+          `<div class="field"><span class="field-label">${title} <small class="rw-count" data-rw-count="${kind}"></small></span>` +
+          `<div class="rw-grid rw-grid-${kind} rw-ep-grid" role="group" aria-label="${title}" data-rw-kind="${kind}"></div>` +
+          `<small class="muted">${esc(KIND.get(kind).about)}</small></div>`
+      ).join('') +
+      '<span class="error" id="rw-ep-err"></span>'
     );
   }
+  /**
+   * Draws and wires the Effects tab. `look` is Edit profile's own copy of you (your colour, shape, picture and font,
+   * and the effect, frame and scene picked so far), `name()` your name as typed, and `picked(kind)` is told when
+   * something's picked. What you've unlocked can be picked (it's tried on in the preview until Save); a locked one
+   * opens Customise on it, which says how to get it. Returns { paint }: the tiles again, in how you look now.
+   */
+  function mountEditor(panel, look, { name, picked }) {
+    if (!panel || !supported) return null;
+    const isNew = new Set(fresh);
+    const me = () => store.state.me;
+    const art = (kind, id) => {
+      if (kind === 'effect') return `<span class="rw-sample ${ui.nameFont({ font: look.font, effect: id }).trim()}" translate="no">${esc(name())}</span>`;
+      if (kind === 'frame') return ui.avatar(Object.assign({}, me(), look, { name: name(), frame: id }), 50, { moving: true });
+      return id ? `<span class="rw-thumb" data-rw-thumb="${esc(id)}"></span>` : `<span class="rw-thumb none">${icon('block')}</span>`;
+    };
+    const tile = (kind, id) => {
+      const r = REWARD.get(id);
+      const title = label(kind, id);
+      const named = `<span class="rw-tile-name"${id ? ' translate="no"' : ''}>${esc(title)}</span>`;
+      if (r && !isUnlocked(r)) {
+        return (
+          `<button type="button" class="rw-tile locked" data-rw-locked="${esc(id)}" aria-label="${esc(title)}, locked: unlock with ${esc(needsName(r))}" data-m3-ripple>` +
+          `<span class="rw-tile-art">${art(kind, id)}</span><span class="rw-tile-label">${named}${lockChip(r)}</span></button>`
+        );
+      }
+      const chip = (me()[kind] || '') === id ? `<span class="rw-chip on">${icon('check')}Wearing</span>` : r && isNew.has(id) ? '<span class="rw-chip new">New</span>' : '';
+      return (
+        `<button type="button" class="rw-tile" data-rw-pick="${esc(id)}" aria-pressed="${(look[kind] || '') === id}" aria-label="${esc(title)}" data-m3-ripple>` +
+        `<span class="rw-tile-art">${art(kind, id)}</span><span class="rw-tile-label">${named}${chip}</span></button>`
+      );
+    };
+    const paint = () => {
+      if (!mine) {
+        panel.querySelectorAll('[data-rw-kind]').forEach((grid) => grid.firstChild || (grid.innerHTML = '<p class="muted">Checking what you’ve unlocked…</p>'));
+        load().then(
+          () => panel.isConnected && paint(),
+          () => {
+            const lead = panel.querySelector('.rw-ep-lead');
+            if (lead) lead.textContent = 'Couldn’t check what you’ve unlocked. Try again in a moment.';
+          }
+        );
+        return;
+      }
+      for (const [kind] of EDITOR_KINDS) {
+        const list = ofKind(kind);
+        panel.querySelector(`[data-rw-kind="${kind}"]`).innerHTML = tile(kind, '') + list.map((r) => tile(kind, r.id)).join('');
+        const have = list.filter(isUnlocked).length;
+        panel.querySelector(`[data-rw-count="${kind}"]`).textContent = `${have} of ${list.length} unlocked`;
+      }
+      panel.querySelectorAll('.rw-sample.name-fx').forEach(liven);
+      fit(panel);
+      panel.querySelectorAll('[data-rw-thumb]').forEach((el) => el.firstChild || mountScene(el, el.dataset.rwThumb, { thumb: true }));
+    };
+    panel.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-rw-pick]');
+      if (!b) return;
+      const kind = b.closest('[data-rw-kind]').dataset.rwKind;
+      look[kind] = b.dataset.rwPick;
+      b.parentElement.querySelectorAll('[data-rw-pick]').forEach((t) => t.setAttribute('aria-pressed', String(t === b)));
+      fx.pop(b.querySelector('.rw-tile-art'), 0.86);
+      fx.haptic(5);
+      picked(kind);
+    });
+    return { paint };
+  }
+  /** a dot for something to say what's newly unlocked (the pencil on your profile, the Effects tab) */
+  const dot = () => (supported ? `<span class="rw-dot" data-rw-dot aria-hidden="true"${fresh.size ? '' : ' hidden'}></span>` : '');
+  /** you've seen what's new (the Effects tab was opened): the dots go */
+  function seen() {
+    if (!mine) return;
+    sawAll();
+    markNew();
+  }
 
-  // anything marked to open Customise does, anywhere (the editor's card, a locked font, the profile's button)
+  // anything marked to open Customise does, anywhere (a locked reward in Edit profile, "More fonts", achievements)
   document.addEventListener('click', (e) => {
     const t = e.target instanceof Element ? e.target : null;
     if (!t) return;
@@ -1275,15 +1366,11 @@
     const name = hero.querySelector('h1 .name-fx');
     if (name) liven(name);
     fitName(hero.querySelector('.who h1'));
-    // your own: Customise, beside Edit profile
+    // your own: the pencil (Edit profile, with its Effects tab) gets a dot when something new is unlocked
     const edit = me && supported && hero.querySelector('[data-act="edit-profile"]');
     if (edit) {
-      const row = document.createElement('div');
-      row.className = 'toolbar rw-own-actions';
-      edit.replaceWith(row);
-      row.appendChild(edit);
-      row.insertAdjacentHTML('beforeend', `<button class="m3-btn tonal rw-customise" data-rw-open>${icon('auto_awesome')}Customise<span class="rw-dot" aria-hidden="true"${fresh.size ? '' : ' hidden'}></span></button>`);
-      if (!mine) load().catch(() => supported || row.querySelector('.rw-customise').remove());
+      if (!edit.querySelector('[data-rw-dot]')) edit.insertAdjacentHTML('beforeend', dot());
+      if (!mine) load().catch(() => {});
     }
   });
 
@@ -1324,5 +1411,5 @@
     root.querySelectorAll('[data-rw-thumb]').forEach((el) => el.firstChild || mountScene(el, el.dataset.rwThumb, { thumb: true }));
   }
 
-  Nook.rewards = { open, frame, liven, mountScene, load, wear, fontTiles, editorCard, unlocks, preview, paint, SCENES: Object.keys(SCENES), KINDS };
+  Nook.rewards = { open, frame, liven, mountScene, load, wear, wearAll, fontTiles, editorPanel, mountEditor, dot, seen, unlocks, preview, paint, SCENES: Object.keys(SCENES), KINDS };
 })();

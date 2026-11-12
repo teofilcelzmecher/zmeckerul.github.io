@@ -967,14 +967,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   display: none;
 }
 
-/* your own profile: Edit profile and Customise side by side */
-.rw-own-actions {
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.rw-customise {
-  position: relative;
-}
+/* something new unlocked: a dot on the pencil on your profile, and on Edit profile's Effects tab */
 .rw-dot {
   position: absolute;
   top: 4px;
@@ -1120,7 +1113,7 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
     background: var(--nook-card-hover);
   }
 }
-.rw-tile[aria-checked='true'] {
+.rw-tile:is([aria-checked='true'], [aria-pressed='true']) {
   border-color: var(--m3-primary);
   border-radius: var(--m3-r-very-large);
   background: color-mix(in srgb, var(--m3-primary-container) 55%, var(--nook-card));
@@ -1410,30 +1403,26 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
 .font-grid .rw-font-tile.locked .font-sample {
   opacity: 0.55;
 }
-.rw-ep-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  margin-top: 10px;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: var(--m3-r-large);
-  background: color-mix(in srgb, var(--m3-tertiary-container) 70%, var(--nook-card));
-  color: var(--m3-on-tertiary-container);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
-}
-.rw-ep-card .row-text {
-  display: grid;
-  flex: 1;
-  gap: 2px;
-  min-width: 0;
-}
-.rw-ep-card small {
-  opacity: 0.85;
+/* the Effects tab: name effects, frames and scenes, as in Customise (what's picked is pressed, not checked) */
+.rw-ep-lead {
+  margin: 0;
   font-size: var(--m3-fs-smaller);
+}
+.rw-ep-grid > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.field-label .rw-count {
+  margin-inline-start: 4px;
+}
+/* on the tab, the dot sits after its word */
+.m3-segment > .rw-dot {
+  position: static;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-inline-start: -2px;
+  box-shadow: none;
 }
 
 /* ---- phones ----------------------------------------------------------------------------------------------- */

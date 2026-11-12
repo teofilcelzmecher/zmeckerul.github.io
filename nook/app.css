@@ -2813,8 +2813,44 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
    card less the picture and the gap beside it */
 .profile-main h1 {
   --flag-room: 0;
-  font-size: clamp(var(--m3-fs-huge), calc((100cqi - 112px) / (var(--name-len, 10) * 0.6 + var(--flag-room))), var(--m3-fs-headline));
+  font-size: clamp(var(--m3-fs-huge), calc((100cqi - 112px - var(--side-room, 0px)) / (var(--name-len, 10) * 0.6 + var(--flag-room))), var(--m3-fs-headline));
   overflow-wrap: anywhere;
+}
+/* your own profile: a pencil beside your name opens Edit profile, where everything about how it looks is (a
+   rounded square, as Material 3's icon buttons are, that goes round as it's pressed). It shares the name's line;
+   the line under the name runs on under it */
+.profile-main.mine {
+  --side-room: 64px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.profile-main.mine .who > h1 + .muted {
+  grid-column: 2 / -1;
+}
+.profile-main.mine > .profile-edit {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  border-radius: 16px;
+  box-shadow: var(--m3-elevation-1);
+  transition:
+    border-radius var(--nook-spring-gentle, 300ms var(--m3-ease-standard)),
+    background-color var(--m3-motion-element-move-fast),
+    scale var(--m3-motion-bounce);
+}
+.profile-main.mine > .profile-edit:active {
+  border-radius: var(--m3-r-full);
+}
+/* with a banner, the name starts just under it: the pencil keeps level with the name */
+.profile-hero.has-banner .profile-main.mine > .profile-edit {
+  margin-top: 8px;
+}
+.profile-edit > .rw-dot {
+  top: 2px;
+  right: 2px;
+  box-shadow: 0 0 0 2px var(--m3-primary);
 }
 .profile-main h1.has-flag {
   --flag-room: 1.4;
@@ -5272,16 +5308,21 @@ html.framed body {
   margin-bottom: 0;
 }
 
-/* Edit profile: the banner above the preview, like on the profile */
+/* Edit profile: the banner above the preview, like on the profile (and the scene you wear moving behind it) */
 .ep-top {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
   border-radius: var(--m3-r-large);
 }
 
 /* Edit profile as one screen: the preview of you and the tabs stay in view, only the tab's content scrolls, and Save
    stays at the bottom (on a phone it takes nearly the whole screen, below) */
-.m3-dialog.ep-sheet {
-  width: min(560px, 100vw - 48px);
+@media (min-width: 720px) {
+  /* (only on wide screens: on a phone it's a sheet from edge to edge, like every sheet) */
+  .m3-dialog.ep-sheet {
+    width: min(560px, 100vw - 48px);
+  }
 }
 .m3-dialog.ep-sheet[open] {
   display: flex;
@@ -5307,9 +5348,11 @@ html.framed body {
 .ep-fixed > .m3-segmented {
   width: 100%;
 }
+/* five tabs share a phone's width: less room round each word */
 .ep-fixed > .m3-segmented > .m3-segment {
   flex: 1;
   min-width: 0;
+  padding: 0 6px;
 }
 .ep-scroll {
   flex: 1;
