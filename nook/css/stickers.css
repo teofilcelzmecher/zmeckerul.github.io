@@ -677,10 +677,15 @@ img.cemoji {
     background-color 120ms,
     border-radius var(--m3-motion-click-bounce, 300ms);
 }
-.ep-make:hover,
 .ep-make:focus-within {
   border-radius: 50%;
   background: var(--m3-layer1-hover);
+}
+@media (hover: hover) {
+  .ep-make:hover {
+    border-radius: 50%;
+    background: var(--m3-layer1-hover);
+  }
 }
 
 /* ---- :name: as you type --------------------------------------------------------------------------------------- */

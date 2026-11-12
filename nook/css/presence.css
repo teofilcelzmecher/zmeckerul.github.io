@@ -382,15 +382,17 @@
   padding: 0 12px 0 14px;
   border: 1.5px dashed color-mix(in srgb, var(--m3-primary) 55%, transparent);
   border-radius: var(--m3-r-full);
-  background: color-mix(in srgb, var(--nook-cardest, #fff) 55%, transparent);
+  background: color-mix(in srgb, var(--m3-surface-container-lowest, #fff) 55%, transparent);
   color: var(--m3-primary);
   font: 650 var(--m3-fs-smallie) / 1.2 var(--m3-font);
   text-align: start;
   cursor: pointer;
   transition: background-color 160ms ease, scale var(--m3-motion-bounce, 300ms ease);
 }
-.pres-add:hover {
-  background: var(--m3-layer1-hover, color-mix(in srgb, var(--m3-primary) 8%, transparent));
+@media (hover: hover) {
+  .pres-add:hover {
+    background: var(--m3-layer1-hover, color-mix(in srgb, var(--m3-primary) 8%, transparent));
+  }
 }
 .pres-add:active {
   scale: 0.96;

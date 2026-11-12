@@ -1115,8 +1115,10 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   cursor: pointer;
   transition: border-radius var(--nook-spring-gentle, 300ms), background-color 150ms, border-color 150ms;
 }
-.rw-tile:hover {
-  background: var(--nook-card-hover);
+@media (hover: hover) {
+  .rw-tile:hover {
+    background: var(--nook-card-hover);
+  }
 }
 .rw-tile[aria-checked='true'] {
   border-color: var(--m3-primary);
@@ -1291,8 +1293,10 @@ body.plain-names :is(.name-font-arcade, .name-font-marquee, .name-font-graffiti,
   cursor: pointer;
   transition: border-radius var(--nook-spring-gentle, 300ms), background-color 150ms;
 }
-.rw-how:hover {
-  background: var(--m3-secondary-container);
+@media (hover: hover) {
+  .rw-how:hover {
+    background: var(--m3-secondary-container);
+  }
 }
 .rw-how:active {
   border-radius: var(--m3-r-very-large);

@@ -1039,6 +1039,8 @@
         if (sec && data) {
           fx.flipHeight(sec, () => {
             sec.innerHTML = sectionInner(who, data, { all: expanded.has(who.toLowerCase()) });
+            // the streak card (and anything else in its own colours) wears them again
+            ui.theme.tintAll(sec);
             fitRows(sec);
           });
           if (act.dataset.achAct === 'more') fx.stagger([...sec.querySelectorAll('.ach-tile')].slice(6), { y: 10, step: 25 });

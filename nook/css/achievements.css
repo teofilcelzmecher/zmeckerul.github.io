@@ -251,7 +251,7 @@
 }
 .ach-feat {
   padding-left: 4px;
-  background: color-mix(in srgb, var(--nook-cardest) 72%, transparent);
+  background: color-mix(in srgb, var(--m3-surface-container-lowest) 72%, transparent);
   color: var(--m3-on-surface);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ach-b) 55%, transparent);
 }
@@ -262,8 +262,10 @@
   color: color-mix(in srgb, var(--ach-c) 70%, var(--m3-on-surface));
   font-weight: 850;
 }
-.ach-feat:hover {
-  background: var(--nook-cardest);
+@media (hover: hover) {
+  .ach-feat:hover {
+    background: var(--m3-surface-container-lowest);
+  }
 }
 @media (max-width: 719px) {
   .ach-hero {
@@ -351,8 +353,10 @@
     radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--ach-b) 22%, transparent), transparent 70%),
     var(--nook-card);
 }
-.ach-tile:hover {
-  background-color: var(--nook-card-hover);
+@media (hover: hover) {
+  .ach-tile:hover {
+    background-color: var(--nook-card-hover);
+  }
 }
 .ach-tile:active {
   transform: scale(0.96);
@@ -364,8 +368,10 @@
 .ach-tile .ach-badge {
   margin-bottom: 4px;
 }
-.ach-tile:hover .ach-badge {
-  animation: ach-wiggle 520ms var(--m3-ease-expressive-fast-spatial, ease) both;
+@media (hover: hover) {
+  .ach-tile:hover .ach-badge {
+    animation: ach-wiggle 520ms var(--m3-ease-expressive-fast-spatial, ease) both;
+  }
 }
 .ach-tile .ach-name {
   display: -webkit-box;
@@ -643,7 +649,7 @@
   gap: 8px;
   padding: 12px 14px;
   border-radius: var(--m3-r-large);
-  background: color-mix(in srgb, var(--nook-cardest) 60%, transparent);
+  background: color-mix(in srgb, var(--m3-surface-container-lowest) 60%, transparent);
   font-size: var(--m3-fs-small);
 }
 .ach-next-head {
@@ -905,8 +911,10 @@
   text-align: left;
   cursor: pointer;
 }
-.ach-friend:hover {
-  background: var(--m3-surface-container-high);
+@media (hover: hover) {
+  .ach-friend:hover {
+    background: var(--m3-surface-container-high);
+  }
 }
 .ach-friend b {
   flex: 1;

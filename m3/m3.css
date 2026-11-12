@@ -626,8 +626,10 @@
     scale var(--m3-motion-bounce),
     opacity 200ms var(--m3-ease-standard);
 }
-.m3-btn:hover {
-  background-color: var(--m3-btn-bg-hover);
+@media (hover: hover) {
+  .m3-btn:hover {
+    background-color: var(--m3-btn-bg-hover);
+  }
 }
 /* a leading symbol takes the side nearer it in to 16 */
 .m3-btn:has(> .m3-icon) {
@@ -663,8 +665,10 @@
   --m3-ripple: var(--m3-layer1-active);
   box-shadow: var(--m3-elevation-1);
 }
-.m3-btn.elevated:hover {
-  box-shadow: var(--m3-elevation-2);
+@media (hover: hover) {
+  .m3-btn.elevated:hover {
+    box-shadow: var(--m3-elevation-2);
+  }
 }
 
 .m3-btn.small {
@@ -747,10 +751,15 @@
 
 /* wavy (WavyPill): the scalloped svg js draws is the background, so the
    button itself has none */
-.m3-btn.wavy,
-.m3-btn.wavy:hover {
+.m3-btn.wavy {
   background-color: transparent;
   box-shadow: none;
+}
+@media (hover: hover) {
+  .m3-btn.wavy:hover {
+    background-color: transparent;
+    box-shadow: none;
+  }
 }
 .m3-wavy-bg {
   position: absolute;
@@ -763,8 +772,10 @@
   pointer-events: none;
   transition: fill 200ms var(--m3-ease-expressive-effects);
 }
-.m3-btn.wavy:hover > .m3-wavy-bg {
-  fill: var(--m3-btn-bg-hover);
+@media (hover: hover) {
+  .m3-btn.wavy:hover > .m3-wavy-bg {
+    fill: var(--m3-btn-bg-hover);
+  }
 }
 .m3-btn.wavy:active > .m3-wavy-bg {
   fill: var(--m3-ripple);
@@ -810,8 +821,10 @@
     scale var(--m3-motion-bounce),
     opacity 200ms var(--m3-ease-standard);
 }
-.m3-icon-btn:hover {
-  background-color: var(--m3-btn-bg-hover);
+@media (hover: hover) {
+  .m3-icon-btn:hover {
+    background-color: var(--m3-btn-bg-hover);
+  }
 }
 .m3-icon-btn > .m3-icon {
   --m3-icon-size: 24px;
@@ -862,8 +875,10 @@
 }
 
 /* a shape behind it is its state layer: no round hover, no round ripple */
-.m3-icon-btn.has-shape:hover {
-  background-color: var(--m3-btn-bg);
+@media (hover: hover) {
+  .m3-icon-btn.has-shape:hover {
+    background-color: var(--m3-btn-bg);
+  }
 }
 .m3-icon-btn.has-shape > .m3-ripple {
   display: none;
@@ -910,8 +925,10 @@
 .m3-toolbar-btn[aria-pressed='true'] > .m3-icon {
   --m3-icon-fill: 1;
 }
-.m3-toolbar-btn:hover:not(:disabled) {
-  scale: 1.08;
+@media (hover: hover) {
+  .m3-toolbar-btn:hover:not(:disabled) {
+    scale: 1.08;
+  }
 }
 .m3-toolbar-btn:active:not(:disabled) {
   scale: 0.86;
@@ -929,9 +946,15 @@
     color var(--m3-motion-element-move-fast),
     scale var(--m3-motion-bounce);
 }
-.m3-toolbar-btn:is(:hover, :focus-visible):not(:disabled) > .m3-toolbar-backing {
+.m3-toolbar-btn:is(:focus-visible):not(:disabled) > .m3-toolbar-backing {
   color: var(--m3-secondary-container);
   scale: 1;
+}
+@media (hover: hover) {
+  .m3-toolbar-btn:is(:hover, :focus-visible):not(:disabled) > .m3-toolbar-backing {
+    color: var(--m3-secondary-container);
+    scale: 1;
+  }
 }
 .m3-toolbar-btn:active:not(:disabled) > .m3-toolbar-backing {
   color: var(--m3-secondary-container-active);
@@ -966,8 +989,10 @@
 .m3-icon-btn[aria-pressed='true'] > .m3-transport-shape {
   color: var(--m3-secondary-container);
 }
-.m3-icon-btn[aria-pressed='true']:hover > .m3-transport-shape {
-  color: var(--m3-secondary-container-hover);
+@media (hover: hover) {
+  .m3-icon-btn[aria-pressed='true']:hover > .m3-transport-shape {
+    color: var(--m3-secondary-container-hover);
+  }
 }
 .m3-icon-btn[aria-pressed='true']:active > .m3-transport-shape {
   color: var(--m3-secondary-container-active);
@@ -1350,8 +1375,13 @@ textarea.m3-field {
     background-color var(--m3-motion-element-move-fast),
     opacity 200ms var(--m3-ease-standard);
 }
-.m3-menu-item:is(:hover, :focus-visible) {
+.m3-menu-item:is(:focus-visible) {
   background-color: var(--m3-layer2-hover);
+}
+@media (hover: hover) {
+  .m3-menu-item:is(:hover, :focus-visible) {
+    background-color: var(--m3-layer2-hover);
+  }
 }
 .m3-menu-item:active {
   background-color: var(--m3-layer2-active);
@@ -1590,8 +1620,10 @@ textarea.m3-field {
     scale var(--m3-motion-bounce),
     opacity 120ms var(--m3-ease-standard);
 }
-.m3-media-card:hover {
-  scale: 1.03;
+@media (hover: hover) {
+  .m3-media-card:hover {
+    scale: 1.03;
+  }
 }
 .m3-media-card:active {
   scale: 0.95;
@@ -1617,8 +1649,10 @@ textarea.m3-field {
     box-shadow 160ms cubic-bezier(0.33, 1, 0.68, 1),
     scale 160ms cubic-bezier(0.33, 1, 0.68, 1);
 }
-.m3-media-card:hover::before {
-  box-shadow: 0 6px 13px color-mix(in srgb, var(--m3-shadow) 22%, transparent);
+@media (hover: hover) {
+  .m3-media-card:hover::before {
+    box-shadow: 0 6px 13px color-mix(in srgb, var(--m3-shadow) 22%, transparent);
+  }
 }
 .m3-media-art {
   position: relative;
@@ -1637,9 +1671,11 @@ textarea.m3-field {
   transition: scale 160ms cubic-bezier(0.33, 1, 0.68, 1);
 }
 /* the cover lifts a little more than the card, its shadow with it */
-.m3-media-card:hover .m3-media-art,
-.m3-media-card:hover::before {
-  scale: 1.015;
+@media (hover: hover) {
+  .m3-media-card:hover .m3-media-art,
+  .m3-media-card:hover::before {
+    scale: 1.015;
+  }
 }
 .m3-media-art > .m3-icon {
   --m3-icon-size: 48px;
@@ -1678,9 +1714,15 @@ textarea.m3-field {
   position: relative;
   color: var(--m3-on-primary);
 }
-.m3-media-card:is(:hover, :focus-visible) .m3-media-badge {
+.m3-media-card:is(:focus-visible) .m3-media-badge {
   opacity: 1;
   scale: 1;
+}
+@media (hover: hover) {
+  .m3-media-card:is(:hover, :focus-visible) .m3-media-badge {
+    opacity: 1;
+    scale: 1;
+  }
 }
 .m3-media-title {
   display: -webkit-box;

@@ -1641,7 +1641,8 @@
       backing.angle = baseAngle() + drift.value;
       drift.active = hovered && !isDisabled(button) && !button.hasAttribute('data-shape-still');
     };
-    button.addEventListener('pointerenter', () => {
+    button.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch') return;
       hovered = true;
       update();
     });
@@ -1678,7 +1679,8 @@
       const shown = onToggled || (hovered && !isDisabled(button) && !!(toggledShape || hoverShape));
       shape.classList.toggle('is-shown', shown);
     };
-    button.addEventListener('pointerenter', () => {
+    button.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch') return;
       hovered = true;
       update();
     });
@@ -2216,7 +2218,7 @@
       if (!segment.hasAttribute('aria-checked')) segment.setAttribute('aria-checked', 'false');
       const symbol = segment.getAttribute('data-symbol');
       if (symbol && !segment.querySelector(':scope > .m3-icon')) segment.insertBefore(glyph(symbol), segment.firstChild);
-      segment.addEventListener('pointerenter', () => hover(segment, true));
+      segment.addEventListener('pointerenter', (e) => e.pointerType !== 'touch' && hover(segment, true));
       segment.addEventListener('pointerleave', () => hover(segment, false));
       if (resize) resize.observe(segment);
     }
@@ -3155,7 +3157,8 @@
       this._lean = new motion.Spring(0, motion.springs.bounce, (value) => {
         this._icon.style.rotate = fmt(value) + 'deg';
       });
-      this._enter = () => {
+      this._enter = (e) => {
+        if (e && e.pointerType === 'touch') return;
         this._pointerIn = true;
         this._sync();
       };
@@ -3172,7 +3175,8 @@
       this._hoverRoot = this.closest('[data-m3-hover-root]') || this;
       this._hoverRoot.addEventListener('pointerenter', this._enter);
       this._hoverRoot.addEventListener('pointerleave', this._leave);
-      this._pointerIn = this._hoverRoot.matches(':hover');
+      // (a touch screen's :hover sticks to whatever was last tapped: there, nothing starts out hovered)
+      this._pointerIn = this._hoverRoot.matches(':hover') && matchMedia('(hover: hover)').matches;
       this._sync();
       // what it is given in the task that adds it shows as it is
       if (!this._settled) util.raf(() => (this._settled = true));
@@ -3661,7 +3665,8 @@
       this._thickness = new motion.Tweened(4, motion.presets.elementMoveFast, draw);
       this._handleWidth = new motion.Tweened(0, motion.presets.elementMoveFast, draw);
 
-      this.addEventListener('pointerenter', () => {
+      this.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') return;
         this._hover = true;
         this._sync();
       });
@@ -4113,7 +4118,8 @@
       update();
     };
 
-    button.addEventListener('pointerenter', () => {
+    button.addEventListener('pointerenter', (e) => {
+      if (e.pointerType === 'touch') return;
       hovered = true;
       update();
     });
