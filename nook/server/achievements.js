@@ -650,7 +650,57 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     const c = customNamed(id);
     say(unaward(u, c) ? `u/${u.name} no longer has ${c.name}.` : `u/${u.name} didn't have ${c.name}.`);
   };
+  // for trying everything out: every achievement at its top tier (and every special one) and a long streak, all at
+  // once and without a note for each. What they really had is kept, so `nook unmax` puts it back exactly
+  const backupKey = (u) => `max-backup:${u.id}`;
+  CLI.commands.max = (name, days) => {
+    if (!name) throw new Error('Usage: nook max <user> [streak days]');
+    const u = named(name);
+    const n = days == null ? 200 : clampInt(days, 1, 3650);
+    db.tx(() => {
+      if (!db.meta(backupKey(u))) {
+        const rows = db.all('SELECT id, tier, at, by_id FROM achievements WHERE user_id = ?', u.id);
+        const streak = { count: u.streak_count, best: u.streak_best, day: u.streak_day, freezes: u.streak_freezes, log: u.streak_log };
+        // (a visit while maxed writes the long streak into the stats as their best: that goes back too)
+        db.meta(backupKey(u), JSON.stringify({ rows, streak, statBest: stats.get(u.id, 'streak.best') || 0 }));
+      }
+      const t = now();
+      for (const f of FAMILIES) for (let tier = 1; tier <= f.tiers.length; tier++) db.run('INSERT OR IGNORE INTO achievements (user_id, id, tier, at, by_id) VALUES (?, ?, ?, ?, NULL)', u.id, f.id, tier, t);
+      for (const c of listCustom()) db.run('INSERT OR IGNORE INTO achievements (user_id, id, tier, at, by_id) VALUES (?, ?, 0, ?, NULL)', u.id, c.id, t);
+      // kept today, in their own time zone, with both freezes in hand
+      db.run(
+        'UPDATE users SET streak_count = ?, streak_best = ?, streak_day = ?, streak_freezes = ?, streak_log = ?, rev = ? WHERE id = ?',
+        n, Math.max(n, u.streak_best || 0), localDay(t, u.streak_tz || 0), STREAK.freezesMax, 'v'.repeat(Math.min(n, LOG_DAYS)), db.bump(), u.id
+      );
+    });
+    refreshProfile(u.id);
+    say(
+      `u/${u.name} has every achievement at its top tier now (${FAMILIES.length} of them, and ${listCustom().length} special), every reward they unlock, and a ${n}-day streak with ${STREAK.freezesMax} freezes.`,
+      'Open Budgie again (or pull to refresh) to see it. Others see it on their profile too. To put back what they really had: nook unmax ' + u.name
+    );
+  };
+  CLI.commands.unmax = (name) => {
+    if (!name) throw new Error('Usage: nook unmax <user>');
+    const u = named(name);
+    const saved = db.meta(backupKey(u));
+    if (!saved) return say(`u/${u.name} wasn't given everything with nook max, so there's nothing to put back.`);
+    const { rows, streak, statBest = 0 } = JSON.parse(saved);
+    db.tx(() => {
+      db.run("UPDATE stats SET value = ? WHERE user_id = ? AND key = 'streak.best'", statBest, u.id);
+      db.run('DELETE FROM achievements WHERE user_id = ?', u.id);
+      for (const r of rows) db.run('INSERT INTO achievements (user_id, id, tier, at, by_id) VALUES (?, ?, ?, ?, ?)', u.id, r.id, r.tier, r.at, r.by_id);
+      db.run(
+        'UPDATE users SET streak_count = ?, streak_best = ?, streak_day = ?, streak_freezes = ?, streak_log = ?, rev = ? WHERE id = ?',
+        streak.count, streak.best, streak.day, streak.freezes, streak.log, db.bump(), u.id
+      );
+      db.run('DELETE FROM meta WHERE key = ?', backupKey(u));
+    });
+    refreshProfile(u.id);
+    say(`u/${u.name} has what they really earned again: ${rows.length} tier${rows.length === 1 ? '' : 's'} and a ${streak.count}-day streak.`);
+  };
   CLI.help.push(
+    '  nook max <user> [days]           for testing: every achievement at its top tier, every reward, and a streak (200 days unless given)',
+    '  nook unmax <user>                put back the achievements and streak someone really had before nook max',
     '  nook achievement new "<name>" "<description>" [symbol] [shape]   make a special achievement to give people (symbol: a Material Symbols name)',
     '  nook achievements                list the special achievements, and how many people have each',
     '  nook award <user> <id> [tier]    give someone a special achievement (tier 1–5 or I–V; none if left out); they\'re told',
