@@ -1543,10 +1543,12 @@
       '<div class="call-top">' +
       `<button type="button" class="m3-icon-btn call-min" data-call="min" aria-label="Back to Budgie (the call carries on)" data-tooltip="Minimise (Esc)">${icon('picture_in_picture_alt')}</button>` +
       `<div class="call-title"><b>${esc(title())}</b><small class="call-status" aria-live="polite">${active.outgoing ? 'Calling…' : 'Connecting…'}</small></div>` +
+      // (what's on the right is one group, so the title sits in the middle of the screen however many there are)
+      '<span class="call-top-end">' +
       (active.call.group && server095() ? `<button type="button" class="m3-icon-btn" data-call="people" aria-label="People: ring them again" data-tooltip="People (R)">${icon('group_add')}</button>` : '') +
       `<button type="button" class="m3-icon-btn" data-call="settings" aria-label="Call settings: sound and look" data-tooltip="Sound and look">${icon('tune')}</button>` +
       (keys ? `<button type="button" class="m3-icon-btn" data-call="keys" aria-label="Keyboard shortcuts" data-tooltip="Shortcuts (?)">${icon('keyboard')}</button>` : '') +
-      `<span class="call-lock" data-tooltip="Encrypted between devices, never recorded">${icon('lock')}</span></div>` +
+      `<span class="call-lock" data-tooltip="Encrypted between devices, never recorded">${icon('lock')}</span></span></div>` +
       '<div class="call-stage"></div>' +
       '<video class="call-self" autoplay playsinline muted aria-label="You" hidden></video>' +
       '<div class="call-controls" role="toolbar" aria-label="Call controls"></div>';
@@ -1577,9 +1579,37 @@
       const b = e.target.closest('[data-stream], [data-quality]');
       if (b) return void (b.dataset.quality ? shareQuality(b.dataset.quality) : streamAct(b.dataset.stream, b.closest('.call-tile')));
       if (e.target.closest('button, a, input')) return;
+      // one other person filling the screen: a tap shows the controls, or puts them away (a mouse shows them by moving)
+      if (el.classList.contains('solo')) return void (idleAtPress || pointerKind === 'mouse' ? wake() : rest());
       const tile = e.target.closest('.call-tile');
       if (tile) tileTap(tile);
     });
+    // 1.6: with one other person on video, the bars step aside after a few seconds of nothing, as in a phone's own
+    // calls; anything you do brings them back
+    let idleTimer = 0;
+    let pointerKind = '';
+    // (what the press found: a tap also moves and focuses, which wakes the bars before its click arrives)
+    let idleAtPress = false;
+    el.addEventListener(
+      'pointerdown',
+      (e) => {
+        pointerKind = e.pointerType;
+        idleAtPress = el.classList.contains('idle');
+      },
+      { capture: true, passive: true }
+    );
+    const rest = () => {
+      clearTimeout(idleTimer);
+      if (el.classList.contains('solo') && !el.querySelector('.call-react:not([hidden]), [aria-expanded="true"]')) el.classList.add('idle');
+    };
+    const wake = () => {
+      el.classList.remove('idle');
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(rest, 4500);
+    };
+    for (const type of ['pointermove', 'keydown', 'focusin']) el.addEventListener(type, wake, { passive: true });
+    el.addEventListener('pointerdown', (e) => !e.target.closest('.call-stage') && wake(), { passive: true });
+    wake();
     el.querySelector('.call-stage').addEventListener('keydown', (e) => {
       const tile = e.target.classList && e.target.classList.contains('call-tile') ? e.target : null;
       if (tile && (e.key === 'Enter' || e.key === ' ')) {
@@ -1656,8 +1686,9 @@
   function cornerSpot(self, corner) {
     const box = active.el.getBoundingClientRect();
     const top = active.el.querySelector('.call-top').getBoundingClientRect().bottom - box.top + 8;
-    const bottom = active.el.querySelector('.call-controls').getBoundingClientRect().top - box.top - 10;
-    const pad = 12;
+    const bottom = active.el.querySelector('.call-controls').getBoundingClientRect().top - box.top - 12;
+    // 16 pixels from the side: the same edge as the call's buttons (and the symbols up top)
+    const pad = 16;
     return {
       x: corner[1] === 'l' ? pad : box.width - self.offsetWidth - pad,
       y: corner[0] === 't' ? top : Math.max(top, bottom - self.offsetHeight),
@@ -2046,6 +2077,12 @@
     if (focused && !focused.classList.contains('has-video')) focused = active.focus = null;
     const pictures = focused || active.screen || active.cam || tiles.some((t) => t.classList.contains('has-video'));
     active.el.dataset.media = pictures ? 'video' : 'voice';
+    // 1.6: one other person, camera on, nobody's screen: they fill the screen, edge to edge
+    const solo = peers.length === 1 && tiles.length === 1 && tiles[0].classList.contains('has-video') && !tiles[0].classList.contains('screen-tile');
+    if (active.el.classList.contains('solo') !== solo) {
+      active.el.classList.toggle('solo', solo);
+      if (!solo) active.el.classList.remove('idle');
+    }
     box.classList.toggle('focus', !!focused);
     tiles.forEach((t) => t.classList.toggle('focused', t === focused));
     box.dataset.count = String(peers.length);

@@ -5953,19 +5953,30 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
 .call-screen[hidden] {
   display: none;
 }
+/* three columns, the outer two as wide as each other: the title is in the middle of the screen, whatever's beside
+   it (the icons' 48-pixel boxes start 4 pixels in, so the symbols line up 16 pixels in, with everything below) */
 .call-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 4px;
+}
+.call-top > .call-min {
+  justify-self: start;
+}
+.call-top-end {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px 4px;
+  justify-self: end;
 }
 .call-top .m3-icon-btn {
   color: var(--m3-on-surface);
 }
 .call-title {
   display: grid;
-  flex: 1;
   min-width: 0;
+  max-width: min(58vw, 440px);
   text-align: center;
 }
 .call-title b {
@@ -6205,11 +6216,15 @@ html[data-m3-reduce-motion] :is(.ring-halo, .ring-pic, .call-btn.answer .m3-icon
   border-radius: 44px;
   background: var(--m3-surface-container-high);
 }
-/* a narrow phone: the buttons a little smaller and closer, so they stay in one row */
+/* a narrow phone: the buttons a little smaller and closer, so they stay in one row, and the bar as wide as the
+   screen less 16 pixels each side, the same edge your own picture keeps */
 @media (max-width: 420px) {
   .call-controls {
     flex-wrap: nowrap;
+    justify-content: space-between;
     gap: 8px;
+    width: calc(100% - 32px);
+    max-width: none;
     padding: 8px;
   }
   .call-controls .call-btn {
@@ -7561,4 +7576,102 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
 .tf-setup a {
   color: var(--m3-primary);
   font-weight: 650;
+}
+
+/* ---- calls, 1.6: one other person on video fills the screen edge to edge, the bars float over soft shade and
+   step aside after a few seconds of nothing (a tap brings them back) ------------------------------------------- */
+.call-screen.solo .call-bg {
+  display: none;
+}
+.call-screen.solo .call-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 0;
+}
+.call-screen.solo .call-stage > .call-tile {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+.call-screen.solo .call-stage > .call-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* the name is in the title already: the tag stays only to say they're muted or deafened, up under the top bar */
+.call-screen.solo .call-stage > .call-tile .tile-name {
+  display: none;
+}
+.call-screen.solo .call-stage > .call-tile .tile-name:has(.tile-muted:not([hidden]), .tile-deaf:not([hidden])) {
+  display: flex;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+  z-index: 2;
+}
+.call-screen.solo .call-stage > .call-tile .tile-name > span:first-child {
+  display: none;
+}
+.call-screen.solo::before,
+.call-screen.solo::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  pointer-events: none;
+  transition: opacity 300ms;
+}
+.call-screen.solo::before {
+  top: 0;
+  height: 140px;
+  background: linear-gradient(rgb(0 0 0 / 0.5), transparent);
+}
+.call-screen.solo::after {
+  bottom: 0;
+  height: 200px;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.55));
+}
+.call-screen.solo .call-top,
+.call-screen.solo .call-controls {
+  position: relative;
+  z-index: 2;
+  transition: opacity 300ms var(--m3-ease-standard), translate 400ms var(--m3-ease-emphasized-decel, ease-out);
+}
+/* the stage left the grid, so the bars keep their own rows: the top one up top, the controls at the bottom */
+.call-screen.solo .call-top {
+  grid-row: 1;
+  color: #fff;
+}
+.call-screen.solo .call-controls {
+  grid-row: 3;
+  align-self: end;
+  background: rgb(0 0 0 / 0.38);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.call-screen.solo .call-top .m3-icon-btn,
+.call-screen.solo .call-top .call-lock {
+  color: #fff;
+}
+.call-screen.solo .call-self {
+  z-index: 2;
+}
+.call-screen.solo.idle .call-top,
+.call-screen.solo.idle .call-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+.call-screen.solo.idle .call-top {
+  translate: 0 -24px;
+}
+.call-screen.solo.idle .call-controls {
+  translate: 0 24px;
+}
+.call-screen.solo.idle::before,
+.call-screen.solo.idle::after {
+  opacity: 0;
 }
