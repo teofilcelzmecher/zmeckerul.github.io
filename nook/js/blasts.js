@@ -170,7 +170,7 @@
     const listFor = () => (q ? 'popular' : tab === 'yours' ? null : tab);
 
     const tile = (s) =>
-      `<button type="button" class="bl-tile" role="listitem" data-bl-sticker="${esc(s.id)}" data-bl-name="${esc(s.name || '')}"${s.gif ? ' data-bl-gif' : ''} aria-label="${esc(labelOf(s))}${s.by ? ', by u/' + esc(s.by) : ''}">` +
+      `<button type="button" class="bl-tile" role="listitem" data-bl-sticker="${esc(s.id)}" data-bl-name="${esc(s.name || '')}"${s.gif ? ' data-bl-gif' : ''} aria-label="${s.by ? `${esc(labelOf(s))}, by u/${esc(s.by)}` : esc(labelOf(s))}">` +
       `${art({ sticker: s.id, gif: s.gif }, 76)}<small translate="no">${esc(s.name || '')}</small></button>`;
     const makeTile = `<label class="bl-tile bl-make" role="listitem"><span class="bl-make-ring">${icon('add')}</span><small>Make one</small><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Make a sticker from a picture or GIF"></label>`;
 

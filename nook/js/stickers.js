@@ -762,7 +762,7 @@
         // ---- Browse: what people shared, the most saved first or the newest, or by name
         const found = { sort: 'popular', q: '', page: 0, list: [], more: false, busy: false, token: 0, error: '' };
         const foundTile = (x) =>
-          `<button type="button" class="stk-tile stk-found" role="listitem" data-stk-found="${esc(x.id)}" aria-label="${esc(label(x))}${x.by ? ', by u/' + esc(x.by) : ''}" title="${esc(label(x))}">` +
+          `<button type="button" class="stk-tile stk-found" role="listitem" data-stk-found="${esc(x.id)}" aria-label="${x.by ? `${esc(label(x))}, by u/${esc(x.by)}` : esc(label(x))}" title="${esc(label(x))}">` +
           `<img src="${esc(srcOf(x))}" alt="" loading="lazy" decoding="async" draggable="false" translate="no"><small translate="no">${esc(x.name || '')}</small></button>`;
         const paintFound = () => {
           bar.hidden = false;

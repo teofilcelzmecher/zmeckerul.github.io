@@ -30,7 +30,7 @@ function looksLikeUI(t) {
   if (NOT_WORDS.has(t) || /^[IVX]+$/.test(t) || /^;?--[\w-]+:/.test(t) || /^translate[XYZ]?\(/.test(t)) return false;
   if (/^[a-z][a-z0-9-]*(?: [a-z][a-z0-9-]*)+$/.test(t) && /-/.test(t)) return false; // class lists ("wide rw-sheet")
   if (KEYS.has(t)) return false;
-  if (/="/.test(t) || /^use strict$/.test(t) || /^\(/.test(t) || /^m3: /.test(t)) return false;
+  if (/="/.test(t) || /^use strict$/.test(t) || /^\(/.test(t) || /^m3: /.test(t) || /^path\(/.test(t)) return false;
   if (/^[\s{}0-9]*$/.test(t.replace(/\{\d+\}/g, ''))) return false;
   // one word: a capitalised word (a label like "Done"), not a compound name like "SchemeTonalSpot"
   if (!/\s/.test(t.replace(/\{\d+\}/g, ''))) {
