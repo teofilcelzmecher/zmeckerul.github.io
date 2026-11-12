@@ -465,11 +465,14 @@
 
     /** one element in a nook's colours; `always` for what stands for the nook itself */
     tint(el, seed, always) {
-      if (!seed || (!always && !store.state.settings.tintPosts) || seed.toLowerCase() === this.current) {
+      // an element can ask for its own scheme style (data-tint-variant): the streak's fire keeps its seed's own vivid
+      // orange (fidelity) whatever style the app wears
+      const variant = (el.dataset && el.dataset.tintVariant) || undefined;
+      if (!seed || (!always && !store.state.settings.tintPosts) || (!variant && seed.toLowerCase() === this.current)) {
         clearVars(el);
         return Promise.resolve();
       }
-      return this.scheme(seed.toLowerCase()).then(
+      return this.scheme(seed.toLowerCase(), variant).then(
         (colors) => el.isConnected && M3.color.apply(colors, el),
         () => {}
       );

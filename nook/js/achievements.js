@@ -377,6 +377,25 @@
     return paths.get(shape);
   };
   const dayLabel = (count) => (count === 1 ? 'day streak' : 'day streak');
+  // The streak wears its own colours: Material 3's roles worked out from a fire orange (an icy blue for freezes),
+  // through the same tinting a nest's posts use, so its card, chips, ring and buttons are the kit's own, in light
+  // and dark alike (and follow a switch between them)
+  const FIRE_SEED = '#ff6d00';
+  const ICE_SEED = '#039be5';
+  const wearing = (seed = FIRE_SEED) => ` data-tint="${seed}" data-tint-always data-tint-variant="fidelity"`;
+  /** the wavy ring eases to where it's going (the kit's ring jumps) */
+  const fillRing = (ringEl, to, ms) => {
+    const from = Number(ringEl.getAttribute('progress')) || 0;
+    if (still() || ms <= 0) return ringEl.setAttribute('progress', to.toFixed(3));
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / ms);
+      const e = 1 - Math.pow(1 - t, 3);
+      ringEl.setAttribute('progress', (from + (to - from) * e).toFixed(3));
+      if (t < 1 && ringEl.isConnected) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  };
 
   /** the digits roll up into place, each on its own spring */
   function odometerHTML(from, to) {
@@ -474,12 +493,12 @@
     const dlg = document.createElement('dialog');
     dlg.className = `ach-moment${icy ? ' icy' : ''}${big ? ' big' : ''}${still() ? ' still' : ''}`;
     dlg.setAttribute('aria-label', `${r.count}-day streak. ${title}`);
-    const R = 46;
-    const C = 2 * Math.PI * R;
     dlg.innerHTML =
       '<div class="ach-m-bg" aria-hidden="true"><div class="ach-m-glow"></div><canvas class="ach-m-sparks"></canvas></div>' +
       '<div class="ach-m-body">' +
-      `<div class="ach-m-stage"><svg class="ach-m-ring" viewBox="0 0 100 100" aria-hidden="true"><circle class="track" cx="50" cy="50" r="${R}"/><circle class="arc" cx="50" cy="50" r="${R}" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C * (1 - (r.lost ? 0 : ringBefore.p))).toFixed(2)}"/></svg>` +
+      // the flame on a slowly turning Material shape, inside a wavy ring that fills toward the next milestone
+      `<div class="ach-m-stage"><m3-squiggle class="ach-m-ring" progress="${(r.lost ? 0 : ringBefore.p).toFixed(3)}" thickness="7" amplitude="3.5" wavelength="30" free aria-hidden="true"></m3-squiggle>` +
+      '<m3-shape class="ach-m-plate" shape="cookie12" aria-hidden="true"></m3-shape>' +
       '<svg class="ach-m-flame" viewBox="0 0 100 100" aria-hidden="true"><defs>' +
       `<linearGradient id="achfo" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${icy ? '#0277bd' : '#ff3d00'}"/><stop offset="0.55" stop-color="${icy ? '#4fc3f7' : '#ff7a00'}"/><stop offset="1" stop-color="${icy ? '#e1f5fe' : '#ffc400'}"/></linearGradient>` +
       `<linearGradient id="achfm" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${icy ? '#29b6f6' : '#ff9100'}"/><stop offset="1" stop-color="${icy ? '#ffffff' : '#ffe082'}"/></linearGradient>` +
@@ -501,6 +520,8 @@
       '<span class="ach-m-hint">Tap anywhere to carry on</span>' +
       '</div>';
     document.body.appendChild(dlg);
+    dlg.dataset.tintVariant = 'fidelity';
+    ui.theme.tint(dlg, icy ? ICE_SEED : FIRE_SEED, true);
 
     let done;
     const finished = new Promise((resolve) => (done = resolve));
@@ -654,12 +675,12 @@
 
     const flameAll = svg.querySelector('.flame-all');
     const spark = dlg.querySelector('.ach-m-spark');
-    const arc = dlg.querySelector('.arc');
+    const ringEl = dlg.querySelector('.ach-m-ring');
     const reveal = [...dlg.querySelectorAll('.ach-m-label, .ach-m-title, .ach-m-sub, .ach-m-extras, .ach-m-rewards, .ach-m-go, .ach-m-hint')];
 
     if (still()) {
       // held still: the card as it ends, with one tap of the phone
-      arc.setAttribute('stroke-dashoffset', (C * (1 - ring.at)).toFixed(2));
+      fillRing(ringEl, ring.at, 0);
       rollOdometer(dlg, 0);
       buzz(big ? [10, 60, 30] : 12);
       later(close, big || rewards.length ? 12000 : 7000);
@@ -668,7 +689,6 @@
 
     // the timeline (a second and a half, then it stays a while)
     const lively = fx.lively;
-    const gentle = fx.gentle;
     dlg.querySelector('.ach-m-bg').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 380, easing: 'ease-out', fill: 'backwards' });
     reveal.forEach((el) => (el.style.opacity = '0'));
     flameAll.style.transformOrigin = '50px 99px';
@@ -699,6 +719,7 @@
         stops.forEach((s, i) => s.animate([{ stopColor: s.getAttribute('stop-color') }, { stopColor: warm[i] }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' }));
         TONGUES.forEach((tg, i) => tg.el.setAttribute('fill', FIRE[i % FIRE.length]));
         palette.splice(0, palette.length, ...FIRE);
+        ui.theme.tint(dlg, FIRE_SEED, true);
         dlg.classList.add('thawed');
       }, 1150);
     }
@@ -708,7 +729,7 @@
       const o = origin();
       for (let i = 0; i < (big ? 70 : 36); i++) ember(o, true);
       buzz(big ? [20, 70, 60] : 20);
-      arc.animate([{ strokeDashoffset: arc.getAttribute('stroke-dashoffset') }, { strokeDashoffset: (C * (1 - ring.at)).toFixed(2) }], { duration: 900, easing: gentle.easing, fill: 'forwards' });
+      fillRing(ringEl, ring.at, 900);
       dlg.querySelector('.ach-m-count').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'ease-out' });
       if (big) {
         fx.confetti({ x: o.x, y: o.y }, { shapes: ['burst', 'sunny', 'flower', 'heart', 'softBurst'], count: 34, power: 1.3 });
@@ -796,7 +817,7 @@
     const featured = (data ? data.featured || [] : mine ? [] : (u && u.featured) || []).map((f) => featuredEntry(f, data)).filter(Boolean);
     const parts = [];
     if (streak >= 3 && !calm()) {
-      parts.push(`<button type="button" class="ach-streak-pill" data-ach-streak="${esc(name)}" aria-label="${streak}-day streak">${flameHTML()}<b>${num(streak)}</b><span>day streak</span></button>`);
+      parts.push(`<button type="button" class="ach-streak-pill" data-ach-streak="${esc(name)}" aria-label="${streak}-day streak"${wearing()}>${flameHTML()}<b>${num(streak)}</b><span>day streak</span></button>`);
     }
     for (const e of featured) {
       parts.push(
@@ -833,13 +854,21 @@
     const today = todayNum();
     const last = dayNum(st.day);
     const log = st.log || '';
-    let week = '';
+    const days = [];
     for (let d = today - 6; d <= today; d++) {
       const idx = log.length - 1 - (last - d);
       const mark = d > last || idx < 0 ? (d === today ? 'today' : 'none') : { v: 'on', f: 'frozen', '.': 'none' }[log[idx]] || 'none';
-      const label = new Intl.DateTimeFormat(lang(), { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(d * DAY));
-      week += `<span class="ach-day ${mark}${d === today ? ' is-today' : ''}"><small data-no-i18n>${esc(label)}</small><span class="dot">${mark === 'on' ? flameHTML('tiny') : mark === 'frozen' ? icon('ac_unit') : ''}</span></span>`;
+      days.push({ d, mark, label: new Intl.DateTimeFormat(lang(), { weekday: 'narrow', timeZone: 'UTC' }).format(new Date(d * DAY)) });
     }
+    // the days kept in a row are joined by a band behind them; a frozen one is ice blue
+    const kept = (x) => !!x && (x.mark === 'on' || x.mark === 'frozen');
+    const week = days
+      .map((x, i) => {
+        const join = (kept(x) && kept(days[i - 1]) ? ' join-l' : '') + (kept(x) && kept(days[i + 1]) ? ' join-r' : '');
+        const sym = x.mark === 'on' ? icon('local_fire_department') : x.mark === 'frozen' ? icon('ac_unit') : '';
+        return `<span class="ach-day ${x.mark}${x.d === today ? ' is-today' : ''}${join}"${x.mark === 'frozen' ? wearing(ICE_SEED) : ''}><small data-no-i18n>${esc(x.label)}</small><span class="dot">${sym}</span></span>`;
+      })
+      .join('');
     const fam = FAMILY.get('streak');
     const e = data ? entriesOf(data).find((x) => x.id === 'streak') : null;
     const tier = e ? e.tier : 0;
@@ -852,13 +881,18 @@
         (rw.length ? rw.map((x) => rewardChip(x)).join('') : `<span class="ach-reward">${icon('military_tech')}<span translate="no">${esc(FAMILY.get('streak').name)}</span> ${ROMAN[tier]}</span>`) +
         '</span></div>';
     }
-    const freezes = Array.from({ length: st.freezesMax || CAT.streak.freezesMax }, (_, i) => `<span class="ach-freeze${i < st.freezes ? ' have' : ''}">${icon('ac_unit')}</span>`).join('');
+    const max = st.freezesMax || CAT.streak.freezesMax;
+    const wavy = '<m3-wavy-progress value="' + ring.p.toFixed(3) + '"' + (still() ? '' : ' playing') + ' aria-hidden="true"></m3-wavy-progress>';
+    // the card wears the fire's colours: its flame on a Material shape, the count in the kit's rounded voice, your
+    // freezes as an icy chip, the week, and a wavy bar toward the next milestone
     return (
-      `<div class="ach-streak-card${st.count ? '' : ' cold'}">` +
-      `<div class="ach-sc-top">${flameHTML('big')}<div class="ach-sc-count"><b>${num(st.count)}</b><span>${st.count === 1 ? 'day streak' : 'day streak'}</span></div>` +
-      `<div class="ach-sc-freezes" data-tooltip="A freeze keeps your streak going on a day you miss. You earn one every ${st.freezeEvery || CAT.streak.freezeEvery} days, and can hold ${st.freezesMax || CAT.streak.freezesMax}." tabindex="0" aria-label="${st.freezes} of ${st.freezesMax || CAT.streak.freezesMax} freezes">${freezes}<small>Freezes</small></div></div>` +
+      `<div class="ach-streak-card${st.count ? '' : ' cold'}"${wearing()}>` +
+      `<div class="ach-sc-top" data-m3-hover-root><m3-shape-icon class="ach-sc-badge" shape="softBurst" hover-shape="cookie12" symbol="local_fire_department" size="64" icon-size="34" aria-hidden="true"></m3-shape-icon>` +
+      `<div class="ach-sc-count"><b>${num(st.count)}</b><span>${st.count === 1 ? 'day streak' : 'day streak'}</span></div>` +
+      // (the sentences keep their places among the values, so their translations still match)
+      `<span class="ach-sc-freezes" data-tooltip="A freeze keeps your streak going on a day you miss. You earn one every ${st.freezeEvery || CAT.streak.freezeEvery} days, and can hold ${max}." tabindex="0" aria-label="${st.freezes} of ${max} freezes"${wearing(ICE_SEED)}>${icon('ac_unit')}<b>${num(st.freezes)}/${num(max)}</b><small>Freezes</small></span></div>` +
       `<div class="ach-week" aria-label="This week">${week}</div>` +
-      `<div class="ach-sc-goal"><span class="ach-bar"><span style="--p:${ring.p.toFixed(3)}"></span></span><small>${left === 1 ? `1 more day to a ${ring.next}-day streak` : `${left} more days to a ${ring.next}-day streak`}</small><small class="best">Best: ${num(Math.max(st.best || 0, st.count))} days</small></div>` +
+      `<div class="ach-sc-goal">${wavy}<span class="ach-sc-goal-text"><small>${left === 1 ? `1 more day to a ${ring.next}-day streak` : `${left} more days to a ${ring.next}-day streak`}</small><small class="best">Best: ${num(Math.max(st.best || 0, st.count))} days</small></span></div>` +
       next +
       '</div>'
     );
@@ -936,6 +970,7 @@
       sec.hidden = !inner;
       if (sec.innerHTML !== inner) {
         sec.innerHTML = inner;
+        ui.theme.tintAll(sec);
         fitRows(sec);
         if (arrive) fx.stagger(sec.querySelectorAll('.ach-tile:not([hidden])'), { y: 12, step: 35 });
       } else fitRows(sec);
@@ -943,7 +978,10 @@
     for (const hero of document.querySelectorAll(`[data-ach-hero="${CSS.escape(name)}"]`)) {
       const u = store.user(name);
       const html = heroHTML(name, u);
-      if (hero.innerHTML !== html) hero.innerHTML = html;
+      if (hero.innerHTML !== html) {
+        hero.innerHTML = html;
+        ui.theme.tintAll(hero);
+      }
     }
   }
   function repaintMine(data) {

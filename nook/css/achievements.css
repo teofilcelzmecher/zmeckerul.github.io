@@ -234,8 +234,8 @@
   transform: scale(0.95);
 }
 .ach-streak-pill {
-  background: linear-gradient(100deg, #fff1e0, #ffd9b8);
-  color: #6b2b00;
+  background: color-mix(in srgb, var(--m3-primary-container) 24%, var(--nook-card));
+  color: var(--m3-primary);
   font-size: var(--m3-fs-small);
 }
 .ach-streak-pill .ach-flame {
@@ -248,16 +248,6 @@
 }
 .ach-streak-pill span:last-child {
   font-weight: 600;
-}
-@media (prefers-color-scheme: dark) {
-  html:not([data-m3-theme='light']) .ach-streak-pill {
-    background: linear-gradient(100deg, #3d1f0c, #5a2a0a);
-    color: #ffd9b8;
-  }
-}
-html[data-m3-theme='dark'] .ach-streak-pill {
-  background: linear-gradient(100deg, #3d1f0c, #5a2a0a);
-  color: #ffd9b8;
 }
 .ach-feat {
   padding-left: 4px;
@@ -470,14 +460,16 @@ html[data-m3-theme='dark'] .ach-streak-pill {
 
 /* ---- your streak card ------------------------------------------------------------------------------------------------ */
 
+/* it wears the fire's own Material 3 scheme (data-tint), so what follows is the kit's roles, in orange */
 .ach-streak-card {
+  position: relative;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  margin-bottom: 14px;
   padding: 18px;
-  border-radius: var(--m3-r-very-large, 28px);
-  background:
-    radial-gradient(90% 120% at 0% 0%, rgb(255 140 0 / 0.16), transparent 60%),
-    linear-gradient(160deg, var(--m3-tertiary-container), var(--nook-card) 75%);
+  overflow: hidden;
+  border-radius: var(--m3-r-very-large);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--m3-primary-container) 26%, var(--nook-card)) 0, var(--nook-card) 66%);
   color: var(--m3-on-surface);
 }
 .ach-sc-top {
@@ -485,119 +477,167 @@ html[data-m3-theme='dark'] .ach-streak-pill {
   align-items: center;
   gap: 14px;
 }
+.ach-sc-badge {
+  --m3-shape-icon-color: var(--m3-primary-container);
+  --m3-shape-icon-on-color: var(--m3-on-primary-container);
+  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--m3-primary-container) 45%, transparent));
+}
+.ach-streak-card.cold .ach-sc-badge {
+  --m3-shape-icon-color: var(--m3-surface-container-highest);
+  --m3-shape-icon-on-color: var(--m3-on-surface-variant);
+  filter: none;
+}
 .ach-sc-count {
   display: grid;
   flex: 1;
-  line-height: 1.05;
+  min-width: 0;
+  line-height: 1;
 }
 .ach-sc-count b {
+  color: var(--m3-primary);
   font-size: 44px;
-  font-weight: 850;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  font-variation-settings: 'wdth' 110, 'ROND' 100;
+  font-variation-settings:
+    'wdth' 115,
+    'ROND' 100;
+  letter-spacing: -0.02em;
 }
 .ach-sc-count span {
+  margin-top: 4px;
   color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-normal);
   font-weight: 600;
 }
+/* your freezes: an icy chip (its own blue scheme) */
 .ach-sc-freezes {
   display: grid;
-  grid-template-columns: repeat(2, auto);
+  grid-template-columns: auto auto;
+  align-items: center;
   justify-items: center;
-  gap: 2px 4px;
+  column-gap: 4px;
+  padding: 8px 12px 6px;
+  border-radius: var(--m3-r-large);
+  background: color-mix(in srgb, var(--m3-primary-container) 22%, var(--nook-card));
+  color: var(--m3-primary);
+  cursor: help;
+}
+.ach-sc-freezes .m3-icon {
+  --m3-icon-fill: 1;
+  font-size: 20px;
+}
+.ach-sc-freezes b {
+  font-size: var(--m3-fs-large);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
 }
 .ach-sc-freezes small {
   grid-column: 1 / -1;
-  color: var(--m3-on-surface-variant);
-  font-size: var(--m3-fs-smallest);
+  font-size: 11px;
+  font-weight: 650;
+  opacity: 0.8;
 }
-.ach-freeze {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--m3-on-surface) 7%, transparent);
-  color: var(--m3-outline);
-}
-.ach-freeze .m3-icon {
-  --m3-icon-size: 18px;
-  font-size: 18px;
-}
-.ach-freeze.have {
-  background: linear-gradient(145deg, #e1f5fe, #4fc3f7);
-  color: #01579b;
-  box-shadow: 0 2px 8px rgb(79 195 247 / 0.45);
-}
+
+/* the week: a circle a day, those kept in a row joined by a band behind them; today ringed */
 .ach-week {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 .ach-day {
+  position: relative;
   display: grid;
   justify-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 .ach-day small {
   color: var(--m3-on-surface-variant);
-  font-size: var(--m3-fs-smallest);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-.ach-day .dot {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--m3-on-surface) 6%, transparent);
-}
-.ach-day.on .dot {
-  background: linear-gradient(160deg, #fff1e0, #ffcc99);
-}
-.ach-day.frozen .dot {
-  background: linear-gradient(160deg, #e1f5fe, #81d4fa);
-  color: #01579b;
-}
-.ach-day.frozen .m3-icon {
-  --m3-icon-size: 16px;
-  font-size: 16px;
-}
-.ach-day.is-today .dot {
-  box-shadow: 0 0 0 2px var(--m3-primary);
+  font-size: 12px;
+  font-weight: 650;
 }
 .ach-day.is-today small {
   color: var(--m3-primary);
+  font-weight: 800;
 }
-@media (prefers-color-scheme: dark) {
-  html:not([data-m3-theme='light']) .ach-day.on .dot {
-    background: linear-gradient(160deg, #5a2a0a, #8a3d00);
-  }
+.ach-day .dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface-variant);
 }
-html[data-m3-theme='dark'] .ach-day.on .dot {
-  background: linear-gradient(160deg, #5a2a0a, #8a3d00);
+.ach-day .dot .m3-icon {
+  --m3-icon-fill: 1;
+  font-size: 20px;
 }
+.ach-day:is(.on, .frozen) .dot {
+  background: var(--m3-primary-container);
+  color: var(--m3-on-primary-container);
+}
+/* today, not kept yet */
+.ach-day.today .dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--m3-outline-variant);
+}
+.ach-day.is-today:is(.on, .frozen) .dot {
+  box-shadow:
+    0 0 0 3px var(--nook-card),
+    0 0 0 5px var(--m3-primary-container);
+}
+.ach-day.join-l::before,
+.ach-day.join-r::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  height: 26px;
+  background: color-mix(in srgb, var(--m3-primary-container) 30%, transparent);
+}
+.ach-day.join-l::before {
+  left: 0;
+  right: 50%;
+}
+.ach-day.join-r::after {
+  left: 50%;
+  right: 0;
+}
+
+/* toward the next milestone: Material 3's wavy progress */
 .ach-sc-goal {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 6px 10px;
+  gap: 6px;
 }
-.ach-sc-goal .ach-bar {
-  grid-column: 1 / -1;
-  height: 8px;
-  border-radius: 4px;
+.ach-sc-goal m3-wavy-progress {
+  --m3-progress-active: var(--m3-primary-container);
+  --m3-progress-track: color-mix(in srgb, var(--m3-primary-container) 25%, transparent);
+  height: 18px;
 }
-.ach-sc-goal .ach-bar > span {
-  background: linear-gradient(90deg, #ff6d00, #ffc400);
+.ach-sc-goal-text {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
 }
 .ach-sc-goal small {
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smaller);
 }
 .ach-sc-goal small.best {
-  font-weight: 650;
+  color: var(--m3-on-surface);
+  font-weight: 700;
+  white-space: nowrap;
 }
+/* what the next milestone brings, in the fire's tones too (the fire scheme's own accent is a cool blue) */
+.ach-streak-card .ach-reward,
+.ach-streak-card .ach-reward.have {
+  background: color-mix(in srgb, var(--m3-primary-container) 22%, var(--nook-card));
+  color: var(--m3-primary);
+}
+.ach-streak-card .ach-next-head .m3-icon {
+  color: var(--m3-primary);
+}
+
 .ach-next {
   display: grid;
   gap: 8px;
@@ -623,6 +663,10 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
 .ach-next .ach-reward {
   background: var(--m3-tertiary-container);
   color: var(--m3-on-tertiary-container);
+}
+.ach-streak-card .ach-next .ach-reward {
+  background: color-mix(in srgb, var(--m3-primary-container) 22%, var(--nook-card));
+  color: var(--m3-primary);
 }
 
 /* ---- one achievement, in a sheet -------------------------------------------------------------------------------------- */
@@ -1012,6 +1056,7 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
 
 /* ---- the streak's moment ------------------------------------------------------------------------------------------------ */
 
+/* full screen, in the fire's own Material 3 scheme (an icy one until a freeze thaws), light or dark as the app is */
 .ach-moment {
   position: fixed;
   inset: 0;
@@ -1023,18 +1068,14 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   padding: 0;
   overflow: hidden;
   border: 0;
-  background: color-mix(in srgb, var(--m3-primary) 22%, #0d0710);
-  color: #fff;
-  color-scheme: dark;
+  background: var(--m3-surface);
+  color: var(--m3-on-surface);
+  transition:
+    background-color 900ms ease,
+    color 900ms ease;
 }
 .ach-moment::backdrop {
   background: transparent;
-}
-.ach-moment.icy:not(.thawed) {
-  background: color-mix(in srgb, #0288d1 26%, #050b14);
-}
-.ach-moment.thawed {
-  transition: background-color 900ms ease;
 }
 .ach-m-bg,
 .ach-m-sparks {
@@ -1048,15 +1089,11 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   position: absolute;
   inset: -20%;
   background:
-    radial-gradient(38% 30% at 50% 40%, color-mix(in srgb, #ff8a00 50%, transparent), transparent 70%),
-    radial-gradient(60% 50% at 50% 42%, color-mix(in srgb, var(--m3-primary) 60%, transparent), transparent 72%),
-    radial-gradient(50% 40% at 30% 80%, color-mix(in srgb, var(--m3-tertiary) 35%, transparent), transparent 70%);
+    radial-gradient(34% 26% at 50% 34%, color-mix(in srgb, var(--m3-primary-container) 40%, transparent), transparent 70%),
+    radial-gradient(62% 46% at 50% 38%, color-mix(in srgb, var(--m3-primary-container) 22%, transparent), transparent 72%),
+    radial-gradient(48% 38% at 18% 90%, color-mix(in srgb, var(--m3-primary-container) 16%, transparent), transparent 70%),
+    radial-gradient(44% 34% at 84% 94%, color-mix(in srgb, var(--m3-secondary-container) 60%, transparent), transparent 70%);
   animation: ach-breathe 3.2s ease-in-out infinite alternate;
-}
-.ach-moment.icy:not(.thawed) .ach-m-glow {
-  background:
-    radial-gradient(38% 30% at 50% 40%, rgb(129 212 250 / 0.45), transparent 70%),
-    radial-gradient(60% 50% at 50% 42%, rgb(2 136 209 / 0.4), transparent 72%);
 }
 .ach-m-body {
   position: relative;
@@ -1077,43 +1114,34 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   place-items: center;
   width: min(56vw, 240px, 32dvh);
   aspect-ratio: 1;
-  margin-bottom: -6px;
+  margin-bottom: 4px;
 }
 .ach-moment.big .ach-m-stage {
   width: min(64vw, 280px, 36dvh);
 }
+/* the wavy ring toward the next milestone, and the scalloped shape the flame stands on, slowly turning */
 .ach-m-ring {
   position: absolute;
-  inset: -8%;
-  width: 116%;
-  height: 116%;
-  overflow: visible;
-  transform: rotate(-90deg);
+  inset: -10%;
+  width: 120%;
+  height: 120%;
+  --m3-squiggle-color: var(--m3-primary-container);
+  --m3-squiggle-track: color-mix(in srgb, var(--m3-primary-container) 20%, transparent);
 }
-.ach-m-ring circle {
-  fill: none;
-  stroke-width: 3.2;
-  stroke-linecap: round;
-}
-.ach-m-ring .track {
-  stroke: rgb(255 255 255 / 0.12);
-}
-.ach-m-ring .arc {
-  stroke: color-mix(in srgb, var(--m3-primary) 55%, #ffc400);
-  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--m3-primary) 70%, #ff9100));
-}
-.ach-moment.icy:not(.thawed) .ach-m-ring .arc {
-  stroke: #81d4fa;
+.ach-m-plate {
+  position: absolute;
+  inset: 3%;
+  width: 94%;
+  height: 94%;
+  color: color-mix(in srgb, var(--m3-primary-container) 20%, var(--m3-surface));
+  animation: ach-turn 30s linear infinite;
 }
 .ach-m-flame {
   position: relative;
-  width: 76%;
-  height: 76%;
+  width: 70%;
+  height: 70%;
   overflow: visible;
-  filter: drop-shadow(0 0 18px rgb(255 120 0 / 0.55));
-}
-.ach-moment.icy:not(.thawed) .ach-m-flame {
-  filter: drop-shadow(0 0 18px rgb(79 195 247 / 0.55));
+  filter: drop-shadow(0 6px 14px color-mix(in srgb, var(--m3-primary-container) 50%, transparent));
 }
 .ach-m-spark {
   position: absolute;
@@ -1121,11 +1149,8 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   place-items: center;
   width: 30%;
   height: 30%;
-  color: #ffd54f;
+  color: var(--m3-primary-container);
   pointer-events: none;
-}
-.ach-moment.icy .ach-m-spark {
-  color: #e1f5fe;
 }
 .ach-m-spark m3-shape {
   width: 100%;
@@ -1134,16 +1159,17 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
 }
 .ach-m-count {
   /* big, but never so big that a short screen loses the rest below it */
+  color: var(--m3-on-surface);
   font-size: clamp(64px, min(26vw, 15dvh), 128px);
   font-weight: 850;
   font-variant-numeric: tabular-nums;
-  font-variation-settings: 'wdth' 115, 'ROND' 100;
+  font-variation-settings:
+    'wdth' 115,
+    'ROND' 100;
   line-height: 1.1;
 }
-/* the glow goes round the digits themselves (a text shadow would be cut off by their rolling columns) */
 .odo {
   display: inline-flex;
-  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--m3-primary) 70%, #ff9100));
 }
 .odo-col {
   display: inline-block;
@@ -1165,22 +1191,25 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
 }
 .ach-m-label {
   margin-top: -6px;
-  color: color-mix(in srgb, #ffc400 70%, #fff);
+  color: var(--m3-primary);
   font-size: var(--m3-fs-larger, 18px);
   font-weight: 750;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .ach-m-title {
   margin: 10px 0 0;
   font-size: clamp(24px, 6.5vw, 32px);
-  font-weight: 800;
+  font-weight: 750;
+  font-variation-settings:
+    'wdth' 110,
+    'ROND' 100;
   line-height: 1.15;
 }
 .ach-m-sub {
   max-width: 34ch;
   margin: 0;
-  color: rgb(255 255 255 / 0.78);
+  color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-normal, 16px);
   line-height: 1.4;
 }
@@ -1198,17 +1227,18 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   max-width: 100%;
   padding: 6px 14px 6px 10px;
   border-radius: var(--m3-r-full);
-  background: rgb(255 255 255 / 0.1);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.16);
+  background: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
   font-size: var(--m3-fs-smaller);
   font-weight: 650;
   text-align: left;
 }
-.ach-m-chip.ice .m3-icon {
-  color: #81d4fa;
+.ach-m-chip .m3-icon {
+  --m3-icon-fill: 1;
+  color: var(--m3-primary);
 }
-.ach-m-chip:not(.ice) .m3-icon {
-  color: #ffc400;
+.ach-m-chip.ice .m3-icon {
+  color: color-mix(in srgb, #039be5 75%, var(--m3-on-surface));
 }
 .ach-m-rewards {
   display: grid;
@@ -1231,7 +1261,7 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #ffc400;
+  color: var(--m3-primary);
   font-size: var(--m3-fs-smaller);
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1244,36 +1274,36 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   min-height: 56px;
   padding: 8px 14px;
   border: 0;
-  border-radius: 20px;
-  background: linear-gradient(110deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.06));
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.18);
-  color: #fff;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-high);
+  color: var(--m3-on-surface);
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 .ach-m-reward > .m3-icon {
   display: grid;
+  flex: none;
   place-items: center;
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #fff176, #ff9100);
-  color: #4a1f00;
+  background: color-mix(in srgb, var(--m3-primary-container) 24%, var(--m3-surface-container-high));
+  color: var(--m3-primary);
 }
 .ach-m-reward .txt {
   display: grid;
   flex: 1;
 }
 .ach-m-reward small {
-  opacity: 0.75;
+  color: var(--m3-on-surface-variant);
 }
 .ach-m-reward .try {
   flex: none;
   padding: 6px 12px;
   border-radius: var(--m3-r-full);
-  background: #fff;
-  color: #4a1f00;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
   font-size: var(--m3-fs-smaller);
   font-weight: 750;
 }
@@ -1282,7 +1312,7 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   margin-top: 18px;
 }
 .ach-m-hint {
-  color: rgb(255 255 255 / 0.5);
+  color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smallest);
 }
 @media (max-height: 620px) {
@@ -1297,7 +1327,7 @@ html[data-m3-theme='dark'] .ach-day.on .dot {
   }
 }
 /* held still: a calm card in the middle */
-.ach-moment.still .ach-m-glow {
+.ach-moment.still :is(.ach-m-glow, .ach-m-plate) {
   animation: none;
 }
 .ach-moment.still .ach-m-spark {
