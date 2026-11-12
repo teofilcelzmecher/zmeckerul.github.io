@@ -3260,11 +3260,15 @@
     m.kind ? views.lineText(m, inGroup) : !m.body && m.media && m.media.type === 'sticker' ? 'Sent a sticker' : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70);
   store.on('messages', (incoming = []) => {
     renderBadges();
+    // sticker blasts (1.5) come in flying wherever you are, if the live connection hasn't brought them already
+    if (Nook.blasts) incoming.filter((m) => m.kind === 'blast').forEach((m) => Nook.blasts.arrived(m));
     // a group's chat only listens for its own news
     if (main._onMessages && route && route.view !== 'groupThread') return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
     // a chat's new colour shows in the chat itself; it isn't news to pop up about
     if (!last || last.kind === 'theme') return;
+    // a sticker blast (1.5) has already come in flying
+    if (last.kind === 'blast') return;
     M3.snackbar(`u/${last.from}: ${said(last)}`, { timeout: 6000, action: { label: 'Reply', onClick: () => go('#/messages/' + encodeURIComponent(last.from)) } });
   });
 

@@ -20,6 +20,10 @@
  *            POST /api/stickers/:id/save, PATCH /api/stickers/:id (rename), DELETE /api/stickers/:id,
  *            GET /api/stickers/:id/image[?still=1] (the picture itself, for anyone: like other pictures)
  *   chats    a message with { sticker: id } (from your library) is a sticker message
+ *   sharing  (1.5) one you made can be shared with everyone (the app's switch for it is on when you make one, and
+ *            you can change it): shared ones can be found in Browse (GET /api/stickers/browse: popular, newest, or
+ *            by name), saved from there, and thrown in a sticker blast without saving them first. One made before
+ *            1.5 stays unshared until its maker shares it
  *   reports  kind 'sticker' (emojis too), shown on the Moderation page, taken down from there
  *   others   madeBy(userId) for the 'stickers' achievement; exportFor(userId) for "Export my data"
  */
@@ -351,6 +355,10 @@ function install(ctx) {
     CREATE INDEX IF NOT EXISTS sticker_library_sticker ON sticker_library(sticker_id);
   `);
 
+  // 1.5: when its maker shared it with everyone (none: only in libraries and chats)
+  if (!db.raw.prepare('PRAGMA table_info(stickers)').all().some((c) => c.name === 'shared_at')) db.raw.exec('ALTER TABLE stickers ADD COLUMN shared_at INTEGER');
+  db.raw.exec('CREATE INDEX IF NOT EXISTS stickers_shared ON stickers(shared_at)');
+
   const stickerById = (id) => (ID_RE.test(String(id || '')) ? db.get('SELECT * FROM stickers WHERE id = ?', String(id)) : null);
   const ownerName = (row) => {
     const u = db.get('SELECT name, banned_at FROM users WHERE id = ?', row.owner_id);
@@ -364,6 +372,7 @@ function install(ctx) {
     return {
       id: row.id, kind: row.kind, name: name != null ? name : row.name, url: imagePath(row.id), still: isGif(row) ? imagePath(row.id) + '?still=1' : undefined,
       gif: isGif(row) || undefined, width: row.width, height: row.height, by: hidden ? undefined : by, mine: viewer ? row.owner_id === viewer.id || undefined : undefined, createdAt: row.created_at,
+      shared: row.shared_at ? true : undefined,
     };
   }
   const libraryOf = (userId) =>
@@ -520,7 +529,7 @@ function install(ctx) {
       const image = saveImage(main, user.id);
       const stillId = still ? saveImage(still, user.id) : '';
       const t = now();
-      db.run('INSERT INTO stickers (id, kind, name, owner_id, image, still, width, height, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', sid, kind, name, user.id, image, stillId, width, height, t);
+      db.run('INSERT INTO stickers (id, kind, name, owner_id, image, still, width, height, created_at, shared_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', sid, kind, name, user.id, image, stillId, width, height, t, body.shared === true ? t : null);
       db.run('INSERT INTO sticker_library (user_id, sticker_id, kind, name, added_at) VALUES (?, ?, ?, ?, ?)', user.id, sid, kind, name, t);
       return sid;
     });
@@ -533,6 +542,43 @@ function install(ctx) {
     }
     return { sticker: out(stickerById(id), user, name), unlocked: Array.isArray(unlocked) && unlocked.length ? unlocked : undefined };
   }, { body: 12 * 1024 * 1024 });
+
+  // ---- Browse (1.5): what people shared, the most saved first, the newest, or by name -------------------------
+
+  const PAGE = 48;
+  route('GET', '/api/stickers/browse', ({ user, query }) => {
+    limit('sticker-browse:' + user.id, 240, HOUR, 'That’s a lot of browsing. Try again in a little while.');
+    const kind = query.kind === 'emoji' ? 'emoji' : 'sticker';
+    const sort = query.sort === 'new' ? 'new' : 'popular';
+    const page = Math.max(0, Math.min(50, Math.floor(Number(query.page)) || 0));
+    const q = text(String(query.q || ''), 32).toLowerCase();
+    const like = q ? '%' + q.replace(/[\\%_]/g, (c) => '\\' + c) + '%' : null;
+    // what someone who blocked you made (or someone you blocked) isn't shown, nor a banned maker's
+    const rows = db.all(
+      `SELECT s.*, (SELECT COUNT(*) FROM sticker_library l WHERE l.sticker_id = s.id AND l.user_id != s.owner_id) AS saves,
+              (SELECT 1 FROM sticker_library l WHERE l.sticker_id = s.id AND l.user_id = ?) AS have
+         FROM stickers s JOIN users u ON u.id = s.owner_id
+        WHERE s.kind = ? AND s.shared_at IS NOT NULL AND s.removed_at IS NULL AND u.banned_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM blocks b WHERE (b.user_id = s.owner_id AND b.blocked_id = ?) OR (b.user_id = ? AND b.blocked_id = s.owner_id))
+          ${like ? "AND lower(s.name) LIKE ? ESCAPE '\\'" : ''}
+        ORDER BY ${sort === 'new' ? 's.shared_at DESC' : 'saves DESC, s.shared_at DESC'}
+        LIMIT ? OFFSET ?`,
+      ...[user.id, kind, user.id, user.id].concat(like ? [like] : [], [PAGE + 1, page * PAGE])
+    );
+    return {
+      stickers: rows.slice(0, PAGE).map((r) => Object.assign(out(r, user), { saves: r.saves, saved: !!r.have || undefined })),
+      more: rows.length > PAGE,
+    };
+  });
+
+  /** one that can be thrown or sent by this person: kept in their library, or shared by its maker (1.5) */
+  function usable(user, id) {
+    const row = stickerById(id);
+    if (!row || row.removed_at || row.kind !== 'sticker') fail(404, 'That sticker isn’t there any more.');
+    if (kept(user.id, row.id)) return row;
+    if (!row.shared_at || hasBlocked(row.owner_id, user.id) || hasBlocked(user.id, row.owner_id)) fail(403, 'Save that sticker to your library first.');
+    return row;
+  }
 
   // one sticker, for the sheet that offers to save it
   route('GET', '/api/stickers/:id', ({ user, params }) => {
@@ -562,6 +608,12 @@ function install(ctx) {
     const row = stickerById(params.id);
     const k = row && !row.removed_at && kept(user.id, row.id);
     if (!k) fail(404, 'That one isn’t in your library.');
+    // shared with everyone, or not (1.5): only by whoever made it
+    if (body.shared != null) {
+      if (row.owner_id !== user.id) fail(403, 'Only whoever made it can share it.');
+      db.run('UPDATE stickers SET shared_at = ? WHERE id = ?', body.shared ? row.shared_at || now() : null, row.id);
+      if (body.name == null) return { sticker: out(stickerById(row.id), user, k.name) };
+    }
     const { name, doubt } = await nameFor(row.kind, body.name);
     if (row.kind === 'emoji' && nameTaken(user.id, name, row.id)) fail(409, `You already have an emoji called :${name}:.`, { field: 'name' });
     db.run('UPDATE sticker_library SET name = ? WHERE user_id = ? AND sticker_id = ?', name, user.id, row.id);
@@ -697,6 +749,7 @@ function install(ctx) {
       return {
         stickersMade: db.all('SELECT * FROM stickers WHERE owner_id = ? ORDER BY created_at', userId).map((r) => ({
           id: r.id, kind: r.kind, name: r.name, url: r.removed_at ? undefined : imagePath(r.id), createdAt: r.created_at, removed: r.removed_at ? r.removed_reason || true : undefined,
+          sharedWithEveryone: r.shared_at ? new Date(r.shared_at).toISOString() : undefined,
         })),
         stickerLibrary: db.all('SELECT l.*, s.owner_id FROM sticker_library l JOIN stickers s ON s.id = l.sticker_id WHERE l.user_id = ? ORDER BY l.added_at', userId).map((r) => ({
           id: r.sticker_id, kind: r.kind, name: r.name, made: r.owner_id === userId || undefined, savedAt: r.added_at,
@@ -704,6 +757,7 @@ function install(ctx) {
       };
     },
     takeDown,
+    usable,
     MAX,
   };
 }

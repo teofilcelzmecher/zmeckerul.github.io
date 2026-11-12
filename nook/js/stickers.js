@@ -245,6 +245,29 @@
     }
   }
 
+  // ---- sharing with everyone, and browsing what people shared (1.5) -------------------------------------------
+
+  const sharing = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('1.5.0'));
+  /** one you made, shared with everyone (or not any more) */
+  async function share(s, on) {
+    try {
+      const r = await api.patch(`/api/stickers/${encodeURIComponent(s.id)}`, { shared: !!on });
+      keep(Object.assign({}, byId(s.id) || s, r.sticker));
+      fx.haptic(8);
+      M3.toast(on ? 'Shared: anyone can find it in Browse' : 'Not shared any more', { symbol: on ? 'public' : 'public_off', shape: 'puffy' });
+      return r.sticker;
+    } catch (error) {
+      Nook.app.showError(error);
+      return null;
+    }
+  }
+  /** what people shared: { sort: 'popular' | 'new', q, page, kind } → { stickers, more } */
+  function browse({ sort = 'popular', q = '', page = 0, kind = 'sticker' } = {}) {
+    const query = new URLSearchParams({ sort, page: String(page), kind });
+    if (q) query.set('q', q);
+    return api.get('/api/stickers/browse?' + query);
+  }
+
   function rename(s) {
     const emoji = s.kind === 'emoji';
     return ui.sheet({
@@ -345,7 +368,7 @@
             (saved && !s.mine ? `<span class="stk-kept">${icon('check')}${kind === 'emoji' ? 'In your emojis' : 'In your stickers'}</span>` : '');
           const btn = (act, symbol, words, variant = 'tonal') => `<button type="button" class="m3-btn ${variant}" data-info="${act}">${icon(symbol)}${words}</button>`;
           actions.innerHTML = s.mine
-            ? btn('rename', 'edit', 'Rename') + btn('delete', 'delete', 'Delete', 'text')
+            ? btn('rename', 'edit', 'Rename') + (sharing() ? btn('share', s.shared ? 'public_off' : 'public', s.shared ? 'Stop sharing' : 'Share with everyone') : '') + btn('delete', 'delete', 'Delete', 'text')
             : (saved ? btn('rename', 'edit', 'Rename') + btn('delete', 'bookmark_remove', 'Remove', 'text')
               : btn('save', 'library_add', kind === 'emoji' ? 'Save to my emojis' : 'Save to my stickers', 'filled')) + btn('report', 'flag', 'Report', 'text');
         };
@@ -384,6 +407,11 @@
               s = Object.assign({}, s, { name: next.name });
               paint();
             }
+          } else if (act === 'share') {
+            b.disabled = true;
+            const next = await share(s, !s.shared);
+            if (next) s = Object.assign({}, s, { shared: next.shared });
+            paint();
           } else if (act === 'delete') {
             if (await remove(Object.assign({}, s, { mine: !!s.mine }))) close(null);
           } else if (act === 'report') {
@@ -559,6 +587,9 @@
                 }</button>`
             ).join('')}</div></div>` +
             `<label class="switch-row stk-outline"><span class="switch-text"><span>Sticker edge</span><small>A white border all round, like a real sticker</small></span><input type="checkbox" class="m3-switch" role="switch" id="stk-outline"></label>`) +
+        (sharing()
+          ? `<label class="switch-row stk-share"><span class="switch-text"><span>Share with everyone</span><small>Anyone on Budgie can find it in Browse, save it and send it. You can stop sharing it any time.</small></span><input type="checkbox" class="m3-switch" role="switch" id="stk-share" checked></label>`
+          : '') +
         `<div class="field"><label for="stk-name">${emoji ? 'Name' : 'Name (optional)'}</label>` +
         `<div class="stk-name-row">${emoji ? '<span class="stk-colon" aria-hidden="true">:</span>' : ''}<input class="m3-field" id="stk-name" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" translate="no" placeholder="${emoji ? 'party_budgie' : 'Happy dance'}" value="${esc(model.name)}">${emoji ? '<span class="stk-colon" aria-hidden="true">:</span>' : ''}</div>` +
         `<small class="muted">${emoji ? 'Type it between colons to use it, like :party_budgie:. Small letters, numbers and _.' : 'Helps you find it, and shows when someone holds it.'}</small></div>` +
@@ -636,9 +667,11 @@
             button.disabled = true;
             button.innerHTML = '<m3-loading aria-hidden="true"></m3-loading>Checking…';
             stage.classList.add('working');
+            const shareBox = body.querySelector('#stk-share');
+            const shared = !!(shareBox && shareBox.checked);
             (async () => {
               let payload;
-              if (gif) payload = { kind, name, gif: await readFile(file), crop };
+              if (gif) payload = { kind, name, gif: await readFile(file), crop, shared };
               else {
                 // a heavy sticker is made a little smaller until it fits
                 let image = exported(draw(img, crop, size, model.shape, model.outline), kind);
@@ -646,7 +679,7 @@
                   size = Math.round(size * 0.8);
                   image = exported(draw(img, crop, size, model.shape, model.outline), kind);
                 }
-                payload = { kind, name, image };
+                payload = { kind, name, image, shared };
               }
               return api.post('/api/stickers', payload);
             })()
@@ -704,7 +737,8 @@
   function pick({ field = null, tab = 'sticker', manage = false, only = '' } = {}) {
     let kind = only || tab;
     let painter = null;
-    const tabs = [['sticker', 'Stickers', 'sticky_note_2'], ['emoji', 'Emojis', 'mood']];
+    // (1.5) and what everyone shared, to browse and save from
+    const tabs = [['sticker', 'Stickers', 'sticky_note_2'], ['emoji', 'Emojis', 'mood']].concat(sharing() && !manage ? [['browse', 'Browse', 'travel_explore']] : []);
     const sheet = ui.sheet({
       headline: only === 'emoji' ? 'Your emojis' : manage ? 'Your stickers' : 'Stickers',
       symbol: 'add_reaction',
@@ -717,12 +751,74 @@
           : `<div class="m3-segmented stk-tabs" role="radiogroup" aria-label="Stickers or emojis">${tabs
               .map(([id, words, symbol]) => `<button type="button" class="m3-segment" role="radio" aria-checked="${id === kind}" data-tab="${id}">${icon(symbol)}${words}</button>`)
               .join('')}</div>`) +
+        `<div class="stk-browse-bar" hidden><input class="m3-field" type="search" id="stk-search" placeholder="Search what people shared" aria-label="Search stickers" maxlength="32" autocomplete="off">` +
+        `<div class="chips" role="group" aria-label="Order"><button type="button" class="chip" data-stk-sort="popular" aria-pressed="true">${icon('local_fire_department')}Popular</button><button type="button" class="chip" data-stk-sort="new" aria-pressed="false">${icon('schedule')}New</button></div></div>` +
         '<div class="stk-grid" role="list"></div><p class="stk-foot muted"></p>',
       setup(body, close) {
         const grid = body.querySelector('.stk-grid');
         const foot = body.querySelector('.stk-foot');
+        const bar = body.querySelector('.stk-browse-bar');
         let known = new Set();
+        // ---- Browse: what people shared, the most saved first or the newest, or by name
+        const found = { sort: 'popular', q: '', page: 0, list: [], more: false, busy: false, token: 0, error: '' };
+        const foundTile = (x) =>
+          `<button type="button" class="stk-tile stk-found" role="listitem" data-stk-found="${esc(x.id)}" aria-label="${esc(label(x))}${x.by ? ', by u/' + esc(x.by) : ''}" title="${esc(label(x))}">` +
+          `<img src="${esc(srcOf(x))}" alt="" loading="lazy" decoding="async" draggable="false" translate="no"><small translate="no">${esc(x.name || '')}</small></button>`;
+        const paintFound = () => {
+          bar.hidden = false;
+          grid.dataset.kind = 'browse';
+          grid.innerHTML =
+            found.list.map(foundTile).join('') +
+            (!found.list.length && !found.busy
+              ? `<div class="stk-empty"><b>${found.error ? 'Couldn’t load them' : found.q ? 'Nothing by that name' : 'Nothing shared yet'}</b><span>${esc(found.error || (found.q ? 'Try another word.' : 'Make a sticker and share it, and it shows up here for everyone.'))}</span></div>`
+              : '');
+          foot.innerHTML = found.busy ? '<m3-loading aria-label="Loading stickers"></m3-loading>' : found.more ? `<button type="button" class="m3-btn text" data-stk-more>${icon('expand_more')}More</button>` : '';
+        };
+        const loadFound = async (fresh) => {
+          const token = ++found.token;
+          if (fresh) Object.assign(found, { page: 0, list: [], more: false });
+          found.busy = true;
+          found.error = '';
+          paint();
+          try {
+            const r = await browse({ sort: found.sort, q: found.q, page: found.page });
+            if (token !== found.token) return;
+            found.list = found.list.concat(r.stickers || []);
+            found.more = !!r.more;
+            found.page++;
+          } catch (error) {
+            if (token === found.token) found.error = error.message;
+          } finally {
+            if (token === found.token) {
+              found.busy = false;
+              if (kind === 'browse') paint();
+            }
+          }
+        };
+        let searchSoon = 0;
+        bar.querySelector('#stk-search').addEventListener('input', (e) => {
+          clearTimeout(searchSoon);
+          searchSoon = setTimeout(() => {
+            found.q = e.target.value.trim();
+            loadFound(true);
+          }, 300);
+        });
+        bar.addEventListener('click', (e) => {
+          const b = e.target.closest('[data-stk-sort]');
+          if (!b || b.dataset.stkSort === found.sort) return;
+          found.sort = b.dataset.stkSort;
+          bar.querySelectorAll('[data-stk-sort]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+          loadFound(true);
+        });
+        foot.addEventListener('click', (e) => e.target.closest('[data-stk-more]') && loadFound(false));
+        grid.addEventListener('click', (e) => {
+          const t = e.target.closest('[data-stk-found]');
+          const x = t && found.list.find((y) => y.id === t.dataset.stkFound);
+          if (x) info(x.id, x);
+        });
         const paint = () => {
+          if (kind === 'browse') return paintFound();
+          bar.hidden = true;
           const list = ordered(kind);
           const max = lib.max[kind] || MAX[kind];
           grid.dataset.kind = kind;
@@ -763,6 +859,7 @@
           kind = b.dataset.tab;
           body.querySelectorAll('[data-tab]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
           known = new Set();
+          if (kind === 'browse' && !found.list.length && !found.busy) return void loadFound(true);
           paint();
           if (!calm()) fx.stagger([...grid.children].slice(0, 12), { y: 10, step: 18 });
         });
@@ -822,12 +919,14 @@
     const items = [
       { label: 'See it big', symbol: 'zoom_in', onSelect: () => info(s.id, s) },
       { label: 'Rename', symbol: 'edit', onSelect: () => rename(s) },
+      s.mine && sharing() ? { label: s.shared ? 'Stop sharing' : 'Share with everyone', symbol: s.shared ? 'public_off' : 'public', onSelect: () => share(s, !s.shared) } : null,
       { separator: true },
       { label: s.mine ? 'Delete' : 'Remove from library', symbol: s.mine ? 'delete' : 'bookmark_remove', destructive: true, onSelect: () => remove(s) },
     ];
-    if (!matchMedia('(max-width: 719px) and (pointer: coarse)').matches) return M3.menu(anchor, items, { placement: 'bottom-start' });
+    const shown = items.filter(Boolean);
+    if (!matchMedia('(max-width: 719px) and (pointer: coarse)').matches) return M3.menu(anchor, shown, { placement: 'bottom-start' });
     // on a phone it rises from the bottom, where your thumb is (as the app's own menus do)
-    const list = items.filter((i) => !i.separator);
+    const list = shown.filter((i) => !i.separator);
     ui.sheet({
       className: 'menu-sheet',
       html:
@@ -1097,6 +1196,6 @@
 
   Nook.stickers = {
     load, library: () => lib, available, emojiHTML, jumbo, toTokens, toNames, mediaHTML, localMedia, popIn, menuHead, menuRows, menuAction,
-    pick, open, make, choose, info, save, used, pickerSection, TOKEN,
+    pick, open, make, choose, info, save, used, pickerSection, TOKEN, share, browse, sharing,
   };
 })();

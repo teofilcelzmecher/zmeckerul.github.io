@@ -8,7 +8,9 @@ const path = require('path');
 const ROOT = path.join(__dirname, '../..');
 const APP_FILES = ['js/account.js', 'js/app.js', 'js/calls.js', 'js/pickers.js', 'js/ui.js', 'js/views.js', 'js/store.js', 'js/moderation.js', 'js/ads.js', 'js/api.js',
   // 1.4
-  'js/achievements-data.js', 'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js'];
+  'js/achievements-data.js', 'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js',
+  // 1.5
+  'js/blasts.js', 'js/channels.js'];
 const M3_FILES = ['../m3/m3.js'];
 const SERVER = 'server/server.js';
 
@@ -134,7 +136,7 @@ for (const f of M3_FILES) scan(f);
 scan(SERVER, { server: true });
 scan('server/textmodel.js', { server: true });
 // 1.4 server modules: the notes and errors people see, found the same way as in server.js
-for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social']) scan('server/' + f + '.js', { server: true });
+for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels']) scan('server/' + f + '.js', { server: true });
 // Budgie's own starter nests: tagline, description, rules, flairs and category are Budgie's words (the title is a name)
 scan('js/data.js', { data: true });
 // the page itself

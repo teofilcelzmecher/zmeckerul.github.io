@@ -1284,6 +1284,8 @@
     const d = lineData(m);
     const who = m.mine ? 'You' : m.from ? 'u/' + m.from : 'Someone';
     if (m.kind === 'theme') return d.color ? `${who} changed the chat’s colour` : `${who} set the chat back to its usual colours`;
+    // a sticker blast (1.5, js/blasts.js)
+    if (m.kind === 'blast') return Nook.blasts ? Nook.blasts.lineText(m, inGroup) : `${who} blasted stickers`;
     if (m.kind === 'call') {
       const kind = d.media === 'video' ? 'video call' : 'voice call';
       if (inGroup) return `${who} started a ${kind} · ${d.missed ? 'nobody joined' : duration(d.secs)}`;
@@ -1311,6 +1313,7 @@
   function lineIcon(m) {
     const d = lineData(m);
     if (m.kind === 'theme') return 'palette';
+    if (m.kind === 'blast') return 'celebration';
     if (m.kind === 'call') return d.missed && !m.mine ? (d.media === 'video' ? 'missed_video_call' : 'call_missed') : d.media === 'video' ? 'videocam' : 'call';
     return { created: 'groups', added: 'person_add', removed: 'person_remove', left: 'logout', renamed: 'edit', owner: 'shield_person' }[d.type] || 'info';
   }
@@ -1355,7 +1358,8 @@
       }
       if (m.kind) {
         close();
-        html += chatLine(m, them, inGroup);
+        // a sticker blast (1.5) is a pile of the sticker and how many, on its sender's side
+        html += m.kind === 'blast' && Nook.blasts ? Nook.blasts.lineHTML(m, them) : chatLine(m, them, inGroup);
         continue;
       }
       if (inGroup && !m.mine && store.isBlocked(m.from)) {

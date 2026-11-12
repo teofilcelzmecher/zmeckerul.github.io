@@ -815,3 +815,27 @@ body.calm .stk-stage.working {
 html[data-m3-reduce-motion] :is(.stk-tile, .stk-tile img, .sticker-media .sticker-img, .stk-peek img, img.cemoji) {
   transition: none;
 }
+
+/* ---- Browse (1.5): what people shared, searched and sorted ---------------------------------------------------- */
+
+.stk-browse-bar {
+  display: grid;
+  gap: 8px;
+}
+.stk-browse-bar[hidden] {
+  display: none;
+}
+.stk-browse-bar input {
+  width: 100%;
+}
+.stk-browse-bar .chips {
+  display: flex;
+  gap: 6px;
+}
+.stk-grid[data-kind='browse'] .stk-tile {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.stk-foot m3-loading {
+  display: block;
+  margin: 6px auto;
+}

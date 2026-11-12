@@ -10,7 +10,7 @@
 
   const api = window.Nook.api;
   const APP = ['js/data.js', 'js/achievements-data.js', 'js/hooks.js', 'js/store.js', 'js/ui.js', 'js/ads.js', 'js/moderation.js', 'js/fx.js', 'js/views.js', 'js/pickers.js', 'js/calls.js',
-    'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js', 'js/app.js'];
+    'js/presence.js', 'js/achievements.js', 'js/rewards.js', 'js/stickers.js', 'js/social.js', 'js/blasts.js', 'js/channels.js', 'js/app.js'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const icon = (name) => `<span translate="no" class="m3-icon" aria-hidden="true">${name}</span>`;

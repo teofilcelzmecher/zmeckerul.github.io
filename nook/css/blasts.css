@@ -1,0 +1,378 @@
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+/* Sticker blasts (Budgie 1.5): js/blasts.js */
+
+/* ---- a sticker: the picture (a GIF keeps moving), with a soft shadow under it -------------------------------- */
+
+.bl-art {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--bl-s, 56px);
+  height: var(--bl-s, 56px);
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.22));
+}
+.bl-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ---- the tray: a sheet at the bottom of the screen, under a friend's profile ---------------------------------- */
+
+.bl-tray {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* over the page and the bottom bar, under the side menu and its scrim (as the storage notice) */
+  z-index: 75;
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  gap: 4px;
+  width: min(640px, calc(100vw - 32px));
+  height: min(52dvh, 470px);
+  margin: 0 auto;
+  padding: 4px 12px 0;
+  border-radius: 28px 28px 0 0;
+  background: var(--m3-surface-container-low);
+  box-shadow: 0 -4px 28px rgb(0 0 0 / 0.18);
+}
+.bl-grip {
+  display: none;
+}
+.bl-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 2px 6px;
+}
+.bl-title {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.bl-title b {
+  overflow: hidden;
+  font-size: var(--m3-fs-larger);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bl-title small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  line-height: 1.35;
+}
+.bl-find[hidden] {
+  display: none;
+}
+.bl-find input {
+  width: 100%;
+}
+.bl-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 2px 2px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bl-tabs .chip[aria-selected='true'] {
+  border-color: transparent;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.bl-scroll {
+  min-height: 0;
+  margin: 0 -12px;
+  padding: 2px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* big stickers in rows of four (more on a wide screen), their names under them: no boxes round them */
+.bl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 4px 2px;
+}
+.bl-tile {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 2px 4px;
+  border: 0;
+  border-radius: 22px;
+  background: none;
+  color: var(--m3-on-surface-variant);
+  font: inherit;
+  cursor: pointer;
+  /* a tap throws, a scroll scrolls, and a long press is for holding: no menu, no magnifier */
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 150ms;
+}
+@media (hover: hover) {
+  .bl-tile:hover {
+    background: var(--m3-surface-container-high);
+  }
+}
+.bl-tile:active .bl-art {
+  scale: 0.9;
+}
+.bl-tile:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: -2px;
+}
+.bl-tile small {
+  display: -webkit-box;
+  max-width: 100%;
+  min-height: 2.6em;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+/* the first of yours makes a new one */
+.bl-make {
+  position: relative;
+  color: var(--m3-primary);
+}
+.bl-make-ring {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border: 2px dashed color-mix(in srgb, var(--m3-primary) 55%, transparent);
+  border-radius: 50%;
+}
+.bl-make-ring .m3-icon {
+  --m3-icon-size: 34px;
+}
+.bl-make input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.bl-empty {
+  grid-column: 1 / -1;
+  margin: 8px 6px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  text-align: center;
+}
+.bl-more {
+  display: grid;
+  place-items: center;
+  min-height: 8px;
+}
+.bl-more m3-loading {
+  margin: 10px;
+}
+
+/* on a phone it's a sheet from the bottom edge, from side to side, over the bottom bar */
+@media (max-width: 719px) {
+  body.blasting .bottom-nav {
+    translate: 0 110%;
+  }
+  .bl-tray {
+    width: 100vw;
+    height: min(56dvh, 520px);
+    padding-top: 0;
+  }
+  .bl-grip {
+    display: grid;
+    place-items: center;
+    height: 14px;
+  }
+  .bl-grip span {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--m3-outline-variant);
+  }
+  .bl-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---- what flies: over everything, never in the way --------------------------------------------------------- */
+
+.bl-layer,
+.bl-layer[popover] {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--m3-on-surface);
+  pointer-events: none;
+}
+.bl-flyer {
+  position: absolute;
+  will-change: transform, opacity;
+}
+
+/* the combo beside your friend's picture: big and heavy, and bigger as the burst grows (over the stickers) */
+.bl-combo {
+  position: absolute;
+  z-index: 2;
+  color: var(--m3-on-surface);
+  font-size: 2.9rem;
+  font-weight: 900;
+  font-stretch: 115%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  white-space: nowrap;
+  /* an outline in the page's own colour, so it reads over messages and stickers alike */
+  -webkit-text-stroke: 6px var(--nook-page, var(--m3-background));
+  paint-order: stroke fill;
+  text-shadow: 0 3px 10px rgb(0 0 0 / 0.18);
+  transform: translateY(-50%) rotate(-7deg) scale(var(--bl-grow, 1));
+  transform-origin: 0 50%;
+  transition: transform 160ms var(--m3-ease-standard);
+}
+.bl-combo[hidden] {
+  display: none;
+}
+
+/* ---- arriving: the card at the top (the stickers fly round it) ------------------------------------------------ */
+
+.bl-card {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 18px 8px 8px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface);
+  box-shadow: var(--m3-elevation-3);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  pointer-events: auto;
+  translate: -50% 0;
+}
+.bl-card-text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bl-card-text b,
+.bl-card-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bl-card-text small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.bl-card-count {
+  font-size: 1.7rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- in the chat: the sticker piled up, and how many --------------------------------------------------------- */
+
+.bl-line {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  margin: 10px 0 6px 36px;
+}
+.bl-line.mine {
+  justify-items: end;
+  margin-left: 0;
+}
+.bl-pile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 88px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bl-pile > span {
+  position: absolute;
+}
+.bl-pile-back {
+  translate: -16px 6px;
+  rotate: -16deg;
+  opacity: 0.85;
+}
+.bl-pile-mid {
+  translate: 14px 4px;
+  rotate: 12deg;
+  opacity: 0.92;
+}
+.bl-pile-top {
+  rotate: -3deg;
+  transition: rotate 200ms var(--m3-ease-standard), scale 200ms var(--m3-ease-standard);
+}
+@media (hover: hover) {
+  .bl-pile:hover .bl-pile-top {
+    rotate: 6deg;
+    scale: 1.08;
+  }
+}
+.bl-count {
+  position: absolute;
+  right: -6px;
+  bottom: -2px;
+  color: var(--m3-on-surface);
+  font-size: 1.35rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  -webkit-text-stroke: 4px var(--nook-page, var(--m3-background));
+  paint-order: stroke fill;
+  rotate: -7deg;
+}
+.bl-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.bl-when .m3-icon {
+  --m3-icon-size: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-pile-top,
+  .bl-combo {
+    transition: none;
+  }
+}
