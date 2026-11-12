@@ -544,6 +544,17 @@
       });
     };
     const openedAt = performance.now();
+    // closed some other way (leaving the page, another sheet): the flame and embers stop with it, rather than
+    // drawing every frame, unseen, until the app is reloaded
+    dlg.addEventListener('close', () => {
+      if (closed) return;
+      closed = true;
+      timers.forEach(clearTimeout);
+      cancelAnimationFrame(raf);
+      dlg.remove();
+      momentOpen = false;
+      done();
+    });
     dlg.addEventListener('cancel', (e) => {
       e.preventDefault();
       close();
@@ -639,7 +650,7 @@
     let last = performance.now();
     let acc = 0;
     const frame = (time) => {
-      if (closed) return;
+      if (closed || !dlg.isConnected) return;
       const dt = Math.min(0.05, (time - last) / 1000);
       last = time;
       if (!document.hidden) {

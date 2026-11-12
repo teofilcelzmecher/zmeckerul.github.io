@@ -923,6 +923,39 @@
   if (global.customElements && !global.customElements.get('m3-shape')) {
     // a material shape in currentColor: `shape`, part way (`morph`) to `morph-to`,
     // turned by `angle` degrees and drawn at `extent` of its box
+    // every shape shares one constructed sheet and clones one drawing: a page draws hundreds of them, and parsing a
+    // <style> and an <svg> for each was much of the time it took to show a page
+    const SHAPE_CSS =
+      ':host{display:inline-block;width:40px;height:40px;flex:none;color:var(--m3-primary);' +
+      'line-height:0;vertical-align:middle}svg{display:block;width:100%;height:100%;overflow:visible}' +
+      'path{transform-box:view-box;transform-origin:50px 50px}';
+    let shapeSheet = null;
+    let shapeDrawing = null;
+    const shapeRoot = (host) => {
+      const root = host.attachShadow({ mode: 'open' });
+      if (shapeSheet === null) {
+        try {
+          shapeSheet = new CSSStyleSheet();
+          shapeSheet.replaceSync(SHAPE_CSS);
+          if (!('adoptedStyleSheets' in root)) shapeSheet = false;
+        } catch (_) {
+          shapeSheet = false;
+        }
+      }
+      if (shapeSheet) root.adoptedStyleSheets = [shapeSheet];
+      else {
+        const style = global.document.createElement('style');
+        style.textContent = SHAPE_CSS;
+        root.appendChild(style);
+      }
+      if (!shapeDrawing) {
+        shapeDrawing = global.document.createElement('template');
+        shapeDrawing.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true" part="svg"><path part="path" fill="currentColor"></path></svg>';
+      }
+      root.appendChild(shapeDrawing.content.cloneNode(true));
+      return root;
+    };
+
     class M3Shape extends HTMLElement {
       static get observedAttributes() {
         return ['shape', 'morph-to', 'morph', 'angle', 'extent'];
@@ -936,12 +969,7 @@
         this._angle = 0;
         this._extent = 1;
         this._animation = null;
-        const root = this.attachShadow({ mode: 'open' });
-        root.innerHTML =
-          '<style>:host{display:inline-block;width:40px;height:40px;flex:none;color:var(--m3-primary);' +
-          'line-height:0;vertical-align:middle}svg{display:block;width:100%;height:100%;overflow:visible}' +
-          'path{transform-box:view-box;transform-origin:50px 50px}</style>' +
-          '<svg viewBox="0 0 100 100" aria-hidden="true" part="svg"><path part="path" fill="currentColor"></path></svg>';
+        const root = shapeRoot(this);
         this._path = root.querySelector('path');
       }
 

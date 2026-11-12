@@ -660,7 +660,7 @@
             `<article class="nook-card" data-tint="${c.color}" data-tint-always data-href="#/n/${c.id}" data-m3-ripple data-m3-bounce data-m3-hover-root tabindex="0" aria-label="${esc(c.title)}, n/${esc(c.id)}" data-m3-stickers="card-${c.id}" data-count="3" data-min="60" data-max="130" data-clip-radius="23">` +
             `<div class="nc-top"><m3-shape-icon shape="${c.shape}" symbol="${c.symbol}" size="56" icon-size="28"></m3-shape-icon>${joinButton(c)}</div>` +
             `<h3 class="m3-title" translate="no">${esc(c.title)}</h3><div class="meta">n/${esc(c.id)}<span class="count"> · ${a.posts ? plural(a.posts, 'post') : 'no posts yet'}</span></div>` +
-            `<p${ownText(c)}>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}"${a.week ? ' playing' : ''} aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
+            `<p${ownText(c)}>${esc(c.tagline)}</p><m3-wavy-progress value="${a.level}" aria-label="Activity: ${a.mood}"></m3-wavy-progress></article>`
         )
         .join('');
     return {

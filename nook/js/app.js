@@ -155,8 +155,39 @@
     true
   );
 
+  // A tap on the bottom bar switches tabs as a phone's own apps do: the tab lights up at once, the page comes in
+  // straight after (no page transition, which would picture both whole pages and hold taps while it moves), each
+  // tab keeps where you'd scrolled to, and tapping the tab you're on takes you back to its top.
+  let tabTap = false;
+  document.addEventListener(
+    'click',
+    (e) => {
+      const tab = e.target instanceof Element ? e.target.closest('.bottom-nav a[data-nav]') : null;
+      if (!tab || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (tab.getAttribute('href') === (location.hash || '#/')) {
+        e.preventDefault();
+        scrollTo({ top: 0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        return;
+      }
+      tabTap = true;
+      for (const el of $$('.bottom-nav [data-nav]')) {
+        if (el === tab) el.setAttribute('aria-current', 'page');
+        else el.removeAttribute('aria-current');
+      }
+    },
+    true
+  );
+
   /** draws the new page, moving from the old one the way you went */
   function navigate(direction) {
+    if (tabTap) {
+      tabTap = false;
+      pendingShare = null;
+      restoring = scrolls.get(location.hash || '#/') || null;
+      // the highlight is painted first, then the page is drawn
+      requestAnimationFrame(() => setTimeout(render, 0));
+      return;
+    }
     const shared = pendingShare && Date.now() - pendingShare.at < 1500 ? pendingShare : null;
     pendingShare = null;
     let postId = shared && shared.post;
