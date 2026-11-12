@@ -4292,22 +4292,6 @@ html.visitor .landing {
   background: var(--m3-surface-container-low);
   text-align: center;
 }
-.gate-shape {
-  width: 88px;
-  height: 88px;
-  margin-bottom: 4px;
-  color: var(--m3-primary);
-  animation: gate-spin 14s linear infinite;
-}
-@keyframes gate-spin {
-  to {
-    rotate: 1turn;
-  }
-}
-.gate.open .gate-shape {
-  color: var(--m3-tertiary);
-  animation: none;
-}
 .gate-tag {
   padding: 4px 12px;
   border-radius: var(--m3-r-full);
@@ -4394,11 +4378,6 @@ html.visitor .landing {
 .gate-legal a {
   color: var(--m3-primary);
   font-weight: 650;
-}
-@media (prefers-reduced-motion: reduce) {
-  .gate-shape {
-    animation: none;
-  }
 }
 
 /* ---- credits, the about row, the storage notice ------------------------------------------- */
@@ -4696,6 +4675,232 @@ body:has(.call-screen:not([hidden])) .m3-toaster {
 }
 .gate m3-loading {
   margin: 8px auto;
+}
+
+/* ---- signing in, 1.6: full screen on a phone and a card on a computer, Budgie's shape alive up top, signing in and
+   joining one tap apart, icons in the boxes, how strong a new password is, and everything easing in --------------- */
+.gate-card {
+  gap: 14px;
+}
+.gate-card > * {
+  animation: gate-in 520ms var(--m3-ease-emphasized-decelerate, cubic-bezier(0.05, 0.7, 0.1, 1)) both;
+}
+.gate-card > :nth-child(2) { animation-delay: 30ms; }
+.gate-card > :nth-child(3) { animation-delay: 60ms; }
+.gate-card > :nth-child(4) { animation-delay: 90ms; }
+.gate-card > :nth-child(5) { animation-delay: 120ms; }
+.gate-card > :nth-child(6) { animation-delay: 150ms; }
+.gate-card > :nth-child(7) { animation-delay: 180ms; }
+.gate-card > :nth-child(n + 8) { animation-delay: 210ms; }
+@keyframes gate-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+}
+.gate-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 116px;
+}
+.gate-blob {
+  width: 104px;
+  height: 104px;
+  color: var(--m3-primary);
+  filter: drop-shadow(0 12px 22px color-mix(in srgb, var(--m3-primary) 30%, transparent));
+  animation: gate-turn 22s linear infinite;
+}
+.gate-orbit {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+}
+.gate-orbit.o1 {
+  top: 0;
+  right: -4px;
+  color: var(--m3-tertiary);
+  animation: gate-bob 5.6s ease-in-out infinite;
+}
+.gate-orbit.o2 {
+  bottom: 2px;
+  left: -2px;
+  width: 24px;
+  height: 24px;
+  color: color-mix(in srgb, var(--m3-primary) 55%, var(--m3-tertiary));
+  animation: gate-bob 6.8s ease-in-out -2.4s infinite;
+}
+@keyframes gate-turn {
+  to {
+    rotate: 1turn;
+  }
+}
+@keyframes gate-bob {
+  50% {
+    translate: 0 -9px;
+    rotate: 30deg;
+  }
+}
+.gate.open .gate-blob {
+  color: var(--m3-tertiary);
+}
+.gate h1 {
+  font-size: clamp(26px, 7.4vw, 32px);
+}
+.gate-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+  padding: 4px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-highest);
+}
+.gate-switch::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: var(--m3-r-full);
+  background: var(--m3-primary);
+}
+.gate-switch:has(button:last-child[aria-selected='true'])::before {
+  translate: 100% 0;
+}
+.gate-switch.from-signin::before {
+  animation: gate-pill-right 460ms var(--m3-ease-expressive-fast-spatial, cubic-bezier(0.42, 1.67, 0.21, 0.9)) both;
+}
+.gate-switch.from-signup::before {
+  animation: gate-pill-left 460ms var(--m3-ease-expressive-fast-spatial, cubic-bezier(0.42, 1.67, 0.21, 0.9)) both;
+}
+@keyframes gate-pill-right {
+  from {
+    translate: 0 0;
+  }
+}
+@keyframes gate-pill-left {
+  from {
+    translate: 100% 0;
+  }
+}
+.gate-switch button {
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--m3-r-full);
+  background: none;
+  color: var(--m3-on-surface-variant);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 250ms;
+}
+.gate-switch button[aria-selected='true'] {
+  color: var(--m3-on-primary);
+}
+.gate-input {
+  position: relative;
+  display: block;
+}
+.gate-input > .m3-icon:first-child {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  translate: 0 -50%;
+  color: var(--m3-on-surface-variant);
+  pointer-events: none;
+}
+.gate-input > input {
+  width: 100%;
+  padding-left: 46px;
+}
+.gate-input:focus-within > .m3-icon:first-child {
+  color: var(--m3-primary);
+}
+.gate-forgot {
+  justify-self: end;
+  margin: -8px 0 -4px;
+  padding: 6px 4px;
+  border: 0;
+  background: none;
+  color: var(--m3-primary);
+  font: inherit;
+  font-size: var(--m3-fs-smaller);
+  font-weight: 650;
+  cursor: pointer;
+}
+.gate-meter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 2px;
+}
+.gate-meter i {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--m3-surface-container-highest);
+  transition: background-color 250ms;
+}
+.gate-meter[data-level='1'] i:first-child {
+  background: var(--m3-error);
+}
+.gate-meter[data-level='2'] i:nth-child(-n + 2) {
+  background: var(--m3-tertiary);
+}
+.gate-meter[data-level='3'] i:nth-child(-n + 3),
+.gate-meter[data-level='4'] i {
+  background: var(--m3-primary);
+}
+.gate-meter-text {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.gate-meter-text:empty {
+  display: none;
+}
+/* the message line takes no room until it has something to say (it stays, so screen readers hear it when it does) */
+.gate-msg:empty {
+  min-height: 0;
+  margin-block: -7px;
+}
+.gate-note {
+  padding: 10px 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-tertiary-container);
+  color: var(--m3-on-tertiary-container);
+}
+.gate-go {
+  min-height: 52px;
+  margin-top: 2px;
+}
+.gate-go.busy .m3-icon {
+  animation: gate-turn 900ms linear infinite;
+}
+@media (max-width: 719px) {
+  .gate {
+    place-items: start center;
+    padding: calc(8px + var(--nook-top)) 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .gate-card {
+    width: 100%;
+    min-height: 100%;
+    align-content: start;
+    padding: 8px 20px 20px;
+    border-radius: 0;
+    background: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gate-blob,
+  .gate-orbit,
+  .gate-card > *,
+  .gate-switch::before {
+    animation: none !important;
+  }
 }
 
 /* ---- live updates, tags, people ------------------------------------------------------------------------ */

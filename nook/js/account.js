@@ -57,46 +57,58 @@
     return gate;
   }
 
-  const field = (id, label, type, extra = '') =>
-    `<label class="gate-field" for="${id}"><span>${label}</span><input class="m3-field" id="${id}" type="${type}" ${extra}><small class="gate-error" data-for="${id}"></small></label>`;
-  const passwordField = (id, label, autocomplete) =>
-    `<label class="gate-field" for="${id}"><span>${label}</span><span class="gate-pass"><input class="m3-field" id="${id}" type="password" autocomplete="${autocomplete}" minlength="8" maxlength="200" required>` +
-    `<button type="button" class="m3-icon-btn small" data-show="${id}" aria-label="Show password">${icon('visibility')}</button></span><small class="gate-error" data-for="${id}"></small></label>`;
+  const field = (id, label, type, extra = '', lead = '') =>
+    `<label class="gate-field" for="${id}"><span>${label}</span><span class="gate-input">${lead ? icon(lead) : ''}<input class="m3-field" id="${id}" type="${type}" ${extra}></span><small class="gate-error" data-for="${id}"></small></label>`;
+  const passwordField = (id, label, autocomplete, after = '') =>
+    `<label class="gate-field" for="${id}"><span>${label}</span><span class="gate-input gate-pass">${icon('lock')}<input class="m3-field" id="${id}" type="password" autocomplete="${autocomplete}" minlength="8" maxlength="200" required>` +
+    `<button type="button" class="m3-icon-btn small" data-show="${id}" aria-label="Show password">${icon('visibility')}</button></span>${after}<small class="gate-error" data-for="${id}"></small></label>`;
+  // up top, Budgie's shape, alive: it turns, and every few seconds becomes another (js: liven)
   const head = (title, text, shape = 'cookie9') =>
-    `<m3-shape class="gate-shape" shape="${shape}" aria-hidden="true"></m3-shape><span class="gate-tag">Free · No email needed</span><h1 class="m3-title" id="gate-title">${title}</h1>${text ? `<p class="gate-text">${text}</p>` : ''}`;
+    `<div class="gate-hero" aria-hidden="true"><m3-shape class="gate-blob" shape="${shape}"></m3-shape><m3-shape class="gate-orbit o1" shape="flower"></m3-shape><m3-shape class="gate-orbit o2" shape="gem"></m3-shape></div>` +
+    `<h1 class="m3-title" id="gate-title">${title}</h1>${text ? `<p class="gate-text">${text}</p>` : ''}`;
   const legal = '<p class="gate-legal"><a href="terms.html">Terms of Use</a> · <a href="privacy.html">Privacy Policy</a></p>';
+  // signing in and joining are one tap apart
+  const tabs = (on) =>
+    `<div class="gate-switch" role="tablist" aria-label="Sign in or join"><button type="button" role="tab" aria-selected="${on === 'signin'}" data-go="signin">Sign in</button><button type="button" role="tab" aria-selected="${on === 'signup'}" data-go="signup">Join</button></div>`;
+  const codeBoxes = (id, label) =>
+    `<div class="gate-field"><span id="${id}-label">${label}</span><label class="gate-code">` +
+    `<input id="${id}" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-labelledby="${id}-label" spellcheck="false">` +
+    '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(6) + `</span></label><small class="gate-error" data-for="${id}"></small></div>`;
 
   const SCREENS = {
     signin: (o) =>
-      `<form class="gate-card" novalidate>${head('Welcome back', o.message ? esc(o.message) : 'Sign in to Budgie.')}` +
-      field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required') +
+      `<form class="gate-card" novalidate>${head('Welcome back', o.message ? esc(o.message) : 'Good to see you again.')}${tabs('signin')}` +
+      field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required', 'alternate_email') +
       passwordField('g-pass', 'Password', 'current-password') +
+      '<button type="button" class="gate-forgot" data-go="forgot">Forgot your password?</button>' +
       '<p class="gate-msg" role="status"></p>' +
       `<button class="m3-btn filled gate-go" type="submit">${icon('login')}Sign in</button>` +
-      '<p class="gate-links"><button type="button" class="link" data-go="signup">New here? Create an account</button><button type="button" class="link" data-go="forgot">Forgot your password?</button></p>' +
       legal + '</form>',
 
     signup: (o) =>
-      (signup === 'invite'
-        ? `<form class="gate-card" novalidate>${head('Join Budgie', o.message ? esc(o.message) : 'Budgie is invite-only right now. You’ll need the 6-digit code a friend gave you.')}` +
-          '<div class="gate-field"><span id="g-invite-label">Invite code</span><label class="gate-code">' +
-          '<input id="g-invite" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]*" maxlength="6" aria-labelledby="g-invite-label" spellcheck="false">' +
-          '<span class="gate-cells" aria-hidden="true">' + '<span></span>'.repeat(6) + '</span></label><small class="gate-error" data-for="g-invite"></small></div>'
-        : `<form class="gate-card" novalidate>${head('Join Budgie', 'Pick a username and a password, and you’re in.')}`) +
-      field('g-name', 'Pick a username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required aria-describedby="g-name-hint"') +
+      `<form class="gate-card" novalidate>${head('Join Budgie', o.message ? esc(o.message) : signup === 'invite' ? 'Budgie is invite-only right now. You’ll need the 6-digit code a friend gave you.' : 'Free, and no email needed. Pick a name and you’re in.', 'flower')}${tabs('signup')}` +
+      (signup === 'invite' ? codeBoxes('g-invite', 'Invite code') : '') +
+      field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required aria-describedby="g-name-hint"', 'alternate_email') +
       '<small class="gate-hint" id="g-name-hint">3–20 letters, numbers or underscores. Everyone on Budgie sees it.</small>' +
-      passwordField('g-pass', 'Password (at least 8 characters)', 'new-password') +
-      '<label class="gate-check"><input type="checkbox" id="g-age"><span>I’m at least 13. Where my country requires it, a parent or guardian has said yes.</span></label>' +
-      '<label class="gate-check"><input type="checkbox" id="g-terms"><span>I agree to the <a href="terms.html" target="_blank">Terms of Use</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</span></label>' +
+      passwordField('g-pass', 'Password', 'new-password', '<span class="gate-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></span><small class="gate-meter-text" id="g-meter" aria-live="polite"></small>') +
+      '<label class="gate-check"><input type="checkbox" id="g-terms"><span>I’m 13 or older (with a parent’s OK where my country asks for it), and I agree to the <a href="terms.html" target="_blank">Terms of Use</a> and the <a href="privacy.html" target="_blank">Privacy Policy</a>.</span></label>' +
       '<div class="gate-captcha" id="g-captcha" hidden><div class="gate-captcha-box"></div><small class="gate-error" data-for="g-captcha"></small></div>' +
       '<p class="gate-msg" role="status"></p>' +
       `<button class="m3-btn filled gate-go" type="submit">${icon('person_add')}Create account</button>` +
-      '<p class="gate-links"><button type="button" class="link" data-go="signin">Already have an account? Sign in</button></p></form>',
+      '</form>',
+
+    // two-step sign-in (1.6): the password was right; now the code from the authenticator app
+    code: () =>
+      `<form class="gate-card" novalidate>${head('Two-step sign-in', 'Open your authenticator app and type the 6-digit code it shows for Budgie.', 'gem')}` +
+      codeBoxes('g-code', 'Code') +
+      '<p class="gate-msg" role="status"></p>' +
+      `<button class="m3-btn filled gate-go" type="submit">${icon('verified_user')}Sign in</button>` +
+      '<p class="gate-links"><button type="button" class="link" data-go="forgot">Lost your phone? Use your recovery code</button><button type="button" class="link" data-go="signin">Back</button></p></form>',
 
     forgot: () =>
       `<form class="gate-card" novalidate>${head('Forgot your password?', 'Use the recovery code you saved when you joined. You’ll get a new one after.', 'clover4')}` +
-      field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required') +
-      field('g-recovery', 'Recovery code', 'text', 'autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" required') +
+      field('g-name', 'Username', 'text', 'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" required', 'alternate_email') +
+      field('g-recovery', 'Recovery code', 'text', 'autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" required', 'key') +
       passwordField('g-pass', 'New password', 'new-password') +
       '<p class="gate-msg" role="status"></p>' +
       `<button class="m3-btn filled gate-go" type="submit">${icon('lock_reset')}Reset password</button>` +
@@ -105,6 +117,7 @@
 
     recovery: (o) =>
       `<form class="gate-card" novalidate>${head('Save your recovery code', 'If you ever forget your password, this code gets you back in. It’s shown only now, so write it down or keep it in your password manager.', 'gem')}` +
+      (o.twofaOff ? '<p class="gate-hint gate-note">Two-step sign-in is off now. You can turn it on again in Settings.</p>' : '') +
       `<output class="gate-recovery" id="g-code">${esc(o.code)}</output>` +
       `<button type="button" class="m3-btn tonal" data-copy>${icon('content_copy')}Copy code</button>` +
       '<label class="gate-check"><input type="checkbox" id="g-saved"><span>I’ve saved it somewhere safe.</span></label>' +
@@ -122,9 +135,16 @@
           (o.setup ? '' : `<button class="m3-btn filled gate-go" type="button" data-retry>${icon('refresh')}Try again</button>`) + legal + '</div>',
   };
 
+  let shown = '';
   function show(name, options = {}) {
     const root = frame();
+    const was = shown;
+    shown = name;
     root.innerHTML = SCREENS[name](options);
+    // the pill slides across when you switch between signing in and joining
+    const pill = root.querySelector('.gate-switch');
+    if (pill && (was === 'signin' || was === 'signup') && was !== name) pill.classList.add('from-' + was);
+    liven(root);
     // from the welcome page, a way back to it, in the card's corner (as a dialog's close button is)
     if (landing && landing.isConnected && ['signin', 'signup', 'forgot'].includes(name)) {
       root.querySelector('.gate-card').insertAdjacentHTML('afterbegin', `<button type="button" class="m3-icon-btn gate-back" aria-label="Back">${icon('arrow_back')}</button>`);
@@ -144,17 +164,72 @@
     );
     const retry = root.querySelector('[data-retry]');
     if (retry) retry.addEventListener('click', start);
-    if (name === 'signup' && signup === 'invite') wireCode(root);
-    if (name === 'signup') placeCaptcha(form);
+    if (name === 'signup' && signup === 'invite') wireCode(root, '#g-invite');
+    if (name === 'code') wireCode(root, '#g-code', () => submit('code', form));
+    if (name === 'signup') {
+      placeCaptcha(form);
+      wireMeter(root);
+    }
     if (name === 'recovery') wireRecovery(root, options);
     if (form && name !== 'recovery') form.addEventListener('submit', (e) => (e.preventDefault(), submit(name, form)));
     const first = root.querySelector('input:not([type=checkbox])');
     if (first && name !== 'recovery') first.focus({ preventScroll: true });
   }
 
-  // the invite code: one real input over six boxes, as before
-  function wireCode(root) {
-    const input = root.querySelector('#g-invite');
+  // Budgie's shape on these screens becomes another every few seconds (not for anyone who'd rather things kept still)
+  const BLOBS = ['cookie9', 'flower', 'gem', 'clover4', 'softBurst', 'puffy', 'pixelCircle', 'heart'];
+  function liven(root) {
+    const blob = root.querySelector('.gate-blob');
+    if (!blob || still()) return;
+    let from = blob.getAttribute('shape');
+    const morph = () => {
+      if (!blob.isConnected) return;
+      const to = BLOBS[(BLOBS.indexOf(from) + 1) % BLOBS.length];
+      blob.setAttribute('morph-to', to);
+      const t0 = performance.now();
+      const frame = (t) => {
+        if (!blob.isConnected) return;
+        const k = Math.min(1, (t - t0) / 900);
+        blob.morph = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+        if (k < 1) return requestAnimationFrame(frame);
+        blob.setAttribute('shape', to);
+        blob.removeAttribute('morph-to');
+        blob.morph = 0;
+        from = to;
+        setTimeout(morph, 2200);
+      };
+      requestAnimationFrame(frame);
+    };
+    setTimeout(morph, 1400);
+  }
+
+  // how hard a new password would be to guess, as you type it (the server also refuses the most used ones)
+  function strength(pw, name) {
+    if (!pw) return 0;
+    if (pw.length < 8) return 1;
+    const kinds = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) => r.test(pw)).length;
+    let score = 1 + (pw.length >= 12 ? 1 : 0) + (pw.length >= 16 || (pw.length >= 12 && kinds >= 3) ? 1 : 0) + (kinds >= 3 && pw.length >= 10 ? 1 : 0);
+    if (/^(.)\1+$/.test(pw) || /^(?:0123|1234|abcd|qwer|asdf|pass|budgie)/i.test(pw) || (name && name.length >= 3 && pw.toLowerCase().includes(name.toLowerCase()))) score = 1;
+    return Math.min(4, Math.max(1, score));
+  }
+  const LEVELS = ['', 'Too easy to guess', 'Okay', 'Good', 'Strong'];
+  function wireMeter(root) {
+    const input = root.querySelector('#g-pass');
+    const meter = root.querySelector('.gate-meter');
+    const words = root.querySelector('#g-meter');
+    const name = root.querySelector('#g-name');
+    const paint = () => {
+      const level = strength(input.value, name.value.trim());
+      meter.dataset.level = level;
+      words.textContent = !input.value ? '' : input.value.length < 8 ? 'At least 8 characters' : LEVELS[level] + (level < 3 ? '. A few random words work well.' : '');
+    };
+    input.addEventListener('input', paint);
+    name.addEventListener('input', paint);
+  }
+
+  // a 6-digit code (an invite, or two-step sign-in): one real input over six boxes; done() once all six are in
+  function wireCode(root, sel, done) {
+    const input = root.querySelector(sel);
     const cells = [...root.querySelectorAll('.gate-cells span')];
     const paint = () =>
       cells.forEach((cell, i) => {
@@ -165,6 +240,7 @@
     input.addEventListener('input', () => {
       input.value = input.value.replace(/\D/g, '').slice(0, 6);
       paint();
+      if (done && input.value.length === 6) done();
     });
     input.addEventListener('focus', paint);
     input.addEventListener('blur', paint);
@@ -265,6 +341,8 @@
   }
 
   let busy = false;
+  // the name and password while the code is asked for (only in memory, and only until signing in ends)
+  let pending = null;
   async function submit(name, form) {
     if (busy) return;
     const $ = (sel) => form.querySelector(sel);
@@ -287,8 +365,10 @@
       if (signup === 'invite' && value('g-invite').length !== 6) return problem('g-invite', 'Enter all 6 digits of your invite code.');
       if (!/^[A-Za-z0-9_]{3,20}$/.test(value('g-name'))) return problem('g-name', 'Use 3–20 letters, numbers or underscores.');
       if (password.length < 8) return problem('g-pass', 'Use at least 8 characters.');
-      if (!$('#g-age').checked || !$('#g-terms').checked) return problem('', 'Please tick both boxes to continue.');
+      if (!$('#g-terms').checked) return problem('', 'Tick the box to say you’re 13 or older and agree, to continue.');
       if (captcha && !captchaAnswer(form)) return problem('g-captcha', $('#g-captcha').dataset.widget === 'failed' ? CAPTCHA_BLOCKED : CAPTCHA_WAIT);
+    } else if (name === 'code') {
+      if (value('g-code').length !== 6) return problem('g-code', 'Type all 6 digits.');
     } else {
       if (!value('g-name')) return problem('g-name', 'Enter your username.');
       if (name === 'forgot' && !value('g-recovery')) return problem('g-recovery', 'Enter your recovery code.');
@@ -296,19 +376,37 @@
     }
 
     go.disabled = true;
+    go.classList.add('busy');
+    const glyph = go.querySelector('.m3-icon');
+    const was = glyph ? glyph.textContent : '';
+    if (glyph) glyph.textContent = 'progress_activity';
     busy = true;
     try {
       let result;
-      if (name === 'signin') result = await api.post('/api/login', { name: value('g-name'), password });
+      if (name === 'signin') {
+        pending = { name: value('g-name'), password };
+        result = await api.post('/api/login', pending);
+      }
+      if (name === 'code') result = await api.post('/api/login', Object.assign({ code: value('g-code') }, pending));
       if (name === 'signup') result = await api.post('/api/signup', { invite: value('g-invite'), name: value('g-name'), password, age: true, terms: true, captcha: captcha ? captchaAnswer(form) : undefined });
       if (name === 'forgot') result = await api.post('/api/recover', { name: value('g-name'), recovery: value('g-recovery'), password });
       api.setToken(result.token);
       busy = false;
-      if (result.recovery) show('recovery', { code: result.recovery });
+      pending = null;
+      if (result.recovery) show('recovery', { code: result.recovery, twofaOff: result.twofaOff });
       else start();
     } catch (error) {
       go.disabled = false;
+      go.classList.remove('busy');
+      if (glyph) glyph.textContent = was;
       busy = false;
+      // the password was right, and the account wants a code from its authenticator app
+      if (error.twofa && name === 'signin') return show('code');
+      if (name === 'code') {
+        const box = $('#g-code');
+        box.value = '';
+        box.dispatchEvent(new Event('focus'));
+      }
       // the owner switched invite codes on since this page opened: show the code boxes and say why
       if (error.field === 'invite' && signup !== 'invite') {
         signup = 'invite';
@@ -321,7 +419,7 @@
           placeCaptcha(form);
         } else resetCaptcha(form);
       }
-      const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass', captcha: 'g-captcha' };
+      const map = { invite: 'g-invite', name: 'g-name', password: 'g-pass', captcha: 'g-captcha', code: 'g-code' };
       problem(map[error.field] || '', error.message);
     }
   }
