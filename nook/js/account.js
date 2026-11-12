@@ -212,7 +212,7 @@
     if (/^(.)\1+$/.test(pw) || /^(?:0123|1234|abcd|qwer|asdf|pass|budgie)/i.test(pw) || (name && name.length >= 3 && pw.toLowerCase().includes(name.toLowerCase()))) score = 1;
     return Math.min(4, Math.max(1, score));
   }
-  const LEVELS = ['', 'Too easy to guess', 'Okay', 'Good', 'Strong'];
+  const LEVELS = ['', 'Too easy to guess. A few random words work well.', 'Okay. A few random words work well.', 'Good', 'Strong'];
   function wireMeter(root) {
     const input = root.querySelector('#g-pass');
     const meter = root.querySelector('.gate-meter');
@@ -221,7 +221,7 @@
     const paint = () => {
       const level = strength(input.value, name.value.trim());
       meter.dataset.level = level;
-      words.textContent = !input.value ? '' : input.value.length < 8 ? 'At least 8 characters' : LEVELS[level] + (level < 3 ? '. A few random words work well.' : '');
+      words.textContent = !input.value ? '' : input.value.length < 8 ? 'At least 8 characters' : LEVELS[level];
     };
     input.addEventListener('input', paint);
     name.addEventListener('input', paint);

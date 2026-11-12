@@ -7573,9 +7573,12 @@ html[data-m3-reduce-motion] .call-bg m3-shape {
 .tf-key {
   font-size: clamp(14px, 4.2vw, 18px);
 }
-.tf-setup a {
-  color: var(--m3-primary);
-  font-weight: 650;
+.tf-setup .tf-link {
+  justify-self: center;
+  margin: 4px auto 10px;
+}
+.tf-setup {
+  display: grid;
 }
 
 /* ---- calls, 1.6: one other person on video fills the screen edge to edge, the bars float over soft shade and

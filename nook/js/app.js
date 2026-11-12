@@ -1638,8 +1638,9 @@
         '<p>Even with your password, nobody can sign in as you without a code from your phone. You’ll need an authenticator app, like Google Authenticator, Microsoft Authenticator, 2FAS or your password manager.</p>' +
         '<div class="field"><label for="tf-pass">First, your password</label><input class="m3-field" id="tf-pass" type="password" autocomplete="current-password"><span class="error" id="tf-err"></span></div>' +
         '<div class="tf-setup" hidden><div class="tf-qr" aria-label="A QR code for your authenticator app"></div>' +
-        '<p class="muted">Scan it with your authenticator app, or <a class="tf-link" href="#">open it in the app</a> on this phone. Or type this key into the app:</p>' +
+        '<p class="muted">Scan it with your authenticator app, or type this key into it:</p>' +
         '<output class="gate-recovery tf-key"></output>' +
+        `<a class="m3-btn tonal tf-link" href="#">${icon('open_in_new')}Open in my authenticator app</a>` +
         '<div class="field"><label for="tf-code">Then type the 6-digit code it shows</label><input class="m3-field" id="tf-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"><span class="error" id="tf-err2"></span></div>' +
         '<p class="muted">Keep your recovery code safe too: it gets you in if you lose your phone.</p></div>',
       actions: [
