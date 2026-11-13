@@ -2,8 +2,8 @@
 /*
  * What people are listening to and playing (Budgie 1.4).
  *
- * The server knows someone's activity (a song, a game) from Budgie for Windows and Linux, Last.fm, Steam, or what
- * they typed; this shows it where people are: a lively card on profiles (album art on a spinning record, an
+ * The server knows someone's activity (a song, a game) from Budgie for computers (and, 1.7, for iPhone), Spotify,
+ * Steam, or what they typed; this shows it where people are: a lively card on profiles (album art on a spinning record, an
  * equaliser, the card in the album's own colours; a game in a morphing controller shape), a line under names in
  * friends lists and chats, a little badge on avatars in Messages, and a "Lately" section of what they've been into.
  *
@@ -89,10 +89,10 @@
     const m = minutes % 60;
     return m ? `for ${h} h ${m} min` : `for ${h} h`;
   }
-  /** where it comes from, as a little tag beside "Listening" or "Playing": the app, Last.fm, Steam, or "Status" */
+  /** where it comes from, as a little tag beside "Listening" or "Playing": the app, Spotify, Steam, or "Status" */
   function sourceTag(x) {
     if (x.source === 'manual') return `<span class="pres-tag">${icon('edit_note')}Status</span>`;
-    const name = x.source === 'lastfm' ? 'Last.fm' : x.source === 'steam' ? 'Steam' : x.app || 'PC';
+    const name = x.source === 'spotify' ? 'Spotify' : x.source === 'steam' ? 'Steam' : x.app || 'PC';
     return `<span class="pres-tag" translate="no">${esc(name)}</span>`;
   }
   const songText = (m) => clean(m.title) + (m.artist ? ' — ' + clean(m.artist) : '');
@@ -587,7 +587,7 @@
       const x = a[slot];
       if (!x) return '';
       const words = slot === 'music' ? songText(x) : clean(x.name);
-      const from = { manual: 'typed by you', desktop: 'from this computer', lastfm: 'from Last.fm', steam: 'from Steam' }[x.source] || '';
+      const from = { manual: 'typed by you', desktop: 'from your device', spotify: 'from Spotify', steam: 'from Steam' }[x.source] || '';
       return `<div class="pres-now"><span class="pres-now-icon">${slot === 'music' ? MINI_EQ : icon('sports_esports')}</span><span class="row-text"><b translate="no">${esc(words)}</b><small>${esc(slot === 'music' ? 'Listening' : 'Playing')} · ${esc(from)}</small></span><button type="button" class="m3-btn text small" data-pres-act="clear" data-slot="${slot}">${icon('close')}Clear</button></div>`;
     };
     const source = (shape, symbol, title, about, body) =>
@@ -607,13 +607,6 @@
         'Set it yourself',
         'Type what you’re listening to or playing, for as long as you like (up to a day). It’s just words, so it doesn’t count towards music or game achievements.',
         `<div class="toolbar"><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="music">${icon('music_note')}Listening to…</button><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="game">${icon('sports_esports')}Playing…</button></div>`
-      ) +
-      source(
-        'cookie12',
-        'album',
-        'Last.fm',
-        'Spotify, YouTube Music, Apple Music and most music apps can send what you play to Last.fm (it’s called scrobbling). Link your Last.fm username, and while you’re using Budgie, it shows what’s playing.',
-        !s.available.lastfm && !s.lastfm ? '<p class="muted pres-off">Last.fm isn’t set up on this Budgie server yet.</p>' : s.lastfm ? linked('lastfm', s.lastfm) : linkForm('lastfm', 'Your Last.fm username', 'Link')
       ) +
       source(
         'pixelCircle',
@@ -658,10 +651,10 @@
         err.textContent = '';
         if (!input.value.trim()) return input.focus();
         button.setAttribute('aria-busy', 'true');
-        api.post('/api/activity/' + id, id === 'lastfm' ? { user: input.value.trim() } : { id: input.value.trim() }).then(
+        api.post('/api/activity/' + id, { id: input.value.trim() }).then(
           (r) => {
             haptic([8, 40, 12]);
-            M3.toast(id === 'lastfm' ? 'Last.fm is linked' : 'Steam is linked', { symbol: 'link', shape: id === 'lastfm' ? 'cookie12' : 'pixelCircle' });
+            M3.toast('Steam is linked', { symbol: 'link', shape: 'pixelCircle' });
             if (r.warning) M3.snackbar(r.warning, { timeout: 12000 });
             fillSettings(box, r);
           },
@@ -677,7 +670,7 @@
         const id = b.dataset.unlink;
         api.del('/api/activity/' + id).then(
           (r) => {
-            M3.snackbar(id === 'lastfm' ? 'Last.fm is unlinked.' : 'Steam is unlinked.');
+            M3.snackbar('Steam is unlinked.');
             fillSettings(box, r);
           },
           (error) => app().showError(error)

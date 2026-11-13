@@ -2,15 +2,16 @@
 /*
  * What people are listening to and playing (Budgie 1.4).
  *
- * Someone's activity is a song (`music`) and a game (`game`), each from one of four places:
+ * Someone's activity is a song (`music`) and a game (`game`), each from one of these places:
  *   desktop  Budgie for Windows and Linux sees what the computer plays and runs, and its page posts it here as a
  *            heartbeat: it lasts three minutes unless it comes again
- *   lastfm   their Last.fm username: Spotify, YouTube Music, Apple Music and most music apps "scrobble" there, and
- *            this server asks Last.fm what's playing now, for people who used Budgie in the last ten minutes only
- *   steam    their Steam profile: the same, for the game Steam says they're in
+ *   steam    their Steam profile: this server asks Steam which game they're in, for people who used Budgie in the
+ *            last ten minutes only
  *   manual   what they typed themselves ("Listening to…", "Playing…"), for up to a day. Just words: it never counts
  *            towards an achievement
- * When two places say different things, what they set by hand shows first, then the computer, then Last.fm and
+ *   spotify  (1.7) their Spotify account, linked in Settings: music.js asks Spotify what's playing, with where in the
+ *            song they are and a link to it (so friends can listen along)
+ * When two places say different things, what they set by hand shows first, then the computer, then Spotify, then
  * Steam. Who sees it is theirs to choose: everyone, friends (the default) or nobody; blocked people never do.
  *
  * Real listening and playing feed the counts achievements are made of (stats.js): songs, artists and genres heard,
@@ -18,13 +19,14 @@
  * never add up to more than the time that really passed; a song counts once it has played for 30 seconds, a game
  * once it has run for two minutes.
  *
- * Album art is fetched here, from Last.fm's picture or else Apple's iTunes Search, and kept in DATA/art (up to
+ * Album art is fetched here, from Spotify's picture or else Apple's iTunes Search, and kept in DATA/art (up to
  * 150 MB, the least used go first). People's browsers only ever load it from this server (/api/art/<hash>.jpg),
- * so no other company sees who's looking. Genres come from Last.fm's tags for an artist (or iTunes' genre), kept
+ * so no other company sees who's looking. Genres come from the genre iTunes gives an artist's song, kept
  * for a month per artist.
  *
- * The keys: `nook lastfm <API key>` and `nook steam <Web API key>`, kept in the meta table like KLIPY's.
- * NOOK_ACTIVITY_API points Last.fm, Steam and iTunes at a stand-in server, for the tests (polls run faster then).
+ * The key: `nook steam <Web API key>`, kept in the meta table like KLIPY's. (Last.fm, which 1.4 to 1.6 asked too, is
+ * gone in 1.7: what was kept for it goes when the server starts.)
+ * NOOK_ACTIVITY_API points Steam and iTunes at a stand-in server, for the tests (polls run faster then).
  */
 'use strict';
 
@@ -34,17 +36,14 @@ const path = require('node:path');
 const mod = require('../js/moderation.js');
 
 const TEST_API = (process.env.NOOK_ACTIVITY_API || '').replace(/\/$/, '');
-const LASTFM_API = TEST_API ? TEST_API + '/lastfm/2.0/' : 'https://ws.audioscrobbler.com/2.0/';
 const STEAM_API = TEST_API ? TEST_API + '/steam' : 'https://api.steampowered.com';
 const ITUNES_API = TEST_API ? TEST_API + '/itunes/search' : 'https://itunes.apple.com/search';
-// where album art may be downloaded from (Last.fm's and Apple's picture servers), and nowhere else
-const ART_HOSTS = [/^lastfm\.freetls\.fastly\.net$/, /^lastfm-img\d*\.akamaized\.net$/, /^is\d+-ssl\.mzstatic\.com$/];
-// Last.fm's grey star, for a song it has no picture of
-const LASTFM_NO_ART = '2a96cbd8b46e442fc41c2b86b821562f';
+// where album art may be downloaded from (Apple's and Spotify's picture servers), and nowhere else
+const ART_HOSTS = [/^is\d+-ssl\.mzstatic\.com$/, /^i\.scdn\.co$/];
 
 const SLOTS = ['music', 'game'];
-// what wins when two places say different things: what someone typed, then their computer, then Last.fm and Steam
-const RANK = { manual: 3, desktop: 2, lastfm: 1, steam: 1 };
+// what wins when two places say different things: what someone typed, then their phone or computer, then Spotify and Steam
+const RANK = { manual: 3, desktop: 2, spotify: 1.5, steam: 1 };
 const VISIBILITY = ['everyone', 'friends', 'nobody'];
 const LIMITS = { title: 150, artist: 100, album: 100, app: 32, game: 80 };
 
@@ -52,11 +51,10 @@ function install(ctx) {
   const { db, route, limit, fail, now, CONFIG, VERSION, MINUTE, HOUR, DAY, friendship, hasBlocked, lastSeen, textmodel, autoReport, CLI, modules, serving } = ctx;
   const stats = modules.stats;
   const FAST = !!TEST_API;
-  const HEARTBEAT = 3 * MINUTE; // a sighting from a computer, Last.fm or Steam lasts this long unless it comes again
+  const HEARTBEAT = 3 * MINUTE; // a sighting from a computer, Spotify or Steam lasts this long unless it comes again
   const GAP = 5 * MINUTE; // sightings further apart than this don't make listening or playing time
-  const SEEN = 10 * MINUTE; // Last.fm and Steam are only asked about people who used Budgie this recently
+  const SEEN = 10 * MINUTE; // Steam is only asked about people who used Budgie this recently
   const MANUAL_MAX = 24 * 60; // minutes: "until I clear it" means a day at most
-  const LASTFM_EVERY = FAST ? 2500 : 45000; // how often each person's Last.fm is asked (give or take ten seconds)
   const STEAM_EVERY = FAST ? 2500 : 60000;
   const ART_DIR = path.join(CONFIG.data, 'art');
   const ART_MAX = 1536 * 1024; // one picture
@@ -67,7 +65,6 @@ function install(ctx) {
 CREATE TABLE IF NOT EXISTS presence (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   visibility TEXT NOT NULL DEFAULT 'friends',
-  lastfm TEXT NOT NULL DEFAULT '',
   steam_id TEXT NOT NULL DEFAULT '',
   steam_name TEXT NOT NULL DEFAULT '',
   music TEXT NOT NULL DEFAULT '',
@@ -86,6 +83,16 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   genres TEXT NOT NULL DEFAULT '[]',
   fetched_at INTEGER NOT NULL
 );`);
+  // (1.7) Last.fm is gone: the usernames linked to it, its key, and a song it was showing
+  if (db.raw.prepare('PRAGMA table_info(presence)').all().some((c) => c.name === 'lastfm')) {
+    db.raw.exec("UPDATE presence SET music = '' WHERE json_extract(music, '$.source') = 'lastfm'");
+    try {
+      db.raw.exec('ALTER TABLE presence DROP COLUMN lastfm');
+    } catch (_) {
+      db.raw.exec("UPDATE presence SET lastfm = ''");
+    }
+  }
+  db.raw.exec("DELETE FROM meta WHERE key = 'lastfm-key'");
 
   // ---- small helpers ------------------------------------------------------------------------------------
 
@@ -132,6 +139,11 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const m = live(parse(row.music), t);
     if (m) {
       out.music = { title: m.title, artist: m.artist || undefined, album: m.album || undefined, art: m.art || undefined, genres: m.genres && m.genres.length ? m.genres : undefined, source: m.source, app: m.app || undefined, since: m.since };
+      // (1.7) where in the song they are (at `at`, this server's time) and how long it is, and where it is on Spotify
+      if (m.duration) Object.assign(out.music, { duration: m.duration, position: m.position || 0, at: m.at || m.since, paused: m.paused || undefined });
+      if (m.link) out.music.link = m.link;
+      if (m.spotify) out.music.spotify = m.spotify;
+      if (m.appleId) out.music.appleId = m.appleId;
       if (m.source === 'manual') out.music.until = m.until;
     }
     const g = live(parse(row.game), t);
@@ -154,7 +166,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     return !!f && f.status === 'friends';
   }
 
-  /** the word lists' say about something someone else's computer or Last.fm sent: a slur or a scam isn't shown */
+  /** the word lists' say about something someone's computer or Spotify sent: a slur or a scam isn't shown */
   const wordsOk = (texts) => !mod.check(texts.filter(Boolean), { kind: 'profile' }).block;
 
   /** what people type themselves is checked like a bio: the word lists, then the text model */
@@ -169,7 +181,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     if (judged.verdict === 'review') autoReport('user', user.name, textmodel.reason(judged).replace('this might be', 'this activity status might be'));
   }
 
-  // ---- calls to Last.fm, Steam and iTunes ---------------------------------------------------------------
+  // ---- calls to Steam and iTunes ------------------------------------------------------------------------
 
   /** a budget of calls a minute: take() is false once it's spent (whoever asked tries again later) */
   function pace(perMinute) {
@@ -182,8 +194,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       return true;
     };
   }
-  // Last.fm asks for no more than five calls a second, averaged over five minutes; Apple about twenty a minute
-  const lastfmPace = pace(FAST ? 600 : 60);
+  // Apple asks for about twenty calls a minute
   const itunesPace = pace(FAST ? 600 : 18);
 
   /** JSON from outside, or null when it couldn't be had (the reason goes to the log, without the URL and its key) */
@@ -192,24 +203,19 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' }, signal: AbortSignal.timeout(8000), redirect: 'error' });
       const body = await res.text();
       if (body.length > 512 * 1024) throw new Error('answer too big');
-      const json = JSON.parse(body);
-      // Last.fm answers its own errors as JSON, with a status that may not be 200
-      if (!res.ok && !(json && json.error)) throw new Error('status ' + res.status);
-      return json;
+      if (!res.ok) throw new Error('status ' + res.status);
+      return JSON.parse(body);
     } catch (error) {
       console.error(`${what} didn’t answer:`, error.message);
       return null;
     }
   }
-  const lastfmCall = (params) =>
-    getJson(`${LASTFM_API}?${new URLSearchParams(Object.assign({}, params, { api_key: db.meta('lastfm-key') || '', format: 'json' }))}`, 'Last.fm');
   const steamCall = (method, params) =>
     getJson(`${STEAM_API}/ISteamUser/${method}/?${new URLSearchParams(Object.assign({ key: db.meta('steam-key') || '' }, params))}`, 'Steam');
 
   // ---- genres -------------------------------------------------------------------------------------------
 
-  // Last.fm's tags are whatever people typed ("seen live", "female vocalists", "80s", "british"): a tag is kept as a
-  // genre when it names a kind of music and isn't one of those
+  // a genre's name, as Apple gives it: kept when it names a kind of music (and not "Music" or a country)
   const GENRE_WORDS =
     /(rock|pop|metal|punk|core$|hip hop|rap|trap|drill|grime|jazz|blues|soul|funk|disco|house|techno|trance|dubstep|drum and bass|jungle|garage|electro|electronic|edm|ambient|idm|synth|wave$|indie|alternative|folk|country|bluegrass|americana|r&b|gospel|reggae|ska|dub$|dancehall|reggaeton|latin|salsa|bachata|cumbia|samba|bossa nova|tango|flamenco|fado|afro|amapiano|k-pop|j-pop|c-pop|city pop|anime|classical|baroque|opera|orchestral|soundtrack|chiptune|lo-fi|chill|downtempo|trip hop|breakbeat|hardstyle|hardcore|emo|grunge|shoegaze|psychedelic|progressive|experimental|noise|industrial|gothic|darkwave|math rock|singer-songwriter|acoustic|swing|big band|motown|manele|schlager|chanson|polka|bhangra|bollywood|phonk|hyperpop|vaporwave|eurodance|dance|bass$|beats$|instrumental|a cappella|musical|christmas|new age|world|video game music|lounge|ballad|neo soul|grime|footwork|shoegaze)/;
   const NOT_GENRES =
@@ -235,7 +241,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   // iTunes' genres ("Hip-Hop/Rap", "R&B/Soul", "Singer/Songwriter") into the same words
   const itunesGenre = (name) => (/^(music|spoken word|comedy|fitness & workout)$/i.test(name || '') ? '' : normGenre(/^singer\/songwriter$/i.test(name) ? 'singer-songwriter' : String(name || '').split('/')[0]));
 
-  /** an artist's genres (up to three), from what's kept, or Last.fm, or the genre iTunes gave one of their songs */
+  /** an artist's genres, from what's kept, or the genre iTunes gave one of their songs */
   async function genresFor(artist, fallback) {
     const backup = fallback ? [itunesGenre(fallback)].filter(Boolean) : [];
     if (!artist) return backup;
@@ -243,24 +249,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const kept = db.get('SELECT genres, fetched_at FROM presence_genres WHERE artist = ?', key);
     const keptList = kept ? parse(kept.genres) || [] : [];
     if (kept && kept.fetched_at > now() - 30 * DAY && (keptList.length || !backup.length)) return keptList;
-    let genres = [];
-    let asked = false;
-    if (db.meta('lastfm-key') && lastfmPace()) {
-      const answer = await lastfmCall({ method: 'artist.gettoptags', artist, autocorrect: 1 });
-      const tags = answer && answer.toptags && answer.toptags.tag;
-      if (tags) {
-        asked = true;
-        const seen = new Set();
-        for (const tag of Array.isArray(tags) ? tags : [tags]) {
-          const g = normGenre(tag.name);
-          if (g && g !== key && !seen.has(g)) seen.add(g);
-          if (seen.size >= 3) break;
-        }
-        genres = [...seen];
-      }
-    }
-    if (!genres.length) genres = backup;
-    if (asked || genres.length) {
+    const genres = backup;
+    if (genres.length) {
       db.run('INSERT INTO presence_genres (artist, genres, fetched_at) VALUES (?, ?, ?) ON CONFLICT(artist) DO UPDATE SET genres = excluded.genres, fetched_at = excluded.fetched_at', key, JSON.stringify(genres), now());
     }
     return genres;
@@ -362,7 +352,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       let art = keptArt(key);
       let genre = '';
       if (art === null) {
-        let src = typeof image === 'string' && image && !image.includes(LASTFM_NO_ART) && allowedArt(image) ? image : '';
+        let src = typeof image === 'string' && image && allowedArt(image) ? image : '';
         let looked = !!src;
         if (!src) {
           const found = await itunes(m);
@@ -382,7 +372,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     return job;
   }
 
-  // what one person's songs may ask Apple and Last.fm for, so nobody can use up everyone's budget by sending
+  // what one person's songs may ask Apple for, so nobody can use up everyone's budget by sending
   // song after made-up song: 40 new songs looked up an hour each (what's already kept costs nothing)
   const lookupsBy = new Map();
   function mayLookUp(userId, m) {
@@ -554,13 +544,13 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     if (cur && cur.source === source) save(userId, slot, null);
   }
 
-  /** a sighting from a computer, Last.fm or Steam: counted, then offered for showing */
+  /** a sighting from a phone or computer, Spotify or Steam: counted, then offered for showing */
   function sighted(userId, slot, item, image) {
     const texts = slot === 'music' ? [item.title, item.artist, item.album] : [item.name];
     if (!wordsOk(texts)) return withdraw(userId, slot, item.source);
     const t = now();
     item.until = t + HEARTBEAT;
-    // while the computer reports, Last.fm and Steam would only say the same again (and count it twice)
+    // while the computer reports, Spotify and Steam would only say the same again (and count it twice)
     const cur = live(parse((rowOf(userId) || {})[slot]), t);
     const desktopNow = cur && cur.source === 'desktop';
     if (item.source !== 'desktop' && desktopNow) return;
@@ -600,6 +590,17 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       // the app it plays in, from Budgie for Windows and Linux ("Spotify"): a plain name, or nothing
       const app = source === 'desktop' ? tidy(raw.app, LIMITS.app) : '';
       if (app && /^[\p{L}\p{N}][\p{L}\p{N} .&+'’!-]*$/u.test(app)) item.app = app;
+      // (1.7) from a phone or computer that knows: how long the song is, where in it they are, and (Budgie for iPhone,
+      // from the Music app) its number in Apple Music, so a friend can play it there
+      if (source === 'desktop') {
+        const duration = Math.round(Number(raw.duration));
+        if (duration >= 1000 && duration <= 6 * 3600000) {
+          item.duration = duration;
+          item.position = Math.max(0, Math.min(duration, Math.round(Number(raw.position)) || 0));
+          item.at = now();
+        }
+        if (/^[0-9]{1,15}$/.test(String(raw.appleId || '')) && raw.appleId !== '0') item.appleId = String(raw.appleId);
+      }
       if (!item.album) delete item.album;
       return item;
     }
@@ -669,9 +670,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const row = rowOf(userId) || {};
     return {
       visibility: row.visibility || 'friends',
-      lastfm: row.lastfm || '',
       steam: row.steam_id ? { id: row.steam_id, name: row.steam_name || '' } : null,
-      available: { lastfm: !!db.meta('lastfm-key'), steam: !!db.meta('steam-key') },
+      available: { steam: !!db.meta('steam-key') },
       activity: activityOut(row),
     };
   };
@@ -684,29 +684,6 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     return settingsOut(user.id);
   });
 
-  const lastfmNext = new Map(); // user id -> when Last.fm is next asked about them
-  route('POST', '/api/activity/lastfm', async ({ user, body }) => {
-    limit('activity-link:' + user.id, 20, HOUR, 'That’s a lot of tries. Wait a little and try again.');
-    if (!db.meta('lastfm-key')) fail(503, 'Last.fm isn’t set up on this Budgie server yet.');
-    const name = tidy(body.user, 40).replace(/^https?:\/\/(www\.)?last\.fm\/(\w+\/)?user\//i, '').replace(/\/.*$/, '');
-    if (!/^[A-Za-z][\w-]{1,14}$/.test(name)) fail(400, 'Last.fm usernames are 2–15 letters, numbers, - or _, starting with a letter.', { field: 'lastfm' });
-    const answer = await lastfmCall({ method: 'user.getrecenttracks', user: name, limit: 1 });
-    if (!answer) fail(503, 'Last.fm isn’t answering right now. Try again in a minute.');
-    if (answer.error === 6) fail(404, `Last.fm doesn’t know anyone called “${name}”.`, { field: 'lastfm' });
-    if (answer.error === 17) fail(400, 'Your Last.fm listening is private. In Last.fm’s settings, under Privacy, turn off “Hide recent listening information”, then try again.', { field: 'lastfm' });
-    if (answer.error) fail(503, 'Last.fm didn’t answer properly. Try again in a minute.');
-    ensureRow(user.id);
-    const display = (answer.recenttracks && answer.recenttracks['@attr'] && tidy(answer.recenttracks['@attr'].user, 40)) || name;
-    db.run('UPDATE presence SET lastfm = ?, updated_at = ? WHERE user_id = ?', display, now(), user.id);
-    lastfmNext.delete(user.id);
-    await checkLastfm({ user_id: user.id, lastfm: display }, answer);
-    return settingsOut(user.id);
-  });
-  route('DELETE', '/api/activity/lastfm', ({ user }) => {
-    db.run("UPDATE presence SET lastfm = '', updated_at = ? WHERE user_id = ?", now(), user.id);
-    withdraw(user.id, 'music', 'lastfm');
-    return settingsOut(user.id);
-  });
 
   route('POST', '/api/activity/steam', async ({ user, body }) => {
     limit('activity-link:' + user.id, 20, HOUR, 'That’s a lot of tries. Wait a little and try again.');
@@ -792,55 +769,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     });
   }, { auth: false, stream: true });
 
-  // ---- asking Last.fm and Steam -------------------------------------------------------------------------
+  // ---- asking Steam --------------------------------------------------------------------------------------
 
-  let lastfmPause = 0; // Last.fm said to slow down (or the key stopped working): nobody is asked until then
-  /** what Last.fm says someone is playing now (answer: one already fetched) */
-  async function checkLastfm(row, answer) {
-    answer = answer || (await lastfmCall({ method: 'user.getrecenttracks', user: row.lastfm, limit: 1 }));
-    if (!answer) return;
-    if (answer.error) {
-      if ([10, 26, 29].includes(answer.error)) {
-        lastfmPause = now() + (answer.error === 29 ? 5 : 30) * MINUTE;
-        console.error(`Last.fm said ${answer.error === 29 ? 'to slow down' : 'the API key doesn’t work (set it again with: nook lastfm <API key>)'}.`);
-      }
-      return;
-    }
-    const list = answer.recenttracks && answer.recenttracks.track;
-    const playing = (Array.isArray(list) ? list : list ? [list] : []).find((tr) => tr && tr['@attr'] && String(tr['@attr'].nowplaying) === 'true');
-    if (!playing) return withdraw(row.user_id, 'music', 'lastfm');
-    const pick = (v) => (v && typeof v === 'object' ? v['#text'] || v.name : v);
-    const item = { title: tidy(pick(playing.name), LIMITS.title), artist: tidy(pick(playing.artist), LIMITS.artist), album: tidy(pick(playing.album), LIMITS.album), source: 'lastfm' };
-    if (!item.album) delete item.album;
-    if (!item.title) return withdraw(row.user_id, 'music', 'lastfm');
-    const images = Array.isArray(playing.image) ? playing.image : [];
-    const image = (images.find((i) => i.size === 'extralarge') || images.find((i) => i.size === 'large') || {})['#text'] || '';
-    sighted(row.user_id, 'music', item, image);
-  }
-
-  let lastfmBusy = false;
-  async function pollLastfm() {
-    if (lastfmBusy || !db.meta('lastfm-key') || now() < lastfmPause) return;
-    lastfmBusy = true;
-    try {
-      const t = now();
-      // people seen lately whose turn it is, the longest waiting first, as many as Last.fm's budget allows
-      const due = db
-        .all("SELECT user_id, lastfm FROM presence WHERE lastfm != ''")
-        .filter((r) => (lastSeen.get(r.user_id) || 0) > t - SEEN && (lastfmNext.get(r.user_id) || 0) <= t)
-        .sort((a, b) => (lastfmNext.get(a.user_id) || 0) - (lastfmNext.get(b.user_id) || 0));
-      for (const row of due) {
-        if (!lastfmPace()) break;
-        // spread out, so everyone isn't asked about at the same moment
-        lastfmNext.set(row.user_id, now() + LASTFM_EVERY + Math.round((Math.random() - 0.5) * (FAST ? 500 : 20000)));
-        await checkLastfm(row);
-      }
-    } catch (error) {
-      console.error('Last.fm check failed:', error.message);
-    } finally {
-      lastfmBusy = false;
-    }
-  }
 
   /** what Steam says someone is playing */
   function seeSteamPlayer(userId, player) {
@@ -876,17 +806,15 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const t = now();
     db.run("UPDATE presence SET music = '' WHERE music != '' AND COALESCE(json_extract(music, '$.until'), 0) < ?", t);
     db.run("UPDATE presence SET game = '' WHERE game != '' AND COALESCE(json_extract(game, '$.until'), 0) < ?", t);
-    db.run("DELETE FROM presence WHERE music = '' AND game = '' AND lastfm = '' AND steam_id = '' AND visibility = 'friends'");
+    db.run("DELETE FROM presence WHERE music = '' AND game = '' AND steam_id = '' AND visibility = 'friends'");
     db.run("DELETE FROM presence_art WHERE file = '' AND fetched_at < ?", t - 7 * DAY);
     db.run('DELETE FROM presence_genres WHERE fetched_at < ?', t - 90 * DAY);
     for (const [id, tr] of tracks) if (Math.max(tr.music.at, tr.game.at, tr.music.desktopAt || 0, tr.game.desktopAt || 0) < t - HOUR) tracks.delete(id);
-    for (const [id] of lastfmNext) if ((lastSeen.get(id) || 0) < t - SEEN) lastfmNext.delete(id);
     for (const key of dismissed.keys()) if (!tracks.has(Number(key.split(':')[0]))) dismissed.delete(key);
     for (const [id, list] of lookupsBy) if (!list.some((at) => at > t - HOUR)) lookupsBy.delete(id);
   }
 
   if (serving) {
-    setInterval(pollLastfm, FAST ? 500 : 5000).unref();
     setInterval(pollSteam, STEAM_EVERY).unref();
     setInterval(tidyUp, 15 * MINUTE).unref();
     tidyUp();
@@ -908,35 +836,9 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     say(...on);
   }
   CLI.help.push(
-    '  nook lastfm <API key>            show what people play on Spotify, YouTube Music, Apple Music… (through Last.fm); nook lastfm off turns it off',
     '  nook steam <Web API key>         show which Steam game people are playing; nook steam off turns it off',
-    '  nook activity [name]             who has linked Last.fm or Steam and how big the album art is, or what someone is listening to and playing'
+    '  nook activity [name]             who has linked Steam and how big the album art is, or what someone is listening to and playing'
   );
-  CLI.commands.lastfm = (key) =>
-    setKey(
-      {
-        meta: 'lastfm-key',
-        label: 'Last.fm',
-        usage: 'lastfm',
-        async check(k) {
-          let res;
-          try {
-            res = await fetch(`${LASTFM_API}?method=chart.gettopartists&limit=1&format=json&api_key=${k}`, { headers: { 'User-Agent': USER_AGENT }, signal: AbortSignal.timeout(15000) });
-          } catch (error) {
-            throw new Error(`Couldn't reach Last.fm to check the key (${error.message}). Is the laptop online?`);
-          }
-          const body = await res.json().catch(() => null);
-          if (!body || body.error) throw new Error(`Last.fm didn't accept that key (${(body && body.message) || res.status}). Copy the API key again from https://www.last.fm/api/accounts.`);
-        },
-        on: [
-          'Last.fm is on: people can link their Last.fm username in Settings → Activity. No restart needed.',
-          'Budgie asks Last.fm what someone is playing about every 45 seconds, only while they’re using Budgie.',
-          'To turn it off: nook lastfm off',
-        ],
-        off: 'Last.fm is off: nobody’s Last.fm is asked any more (their links stay, for when it’s back on). To turn it on again: nook lastfm <API key>',
-      },
-      key
-    );
   CLI.commands.steam = (key) =>
     setKey(
       {
@@ -969,7 +871,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       const a = activityOut(row);
       return say(
         `u/${u.name}: shown to ${row.visibility || 'friends'}`,
-        `  Last.fm: ${row.lastfm || 'not linked'}    Steam: ${row.steam_id ? `${row.steam_id} (${row.steam_name})` : 'not linked'}`,
+        `  Steam: ${row.steam_id ? `${row.steam_id} (${row.steam_name})` : 'not linked'}`,
         `  listening: ${a.music ? `${a.music.title}${a.music.artist ? ' — ' + a.music.artist : ''} (${a.music.source})` : 'nothing'}`,
         `  playing:   ${a.game ? `${a.game.name} (${a.game.source})` : 'nothing'}`,
         `  heard ${stats.count(u.id, 'music.songs')} songs, ${stats.count(u.id, 'music.artists')} artists, ${stats.count(u.id, 'music.genres')} genres in ${Math.floor(stats.get(u.id, 'music.minutes') / 60)} h; played ${stats.count(u.id, 'games.played')} games for ${Math.floor(stats.get(u.id, 'games.minutes') / 60)} h`
@@ -978,13 +880,33 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     const n = (sql) => db.get(sql).n;
     const art = db.get("SELECT COALESCE(SUM(bytes), 0) AS b, COUNT(*) AS n FROM presence_art WHERE file != ''");
     say(
-      `Last.fm: ${db.meta('lastfm-key') ? 'on' : 'off'}, linked by ${n("SELECT COUNT(*) AS n FROM presence WHERE lastfm != ''")}`,
       `Steam:   ${db.meta('steam-key') ? 'on' : 'off'}, linked by ${n("SELECT COUNT(*) AS n FROM presence WHERE steam_id != ''")}`,
       `Album art kept: ${art.n} pictures, ${(art.b / 1024 / 1024).toFixed(1)} MB (at most ${ART_CACHE.bytes / 1024 / 1024} MB)`
     );
   };
 
+  /** (1.7) the song showing for someone gets more said about it (where in it they are, its Spotify link), if it's still
+   * that song: the source and when it started stay as they were */
+  function merge(userId, song, fields) {
+    const cur = live(parse((rowOf(userId) || {}).music));
+    if (!cur || songKey(cur) !== songKey(song)) return false;
+    Object.assign(cur, fields);
+    save(userId, 'music', cur);
+    return true;
+  }
+
   return {
+    // (1.7) for music.js: Spotify's sightings, its link and place in a song, and who may see whose
+    sighted,
+    withdraw,
+    merge,
+    songKey,
+    /** the song someone's playing, if `viewer` may see it, as the server keeps it (null otherwise) */
+    musicFor(viewer, ownerId) {
+      const owner = db.get('SELECT id, banned_at FROM users WHERE id = ?', ownerId);
+      const row = owner && rowOf(owner.id);
+      return row && canSee(viewer, owner, row) ? live(parse(row.music)) : null;
+    },
     /** what someone's activity is, as `viewer` may see it ({} when they may not) */
     activityFor(viewer, ownerId) {
       const owner = db.get('SELECT id, banned_at FROM users WHERE id = ?', ownerId);
@@ -997,7 +919,6 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       return {
         activity: {
           shownTo: row.visibility || 'friends',
-          lastfm: row.lastfm || undefined,
           steam: row.steam_id ? { id: row.steam_id, name: row.steam_name } : undefined,
           now: activityOut(row),
         },

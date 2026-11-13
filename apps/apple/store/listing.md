@@ -132,7 +132,7 @@ Functionality** only:
 | User Content → Photos or Videos | Profile picture, banner, pictures and videos in posts and chats |
 | User Content → Emails or Text Messages | Private and group messages |
 | User Content → Other User Content | Posts, comments, polls, the profile's bio, pronouns, interests and pride flags |
-| User Content → Other User Content | Stickers and custom emojis; nudges; the Activity status (what someone is listening to or playing, typed by them or read from the Last.fm or Steam account they link) |
+| User Content → Other User Content | Stickers and custom emojis; nudges; the Activity status (what someone is listening to or playing: typed by them, read from the Spotify or Steam account they link, or, if they turn it on, from the Music app on their iPhone) |
 | Usage Data → Product Interaction | The streak, achievements and what counts toward them (days opened, songs, artists, genres and games counted, time spent sharing a screen) |
 | Sensitive Info | Pride flags someone chooses to show (they can say something about sexual orientation or gender identity) |
 | Other Data → Other Data Types | A scrambled (keyed hash) form of the network the app is used from, never the address itself, kept 90 days so that bans can't be dodged |
