@@ -125,73 +125,79 @@ d76968a	text	js/account.js:392	Use at least 8 characters.
 c47233a	text	js/account.js:399	Enter your recovery code.
 2877212	text	js/account.js:400	Choose a new password.
 46affb9	text	js/account.js:400	Enter your password.
-df4d7ce	text	js/achievements-data.js:25	Opened Budgie on {n} different days
-5b6c7f4	text	js/achievements-data.js:25	Opened Budgie for the first time
-ffa7fd8	text	js/achievements-data.js:26	On fire
-bc8963a	text	js/achievements-data.js:26	Kept a {n}-day visit streak
-0e5713a	text	js/achievements-data.js:27	Wordsmith
-382a7f7	text	js/achievements-data.js:27	Made {n} posts
-3b46664	text	js/achievements-data.js:28	Left {n} comments
-86ca1b4	text	js/achievements-data.js:29	Made {n} friends
-77f56d3	text	js/achievements-data.js:30	Joined {n} nests
-859b974	text	js/achievements-data.js:31	Visited {n} different nests
-157dc45	text	js/achievements-data.js:32	Voted in {n} polls
-d2e8fb0	text	js/achievements-data.js:32	Voted in your first poll
-26e772a	text	js/achievements-data.js:33	Gave {n} Sparks
-4d6cdb2	text	js/achievements-data.js:34	Made {n} collections
-2bfbe24	text	js/achievements-data.js:34	Made your first collection
-9b2b00f	text	js/achievements-data.js:35	Created {n} nests
-89df243	text	js/achievements-data.js:35	Created your first nest
-1d4cf78	text	js/achievements-data.js:36	Music lover
-0724f68	text	js/achievements-data.js:36	Listened to {n} different songs
-6c0714b	text	js/achievements-data.js:37	Crate digger
-9effba5	text	js/achievements-data.js:37	Listened to {n} different artists
-b328d08	text	js/achievements-data.js:38	Genre hopper
-75af840	text	js/achievements-data.js:38	Listened to {n} different genres
-902a573	text	js/achievements-data.js:39	Headphones on
-ccc9ebe	text	js/achievements-data.js:39	Listened for {n} hours
-061c388	text	js/achievements-data.js:39	Listened for an hour
-4e3f3c3	text	js/achievements-data.js:40	Gamer
-dff3669	text	js/achievements-data.js:40	Played {n} different games
-2b0c1cf	text	js/achievements-data.js:40	Played your first game
-cfba05c	text	js/achievements-data.js:41	Marathon
-26b15fb	text	js/achievements-data.js:41	Played for {n} hours
-c2862d4	text	js/achievements-data.js:42	Broadcaster
-78ea8a3	text	js/achievements-data.js:42	Shared your screen for {n} hours
-bcee7fc	text	js/achievements-data.js:42	Shared your screen for an hour
-d30e828	text	js/achievements-data.js:43	Sticker artist
-0c6f2e5	text	js/achievements-data.js:43	Made {n} stickers and emojis
-91ac43a	text	js/achievements-data.js:43	Made your first sticker or emoji
-36c81a9	text	js/achievements-data.js:53	Shimmer
-00706b5	text	js/achievements-data.js:56	Neon
-184e4b8	text	js/achievements-data.js:57	Glitch
-a24d601	text	js/achievements-data.js:58	Wave
-2a507e7	text	js/achievements-data.js:59	Sparkle
-eeee9b7	text	js/achievements-data.js:60	Aurora
-c57604d	text	js/achievements-data.js:61	Gold
-bc727a1	text	js/achievements-data.js:64	Arcade
-cd710fc	text	js/achievements-data.js:65	Marquee
-d371ffa	text	js/achievements-data.js:66	Graffiti
-c763b21	text	js/achievements-data.js:67	Bubble
-047ca54	text	js/achievements-data.js:68	Future
-2c16ea1	text	js/achievements-data.js:69	Royal
-c45a3ea	text	js/achievements-data.js:73	Rainbow ring
-e368d0b	text	js/achievements-data.js:74	Flames
-666bd59	text	js/achievements-data.js:75	Vinyl
-82d8ad5	text	js/achievements-data.js:76	Pixels
-b6c22d0	text	js/achievements-data.js:77	Orbit
-f715c8d	text	js/achievements-data.js:78	Petals
-09d463e	text	js/achievements-data.js:79	Hologram
-410494f	text	js/achievements-data.js:80	Crown
-58356fb	text	js/achievements-data.js:83	Bubbles
-79141e0	text	js/achievements-data.js:84	Confetti
-b6ab482	text	js/achievements-data.js:85	Fireflies
-3b64a9d	text	js/achievements-data.js:86	Equalizer
-8a6981c	text	js/achievements-data.js:87	Pixel rain
-88e6839	text	js/achievements-data.js:88	Sakura
-5c7ee74	text	js/achievements-data.js:89	Starfield
-ced22dd	text	js/achievements-data.js:90	Northern lights
-f95951b	text	js/achievements-data.js:91	Embers
+df4d7ce	text	js/achievements-data.js:26	Opened Budgie on {n} different days
+5b6c7f4	text	js/achievements-data.js:26	Opened Budgie for the first time
+ffa7fd8	text	js/achievements-data.js:27	On fire
+bc8963a	text	js/achievements-data.js:27	Kept a {n}-day visit streak
+0e5713a	text	js/achievements-data.js:28	Wordsmith
+382a7f7	text	js/achievements-data.js:28	Made {n} posts
+3b46664	text	js/achievements-data.js:29	Left {n} comments
+86ca1b4	text	js/achievements-data.js:30	Made {n} friends
+77f56d3	text	js/achievements-data.js:31	Joined {n} nests
+859b974	text	js/achievements-data.js:32	Visited {n} different nests
+157dc45	text	js/achievements-data.js:33	Voted in {n} polls
+d2e8fb0	text	js/achievements-data.js:33	Voted in your first poll
+26e772a	text	js/achievements-data.js:34	Gave {n} Sparks
+4d6cdb2	text	js/achievements-data.js:35	Made {n} collections
+2bfbe24	text	js/achievements-data.js:35	Made your first collection
+9b2b00f	text	js/achievements-data.js:36	Created {n} nests
+89df243	text	js/achievements-data.js:36	Created your first nest
+1d4cf78	text	js/achievements-data.js:37	Music lover
+0724f68	text	js/achievements-data.js:37	Listened to {n} different songs
+6c0714b	text	js/achievements-data.js:38	Crate digger
+9effba5	text	js/achievements-data.js:38	Listened to {n} different artists
+b328d08	text	js/achievements-data.js:39	Genre hopper
+75af840	text	js/achievements-data.js:39	Listened to {n} different genres
+902a573	text	js/achievements-data.js:40	Headphones on
+ccc9ebe	text	js/achievements-data.js:40	Listened for {n} hours
+061c388	text	js/achievements-data.js:40	Listened for an hour
+4e3f3c3	text	js/achievements-data.js:41	Gamer
+dff3669	text	js/achievements-data.js:41	Played {n} different games
+2b0c1cf	text	js/achievements-data.js:41	Played your first game
+cfba05c	text	js/achievements-data.js:42	Marathon
+26b15fb	text	js/achievements-data.js:42	Played for {n} hours
+c2862d4	text	js/achievements-data.js:43	Broadcaster
+78ea8a3	text	js/achievements-data.js:43	Shared your screen for {n} hours
+bcee7fc	text	js/achievements-data.js:43	Shared your screen for an hour
+d30e828	text	js/achievements-data.js:44	Sticker artist
+0c6f2e5	text	js/achievements-data.js:44	Made {n} stickers and emojis
+91ac43a	text	js/achievements-data.js:44	Made your first sticker or emoji
+201d8fd	text	js/achievements-data.js:46	Game night
+cc109ef	text	js/achievements-data.js:46	Finished {n} games with friends
+ea507ae	text	js/achievements-data.js:46	Finished your first game with a friend
+7881bf7	text	js/achievements-data.js:47	Champion
+126c1b7	text	js/achievements-data.js:47	Won {n} games against friends
+937a41b	text	js/achievements-data.js:47	Won your first game against a friend
+36c81a9	text	js/achievements-data.js:57	Shimmer
+00706b5	text	js/achievements-data.js:60	Neon
+184e4b8	text	js/achievements-data.js:61	Glitch
+a24d601	text	js/achievements-data.js:62	Wave
+2a507e7	text	js/achievements-data.js:63	Sparkle
+eeee9b7	text	js/achievements-data.js:64	Aurora
+c57604d	text	js/achievements-data.js:65	Gold
+bc727a1	text	js/achievements-data.js:68	Arcade
+cd710fc	text	js/achievements-data.js:69	Marquee
+d371ffa	text	js/achievements-data.js:70	Graffiti
+c763b21	text	js/achievements-data.js:71	Bubble
+047ca54	text	js/achievements-data.js:72	Future
+2c16ea1	text	js/achievements-data.js:73	Royal
+c45a3ea	text	js/achievements-data.js:77	Rainbow ring
+e368d0b	text	js/achievements-data.js:78	Flames
+666bd59	text	js/achievements-data.js:79	Vinyl
+82d8ad5	text	js/achievements-data.js:80	Pixels
+b6c22d0	text	js/achievements-data.js:81	Orbit
+f715c8d	text	js/achievements-data.js:82	Petals
+09d463e	text	js/achievements-data.js:83	Hologram
+410494f	text	js/achievements-data.js:84	Crown
+58356fb	text	js/achievements-data.js:87	Bubbles
+79141e0	text	js/achievements-data.js:88	Confetti
+b6ab482	text	js/achievements-data.js:89	Fireflies
+3b64a9d	text	js/achievements-data.js:90	Equalizer
+8a6981c	text	js/achievements-data.js:91	Pixel rain
+88e6839	text	js/achievements-data.js:92	Sakura
+5c7ee74	text	js/achievements-data.js:93	Starfield
+ced22dd	text	js/achievements-data.js:94	Northern lights
+f95951b	text	js/achievements-data.js:95	Embers
 af31025	text	js/achievements.js:40	Bronze
 8697f43	text	js/achievements.js:40	Silver
 c93fa0a	text	js/achievements.js:40	Platinum
@@ -2065,21 +2071,21 @@ cb02233	text	js/views.js:2312	Nothing to see here
 5c53da3	text	js/views.js:2312	Back home
 506419a	text	server/achievements.js:202	That isn’t a date.
 33b6bde	text	server/achievements.js:205	Your device’s date looks wrong. Check its clock, then open Budgie again.
-482de84	pattern	server/achievements.js:317	Achievements are here: your badges became achievements with tiers, I to V, and you’ve already reached {0}. See them on your profile, and pick a few to show off.
-f7b220f	pattern	server/achievements.js:325	Achievement unlocked: {0} {1}
-288edef	text	server/achievements.js:372	Try again in a moment.
-2e0d1c8	pattern	server/achievements.js:455	You can feature up to {0}.
-f426939	text	server/achievements.js:456	You can only feature achievements you’ve reached.
-632a81f	text	server/achievements.js:495	Give it a name (at least 2 characters).
-bdbf510	text	server/achievements.js:496	The symbol is a Material Symbols name, like star or celebration.
-8850e03	text	server/achievements.js:497	That isn’t one of the shapes.
-7852015	text	server/achievements.js:498	The colour is a hex code, like #e8467c.
-c684185	text	server/achievements.js:499	There’s already a special achievement with that name.
-790fc0f	pattern	server/achievements.js:523	You got a special achievement from Budgie: {0}{1}{2}
-861cf24	text	server/achievements.js:549	That special achievement is gone.
-8618fcb	pattern	server/achievements.js:558	u/{0} is banned.
-9657e05	text	server/achievements.js:560	The tier is I to V, or none.
-56311ce	text	server/achievements.js:587	That call isn’t one you were in.
+482de84	pattern	server/achievements.js:320	Achievements are here: your badges became achievements with tiers, I to V, and you’ve already reached {0}. See them on your profile, and pick a few to show off.
+f7b220f	pattern	server/achievements.js:328	Achievement unlocked: {0} {1}
+288edef	text	server/achievements.js:375	Try again in a moment.
+2e0d1c8	pattern	server/achievements.js:458	You can feature up to {0}.
+f426939	text	server/achievements.js:459	You can only feature achievements you’ve reached.
+632a81f	text	server/achievements.js:498	Give it a name (at least 2 characters).
+bdbf510	text	server/achievements.js:499	The symbol is a Material Symbols name, like star or celebration.
+8850e03	text	server/achievements.js:500	That isn’t one of the shapes.
+7852015	text	server/achievements.js:501	The colour is a hex code, like #e8467c.
+c684185	text	server/achievements.js:502	There’s already a special achievement with that name.
+790fc0f	pattern	server/achievements.js:526	You got a special achievement from Budgie: {0}{1}{2}
+861cf24	text	server/achievements.js:552	That special achievement is gone.
+8618fcb	pattern	server/achievements.js:561	u/{0} is banned.
+9657e05	text	server/achievements.js:563	The tier is I to V, or none.
+56311ce	text	server/achievements.js:590	That call isn’t one you were in.
 eb8de62	text	server/blasts.js:35	That’s a lot of blasts. Give your friends a moment!
 18ac766	text	server/blasts.js:36	That’s a lot of blasts for one hour. Try again a little later.
 b1495cc	text	server/blasts.js:40	Blast a friend, not yourself.

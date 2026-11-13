@@ -227,7 +227,7 @@ CREATE INDEX IF NOT EXISTS games_b ON games(b);`);
       href: '#/messages/' + encodeURIComponent(user.name),
       tag: 'chat-' + user.name,
     });
-    if (modules.stats && modules.stats.add) modules.stats.add(user.id, 'games.started');
+    if (modules.stats && modules.stats.add) modules.stats.add(user.id, 'chatgames.started');
     return { game: gameOut(g, user.id), message: g.message_id };
   });
 
@@ -267,9 +267,9 @@ CREATE INDEX IF NOT EXISTS games_b ON games(b);`);
       if (words) push.send([other.id], { kind: 'message', title: 'u/' + user.name, body: words, href: '#/messages/' + encodeURIComponent(user.name), tag: 'game-' + g.id });
     }
     if (after.winner && modules.stats && modules.stats.add) {
-      if (after.winner === 'a' || after.winner === 'b') modules.stats.add(after.winner === 'a' ? after.a : after.b, 'games.won');
-      modules.stats.add(after.a, 'games.played');
-      modules.stats.add(after.b, 'games.played');
+      if (after.winner === 'a' || after.winner === 'b') modules.stats.add(after.winner === 'a' ? after.a : after.b, 'chatgames.won');
+      modules.stats.add(after.a, 'chatgames.played');
+      modules.stats.add(after.b, 'chatgames.played');
     }
     return { game: gameOut(after, user.id) };
   });

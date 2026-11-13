@@ -229,6 +229,9 @@ CREATE TABLE IF NOT EXISTS custom_achievements (
     visited: (u, prefs) => new Set((Array.isArray(prefs.visited) ? prefs.visited : []).slice(0, 500).filter((id) => typeof id === 'string' && id.length <= 30 && nestExists(id))).size,
     collections: (u, prefs) => (Array.isArray(prefs.collections) ? prefs.collections : []).filter((c) => c && typeof c.name === 'string' && c.name.trim()).slice(0, 200).length,
     stickers: (u) => (modules.stickers && typeof modules.stickers.madeBy === 'function' ? Number(modules.stickers.madeBy(u.id)) || 0 : 0),
+    // (1.7) games with friends in chats (server/games.js): finished, and won
+    chatgames: (u) => stats.get(u.id, 'chatgames.played'),
+    chatwins: (u) => stats.get(u.id, 'chatgames.won'),
   };
   /** how far someone has got with an achievement, in its own units (hours for the "minutes:" kinds) */
   function valueOf(u, count, prefs) {

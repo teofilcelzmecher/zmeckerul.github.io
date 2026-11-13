@@ -12,6 +12,7 @@
  *   'set:<key>'       how many different things in a set of stats (server/stats.js): songs, artists, genres, games
  *   'minutes:<key>'   a number of minutes in stats, counted in hours (tiers are hours)
  *   'stickers'        stickers and emojis made
+ *   'chatgames' 'chatwins'   games with friends finished, and won (1.7)
  * `legacy` names the badges from before 1.4 that this replaces: whoever had one keeps the tier it stood for.
  * `one` is what `desc` says when {n} is 1 ("Made your first post", not "Made 1 posts").
  *
@@ -41,6 +42,9 @@ window.NOOK_ACHIEVEMENTS = {
     { id: 'playtime', name: 'Marathon', desc: 'Played for {n} hours', symbol: 'timer', shape: 'pixelTriangle', count: 'minutes:games.minutes', tiers: [5, 25, 100, 500, 2000] },
     { id: 'sharing', name: 'Broadcaster', desc: 'Shared your screen for {n} hours', symbol: 'present_to_all', shape: 'clover8', one: 'Shared your screen for an hour', count: 'minutes:share.minutes', tiers: [1, 5, 25, 100, 500] },
     { id: 'stickers', name: 'Sticker artist', desc: 'Made {n} stickers and emojis', symbol: 'add_reaction', shape: 'puffy', one: 'Made your first sticker or emoji', count: 'stickers', tiers: [1, 5, 15, 30, 50] },
+    // (1.7) games with friends, in chats
+    { id: 'chatgames', name: 'Game night', desc: 'Finished {n} games with friends', symbol: 'casino', shape: 'cookie4', one: 'Finished your first game with a friend', count: 'chatgames', tiers: [1, 10, 50, 200, 1000] },
+    { id: 'chatwins', name: 'Champion', desc: 'Won {n} games against friends', symbol: 'trophy', shape: 'burst', one: 'Won your first game against a friend', count: 'chatwins', tiers: [1, 10, 50, 150, 500] },
   ],
 
   // what a streak earns besides its tiers: a freeze every few days (it saves the streak on a day you miss), and a
