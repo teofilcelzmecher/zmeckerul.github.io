@@ -15,11 +15,34 @@
   const still = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const icon = (name) => `<span translate="no" class="m3-icon" aria-hidden="true">${name}</span>`;
 
+  // (1.6) Budgie's icon font has only the icons its own code uses (tools/icons.py: a twentieth of the whole Material
+  // Symbols font). Should a page show one it hasn't got (one someone chose, kept on the server from long ago), the
+  // whole font comes, once, and every icon is drawn from it: an icon is never spelt out in letters
+  const ICONS = new Set(String(window.NOOK_ICON_NAMES || '').split(' ').filter(Boolean));
+  let wholeFont = !ICONS.size;
+  const iconKnown = (name) => {
+    name = String(name || '').trim();
+    if (wholeFont || !name || ICONS.has(name) || !/^[a-z0-9_]+$/.test(name)) return;
+    wholeFont = true;
+    try {
+      const face = new FontFace('Material Symbols Rounded', `url(${new URL('../m3/fonts/material-symbols-rounded.woff2', location.href).href})`, { style: 'normal', weight: '100 700', display: 'block' });
+      face.load().then((f) => document.fonts.add(f), () => {});
+    } catch (_) {
+      /* no way to fetch a font from here: that one icon is spelt out */
+    }
+  };
   // a symbol's name isn't words: whatever makes an icon, a page translator (like Google Translate) leaves it alone
   const untranslatable = (node) => {
     if (node.nodeType !== 1) return;
-    if (node.classList.contains('m3-icon')) node.setAttribute('translate', 'no');
-    for (const el of node.querySelectorAll('.m3-icon:not([translate])')) el.setAttribute('translate', 'no');
+    if (node.classList.contains('m3-icon')) {
+      node.setAttribute('translate', 'no');
+      iconKnown(node.textContent);
+    }
+    for (const el of node.querySelectorAll(wholeFont ? '.m3-icon:not([translate])' : '.m3-icon')) {
+      if (!el.hasAttribute('translate')) el.setAttribute('translate', 'no');
+      iconKnown(el.textContent);
+    }
+    if (!wholeFont) for (const el of node.querySelectorAll('[symbol], [data-symbol]')) iconKnown(el.getAttribute('symbol') || el.getAttribute('data-symbol'));
   };
   untranslatable(document.body);
 
@@ -36,8 +59,13 @@
     );
   }
   new MutationObserver((records) => {
-    for (const r of records) for (const node of r.addedNodes) untranslatable(node);
-  }).observe(document.body, { childList: true, subtree: true });
+    for (const r of records) {
+      // an icon given another name (the theme button's sun and moon), or a shape's symbol changed
+      if (r.type === 'attributes') iconKnown(r.target.getAttribute(r.attributeName));
+      else if (r.target.classList && r.target.classList.contains('m3-icon')) iconKnown(r.target.textContent);
+      for (const node of r.addedNodes) untranslatable(node);
+    }
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['symbol', 'data-symbol'] });
 
   let gate = null;
   const landing = document.getElementById('landing');
@@ -474,7 +502,16 @@
     document.documentElement.classList.remove('visitor');
     warm();
     try {
-      const snapshot = await api.get('/api/bootstrap');
+      // (1.6) asked for by the page's first lines (index.html), already on its way or here; asked for now otherwise,
+      // and again should that one have gone to a server from before 1.6 (which only answers it the other way)
+      let snapshot = null;
+      const early = api.early && api.early();
+      if (early)
+        snapshot = await early.catch((error) => {
+          if (error.status === 401 || error.status === 403) throw error;
+          return null;
+        });
+      if (!snapshot) snapshot = await api.get('/api/bootstrap');
       boot(snapshot);
     } catch (error) {
       starting = false;

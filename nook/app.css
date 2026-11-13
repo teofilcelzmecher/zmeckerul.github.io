@@ -26,6 +26,17 @@
  * the card), in mixed feeds and in the nest alike, which is what tells nests apart at a glance.
  *   --nook-wash-on      what the wash goes over            --nook-wash / --nook-wash-hover   how much of it
  */
+/* (1.6) Budgie's own icon font (tools/icons.py): the icons the app uses, cut out of Material Symbols Rounded, a
+   twentieth of its size. It stands in for the whole font (the same name and weights, and later, so it wins); the whole
+   one only comes when a page shows an icon this hasn't got (js/account.js) */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url(fonts/icons.woff2) format('woff2');
+}
+
 :root,
 [style*='--m3-surface-bright'] {
   --nook-page: var(--m3-surface-container);

@@ -28,6 +28,9 @@
 
   // a "nook-api" entry in storage points this browser at another server, for testing
   const base = String(read('nook-api') || (window.NOOK_CONFIG && window.NOOK_CONFIG.api) || '').replace(/\/$/, '');
+  // (1.6) kept, for the next opening to ask the server for what's on Budgie from the page's very first lines, before
+  // this file (or any other) has even come (index.html)
+  if (base && read('nook-base') !== base) write('nook-base', base);
 
   class ApiError extends Error {
     constructor(status, payload) {
@@ -42,14 +45,21 @@
 
   async function request(method, path, body, { keepalive = false } = {}) {
     if (!base) throw new ApiError(0, { error: 'Budgie’s server isn’t set up yet.', offline: true });
-    let res;
-    try {
-      res = await fetch(base + path, {
+    return settle(
+      fetch(base + path, {
         method,
         headers: Object.assign({}, body ? { 'Content-Type': 'application/json' } : {}, token ? { Authorization: 'Bearer ' + token } : {}),
         body: body ? JSON.stringify(body) : undefined,
         keepalive,
-      });
+      })
+    );
+  }
+
+  /** a request on its way: what the server said, or an ApiError */
+  async function settle(pending) {
+    let res;
+    try {
+      res = await pending;
     } catch (_) {
       throw new ApiError(0, { error: 'Can’t reach Budgie’s server. Check your connection and try again.', offline: true });
     }
@@ -90,6 +100,13 @@
     signedIn: () => !!token,
     setToken,
     onSignedOut: (fn) => signedOutListeners.add(fn),
+    /** (1.6) the answer to the request for what's on Budgie that the page sent from its first lines, if it sent one
+     * (to this server, for whoever's signed in now); taken once */
+    early() {
+      const sent = window.NOOK_EARLY;
+      window.NOOK_EARLY = null;
+      return sent && sent.base === base && sent.token === token ? settle(sent.response) : null;
+    },
     /** the server's address for a path it gave us, like /api/images/… */
     url: (path) => (path && path.startsWith('/') ? base + path : path || ''),
     get: (path) => request('GET', path),

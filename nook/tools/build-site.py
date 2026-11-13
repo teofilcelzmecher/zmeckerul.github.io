@@ -46,6 +46,12 @@ for f in os.listdir(f'{src}/nook/server'):
         shutil.copy(f'{src}/nook/server/{f}', f'{out}/server/{f}')
 shutil.rmtree(f'{out}/server/vendor', ignore_errors=True)
 shutil.copytree(f'{src}/nook/server/vendor', f'{out}/server/vendor')
+# (1.6) the icon font has only the icons the code uses: one the code has started using since it was made needs it made
+# again (the app would fetch the whole font for it meanwhile)
+from icons import missing as missing_icons
+gone = missing_icons()
+if gone:
+    print(f'icons: the code uses {", ".join(gone)}, not in fonts/icons.woff2 yet: run python3 nook/tools/icons.py')
 open(f'{out}/.nojekyll', 'w').write('')
 open(f'{out}/.gitignore', 'w').write('server/data/\n*.db\n*.db-wal\n*.db-shm\n')
 # for search engines: the pages worth finding (the app itself is one page; the server's files aren't for reading)

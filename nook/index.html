@@ -5,7 +5,7 @@
   <!-- Only the two scripts written into this page may run (their fingerprints are below; `python3
        nook/tools/csp.py nook/index.html` refreshes them), and whatever those load: Budgie's own files,
        and Google's ad code when ads are switched on. Ads show in frames, so frames may come from https. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-2YpXE90OwdP+5BM2SZxclBJma6pdac7DYk/zwIjdF/Y=' 'sha256-9yP0RMKHF6gtDofGvCH3MQqA2Vfg/zpBmKYKd2CMFhY=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; media-src 'self' blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-0afKMCyR1V6kz23dtu+A7dqqplNY8lkGq2BqL64SGOA=' 'sha256-fgjT4Vg3LPfX2wD1j+9JXYB1wZ16Xov3Ohn8qE2ppmY=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; media-src 'self' blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Budgie</title>
@@ -24,6 +24,8 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#fdf7ff">
   <link rel="icon" href="data:,">
+  <!-- (1.6) Budgie's own icon font, a twentieth of the whole one: fetched at once, alongside the styles -->
+  <link rel="preload" href="fonts/icons.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="../m3/fonts/fonts.css">
   <link rel="stylesheet" href="../m3/m3.css">
   <link rel="stylesheet" href="app.css">
@@ -40,6 +42,7 @@
        tapping things -->
   <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');
 if(!h.classList.contains('visitor')){try{var k=JSON.parse(localStorage.getItem('nook-look')||'null');if(k&&typeof k==='object'){if(k.mode==='light'||k.mode==='dark')h.setAttribute('data-m3-theme',k.mode);if(k.still)h.setAttribute('data-m3-reduce-motion','');if(k.mode!=='system'||!!k.dark===matchMedia('(prefers-color-scheme: dark)').matches){var v=k.vars||{};for(var n in v)if(/^--m3-[a-z0-9-]+$/.test(n)&&/^[#a-z0-9(),.% -]+$/i.test(String(v[n])))h.style.setProperty(n,v[n]);if(k.scheme==='dark'||k.scheme==='light')h.style.colorScheme=k.scheme;var m=document.querySelector('meta[name="theme-color"]');if(m&&/^#[0-9a-f]{3,8}$/i.test(k.bar||''))m.content=k.bar}}}catch(e){}
+try{var tk=localStorage.getItem('nook-token'),ba=localStorage.getItem('nook-api')||localStorage.getItem('nook-base');if(tk&&ba&&/^(https:\/\/[a-z0-9.-]+|http:\/\/(localhost|127\.0\.0\.1))(:\d+)?$/i.test(ba)){var q=fetch(ba+'/api/bootstrap',{method:'POST',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({token:tk})});q.catch(function(){});window.NOOK_EARLY={base:ba,token:tk,response:q}}}catch(e){}
 var g=(/^#\/([a-z]+)/.exec(location.hash)||[])[1]||'home';if(/^(messages|inbox|friends)$/.test(g))h.classList.add('boot-list');if(g!=='home'){var o=new MutationObserver(function(){var a=document.querySelectorAll('[data-nav][aria-current]:not([data-nav="'+g+'"])'),i;for(i=0;i<a.length;i++)a[i].removeAttribute('aria-current');a=document.querySelectorAll('[data-nav="'+g+'"]:not([aria-current])');for(i=0;i<a.length;i++)a[i].setAttribute('aria-current','page')});o.observe(h,{childList:true,subtree:true});addEventListener('DOMContentLoaded',function(){o.disconnect()})}}</script>
 </head>
 <body class="m3-base">
@@ -196,6 +199,6 @@ var g=(/^#\/([a-z]+)/.exec(location.hash)||[])[1]||'home';if(/^(messages|inbox|f
   </nav>
 
   <!-- the design system, then signing in, which fetches what the app needs and then starts it -->
-  <script>(function(){var L=['ro','es','fr','de','it'],l='';try{l=localStorage.getItem('nook-lang')||''}catch(e){}if(!l){var n=navigator.languages||[navigator.language||''];for(var i=0;i<n.length&&!l;i++){var c=String(n[i]).slice(0,2).toLowerCase();if(c==='en'||L.indexOf(c)>=0)l=c}}var list=['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js'];if(L.indexOf(l)>=0)list.push('js/lang/'+l+'.js');list.push('js/i18n.js','js/account.js');list.forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});})();</script>
+  <script>(function(){var L=['ro','es','fr','de','it'],l='';try{l=localStorage.getItem('nook-lang')||''}catch(e){}if(!l){var n=navigator.languages||[navigator.language||''];for(var i=0;i<n.length&&!l;i++){var c=String(n[i]).slice(0,2).toLowerCase();if(c==='en'||L.indexOf(c)>=0)l=c}}var list=['../m3/m3-shapes.js','../m3/m3.js','js/config.js','js/api.js'];if(L.indexOf(l)>=0)list.push('js/lang/'+l+'.js');list.push('js/icon-names.js','js/i18n.js','js/account.js');list.forEach(function(src){var s=document.createElement('script');s.src=src;s.async=false;document.body.appendChild(s);});})();</script>
 </body>
 </html>

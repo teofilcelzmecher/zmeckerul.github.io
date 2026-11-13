@@ -633,10 +633,10 @@ function authenticate(req) {
 // ---- the routes -------------------------------------------------------------------------------------
 
 const routes = [];
-function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024, stream = false, upload = 0 } = {}) {
+function route(method, pattern, handler, { auth = true, admin = false, body = 64 * 1024, stream = false, upload = 0, tokenInBody = false } = {}) {
   const keys = [];
   const re = new RegExp('^' + pattern.replace(/:(\w+)/g, (_, key) => (keys.push(key), '([^/]+)')) + '$');
-  routes.push({ method, re, keys, handler, auth, admin, body, stream, upload });
+  routes.push({ method, re, keys, handler, auth, admin, body, stream, upload, tokenInBody });
 }
 
 /** a file sent as the whole request (a video), saved to a temporary file once its sender is known: its path */
@@ -968,7 +968,10 @@ route('POST', '/api/account/delete', async ({ user, body }) => {
 
 // everything the app needs to start ------------------------------------------------------------------
 
-route('GET', '/api/bootstrap', ({ user }) => {
+// everything the app opens with. (1.6) Also as a POST with the token in a plain-text body: a "simple" request, which a
+// browser sends at once instead of first asking this server's leave with a request of its own (OPTIONS), a whole trip
+// there and back: over Tailscale Funnel, near half a second. The app sends it from the page's very first lines
+function bootstrap({ user }) {
   const id = user.id;
   const posts = db.all(`${POST_SELECT} WHERE p.removed_at IS NULL ORDER BY p.created_at DESC LIMIT 1000`);
   const ids = new Set(posts.map((p) => p.id));
@@ -1014,7 +1017,9 @@ route('GET', '/api/bootstrap', ({ user }) => {
     // the colours picked for chats with friends (1.0), by their name
     chatThemes: chatThemesOf(id),
   };
-});
+}
+route('GET', '/api/bootstrap', bootstrap);
+route('POST', '/api/bootstrap', bootstrap, { body: 1024, tokenInBody: true });
 
 // what changed since the app last looked
 route('GET', '/api/updates', ({ user, query }) => {
@@ -2750,12 +2755,14 @@ async function handle(req, res) {
       ip,
       body: ['POST', 'PUT', 'PATCH'].includes(req.method) && !r.upload ? await readBody(req, r.body) : {},
     };
+    // a route that takes its token in the body (the opening's, above), when the request has none of its own
+    if (r.tokenInBody && !req.headers.authorization && typeof ctx.body.token === 'string') req.headers.authorization = 'Bearer ' + ctx.body.token;
     if (r.auth) {
       const who = authenticate(req);
       if (!who) fail(401, 'Please sign in again.', { signedOut: true });
       ctx.user = who.user;
       ctx.session = who.session;
-      if (req.method === 'GET') limit('read:' + who.user.id, 240, MINUTE, 'Too many requests. Slow down a little.');
+      if (req.method === 'GET' || r.tokenInBody) limit('read:' + who.user.id, 240, MINUTE, 'Too many requests. Slow down a little.');
       if (r.admin && who.user.role !== 'admin') fail(403, 'Only admins can do that.');
       // any request means one of their devices is still there (for calls)
       lastSeen.set(who.user.id, now());
