@@ -3824,6 +3824,12 @@
   applySettings();
   render();
   renderBadges();
+  // the page is drawn: the skeleton it opened behind gives way (1.6)
+  const skeleton = document.querySelector('.boot-skeleton');
+  if (skeleton) {
+    requestAnimationFrame(() => skeleton.classList.add('leaving'));
+    setTimeout(() => skeleton.remove(), 260);
+  }
   setTimeout(() => storageNotice({ banner: true }), 900);
   // badges for a first visit (and streaks) arrive once the page has settled
   setTimeout(() => store.checkBadges(), 1200);

@@ -3913,8 +3913,209 @@ html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
 
 /* until someone is let in, only the gate shows, and the welcome page for someone not signed in (with its
    language menu) */
-html.gated body > :not(.gate):not(.landing):not(.m3-menu) {
+html.gated body > :not(.gate):not(.landing):not(.m3-menu):not(.boot-skeleton) {
   display: none !important;
+}
+
+/* ---- opening (1.6): a skeleton of the app, from the first frame, for someone signed in ------------------------ */
+.boot-skeleton {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  background: var(--m3-background);
+  pointer-events: none;
+  transition: opacity 200ms ease-out;
+}
+html.visitor .boot-skeleton {
+  display: none;
+}
+.boot-skeleton.leaving {
+  opacity: 0;
+}
+.boot-skeleton i,
+.boot-skeleton b {
+  display: block;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--m3-on-surface) 9%, transparent);
+}
+.sk-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+}
+.sk-top .sk-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.sk-top .sk-brand {
+  width: 112px;
+  height: 26px;
+  border-radius: 13px;
+}
+.sk-top .sk-grow {
+  flex: 1;
+}
+.sk-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 4px 12px;
+  overflow: hidden;
+}
+.sk-nav,
+.sk-rail {
+  display: none;
+}
+.sk-feed {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.sk-chips {
+  display: flex;
+  gap: 8px;
+}
+.sk-chips i {
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+}
+.sk-chips i:first-child {
+  width: 84px;
+}
+.sk-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-low);
+  animation: sk-pulse 1.5s ease-in-out infinite;
+}
+.sk-card:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.sk-card:nth-child(4) {
+  animation-delay: 0.3s;
+}
+@keyframes sk-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+.sk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sk-head .sk-av {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+.sk-head span {
+  display: grid;
+  gap: 6px;
+}
+.sk-head span i {
+  width: 110px;
+  height: 10px;
+}
+.sk-head span i + i {
+  width: 60px;
+}
+.sk-card .sk-title {
+  width: 82%;
+  height: 18px;
+}
+.sk-card .sk-line {
+  width: 96%;
+  height: 11px;
+}
+.sk-card .sk-short {
+  width: 62%;
+}
+.sk-card .sk-media {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--m3-r-normal);
+}
+.sk-actions {
+  display: flex;
+  gap: 8px;
+}
+.sk-actions i {
+  width: 76px;
+  height: 32px;
+  border-radius: 16px;
+}
+.sk-bottom {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 14px);
+  background: var(--m3-surface-container);
+}
+.sk-bottom i {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+.sk-bottom .sk-create {
+  width: 56px;
+  height: 36px;
+  border-radius: 18px;
+}
+/* a computer: the side menu, the feed in the middle and the column on the right, as the app lays them out */
+@media (min-width: 720px) {
+  .sk-top .sk-wide {
+    width: 120px;
+    border-radius: 20px;
+  }
+  .sk-body {
+    grid-template-columns: 240px minmax(0, 640px);
+    justify-content: center;
+    gap: 24px;
+    padding: 12px 24px;
+  }
+  .sk-nav {
+    display: grid;
+    align-content: start;
+    gap: 14px;
+    padding-top: 6px;
+  }
+  .sk-nav i {
+    width: 70%;
+    height: 22px;
+    border-radius: 11px;
+  }
+  .sk-nav b {
+    width: 40%;
+    height: 12px;
+    margin-top: 10px;
+  }
+  .sk-bottom {
+    display: none;
+  }
+}
+@media (min-width: 1100px) {
+  .sk-body {
+    grid-template-columns: 240px minmax(0, 640px) 300px;
+  }
+  .sk-rail {
+    display: grid;
+    align-content: start;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-card {
+    animation: none;
+  }
 }
 
 /* ---- the welcome page ---------------------------------------------------------------------------- */

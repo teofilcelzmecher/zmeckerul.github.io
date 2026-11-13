@@ -2682,14 +2682,27 @@ function readBody(req, max) {
 }
 
 function send(res, status, payload) {
-  const json = JSON.stringify(payload);
-  res.writeHead(status, {
+  let body = Buffer.from(JSON.stringify(payload));
+  const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'no-referrer',
-  });
-  res.end(json);
+  };
+  // (1.6) anything bigger than a packet goes compressed when the app can take it (all of them can): what Budgie
+  // opens with is a quarter of the size, which counts on mobile data and through the tunnel
+  const accepts = String((res.req && res.req.headers['accept-encoding']) || '');
+  if (body.length > 1400 && /\b(br|gzip)\b/.test(accepts)) {
+    const br = /\bbr\b/.test(accepts);
+    body = br
+      ? zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 4, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length } })
+      : zlib.gzipSync(body, { level: 6 });
+    headers['Content-Encoding'] = br ? 'br' : 'gzip';
+    headers.Vary = 'Origin, Accept-Encoding';
+  }
+  headers['Content-Length'] = body.length;
+  res.writeHead(status, headers);
+  res.end(body);
 }
 
 /** who's asking. Behind Tailscale Funnel (or another proxy on this computer) it's the address the proxy added last to

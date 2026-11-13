@@ -123,9 +123,6 @@
       '<label class="gate-check"><input type="checkbox" id="g-saved"><span>I’ve saved it somewhere safe.</span></label>' +
       `<button class="m3-btn filled gate-go" type="submit" disabled>${icon('arrow_forward')}Continue</button></form>`,
 
-    loading: () =>
-      `<div class="gate-card">${head('Opening Budgie…', '')}<m3-loading aria-label="Loading"></m3-loading></div>`,
-
     offline: (o) =>
       o.network
         ? // the network is banned (1.4), not necessarily the person: they stay signed in, for when they're elsewhere
@@ -441,21 +438,27 @@
     window.NOOK_BOOT = snapshot;
     // what the server can do decides what the app offers, so its version is known before anything draws
     if (snapshot.version) window.Nook.serverVersion = snapshot.version;
-    const leave = () => {
-      if (gate) gate.remove();
-      gate = null;
-      if (landing) landing.remove();
-      clearInterval(cycle);
-      document.documentElement.classList.remove('gated', 'visitor');
-      for (const src of APP) {
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = false;
-        document.body.appendChild(script);
-      }
-    };
-    if (!gate || still()) return leave();
-    gate.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }).onfinish = leave;
+    // straight in (1.6): the skeleton is showing already, and stays until the app has drawn its first page
+    if (gate) gate.remove();
+    gate = null;
+    if (landing) landing.remove();
+    clearInterval(cycle);
+    document.documentElement.classList.remove('gated', 'visitor');
+    for (const src of APP) {
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      document.body.appendChild(script);
+    }
+  }
+
+  // the app's own files start coming the moment we know someone's signed in, alongside the request for what's on
+  // Budgie (each was otherwise only asked for once that had arrived); they're then ready when it has
+  let warmed = false;
+  function warm() {
+    if (warmed) return;
+    warmed = true;
+    for (const src of APP) fetch(src, { credentials: 'same-origin', priority: 'low' }).catch(() => {});
   }
 
   let starting = false;
@@ -464,14 +467,14 @@
     if (!api.configured()) return show('offline', { setup: true });
     if (!api.signedIn()) return landing ? welcome() : show('signin');
     starting = true;
-    // a quick start shows nothing; a slow one says what's happening
-    const slow = setTimeout(() => show('loading'), gate ? 0 : 250);
+    // (1.6) the skeleton of the app shows meanwhile: from the first frame, or now, after signing in
+    if (gate) gate.remove();
+    gate = null;
+    warm();
     try {
       const snapshot = await api.get('/api/bootstrap');
-      clearTimeout(slow);
       boot(snapshot);
     } catch (error) {
-      clearTimeout(slow);
       starting = false;
       if (error.network) show('offline', { network: true, message: error.message });
       else if (error.status === 401 || error.status === 403) {

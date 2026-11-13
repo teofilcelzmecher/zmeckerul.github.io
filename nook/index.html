@@ -41,6 +41,22 @@
   <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');</script>
 </head>
 <body class="m3-base">
+  <!-- (1.6) while Budgie opens for someone signed in: the app's own shape, greyed and gently pulsing, from the very
+       first frame (before any script has run), gone the moment the real page is drawn -->
+  <div class="boot-skeleton" aria-hidden="true">
+    <div class="sk-top"><i class="sk-circle"></i><i class="sk-brand"></i><span class="sk-grow"></span><i class="sk-circle sk-wide"></i><i class="sk-circle"></i></div>
+    <div class="sk-body">
+      <div class="sk-nav"><i></i><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i></div>
+      <div class="sk-feed">
+        <div class="sk-chips"><i></i><i></i><i></i><i></i></div>
+        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-media"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
+        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-line sk-short"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
+        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-media"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
+      </div>
+      <div class="sk-rail"><div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-line sk-short"></i><div class="sk-actions"><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="sk-bottom"><i></i><i></i><i class="sk-create"></i><i></i><i></i></div>
+  </div>
   <a class="skip" href="#main" id="skip">Skip to content</a>
 
   <!-- what someone who isn't signed in sees first: what Budgie is, and the way in -->
