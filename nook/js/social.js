@@ -276,8 +276,11 @@
 
   /** (1.6) which kind of nudge: six round buttons by the one pressed, the last one used ringed */
   let picker = null;
+  // a server from before 1.6 only knows the wave: there the button just waves, as it used to
+  const kindsOn = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('1.6.0'));
   function pick(name, from) {
     if (picker) return picker.close();
+    if (!kindsOn()) return nudge(name, from);
     const a = allowances.get(lower(name));
     // no nudges left (or off): say so, as before, without opening anything
     if (a && (a.on === false || (!a.left && a.next > Date.now()))) return nudge(name, from);
