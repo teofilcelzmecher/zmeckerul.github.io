@@ -874,7 +874,10 @@
     const a = latest || {};
     const m = a.music && a.music.playing !== false && options.music !== false && a.music.title ? a.music : null;
     const g = a.game && options.games !== false && a.game.name ? a.game : null;
-    const music = m ? { title: String(m.title).slice(0, 150), artist: String(m.artist || '').slice(0, 100), album: String(m.album || '').slice(0, 100), app: String(m.app || '').slice(0, 32), duration: Math.round(Number(m.duration) || 0) || undefined, position: Math.round(Number(m.position) || 0) || undefined } : null;
+    // where in the song: as the computer read it, and on since then (it read it at `at`, by the same clock)
+    const length = Math.round(Number(m && m.duration) || 0);
+    const place = length ? Math.min(length, Math.round((Number(m.position) || 0) + (m.at ? Math.max(0, Date.now() - m.at) : 0))) : 0;
+    const music = m ? { title: String(m.title).slice(0, 150), artist: String(m.artist || '').slice(0, 100), album: String(m.album || '').slice(0, 100), app: String(m.app || '').slice(0, 32), duration: length || undefined, position: place || undefined } : null;
     const game = g ? { name: String(g.name).slice(0, 80) } : null;
     const sig = JSON.stringify([music, game]);
     const t = Date.now();

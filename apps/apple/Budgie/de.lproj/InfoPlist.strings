@@ -3,6 +3,7 @@
 "NSCameraUsageDescription" = "Budgie nutzt die Kamera für Videoanrufe und für Fotos, die du für einen Beitrag oder einen Chat aufnimmst.";
 "NSMicrophoneUsageDescription" = "Budgie nutzt das Mikrofon für Sprach- und Videoanrufe, und nur während eines Anrufs.";
 "NSPhotoLibraryAddUsageDescription" = "Budgie speichert Bilder nur dann in deiner Mediathek, wenn du eines sichern möchtest.";
+"NSAppleMusicUsageDescription" = "Budgie zeigt deinen Freunden das Lied, das die Musik-App spielt, wenn du das einschaltest, und spielt dort ihre Lieder, wenn du mithörst.";
 "New Post" = "Neuer Beitrag";
 "Chats" = "Chats";
 "Inbox" = "Mitteilungen";

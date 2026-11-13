@@ -5,8 +5,9 @@
  * follow it). The website's own code doesn't need any of it; desktop.js, which the app adds, uses it.
  *
  * Since Budgie 1.4 it also hears what the computer is playing and running, for "Listening to" and "Playing":
- *   onActivity(cb)           cb({ music: { title, artist, album, app, playing } | null, game: { name } | null }) when
- *                            that changes, and every minute with the same again; returns a function that stops it
+ *   onActivity(cb)           cb({ music: { title, artist, album, app, playing, duration?, position?, at? } | null,
+ *                            game: { name } | null }) when that changes, and every minute with the same again;
+ *                            returns a function that stops it
  *   activityOptions()        { music, games }: what may be shared (both, unless turned off)
  *   setActivityOptions(o)    turns either on or off (kept by the app; its tray has a switch too)
  *   onActivityOptions(cb)    cb({ music, games }) when they change, from the tray for instance
@@ -27,7 +28,14 @@ const hearing = new Set(); // the page's onActivity callbacks
 const hearingOptions = new Set();
 let last = null; // what the app said last
 let options = null; // what may be shared, once asked
-const song = (m) => (m && typeof m === 'object' && m.title ? { title: clip(m.title, 150), artist: clip(m.artist, 100), album: clip(m.album, 100), app: clip(m.app, 32), playing: m.playing !== false } : null);
+const ms = (n) => (Number.isFinite(n) && n >= 0 && n < 2 ** 42 ? Math.round(n) : undefined);
+function song(m) {
+  if (!m || typeof m !== 'object' || !m.title) return null;
+  const out = { title: clip(m.title, 150), artist: clip(m.artist, 100), album: clip(m.album, 100), app: clip(m.app, 32), playing: m.playing !== false };
+  // (1.7) where in the song, when the player says (a Mac's Music and Spotify): its length and place, read at `at`
+  if (ms(m.duration)) Object.assign(out, { duration: ms(m.duration), position: ms(m.position) || 0, at: ms(m.at) });
+  return out;
+}
 const tidy = (a) => ({ music: song(a && a.music), game: a && a.game && a.game.name ? { name: clip(a.game.name, 80) } : null });
 const tidyOptions = (o) => ({ music: !o || o.music !== false, games: !o || o.games !== false });
 /** one of the page's callbacks: what goes wrong in it is the page's, and never stops the others */

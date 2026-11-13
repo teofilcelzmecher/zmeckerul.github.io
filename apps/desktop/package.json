@@ -189,7 +189,8 @@
       "entitlementsInherit": "build/entitlements.mac.plist",
       "extendInfo": {
         "NSMicrophoneUsageDescription": "Budgie uses your microphone in voice and video calls.",
-        "NSCameraUsageDescription": "Budgie uses your camera in video calls."
+        "NSCameraUsageDescription": "Budgie uses your camera in video calls.",
+        "NSAppleEventsUsageDescription": "Budgie asks Music and Spotify which song they’re playing, to show your friends. You can turn this off in Budgie’s Settings → Activity."
       },
       "artifactName": "Budgie-mac.${ext}"
     },

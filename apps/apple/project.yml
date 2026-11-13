@@ -71,6 +71,7 @@ targets:
         NSCameraUsageDescription: Budgie uses the camera for video calls, and for photos you choose to take for a post or a chat.
         NSMicrophoneUsageDescription: Budgie uses the microphone for voice and video calls, and only while you’re in one.
         NSPhotoLibraryAddUsageDescription: Budgie saves pictures to your library only when you choose to save one.
+        NSAppleMusicUsageDescription: Budgie shows your friends the song the Music app is playing, if you turn that on, and plays their songs in it when you listen along.
         # the build machine's checks talk to a Budgie server on the same machine
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

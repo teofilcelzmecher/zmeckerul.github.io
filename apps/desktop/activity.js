@@ -6,13 +6,16 @@
  *           use). On Windows that's the System Media Transport Controls, asked by one hidden PowerShell that stays
  *           running and says what's playing when it changes (and every 15 seconds). On Linux it's every player that
  *           speaks MPRIS over D-Bus (Spotify, Rhythmbox, Elisa, Strawberry, VLC, browsers…), asked every 12 seconds,
- *           and straight away when a player says its song changed. Music apps come before a video in a browser,
- *           and what clearly isn't music (a film, a stream, a call) is left out
+ *           and straight away when a player says its song changed. On a Mac (1.7) it's Music and Spotify, asked
+ *           every 12 seconds with macOS's own scripting (only when they're open: asking never opens one), which
+ *           macOS lets Budgie do once the person says yes. Music apps come before a video in a browser, and what
+ *           clearly isn't music (a film, a stream, a call) is left out
  *   games   what's running, every 30 seconds: about 240 well-known games by their programs' names, and anything
  *           run from a game library's folder (Steam, Epic, GOG, Riot, EA, Ubisoft, Xbox, Heroic, itch), named
  *           after its folder. Proton and Wine games run from those folders too, so they're found the same way
  *
- * Only the answer leaves this file: { music: { title, artist, album, app, playing } | null, game: { name } | null }.
+ * Only the answer leaves this file: { music: { title, artist, album, app, playing, duration?, position?, at? } | null,
+ * game: { name } | null } (where in the song, in milliseconds, as read at `at`, where the player says).
  * Never paths, other programs, or anything else about the computer. The page posts it to Budgie as part of being
  * signed in; nothing is sent anywhere from here.
  *
@@ -27,7 +30,7 @@ const readline = require('node:readline');
 
 // the same limits the server keeps (nook/server/presence.js)
 const LIMITS = { title: 150, artist: 100, album: 100, app: 32, game: 80 };
-const MUSIC_EVERY = 12 * 1000; // Linux: how often players are asked
+const MUSIC_EVERY = 12 * 1000; // Linux and Mac: how often players are asked
 const GAMES_EVERY = 30 * 1000;
 const HEARTBEAT = 60 * 1000; // the page hears the same again, so the server knows it's still true
 const GRACE = 7 * 1000; // a song that vanishes for a moment (between tracks) isn't "stopped" until it's been gone this long
@@ -571,7 +574,15 @@ function songOf(p) {
   if (!song.artist && kind !== 'music' && !audioFile) return null;
   if (/^(advertisement|spotify|spotify free|spotify premium)$/i.test(song.title) && !song.artist) return null;
   const rank = (p.playing ? 100 : 0) + { music: 40, other: 30, video: 20, browser: 10 }[kind] + (song.album ? 2 : 0) + (song.artist ? 1 : 0);
-  return { title: song.title, artist: song.artist, album: song.album, app: niceApp(name || p.appName || ''), playing: !!p.playing, rank };
+  const out = { title: song.title, artist: song.artist, album: song.album, app: niceApp(name || p.appName || ''), playing: !!p.playing, rank };
+  // (1.7) where in the song, when the player says: its length and place in milliseconds, and when that was read
+  const duration = Math.round(Number(p.duration) || 0);
+  if (duration > 0 && duration < 24 * 3600000) {
+    out.duration = duration;
+    out.position = Math.min(duration, Math.max(0, Math.round(Number(p.position) || 0)));
+    out.at = Math.round(Number(p.at) || Date.now());
+  }
+  return out;
 }
 
 const songKey = (m) => (m ? `${m.app}\n${m.title}\n${m.artist}` : '');
@@ -585,6 +596,63 @@ function pickSong(players, previous) {
   const same = previous && songs.find((s) => songKey(s) === songKey(previous) && s.rank === top.rank);
   const { rank, ...song } = same || top;
   return song;
+}
+
+// ---- Mac: Music and Spotify, asked with JavaScript for Automation (1.7) -------------------------------------------
+
+/*
+ * Run by osascript with the apps to ask (Music, Spotify). An app that isn't open isn't asked (asking would open it),
+ * nor one that isn't installed. It prints one line of JSON: each app's song, or the error macOS gave (-1743: the
+ * person hasn't let Budgie ask that app, in System Settings → Privacy & Security → Automation).
+ */
+const MAC_SCRIPT = `
+function run(argv) {
+  var out = [];
+  argv.forEach(function (name) {
+    var app;
+    try {
+      app = Application(name);
+      if (!app.running()) return;
+    } catch (e) {
+      return;
+    }
+    try {
+      var state = String(app.playerState());
+      if (state !== 'playing' && state !== 'paused') return;
+      var t = app.currentTrack;
+      var song = { app: name, title: String(t.name() || ''), artist: String(t.artist() || ''), album: String(t.album() || ''), playing: state === 'playing' };
+      var length = Number(t.duration()) || 0;
+      song.duration = name === 'Spotify' ? length : length * 1000;
+      song.position = (Number(app.playerPosition()) || 0) * 1000;
+      out.push(song);
+    } catch (e) {
+      out.push({ app: name, error: String((e && e.errorNumber) || e) });
+    }
+  });
+  return JSON.stringify(out);
+}`;
+const MAC_APPS = { Music: { id: 'applemusic', name: 'Apple Music' }, Spotify: { id: 'spotify', name: 'Spotify' } };
+/** what the Mac's script said: { players: [...], denied: [app names] } (null for nothing readable) */
+function parseMacLine(text, at = Date.now()) {
+  let list;
+  try {
+    list = JSON.parse(String(text || '').trim() || '[]');
+  } catch (_) {
+    return null;
+  }
+  if (!Array.isArray(list)) return null;
+  const players = [];
+  const denied = [];
+  for (const s of list.slice(0, 4)) {
+    const known = s && MAC_APPS[s.app];
+    if (!known) continue;
+    if (s.error) {
+      if (/-1743|-10004/.test(String(s.error))) denied.push(s.app);
+      continue;
+    }
+    players.push({ ids: [known.id], appName: known.name, title: s.title, artist: s.artist, album: s.album, playing: !!s.playing, duration: s.duration, position: s.position, at });
+  }
+  return { players, denied };
 }
 
 // ---- Windows: the System Media Transport Controls and the programs running, from PowerShell ----------------------
@@ -963,7 +1031,8 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
   function emit(beat) {
     if (!on) return;
     const a = current();
-    const sig = JSON.stringify(a);
+    // a song playing on (its place changing) isn't news; the next beat brings where it is
+    const sig = JSON.stringify(a, (key, value) => (key === 'position' || key === 'at' ? undefined : value));
     if (sig === said && !beat) return;
     said = sig;
     try {
@@ -1106,6 +1175,35 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
     }
   }
 
+  // Mac ------------------------------------------------------------------------------------------------------------
+  const macDenied = new Set(); // apps the person hasn't let Budgie ask: not asked again until Budgie starts again
+  let asking = false;
+  async function macMusic() {
+    if (asking) return;
+    asking = true;
+    try {
+      const apps = Object.keys(MAC_APPS).filter((a) => !macDenied.has(a));
+      if (!apps.length) return setMusic(null);
+      const out = await exec('osascript', ['-l', 'JavaScript', '-e', MAC_SCRIPT, ...apps], { timeout: 6000 });
+      if (!on || !options.music) return;
+      if (out.missing || out.error) {
+        once('osascript', 'activity: osascript', out.missing ? 'is missing' : out.error && out.error.message);
+        return setMusic(null);
+      }
+      const said = parseMacLine(out.text);
+      if (!said) return setMusic(null);
+      for (const a of said.denied) {
+        macDenied.add(a);
+        once('denied:' + a, `activity: macOS didn't let Budgie ask ${a} what it's playing (System Settings → Privacy & Security → Automation)`);
+      }
+      setMusic(pickSong(said.players, state.music));
+    } catch (e) {
+      once('macMusic', 'activity: music', e);
+    } finally {
+      asking = false;
+    }
+  }
+
   // Windows --------------------------------------------------------------------------------------------------------
   function startPowerShell() {
     const exe = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
@@ -1181,8 +1279,15 @@ function create({ onChange, log = () => {}, platform = process.platform, ownPid 
         linuxGames();
         timers.push(setInterval(linuxGames, GAMES_EVERY));
       }
+    } else if (platform === 'darwin') {
+      // a Mac: music from Music and Spotify; games aren't looked for yet
+      fresh.games = true;
+      if (options.music) {
+        macMusic();
+        timers.push(setInterval(macMusic, MUSIC_EVERY));
+      } else emit(false);
     } else {
-      // elsewhere (a Mac running this for testing): nothing to find
+      // elsewhere: nothing to find
       fresh = { music: true, games: true };
       emit(false);
     }
@@ -1293,5 +1398,7 @@ module.exports = {
   parseDbusSend,
   mprisPlayer,
   linuxProcs,
+  parseMacLine,
+  MAC_SCRIPT,
   PS_SCRIPT,
 };

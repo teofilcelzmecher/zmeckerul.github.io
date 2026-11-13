@@ -352,3 +352,96 @@ test('Windows: a song that vanishes for a moment between tracks is not "stopped"
     ['One', 'Two']
   );
 });
+
+// ---- Mac (1.7) -----------------------------------------------------------------------------------------------------
+
+/** the Mac's script, run here with pretend apps in place of macOS's scripting */
+function runMacScript(apps, argv) {
+  const run = new Function('Application', MAC_RUNNER)(macApplication(apps));
+  return JSON.parse(run(argv));
+}
+const MAC_RUNNER = A.MAC_SCRIPT + '\nreturn run;';
+function macApplication(apps) {
+  return (name) => {
+    const app = apps[name];
+    if (!app) throw new Error("Application can't be found.");
+    if (app.denied) return { running: () => true, playerState: () => { const e = new Error('Not authorized to send Apple events to ' + name + '.'); e.errorNumber = -1743; throw e; } };
+    return {
+      running: () => app.running !== false,
+      playerState: () => {
+        if (app.running === false) throw new Error('asking opened the app');
+        return app.state;
+      },
+      playerPosition: () => app.position,
+      currentTrack: { name: () => app.title, artist: () => app.artist, album: () => app.album, duration: () => app.duration },
+    };
+  };
+}
+
+test('Mac: the script asks open apps only, and says where in the song', () => {
+  const apps = {
+    Music: { state: 'playing', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', duration: 175.5, position: 42.25 },
+    Spotify: { running: false },
+  };
+  assert.deepEqual(runMacScript(apps, ['Music', 'Spotify', 'Nothing']), [{ app: 'Music', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', playing: true, duration: 175500, position: 42250 }]);
+  // Spotify says its length in milliseconds already; stopped means nothing
+  const spotify = runMacScript({ Spotify: { state: 'paused', title: 'Get Lucky', artist: 'Daft Punk', album: 'Random Access Memories', duration: 369626, position: 10 } }, ['Spotify']);
+  assert.deepEqual(spotify, [{ app: 'Spotify', title: 'Get Lucky', artist: 'Daft Punk', album: 'Random Access Memories', playing: false, duration: 369626, position: 10000 }]);
+  assert.deepEqual(runMacScript({ Music: { state: 'stopped' } }, ['Music']), []);
+  // not allowed: macOS's error, so Budgie stops asking
+  assert.deepEqual(runMacScript({ Music: { denied: true } }, ['Music']), [{ app: 'Music', error: '-1743' }]);
+});
+
+test('Mac: what the script says becomes the song', () => {
+  const said = A.parseMacLine(JSON.stringify([{ app: 'Music', title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', playing: true, duration: 175500, position: 42250 }, { app: 'Spotify', error: '-1743' }, { app: 'Finder', title: 'x' }]), 1000);
+  assert.deepEqual(said.denied, ['Spotify']);
+  assert.deepEqual(A.pickSong(said.players, null), { title: 'Espresso', artist: 'Sabrina Carpenter', album: 'Short n’ Sweet', app: 'Apple Music', playing: true, duration: 175500, position: 42250, at: 1000 });
+  assert.equal(A.parseMacLine('not json'), null);
+  assert.deepEqual(A.parseMacLine(''), { players: [], denied: [] });
+});
+
+test('Mac: watching asks osascript, and stops asking an app the person said no to', async (t) => {
+  t.mock.timers.enable({ apis: ['setInterval'] });
+  const settle = () => new Promise((r) => setTimeout(r, 30));
+  const heard = [];
+  const logged = [];
+  const calls = [];
+  let answer = JSON.stringify([{ app: 'Spotify', error: '-1743' }, { app: 'Music', title: 'Espresso', artist: 'Sabrina Carpenter', album: '', playing: true, duration: 175500, position: 1000 }]);
+  const exec = async (cmd, args) => {
+    calls.push([cmd, ...args.slice(0, 3), ...args.slice(4)]);
+    return { text: answer };
+  };
+  const w = A.create({ platform: 'darwin', exec, log: (...x) => logged.push(x.join(' ')), onChange: (a, beat) => heard.push({ a, beat }) });
+  try {
+    w.start({ music: true, games: true });
+    await settle();
+    assert.deepEqual(calls[0], ['osascript', '-l', 'JavaScript', '-e', 'Music', 'Spotify']);
+    assert.equal(heard.length, 1);
+    const { at, ...song } = heard[0].a.music;
+    assert.deepEqual(song, { title: 'Espresso', artist: 'Sabrina Carpenter', album: '', app: 'Apple Music', playing: true, duration: 175500, position: 1000 });
+    assert.ok(Math.abs(at - Date.now()) < 5000);
+    assert.equal(heard[0].a.game, null);
+    assert.equal(logged.filter((l) => /didn't let Budgie ask Spotify/.test(l)).length, 1);
+    // twelve seconds on: asked again, without Spotify; the same song further on isn't news, but it's kept
+    answer = JSON.stringify([{ app: 'Music', title: 'Espresso', artist: 'Sabrina Carpenter', album: '', playing: true, duration: 175500, position: 13000 }]);
+    t.mock.timers.tick(12000);
+    await settle();
+    assert.deepEqual(calls[1], ['osascript', '-l', 'JavaScript', '-e', 'Music']);
+    assert.equal(heard.length, 1);
+    assert.equal(w.current().music.position, 13000);
+    // a minute in: the beat says it again, from where the song is now
+    t.mock.timers.tick(48000);
+    await settle();
+    const last = heard[heard.length - 1];
+    assert.equal(last.beat, true);
+    assert.equal(last.a.music.position, 13000);
+    // paused: that is news
+    answer = JSON.stringify([{ app: 'Music', title: 'Espresso', artist: 'Sabrina Carpenter', album: '', playing: false, duration: 175500, position: 14000 }]);
+    t.mock.timers.tick(12000);
+    await settle();
+    assert.equal(heard[heard.length - 1].a.music.playing, false);
+    assert.equal(heard[heard.length - 1].beat, false);
+  } finally {
+    w.stop();
+  }
+});

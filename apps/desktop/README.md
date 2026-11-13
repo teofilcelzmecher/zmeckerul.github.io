@@ -40,7 +40,7 @@ language the website is in.
 |---|---|
 | `main.js` | the window, the tray, starting with the computer, the ringing window, notifications, the screen picker, permissions, links |
 | `preload.js` | the only thing the website sees of the app: `window.BUDGIE_DESKTOP` (notify, unread count, language, what's playing), and it notices a call ringing in the page |
-| `activity.js` | what's playing and running: the media controls (Windows) or MPRIS (Linux), and the games among the programs running |
+| `activity.js` | what's playing and running: the media controls (Windows), MPRIS (Linux) or Music and Spotify (Mac), and the games among the programs running (Windows and Linux) |
 | `desktop.js` | run inside the website by the app: turns new messages and inbox items into notifications, counts unread, keeps checking while the window is closed |
 | `pages/` | the app's own small pages: the ringing window, the screen picker, the offline page |
 | `strings.js` | the app's own words in six languages |
@@ -60,13 +60,16 @@ No native modules: only what the computer already has.
 - **Linux**: every MPRIS player on the session bus (`gdbus`, or `dbus-send`), every 12 seconds and at once when a
   player says its song changed (`dbus-monitor`); this person's programs from `/proc/*/exe` and their command lines,
   every 30 seconds.
-- **To the website**: `BUDGIE_DESKTOP.onActivity(cb)` gives `{ music: { title, artist, album, app, playing } | null,
-  game: { name } | null }` when it changes and every minute; `activityOptions()` and `setActivityOptions({ music,
+- **Mac** (1.7): Music and Spotify, asked every 12 seconds by `osascript` (JavaScript for Automation), only while
+  they're open, so asking never opens one. macOS asks the person first ("Budgie wants access to control Music"); an app
+  they say no to isn't asked again until Budgie starts again. Games aren't looked for on a Mac yet.
+- **To the website**: `BUDGIE_DESKTOP.onActivity(cb)` gives `{ music: { title, artist, album, app, playing, duration?,
+  position?, at? } | null, game: { name } | null }` (where in the song, when the player says: on a Mac) when it changes and every minute; `activityOptions()` and `setActivityOptions({ music,
   games })` read and change what may be shared (kept in the app's `settings.json`); `onActivityOptions(cb)` hears
   changes made from the tray. Nothing is looked for until the website asks, nor while sharing is off; after the page
   goes, looking stops within 15 seconds.
 
-Only a song's title, artist, album and player's name, and a game's name, ever leave `activity.js` — never paths,
+Only a song's title, artist, album, length and place, and player's name, and a game's name, ever leave `activity.js` — never paths,
 other programs or anything else about the computer — and only to Budgie's page, which posts them to Budgie when
 someone is signed in. The app sends nothing anywhere itself.
 

@@ -76,6 +76,10 @@ final class WebController: NSObject, ObservableObject {
             "platform": Build.platform, "idiom": Build.idiom, "push": true, "sandbox": Build.sandbox,
             "debug": false, "version": Build.version,
         ]
+        // (1.7) the Music app, on iPhone and iPad (AppleMusic.swift)
+        #if os(iOS)
+        apple["music"] = true
+        #endif
         var seed = "null"
         #if DEBUG
         // the build machine's checks start the app signed in to a test server: -BudgieAPI url -BudgieToken token
@@ -217,6 +221,24 @@ final class WebController: NSObject, ObservableObject {
             default:
                 return nil
             }
+        case "music":
+            #if os(iOS)
+            switch body["action"] as? String {
+            case "status":
+                return ["status": AppleMusic.status()]
+            case "ask":
+                return ["status": await AppleMusic.ask()]
+            case "now":
+                if let song = AppleMusic.now() { return song }
+                return NSNull()
+            case "play":
+                return await AppleMusic.play(id: body["id"] as? String ?? "", from: (body["position"] as? NSNumber)?.doubleValue ?? 0)
+            default:
+                return nil
+            }
+            #else
+            return nil
+            #endif
         case "captcha":
             return await askCaptcha(sitekey: body["sitekey"] as? String ?? "", dark: dark)
         case "debug":

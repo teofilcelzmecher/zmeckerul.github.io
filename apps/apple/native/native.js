@@ -20,6 +20,7 @@
  *   fold           on iPhone Duo half open, like a laptop, a call puts the faces above the fold and the buttons below
  *   robot check    Cloudflare's check runs on budgiesocial.com in a sheet over the app (it doesn't know the app's own
  *                  address), and hands its answer back to the sign-up form
+ *   Music app      (iPhone and iPad) what it plays, shared if you turn it on, and friends' songs played in it
  */
 (function () {
   'use strict';
@@ -418,6 +419,22 @@
     }
     return append.call(this, child);
   };
+
+  // ---- (1.7) the Music app, on iPhone and iPad -------------------------------------------------------------------
+  // What it's playing (for "Share what the Music app plays" in Settings → Activity), and a friend's song played in it
+  // (Listen along, without Spotify). js/presence.js uses these when they're here; iOS asks the person first.
+  //   ask(), status()    'on', 'off' or 'ask' (not asked yet)
+  //   now()              { playing, title, artist, album, duration, position (ms), id (Apple Music's) } or null
+  //   play(id, ms)       { ok: true } or { error: 'denied' | 'unavailable' }
+  if (APPLE.music) {
+    const music = (action, data) => post('music', Object.assign({ action }, data || {}));
+    window.BudgieAppleMusic = {
+      ask: () => music('ask').then((r) => (r && r.status) || 'off'),
+      status: () => music('status').then((r) => (r && r.status) || 'off'),
+      now: () => music('now').then((r) => (r && r.title ? r : null)),
+      play: (id, ms) => music('play', { id: String(id || ''), position: Math.max(0, Number(ms) || 0) }).then((r) => r || { error: 'unavailable' }),
+    };
+  }
 
   // ---- iPhone Duo: half open like a laptop ----------------------------------------------------------------------
   // The Swift side says where the fold is (in the page's own pixels) while the phone is partly folded.

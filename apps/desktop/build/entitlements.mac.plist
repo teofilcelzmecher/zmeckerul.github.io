@@ -14,5 +14,8 @@
     <true/>
     <key>com.apple.security.device.camera</key>
     <true/>
+    <!-- (1.7) asking Music and Spotify what they're playing (activity.js), once the person says yes -->
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
   </dict>
 </plist>
