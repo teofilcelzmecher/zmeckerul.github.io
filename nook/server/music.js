@@ -557,7 +557,7 @@ CREATE TABLE IF NOT EXISTS music_songs (
     say(
       'Spotify is on: people can link their Spotify in Settings → Activity. No restart needed.',
       `In your Spotify app's settings (developer.spotify.com), add this Redirect URI: ${redirect()}`,
-      'While your Spotify app is in Development mode, Spotify only lets the people you add under User Management link it (up to 25).',
+      'While your Spotify app is in Development mode, Spotify only lets up to 5 people link it: the ones you add under User Management (and your own Spotify account needs Premium).',
       'To turn it off: nook spotify off'
     );
   };
