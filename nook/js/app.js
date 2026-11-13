@@ -3824,12 +3824,9 @@
   applySettings();
   render();
   renderBadges();
-  // the page is drawn: the skeleton it opened behind gives way (1.6)
-  const skeleton = document.querySelector('.boot-skeleton');
-  if (skeleton) {
-    requestAnimationFrame(() => skeleton.classList.add('leaving'));
-    setTimeout(() => skeleton.remove(), 260);
-  }
+  // (1.6) the page's shape it opened with was where the page now is, so it has gone with the first page drawn; what's
+  // left of it (a page that drew somewhere else) goes now
+  for (const left of document.querySelectorAll('.boot-skeleton')) left.remove();
   setTimeout(() => storageNotice({ banner: true }), 900);
   // badges for a first visit (and streaks) arrive once the page has settled
   setTimeout(() => store.checkBadges(), 1200);

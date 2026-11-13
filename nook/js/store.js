@@ -83,7 +83,9 @@
   const saved = BOOT.prefs && BOOT.prefs.settings ? BOOT.prefs : Object.assign(earlierPrefs(), BOOT.prefs || {});
   const fresh = freshPrefs();
   const state = Object.assign(fresh, {});
-  for (const key of PREF_KEYS) if (saved[key] != null) state[key] = saved[key];
+  // (settings are put over the defaults below, key by key: taken whole here, a setting missing from what was saved, one
+  // newer than the last save, would be missing from the app too, instead of having its default)
+  for (const key of PREF_KEYS) if (key !== 'settings' && saved[key] != null) state[key] = saved[key];
   // only plain keys are copied, so a crafted "__proto__" in saved settings can't reach any object's prototype
   for (const [key, value] of Object.entries(saved.settings || {})) if (!['__proto__', 'constructor', 'prototype'].includes(key)) fresh.settings[key] = value;
   state.settings = fresh.settings;

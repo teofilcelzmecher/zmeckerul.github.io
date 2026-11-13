@@ -5,7 +5,7 @@
   <!-- Only the two scripts written into this page may run (their fingerprints are below; `python3
        nook/tools/csp.py nook/index.html` refreshes them), and whatever those load: Budgie's own files,
        and Google's ad code when ads are switched on. Ads show in frames, so frames may come from https. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-6B+8LVKVAqUpcyRWFB5gbVsjS8Luoq4i8Q9+Ew+rtW4=' 'sha256-CnMYptf+kJZulADqFKAA4oYqEMxVhKQ0kmT3wb4ehnE=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; media-src 'self' blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'strict-dynamic' 'sha256-2YpXE90OwdP+5BM2SZxclBJma6pdac7DYk/zwIjdF/Y=' 'sha256-9yP0RMKHF6gtDofGvCH3MQqA2Vfg/zpBmKYKd2CMFhY=' https: 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https: http://127.0.0.1:*; media-src 'self' blob: https: http://127.0.0.1:*; connect-src 'self' https: http://127.0.0.1:*; font-src 'self' https://fonts.gstatic.com; object-src 'none'; frame-src https:; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Budgie</title>
@@ -38,25 +38,11 @@
   <!-- first: hide the app until signing in decides what to show (someone not signed in sees the
        welcome page), and refuse to run inside another site's frame, where someone could trick you into
        tapping things -->
-  <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');</script>
+  <script>var h=document.documentElement;h.classList.add('gated');try{if(!localStorage.getItem('nook-token'))h.classList.add('visitor')}catch(e){h.classList.add('visitor')}if(window.top!==window.self)h.classList.add('framed');
+if(!h.classList.contains('visitor')){try{var k=JSON.parse(localStorage.getItem('nook-look')||'null');if(k&&typeof k==='object'){if(k.mode==='light'||k.mode==='dark')h.setAttribute('data-m3-theme',k.mode);if(k.still)h.setAttribute('data-m3-reduce-motion','');if(k.mode!=='system'||!!k.dark===matchMedia('(prefers-color-scheme: dark)').matches){var v=k.vars||{};for(var n in v)if(/^--m3-[a-z0-9-]+$/.test(n)&&/^[#a-z0-9(),.% -]+$/i.test(String(v[n])))h.style.setProperty(n,v[n]);if(k.scheme==='dark'||k.scheme==='light')h.style.colorScheme=k.scheme;var m=document.querySelector('meta[name="theme-color"]');if(m&&/^#[0-9a-f]{3,8}$/i.test(k.bar||''))m.content=k.bar}}}catch(e){}
+var g=(/^#\/([a-z]+)/.exec(location.hash)||[])[1]||'home';if(/^(messages|inbox|friends)$/.test(g))h.classList.add('boot-list');if(g!=='home'){var o=new MutationObserver(function(){var a=document.querySelectorAll('[data-nav][aria-current]:not([data-nav="'+g+'"])'),i;for(i=0;i<a.length;i++)a[i].removeAttribute('aria-current');a=document.querySelectorAll('[data-nav="'+g+'"]:not([aria-current])');for(i=0;i<a.length;i++)a[i].setAttribute('aria-current','page')});o.observe(h,{childList:true,subtree:true});addEventListener('DOMContentLoaded',function(){o.disconnect()})}}</script>
 </head>
 <body class="m3-base">
-  <!-- (1.6) while Budgie opens for someone signed in: the app's own shape, greyed and gently pulsing, from the very
-       first frame (before any script has run), gone the moment the real page is drawn -->
-  <div class="boot-skeleton" aria-hidden="true">
-    <div class="sk-top"><i class="sk-circle"></i><i class="sk-brand"></i><span class="sk-grow"></span><i class="sk-circle sk-wide"></i><i class="sk-circle"></i></div>
-    <div class="sk-body">
-      <div class="sk-nav"><i></i><i></i><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i></div>
-      <div class="sk-feed">
-        <div class="sk-chips"><i></i><i></i><i></i><i></i></div>
-        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-media"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
-        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-line sk-short"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
-        <div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-media"></i><div class="sk-actions"><i></i><i></i><i></i></div></div>
-      </div>
-      <div class="sk-rail"><div class="sk-card"><div class="sk-head"><i class="sk-av"></i><span><i></i><i></i></span></div><i class="sk-title"></i><i class="sk-line"></i><i class="sk-line sk-short"></i><div class="sk-actions"><i></i><i></i><i></i></div></div></div>
-    </div>
-    <div class="sk-bottom"><i></i><i></i><i class="sk-create"></i><i></i><i></i></div>
-  </div>
   <a class="skip" href="#main" id="skip">Skip to content</a>
 
   <!-- what someone who isn't signed in sees first: what Budgie is, and the way in -->
@@ -161,7 +147,7 @@
       </div>
       <a class="drawer-me" id="drawer-me" href="#/" data-m3-ripple></a>
       <div class="nav-main">
-      <a class="nav-item" href="#/" data-nav="home" data-m3-ripple data-tone="p" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span><m3-shape-icon class="nav-shape" shape="cookie9" hover-shape="cookie12" symbol="home" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Home</span></a>
+      <a class="nav-item" href="#/" data-nav="home" aria-current="page" data-m3-ripple data-tone="p" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span><m3-shape-icon class="nav-shape" shape="cookie9" hover-shape="cookie12" symbol="home" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Home</span></a>
       <a class="nav-item" href="#/popular" data-nav="popular" data-m3-ripple data-tone="t" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">local_fire_department</span></span><m3-shape-icon class="nav-shape" shape="softBurst" hover-shape="burst" symbol="local_fire_department" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Popular</span></a>
       <a class="nav-item" href="#/explore" data-nav="explore" data-m3-ripple data-tone="t" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">explore</span></span><m3-shape-icon class="nav-shape" shape="flower" hover-shape="clover8" symbol="explore" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Explore</span></a>
       <a class="nav-item" href="#/friends" data-nav="friends" data-m3-ripple data-tone="p" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">group</span></span><m3-shape-icon class="nav-shape" shape="heart" hover-shape="cookie6" symbol="group" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Friends</span><span class="nav-count" id="drawer-friends"></span></a>
@@ -172,7 +158,7 @@
       <a class="nav-item only-phone" href="#/settings" data-nav="settings" data-m3-ripple data-tone="p" data-m3-hover-root><span class="nav-ind"><span translate="no" class="m3-icon">settings</span></span><m3-shape-icon class="nav-shape" shape="gem" hover-shape="verySunny" symbol="settings" size="40" icon-size="22" aria-hidden="true"></m3-shape-icon><span class="nav-label">Settings</span></a>
       </div>
       <div class="nav-heading"><span>Your nests</span><m3-wavy-line amplitude="1.4" wavelength="12" aria-hidden="true"></m3-wavy-line></div>
-      <div id="nav-nooks"></div>
+      <div id="nav-nooks"><span class="sk-nav-nest"><i></i><i></i></span><span class="sk-nav-nest"><i></i><i></i></span><span class="sk-nav-nest"><i></i><i></i></span><span class="sk-nav-nest"><i></i><i></i></span></div>
       <button class="nav-item nav-new" data-act="new-nook" data-m3-ripple data-tooltip="Create a nest"><span class="nav-ind"><span translate="no" class="m3-icon">add_circle</span></span><span class="nav-label">Create a nest</span></button>
       <div class="recent-block" id="nav-recent"></div>
       <div class="nav-foot">
@@ -182,11 +168,27 @@
       </div>
     </nav>
     <div class="scrim" id="scrim" hidden></div>
-    <main class="main" id="main" tabindex="-1"></main>
+    <main class="main" id="main" tabindex="-1">
+      <!-- (1.6) while Budgie opens for someone signed in, the app's own frame shows from the very first frame, in their
+           colours, and here, where the page goes, its shape: greyed and gently pulsing until the real page takes its place -->
+      <div class="page boot-skeleton" aria-hidden="true">
+        <div class="col sk-feed">
+          <div class="composer"><i class="sk-av"></i><i class="sk-input"></i><i class="sk-btn"></i><i class="sk-btn"></i></div>
+          <div class="toolbar"><span class="sk-sort"><i></i><i></i><i></i><i></i></span><span class="spacer"></span><i class="sk-btn not-phone"></i></div>
+          <div class="feed">
+            <div class="post sk-post"><div class="sk-head"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-more"></i></div><i class="sk-title"></i><i class="sk-title sk-short"></i><i class="sk-text"></i><div class="sk-acts"><i class="sk-vote"></i><i class="sk-chip"></i><i class="sk-chip sk-wide"></i><i class="sk-chip sk-wide"></i><span class="spacer"></span><i class="sk-save"></i></div></div>
+            <div class="post sk-post"><div class="sk-head"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-more"></i></div><i class="sk-title"></i><i class="sk-text"></i><div class="sk-acts"><i class="sk-vote"></i><i class="sk-chip"></i><i class="sk-chip sk-wide"></i><i class="sk-chip sk-wide"></i><span class="spacer"></span><i class="sk-save"></i></div></div>
+            <div class="post sk-post"><div class="sk-head"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-more"></i></div><i class="sk-title"></i><i class="sk-title sk-half"></i><i class="sk-text"></i><div class="sk-acts"><i class="sk-vote"></i><i class="sk-chip"></i><i class="sk-chip sk-wide"></i><i class="sk-chip sk-wide"></i><span class="spacer"></span><i class="sk-save"></i></div></div>
+          </div>
+        </div>
+        <div class="col sk-list"><div class="toolbar"><i class="sk-pill"></i><i class="sk-pill"></i></div><div class="card"><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div><div class="sk-row"><i class="sk-av"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span></div></div></div>
+        <aside class="rail"><section class="card sk-trend"><i class="sk-heading"></i><div class="sk-trend-row"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-join"></i></div><div class="sk-trend-row"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-join"></i></div><div class="sk-trend-row"><i class="sk-nest"></i><span><i class="sk-l1"></i><i class="sk-l2"></i></span><i class="sk-join"></i></div><i class="sk-link"></i></section><div class="sk-foot"><i></i><i></i><i></i><i></i><i></i><i></i></div></aside>
+      </div>
+    </main>
   </div>
 
   <nav class="bottom-nav" aria-label="Main navigation">
-    <a href="#/" data-nav="home"><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span>Home</a>
+    <a href="#/" data-nav="home" aria-current="page"><span class="nav-ind"><span translate="no" class="m3-icon">home</span></span>Home</a>
     <a href="#/explore" data-nav="explore"><span class="nav-ind"><span translate="no" class="m3-icon">explore</span></span>Explore</a>
     <a href="#/submit" data-nav="submit" class="create"><span class="nav-ind"><span translate="no" class="m3-icon">add</span></span>Create</a>
     <a href="#/messages" data-nav="messages"><span class="nav-ind"><span translate="no" class="m3-icon">chat</span><span class="badge" data-messages-badge hidden></span></span>Chats</a>

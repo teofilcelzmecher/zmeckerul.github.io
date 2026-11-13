@@ -73,6 +73,14 @@
   function setToken(next) {
     token = next || null;
     write(TOKEN_KEY, token);
+    // signed out: the look this device opened in was theirs (the next person to sign in brings their own)
+    if (!token) {
+      try {
+        localStorage.removeItem('nook-look');
+      } catch (_) {
+        /* nothing kept */
+      }
+    }
   }
 
   Nook.api = {

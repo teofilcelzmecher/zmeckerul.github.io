@@ -3911,211 +3911,315 @@ html[data-m3-reduce-motion] :is(.nav-ind, .nav-ind .m3-icon, .enter) {
 
 /* ---- signing in and joining: the gate -------------------------------------------------------- */
 
-/* until someone is let in, only the gate shows, and the welcome page for someone not signed in (with its
-   language menu) */
-html.gated body > :not(.gate):not(.landing):not(.m3-menu):not(.boot-skeleton) {
+/* until signing in has decided: someone not signed in sees only the welcome page (and the gate, when they open
+   it, with its language menu); someone signed in sees the app's own frame straight away, with the shape of the page
+   where the page goes (and the gate over it all, should signing in be needed after all: an old session, no
+   connection) */
+html.gated.visitor body > :not(.gate):not(.landing):not(.m3-menu),
+html.gated body:has(> .gate) > :not(.gate):not(.landing):not(.m3-menu) {
   display: none !important;
 }
 
-/* ---- opening (1.6): a skeleton of the app, from the first frame, for someone signed in ------------------------ */
+/* ---- opening (1.6): the app's own frame from the first frame, and the page's shape where it goes ------------------- */
+
+/* what the app fills in once it's going, in its place meanwhile: the logo's shape, and your picture */
+.brand m3-shape:not(:defined) {
+  display: block;
+  border-radius: 50%;
+  background: var(--m3-primary);
+}
+.me-btn:empty::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: auto;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--m3-on-surface) 10%, transparent);
+}
+/* the page's shape: the real page's own layout (columns, cards, the composer, the sort control), with grey shapes
+   where its words and pictures go */
 .boot-skeleton {
-  position: fixed;
-  inset: 0;
-  z-index: 150;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  overflow: hidden;
-  background: var(--m3-background);
   pointer-events: none;
-  transition: opacity 200ms ease-out;
-}
-html.visitor .boot-skeleton {
-  display: none;
-}
-.boot-skeleton.leaving {
-  opacity: 0;
+  user-select: none;
 }
 .boot-skeleton i,
-.boot-skeleton b {
+.sk-nav-nest i {
   display: block;
+  flex: none;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--m3-on-surface) 9%, transparent);
+  background: color-mix(in srgb, var(--m3-on-surface) 10%, transparent);
+  animation: sk-pulse 1.6s ease-in-out infinite;
 }
-.sk-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px;
+@keyframes sk-pulse {
+  50% {
+    opacity: 0.5;
+  }
 }
-.sk-top .sk-circle {
+/* each card a beat after the one above it, so the pulse runs down the page */
+.boot-skeleton .feed > :nth-child(2) i,
+.boot-skeleton .sk-trend i {
+  animation-delay: 0.15s;
+}
+.boot-skeleton .feed > :nth-child(3) i,
+.boot-skeleton .sk-foot i {
+  animation-delay: 0.3s;
+}
+.boot-skeleton .sk-av {
   width: 40px;
   height: 40px;
   border-radius: 50%;
 }
-.sk-top .sk-brand {
-  width: 112px;
-  height: 26px;
-  border-radius: 13px;
-}
-.sk-top .sk-grow {
+.boot-skeleton .composer .sk-input {
   flex: 1;
+  height: 44px;
+  border-radius: var(--m3-r-full);
 }
-.sk-body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 16px;
-  padding: 4px 12px;
-  overflow: hidden;
+.boot-skeleton .sk-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
 }
-.sk-nav,
-.sk-rail {
-  display: none;
+.boot-skeleton .composer .sk-btn {
+  width: 24px;
+  height: 24px;
+  margin: 8px;
+  border-radius: 6px;
 }
-.sk-feed {
-  display: grid;
-  align-content: start;
-  gap: 12px;
+/* the sort control: its track, with four segments */
+.sk-sort {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-surface-container-high);
 }
-.sk-chips {
-  display: flex;
-  gap: 8px;
+.sk-sort i {
+  width: 58px;
+  height: 36px;
+  border-radius: var(--m3-r-full);
+  background: transparent;
+  animation: none;
 }
-.sk-chips i {
-  width: 64px;
-  height: 32px;
-  border-radius: 16px;
+.sk-sort i::after {
+  content: '';
+  display: block;
+  width: 60%;
+  height: 10px;
+  margin: 13px auto;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--m3-on-surface) 10%, transparent);
+  animation: sk-pulse 1.6s ease-in-out infinite;
 }
-.sk-chips i:first-child {
-  width: 84px;
+.sk-sort i:first-child {
+  background: var(--m3-secondary-container);
 }
-.sk-card {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border-radius: var(--m3-r-large);
-  background: var(--m3-surface-container-low);
-  animation: sk-pulse 1.5s ease-in-out infinite;
-}
-.sk-card:nth-child(3) {
-  animation-delay: 0.15s;
-}
-.sk-card:nth-child(4) {
-  animation-delay: 0.3s;
-}
-@keyframes sk-pulse {
-  50% {
-    opacity: 0.55;
-  }
+/* a post: its nest and who posted, the title, a line of it, and its buttons */
+.sk-post {
+  cursor: auto;
 }
 .sk-head {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-.sk-head .sk-av {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  min-height: 40px;
 }
 .sk-head span {
   display: grid;
-  gap: 6px;
-}
-.sk-head span i {
-  width: 110px;
-  height: 10px;
-}
-.sk-head span i + i {
-  width: 60px;
-}
-.sk-card .sk-title {
-  width: 82%;
-  height: 18px;
-}
-.sk-card .sk-line {
-  width: 96%;
-  height: 11px;
-}
-.sk-card .sk-short {
-  width: 62%;
-}
-.sk-card .sk-media {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--m3-r-normal);
-}
-.sk-actions {
-  display: flex;
+  flex: 1;
   gap: 8px;
 }
-.sk-actions i {
-  width: 76px;
-  height: 32px;
-  border-radius: 16px;
+.boot-skeleton .sk-nest {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
 }
-.sk-bottom {
+.boot-skeleton .sk-l1 {
+  width: 96px;
+  height: 11px;
+}
+.boot-skeleton .sk-l2 {
+  width: 132px;
+  height: 9px;
+}
+.boot-skeleton .sk-more {
+  width: 20px;
+  height: 6px;
+  margin-inline-end: 10px;
+  border-radius: 3px;
+}
+.boot-skeleton .sk-title {
+  width: 92%;
+  height: 18px;
+  border-radius: 9px;
+}
+.boot-skeleton .sk-title.sk-short {
+  width: 64%;
+  margin-top: -2px;
+}
+.boot-skeleton .sk-title.sk-half {
+  width: 46%;
+  margin-top: -2px;
+}
+.boot-skeleton .sk-text {
+  width: 72%;
+  height: 11px;
+}
+.sk-acts {
   display: flex;
-  justify-content: space-around;
   align-items: center;
-  padding: 12px 8px calc(env(safe-area-inset-bottom, 0px) + 14px);
-  background: var(--m3-surface-container);
+  gap: 6px;
+  margin: 0 -4px;
 }
-.sk-bottom i {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+.sk-acts .spacer {
+  flex: 1;
 }
-.sk-bottom .sk-create {
+.boot-skeleton .sk-vote {
+  width: 92px;
+  height: 36px;
+  border-radius: var(--m3-r-full);
+}
+.boot-skeleton .sk-chip {
   width: 56px;
   height: 36px;
-  border-radius: 18px;
+  border-radius: var(--m3-r-full);
 }
-/* a computer: the side menu, the feed in the middle and the column on the right, as the app lays them out */
-@media (min-width: 720px) {
-  .sk-top .sk-wide {
-    width: 120px;
-    border-radius: 20px;
-  }
-  .sk-body {
-    grid-template-columns: 240px minmax(0, 640px);
-    justify-content: center;
-    gap: 24px;
-    padding: 12px 24px;
-  }
-  .sk-nav {
-    display: grid;
-    align-content: start;
-    gap: 14px;
-    padding-top: 6px;
-  }
-  .sk-nav i {
-    width: 70%;
-    height: 22px;
-    border-radius: 11px;
-  }
-  .sk-nav b {
-    width: 40%;
-    height: 12px;
-    margin-top: 10px;
-  }
-  .sk-bottom {
-    display: none;
-  }
+.boot-skeleton .sk-chip.sk-wide {
+  width: 44px;
 }
-@media (min-width: 1100px) {
-  .sk-body {
-    grid-template-columns: 240px minmax(0, 640px) 300px;
-  }
-  .sk-rail {
-    display: grid;
-    align-content: start;
-  }
+.boot-skeleton .sk-save {
+  width: 24px;
+  height: 24px;
+  margin: 8px;
+  border-radius: 6px;
+}
+/* the column on the right: a few nests to try, and the small print */
+.sk-trend {
+  display: grid;
+  gap: 14px;
+}
+.boot-skeleton .sk-heading {
+  width: 62%;
+  height: 16px;
+}
+.sk-trend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sk-trend-row span {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+}
+.boot-skeleton .sk-trend-row .sk-nest {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+.boot-skeleton .sk-trend-row .sk-l1 {
+  width: 84px;
+}
+.boot-skeleton .sk-trend-row .sk-l2 {
+  width: 52px;
+}
+.boot-skeleton .sk-join {
+  width: 64px;
+  height: 32px;
+  border-radius: var(--m3-r-full);
+}
+.boot-skeleton .sk-link {
+  width: 40%;
+  height: 12px;
+}
+.sk-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 0 6px;
+}
+.boot-skeleton .sk-foot i {
+  width: 64px;
+  height: 10px;
+}
+.boot-skeleton .sk-foot i:nth-child(3n + 1) {
+  width: 110px;
+}
+/* Chats, the inbox and friends open on a list: rows of pictures and two lines */
+.sk-list {
+  display: none;
+}
+html.boot-list .boot-skeleton {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 780px;
+}
+html.boot-list .boot-skeleton :is(.sk-feed, .rail) {
+  display: none;
+}
+html.boot-list .boot-skeleton .sk-list {
+  display: grid;
+}
+.sk-list .card {
+  display: grid;
+  gap: 18px;
+}
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sk-row span {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+.boot-skeleton .sk-row .sk-av {
+  width: 48px;
+  height: 48px;
+}
+.boot-skeleton .sk-row .sk-l2 {
+  width: 62%;
+}
+.sk-row:nth-child(2n) .sk-l1 {
+  width: 120px;
+}
+.boot-skeleton .sk-pill {
+  width: 112px;
+  height: 32px;
+  border-radius: var(--m3-r-full);
+}
+.boot-skeleton .sk-pill + .sk-pill {
+  width: 88px;
+}
+/* your nests in the menu, until the app has them */
+.sk-nav-nest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding-inline: 14px 16px;
+}
+.sk-nav-nest i:first-child {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+}
+.sk-nav-nest i:last-child {
+  width: 96px;
+  height: 11px;
+}
+.sk-nav-nest:nth-child(2n) i:last-child {
+  width: 72px;
 }
 @media (prefers-reduced-motion: reduce) {
-  .sk-card {
+  .boot-skeleton i,
+  .sk-sort i::after,
+  .sk-nav-nest i {
     animation: none;
   }
+}
+html[data-m3-reduce-motion] :is(.boot-skeleton i, .sk-sort i::after, .sk-nav-nest i) {
+  animation: none;
 }
 
 /* ---- the welcome page ---------------------------------------------------------------------------- */

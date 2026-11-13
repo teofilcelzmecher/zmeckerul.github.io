@@ -467,9 +467,11 @@
     if (!api.configured()) return show('offline', { setup: true });
     if (!api.signedIn()) return landing ? welcome() : show('signin');
     starting = true;
-    // (1.6) the skeleton of the app shows meanwhile: from the first frame, or now, after signing in
+    // (1.6) the app's frame and the page's shape show meanwhile: from the first frame, or now, after signing in (from
+    // the welcome page, which goes)
     if (gate) gate.remove();
     gate = null;
+    document.documentElement.classList.remove('visitor');
     warm();
     try {
       const snapshot = await api.get('/api/bootstrap');

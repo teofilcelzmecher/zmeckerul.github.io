@@ -458,6 +458,9 @@
       root.toggleAttribute('data-m3-reduce-motion', !!settings.reduceMotion);
       const want = (seed || settings.seed).toLowerCase();
       const variant = (seed && style) || settings.variant;
+      // your own colours (not a nest's or a person's): kept on this device, for the next opening to wear from its
+      // very first frame
+      this.own = !seed;
       // the same colours as now (most pages of the same nest, or none): nothing to change, so nothing for the
       // browser to work out again across the whole page while the new one is being drawn
       const worn = `${want}|${variant}|${this.isDark()}`;
@@ -491,6 +494,25 @@
       }
     },
 
+    /** the look this device opens in next time (index.html wears it before anything else is drawn): light or dark,
+     * your colours, still or moving, and the colour of the bars around the page */
+    remember(bar) {
+      try {
+        const root = document.documentElement;
+        const settings = store.state.settings;
+        const vars = {};
+        for (const name of VAR_NAMES()) {
+          const value = root.style.getPropertyValue(name).trim();
+          if (value) vars[name] = value;
+        }
+        const look = { mode: settings.mode, dark: this.isDark(), still: !!settings.reduceMotion, scheme: root.style.colorScheme || '', bar: /^#[0-9a-f]{3,8}$/i.test(bar) ? bar : '', vars };
+        const text = JSON.stringify(look);
+        if (text !== this.remembered) localStorage.setItem('nook-look', (this.remembered = text));
+      } catch (_) {
+        /* nowhere to keep it: the next opening starts in the default look until the app has yours */
+      }
+    },
+
     afterRoot() {
       if (this.barSoon) return;
       // the page's colour, which the phone's status bar and the browser's own bars take (the welcome page and the
@@ -505,6 +527,7 @@
           const style = getComputedStyle(root);
           const page = (!root.classList.contains('gated') && style.getPropertyValue('--nook-page').trim()) || style.getPropertyValue('--m3-background').trim();
           if (page) meta.content = page;
+          if (this.own) this.remember(page);
         })
       );
     },
