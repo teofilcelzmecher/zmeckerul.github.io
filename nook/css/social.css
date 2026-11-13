@@ -6,10 +6,34 @@
   gap: 6px;
 }
 .nudge-btn .nudge-hand {
+  position: relative;
   display: inline-grid;
   place-items: center;
   margin-inline-start: -4px;
   transform-origin: 70% 80%;
+}
+/* sent: for a moment the hand turns into a tick, which springs in */
+.nudge-btn .nudge-hand > .m3-icon {
+  transition: scale 280ms cubic-bezier(0.2, 1.4, 0.4, 1), opacity 160ms ease;
+}
+.nudge-done {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  scale: 0.3;
+  rotate: -60deg;
+  transition: scale 420ms cubic-bezier(0.2, 1.5, 0.4, 1), rotate 420ms cubic-bezier(0.2, 1.5, 0.4, 1), opacity 160ms ease;
+}
+.nudge-btn.is-sent .nudge-hand > .m3-icon {
+  opacity: 0;
+  scale: 0.3;
+}
+.nudge-btn.is-sent .nudge-done {
+  opacity: 1;
+  scale: 1;
+  rotate: 0deg;
 }
 .nudge-btn .nudge-hand .m3-icon {
   --m3-icon-fill: 1;
@@ -99,157 +123,61 @@ body.calm :is(.nudge-pips, .nm-count) {
   left: 0;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
+  color: var(--m3-on-tertiary-container);
+  filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.22));
+  will-change: transform, opacity;
+}
+/* a Material shape behind the hand, which changes as it flies */
+.nudge-flyer-shape {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: 100%;
+  color: var(--m3-tertiary-container);
+}
+.nudge-flyer .m3-icon {
+  grid-area: 1 / 1;
+  position: relative;
+  --m3-icon-fill: 1;
+  --m3-icon-size: 25px;
+}
+/* sparks left behind it */
+.nudge-spark {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+span.nudge-spark {
+  background: currentColor;
+}
+/* where it lands: a soft flash of their colour */
+.nudge-flash {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  will-change: transform, opacity;
+}
+/* and a little hand that waves from the corner of their picture */
+.nudge-stamp {
+  position: absolute;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
   background: var(--m3-tertiary-container);
   color: var(--m3-on-tertiary-container);
-  box-shadow: var(--m3-elevation-2);
-  will-change: transform;
+  box-shadow: 0 0 0 3px var(--m3-surface), var(--m3-elevation-1);
+  will-change: transform, opacity;
 }
-.nudge-flyer .m3-icon {
+.nudge-stamp .m3-icon {
   --m3-icon-fill: 1;
-  --m3-icon-size: 26px;
+  --m3-icon-size: calc(var(--s, 30px) * 0.6);
 }
 .nudge-ring {
   position: absolute;
   border: 3px solid currentColor;
   border-radius: 50%;
   will-change: transform, opacity;
-}
-/* (1.6) the kind's emoji flies instead of the hand icon */
-.nudge-flyer.is-emoji {
-  font-size: 25px;
-  line-height: 1;
-}
-
-/* ---- which kind of nudge: six round buttons by the Nudge button ----------------------------------------------- */
-
-.nudge-pick {
-  position: fixed;
-  inset: auto;
-  top: 0;
-  left: 0;
-  box-sizing: border-box;
-  width: max-content;
-  max-width: calc(100vw - 24px);
-  margin: 0;
-  padding: 12px 10px 12px;
-  overflow: visible;
-  border: 0;
-  border-radius: 28px;
-  background: var(--m3-surface-container-high);
-  color: var(--m3-on-surface);
-  box-shadow: var(--m3-elevation-3);
-  z-index: 1100;
-  animation: np-in 240ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-}
-@keyframes np-in {
-  from { opacity: 0; transform: scale(0.86); }
-}
-.np-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 0 8px 8px;
-}
-.np-head b {
-  font-size: var(--m3-fs-small);
-  font-weight: 600;
-}
-.np-head small {
-  font-size: var(--m3-fs-smaller);
-  color: var(--m3-on-surface-variant);
-  white-space: nowrap;
-}
-.np-kinds {
-  display: grid;
-  grid-template-columns: repeat(3, 78px);
-  gap: 4px;
-}
-.np-kind {
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  gap: 5px;
-  padding: 6px 2px 6px;
-  border: 0;
-  border-radius: 20px;
-  background: none;
-  color: var(--m3-on-surface-variant);
-  font: inherit;
-  font-size: var(--m3-fs-smaller);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  animation: np-pop 340ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  animation-delay: calc(var(--i, 0) * 28ms + 40ms);
-}
-@keyframes np-pop {
-  from { opacity: 0; transform: translateY(8px) scale(0.6); }
-}
-.np-emoji {
-  display: grid;
-  place-items: center;
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: var(--m3-surface-container-highest);
-  font-size: 27px;
-  line-height: 1;
-  transition: transform 160ms cubic-bezier(0.2, 1.4, 0.4, 1), border-radius 220ms ease, background-color 160ms;
-}
-.np-label {
-  max-width: 74px;
-  line-height: 1.2;
-  text-align: center;
-  overflow-wrap: anywhere;
-}
-.np-kind.is-last .np-emoji {
-  box-shadow: 0 0 0 2px var(--m3-primary);
-}
-.np-kind.is-last .np-label {
-  color: var(--m3-primary);
-  font-weight: 600;
-}
-.np-kind:focus-visible {
-  outline: none;
-}
-.np-kind:focus-visible .np-emoji {
-  outline: 3px solid var(--m3-primary);
-  outline-offset: 2px;
-}
-@media (hover: hover) {
-  .np-kind:hover .np-emoji {
-    transform: scale(1.1) rotate(-6deg);
-    border-radius: 18px;
-    background: var(--m3-secondary-container);
-  }
-}
-.np-kind:active .np-emoji {
-  transform: scale(0.9);
-  border-radius: 18px;
-  background: var(--m3-secondary-container);
-}
-@media (max-width: 380px) {
-  .np-kinds {
-    grid-template-columns: repeat(3, 72px);
-  }
-  .np-emoji {
-    width: 50px;
-    height: 50px;
-    font-size: 25px;
-  }
-}
-html[data-m3-reduce-motion] :is(.nudge-pick, .np-kind),
-body.calm :is(.nudge-pick, .np-kind) {
-  animation: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .nudge-pick,
-  .np-kind {
-    animation: none;
-  }
 }
 
 /* ---- a nudge arriving ------------------------------------------------------------------------------------- */
@@ -347,7 +275,7 @@ body.calm :is(.nudge-pick, .np-kind) {
   position: relative;
   filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
 }
-/* the kind's emoji at the picture's corner (a waving hand, a hug, a high five...) */
+/* a waving hand at the picture's corner */
 .nm-hand {
   position: absolute;
   right: -4px;
@@ -361,86 +289,20 @@ body.calm :is(.nudge-pick, .np-kind) {
   color: var(--m3-on-tertiary-container);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--av) 10%, var(--m3-surface-container-high)), var(--m3-elevation-1);
   transform-origin: 70% 85%;
-  animation: nudge-wave 1.1s ease-in-out 0.55s 4;
+  /* a wave, a rest, another wave (after it's popped out of the corner) */
+  animation: nm-wave 1.6s ease-in-out 1s 3;
+}
+@keyframes nm-wave {
+  0%, 60%, 100% { rotate: 0deg; }
+  10% { rotate: 20deg; }
+  20% { rotate: -10deg; }
+  30% { rotate: 18deg; }
+  40% { rotate: -6deg; }
+  50% { rotate: 10deg; }
 }
 .nm-hand .m3-icon {
   --m3-icon-fill: 1;
   --m3-icon-size: 22px;
-}
-.nm-hand.nm-emoji {
-  font-size: 21px;
-  line-height: 1;
-}
-/* each kind moves its own way: a hug squeezes, a high five claps, a poke jabs, a thought bobs, hype flickers */
-.nm-hug .nm-hand {
-  animation-name: nm-hug;
-  animation-duration: 1s;
-  transform-origin: 50% 50%;
-}
-@keyframes nm-hug {
-  0%, 60%, 100% { scale: 1; }
-  15% { scale: 1.28; }
-  30% { scale: 0.94; }
-  45% { scale: 1.16; }
-}
-.nm-five .nm-hand {
-  animation-name: nm-five;
-  animation-duration: 0.9s;
-  transform-origin: 50% 90%;
-}
-@keyframes nm-five {
-  0%, 55%, 100% { rotate: 0deg; scale: 1; }
-  18% { rotate: -24deg; scale: 1.1; }
-  32% { rotate: 10deg; scale: 1.32; }
-}
-.nm-poke .nm-hand {
-  animation-name: nm-poke;
-  animation-duration: 0.8s;
-}
-@keyframes nm-poke {
-  0%, 30%, 60%, 100% { translate: 0 0; }
-  15%, 45% { translate: -8px -2px; }
-}
-.nm-poke .nm-ring {
-  animation-duration: 0.9s;
-}
-.nm-thinking .nm-hand {
-  animation-name: nm-think;
-  animation-duration: 2.2s;
-  animation-iteration-count: 3;
-}
-@keyframes nm-think {
-  0%, 100% { translate: 0 0; rotate: 0deg; }
-  50% { translate: 0 -6px; rotate: -6deg; }
-}
-.nm-thinking .nm-ring {
-  animation-duration: 2.6s;
-}
-.nm-hype .nm-hand {
-  animation-name: nm-hype;
-  animation-duration: 0.6s;
-  animation-iteration-count: 7;
-}
-@keyframes nm-hype {
-  0%, 100% { scale: 1; rotate: 0deg; }
-  25% { scale: 1.22; rotate: -9deg; }
-  50% { scale: 1.06; rotate: 7deg; }
-  75% { scale: 1.18; rotate: -4deg; }
-}
-.nm-hype .nm-glow {
-  background: radial-gradient(120% 90% at 50% -10%, color-mix(in srgb, #ff7a1a 34%, color-mix(in srgb, var(--av) 30%, transparent)), transparent 70%);
-}
-/* hearts, sparks and thoughts drifting up from the picture */
-.nm-float {
-  position: absolute;
-  font-size: 22px;
-  line-height: 1;
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-.nm-back-emoji {
-  font-size: 17px;
-  line-height: 1;
 }
 .nm-words {
   grid-area: words;

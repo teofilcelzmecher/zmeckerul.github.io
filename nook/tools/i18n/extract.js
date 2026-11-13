@@ -29,7 +29,7 @@ const KEYS = new Set(['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp
 const NOT_WORDS = new Set(['button, a, input', 'name-fx name-fx-', 'img.pres-cover, img.pres-glow', 'h1 .name-fx', 'Google Sans Flex', 'Material Symbols Rounded', 'Symbols', 'Ab1', 'UTC', '{0} {1}px "{2}"', 'nook award <user> <id> [tier]', 'Last.fm', 'Steam', 'PC']);
 function looksLikeUI(t) {
   if (!t || t.length < 2) return false;
-  if (NOT_WORDS.has(t) || /^[IVX]+$/.test(t) || /^;?--[\w-]+:/.test(t) || /^translate[XYZ]?\(/.test(t)) return false;
+  if (NOT_WORDS.has(t) || /^[IVX]+$/.test(t) || /^;?--[\w-]+:/.test(t) || /^(?:translate[XYZ]?|inset|circle|ellipse|polygon)\(/.test(t)) return false;
   if (/^[a-z][a-z0-9-]*(?: [a-z][a-z0-9-]*)+$/.test(t) && /-/.test(t)) return false; // class lists ("wide rw-sheet")
   if (KEYS.has(t)) return false;
   if (/="/.test(t) || /^use strict$/.test(t) || /^\(/.test(t) || /^m3: /.test(t) || /^path\(/.test(t)) return false;
