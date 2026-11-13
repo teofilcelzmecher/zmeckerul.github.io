@@ -3,13 +3,15 @@
  * Nudges, and network bans on the Moderation page (Budgie 1.4).
  *
  * A nudge gets a friend's attention: the Nudge button on their profile (or Nudge in the More menu, there and in a
- * chat with them). A little waving hand flies from the button to their picture, which wobbles and sends out rings,
- * with a rising triple tap on a phone. The button's three dots are the nudges left this hour (the server counts:
+ * chat with them). Since 1.6 it opens a choice of six: a wave, a hug, a high five, a poke, thinking of you or hype.
+ * The chosen emoji flies from the button to their picture, which wobbles and sends out rings, with a rising triple
+ * tap on a phone. The button's three dots are the nudges left this hour (the server counts:
  * three per friend), and once they're gone it says when the next one is.
  *
  * On the other end, with Budgie open, the nudge arrives over the live connection (or with the next check for news,
  * within 15 seconds): the screen gives a double shake, the friend's picture pops in at the top in a morphing halo
- * with a waving hand, and the phone buzzes twice. From there it's one tap to say hi, or to nudge them back. Reduced
+ * with the kind's emoji (and its own hearts, sparks or thoughts), and the phone buzzes in the kind's rhythm. From
+ * there it's one tap to say hi, or to answer in kind (Hug back, Wave back...). Reduced
  * motion and calm mode keep it to a card that fades in (and calm mode to a single soft buzz).
  *
  * For admins: on someone's profile, a Ban account and network button; on the Moderation page, the same by name and
@@ -75,7 +77,7 @@
 
   function nudgeButton(name) {
     return (
-      `<button type="button" class="m3-btn tonal nudge-btn" data-nudge="${esc(name)}" aria-label="Nudge u/${esc(name)}" data-tooltip="Get their attention">` +
+      `<button type="button" class="m3-btn tonal nudge-btn" data-nudge="${esc(name)}" aria-haspopup="dialog" aria-label="Nudge u/${esc(name)}" data-tooltip="Get their attention">` +
       `<span class="nudge-hand" aria-hidden="true">${icon('waving_hand')}</span><span class="nudge-word">Nudge</span>` +
       '<span class="nudge-pips" aria-hidden="true"><i></i><i></i><i></i></span><span class="nudge-wait" hidden></span></button>'
     );
@@ -139,8 +141,9 @@
     }
   }
 
-  /** nudges a friend: the hand flies from `from` (the button pressed) to their picture */
-  async function nudge(name, from) {
+  /** nudges a friend: the kind's emoji flies from `from` (the button pressed) to their picture */
+  async function nudge(name, from, kind = 'wave') {
+    kind = kindOf(kind);
     if (off || sending.has(lower(name))) return;
     const a = allowances.get(lower(name));
     if (a && a.on === false) return M3.toast(`u/${name} isn’t taking nudges right now`, { symbol: 'notifications_paused', shape: 'sunny' });
@@ -153,7 +156,7 @@
     if (from && from.classList) from.classList.add('is-sending');
     let r;
     try {
-      r = await api.post('/api/nudges', { to: name });
+      r = await api.post('/api/nudges', { to: name, kind });
     } catch (error) {
       // the server's count wins: how many are left, and when the next one is
       if (error.left !== undefined || error.off) allowances.set(lower(name), Object.assign({}, a, { left: error.left || 0, next: error.next || null, on: !error.off }));
@@ -167,10 +170,15 @@
     allowances.set(lower(name), { left: r.left, max: r.max, next: r.next, on: true });
     paint(name);
     if (!r.left) tick();
-    sent(name, from);
+    sent(name, from, kind);
+    try {
+      localStorage.setItem('nook-nudge-kind', kind);
+    } catch (_) {
+      /* next time it starts at a wave */
+    }
     // a toast is one short line (on a 360 px phone, about 28 letters): the button's dots say the rest
     const more = calm() ? '' : r.left ? ` · ${r.left} left` : ' · none left';
-    M3.toast(`Nudged u/${name}${more}`, { symbol: 'waving_hand', shape: 'sunny' });
+    M3.toast(say(KINDS[kind].sent(name)) + (more ? ' ' + say(more.slice(1)) : ''), { symbol: 'waving_hand', shape: 'sunny' });
   }
 
   /** a little no-no shake, for a button that can't do anything right now */
@@ -188,7 +196,7 @@
   }
 
   /** the sender's side: a waving hand flies on an arc to their picture, which wobbles and rings out */
-  function sent(name, from) {
+  function sent(name, from, kind = 'wave') {
     // a rising triple tap: light, medium, heavy
     haptic([6, 55, 10, 55, 22]);
     if (still()) return;
@@ -202,8 +210,8 @@
     const b = centre(to);
     const box = layer();
     const hand = document.createElement('span');
-    hand.className = 'nudge-flyer';
-    hand.innerHTML = icon('waving_hand');
+    hand.className = 'nudge-flyer is-emoji';
+    hand.textContent = KINDS[kindOf(kind)].emoji;
     box.appendChild(hand);
     const size = 44;
     // a curve through a point lifted above both ends, the hand waving as it goes
@@ -263,8 +271,107 @@
     const btn = e.target instanceof Element ? e.target.closest('[data-nudge]') : null;
     if (!btn) return;
     e.preventDefault();
-    nudge(btn.dataset.nudge, btn);
+    pick(btn.dataset.nudge, btn);
   });
+
+  /** (1.6) which kind of nudge: six round buttons by the one pressed, the last one used ringed */
+  let picker = null;
+  function pick(name, from) {
+    if (picker) return picker.close();
+    const a = allowances.get(lower(name));
+    // no nudges left (or off): say so, as before, without opening anything
+    if (a && (a.on === false || (!a.left && a.next > Date.now()))) return nudge(name, from);
+    const last = lastKind();
+    const el = document.createElement('div');
+    el.className = 'nudge-pick';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', `Nudge u/${name}`);
+    el.innerHTML =
+      `<div class="np-head"><b>Nudge <span translate="no">u/${esc(name)}</span></b>${a && a.left != null ? `<small>${a.left === 1 ? '1 left this hour' : `${a.left} left this hour`}</small>` : ''}</div>` +
+      '<div class="np-kinds">' +
+      ORDER.map(
+        (k, i) =>
+          `<button type="button" class="np-kind${k === last ? ' is-last' : ''}" data-kind="${k}" style="--i:${i}"><span class="np-emoji" aria-hidden="true">${KINDS[k].emoji}</span><span class="np-label">${KINDS[k].label}</span></button>`
+      ).join('') +
+      '</div>';
+    document.body.appendChild(el);
+    if (typeof el.showPopover === 'function') {
+      try {
+        el.setAttribute('popover', 'manual');
+        el.showPopover();
+      } catch (_) {
+        el.removeAttribute('popover');
+      }
+    }
+    // beside the button: under it, or over it when there's no room below; inside the screen either way
+    // (with no button to stand by, from a menu that's gone, in the middle of the screen)
+    const place = () => {
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      if (!from || !visible(from)) {
+        el.style.left = Math.max(12, (innerWidth - w) / 2) + 'px';
+        el.style.top = Math.max(12, (innerHeight - h) / 2) + 'px';
+        return;
+      }
+      const r = from.getBoundingClientRect();
+      const left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2));
+      const below = r.bottom + 10 + h < innerHeight - 12;
+      el.style.left = left + 'px';
+      el.style.top = (below ? r.bottom + 10 : Math.max(12, r.top - 10 - h)) + 'px';
+      el.style.transformOrigin = `${r.left + r.width / 2 - left}px ${below ? 0 : h}px`;
+    };
+    place();
+    haptic(8);
+    const close = () => {
+      if (!picker || picker.el !== el) return;
+      picker = null;
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('hashchange', close);
+      window.removeEventListener('scroll', follow, true);
+      window.removeEventListener('resize', follow);
+      if (still()) return el.remove();
+      el.animate([{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(0.9)' }], { duration: 140, easing: 'ease-in', fill: 'forwards' }).finished.then(
+        () => el.remove(),
+        () => el.remove()
+      );
+    };
+    const mine = (node) => node && (el.contains(node) || (from && from.contains(node)));
+    const outside = (e) => !mine(e.target) && close();
+    const buttons = [...el.querySelectorAll('.np-kind')];
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        close();
+        if (from) from.focus();
+        return;
+      }
+      // arrows move between the six (three to a row); Home and End go to the first and the last
+      const at = buttons.indexOf(document.activeElement);
+      if (at < 0) return;
+      const to = { ArrowRight: at + 1, ArrowLeft: at - 1, ArrowDown: at + 3, ArrowUp: at - 3, Home: 0, End: buttons.length - 1 }[e.key];
+      if (to == null) return;
+      e.preventDefault();
+      buttons[Math.max(0, Math.min(buttons.length - 1, to))].focus();
+    };
+    // the page moving takes it along, and a button that's gone out of sight puts it away
+    const follow = () => (from && !visible(from) ? close() : place());
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('hashchange', close, { once: true });
+    window.addEventListener('scroll', follow, { capture: true, passive: true });
+    window.addEventListener('resize', follow);
+    // tabbing away puts it away too
+    el.addEventListener('focusout', (e) => e.relatedTarget && !mine(e.relatedTarget) && close());
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-kind]');
+      if (!b) return;
+      close();
+      nudge(name, from, b.dataset.kind);
+    });
+    picker = { el, close };
+    const first = el.querySelector('.np-kind.is-last') || el.querySelector('.np-kind');
+    first.focus({ preventScroll: true });
+  }
 
   // ---- a nudge arriving ------------------------------------------------------------------------------------
 
@@ -273,32 +380,54 @@
   let current = null;
 
   /** someone nudged you: the moment now, or as soon as Budgie is looked at again */
-  function arrived(name) {
+  function arrived(name, kind = 'wave') {
     if (!name || store.isBlocked(name) || store.isMe(name)) return;
     shown.set(lower(name), Date.now());
-    if (current && lower(current.name) === lower(name)) return current.again();
+    if (current && lower(current.name) === lower(name) && current.kind === kind) return current.again();
     if (current || document.hidden) {
-      const waiting = queue.find((q) => lower(q.name) === lower(name));
+      const waiting = queue.find((q) => lower(q.name) === lower(name) && q.kind === kind);
       if (waiting) waiting.count++;
-      else queue.push({ name, count: 1, at: Date.now() });
+      else queue.push({ name, kind, count: 1, at: Date.now() });
       return;
     }
-    moment(name);
+    moment(name, { kind });
   }
   function next() {
     // a nudge that waited more than ten minutes for the page to be looked at is old news (the inbox has it)
     while (queue.length && Date.now() - queue[0].at > 10 * 60000) queue.shift();
     if (!queue.length || document.hidden || current) return;
     const q = queue.shift();
-    moment(q.name, { count: q.count });
+    moment(q.name, { count: q.count, kind: q.kind });
   }
   document.addEventListener('visibilitychange', () => document.hidden || setTimeout(next, 400));
+
+  // (1.6) six kinds of nudge, each with its own words, its own buzz and its own moment on their screen
+  const KINDS = {
+    wave: { emoji: '👋', label: 'Wave', words: 'wants your attention', back: 'Wave back', sent: (n) => `Waved at u/${n}`, buzz: [110, 90, 110], burst: 'play', count: 12, floats: [] },
+    hug: { emoji: '🫶', label: 'Hug', words: 'sent you a hug', back: 'Hug back', sent: (n) => `Sent u/${n} a hug`, buzz: [40, 60, 40, 60, 140], burst: 'hearts', count: 14, floats: ['💗', '💞', '💗'] },
+    five: { emoji: '🙌', label: 'High five', words: 'high-fived you', back: 'High five back', sent: (n) => `High-fived u/${n}`, buzz: [30, 40, 160], burst: 'play', count: 18, floats: ['✨'] },
+    poke: { emoji: '👉', label: 'Poke', words: 'poked you', back: 'Poke back', sent: (n) => `Poked u/${n}`, buzz: [25, 70, 25], burst: 'pin', count: 10, floats: [] },
+    thinking: { emoji: '💭', label: 'Thinking of you', words: 'is thinking of you', back: 'Thinking of you too', sent: (n) => `Told u/${n} you’re thinking of them`, buzz: [60, 120, 60], burst: 'playlist', count: 10, floats: ['💭', '✨', '💜'] },
+    hype: { emoji: '🔥', label: 'Hype', words: 'is hyping you up', back: 'Hype back', sent: (n) => `Hyped up u/${n}`, buzz: [20, 30, 20, 30, 20, 30, 120], burst: 'play', count: 20, floats: ['🔥', '⚡', '🔥', '✨'] },
+  };
+  const ORDER = ['wave', 'hug', 'five', 'poke', 'thinking', 'hype'];
+  const kindOf = (k) => (Object.prototype.hasOwnProperty.call(KINDS, k) ? k : 'wave');
+  // the kind you sent last, ringed in the picker (and shown in the Settings preview)
+  const lastKind = () => {
+    try {
+      return kindOf(localStorage.getItem('nook-nudge-kind'));
+    } catch (_) {
+      return 'wave';
+    }
+  };
+  // what kind an inbox note is about, from its words (when there's no live connection to say it)
+  const kindFromText = (text) => ORDER.find((k) => String(text || '').includes(KINDS[k].words)) || 'wave';
 
   // the live connection says it at once; the inbox note says it again with the next check for news (or says it
   // first, when there's no live connection): the moment plays once
   Nook.hook('signal', (type, data) => {
     if (type !== 'nudge' || !data || !data.from) return;
-    arrived(String(data.from));
+    arrived(String(data.from), kindOf(data.kind));
     store.sync().catch(() => {});
   });
   store.on('notify', (note) => {
@@ -311,7 +440,7 @@
     const name = m ? decodeURIComponent(m[1]) : '';
     if (!name || (note.createdAt && Date.now() - note.createdAt > 5 * 60000)) return;
     if (shown.get(lower(name)) > Date.now() - 30000) return;
-    arrived(name);
+    arrived(name, kindFromText(note.text));
   });
 
   /** the screen gives a double shake: the top bar, the page and the bottom bar, each where it is */
@@ -336,11 +465,13 @@
   const HALO = ['sunny', 'cookie12', 'flower', 'clover8', 'softBurst'];
 
   /** the moment itself: the friend's picture pops in at the top, waving, with a way to answer */
-  function moment(name, { count = 1, preview = false } = {}) {
+  function moment(name, { count = 1, preview = false, kind = 'wave' } = {}) {
+    kind = kindOf(kind);
+    const K = KINDS[kind];
     const u = store.user(name);
     const quiet = still();
     const el = document.createElement('div');
-    el.className = 'nudge-moment' + (quiet ? ' is-still' : '');
+    el.className = 'nudge-moment nm-' + kind + (quiet ? ' is-still' : '');
     // said out loud by a screen reader, without taking the keyboard from whatever you were typing
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'assertive');
@@ -349,14 +480,14 @@
       '<div class="nm-glow" aria-hidden="true"></div>' +
       '<div class="nm-card">' +
       `<div class="nm-face" aria-hidden="true"><m3-shape class="nm-halo nm-halo-a" shape="${HALO[0]}"></m3-shape><m3-shape class="nm-halo nm-halo-b" shape="${HALO[1]}"></m3-shape>` +
-      `<span class="nm-ring"></span><span class="nm-ring"></span>${avatar(u, 68, { moving: true })}<span class="nm-hand">${icon('waving_hand')}</span></div>` +
+      `<span class="nm-ring"></span><span class="nm-ring"></span>${avatar(u, 68, { moving: true })}<span class="nm-hand nm-emoji">${K.emoji}</span></div>` +
       `<div class="nm-words"><b class="nm-name"><span class="${esc(nameFont(u))}" translate="no">u/${esc(u.name)}</span><span class="nm-count"${count > 1 ? '' : ' hidden'}>×${count}</span>` +
-      `${preview ? '<span class="nm-tag">Preview</span>' : ''}</b><span>wants your attention</span></div>` +
+      `${preview ? '<span class="nm-tag">Preview</span>' : ''}</b><span>${K.words}</span></div>` +
       `<button type="button" class="m3-icon-btn nm-close" aria-label="Close">${icon('close')}</button>` +
       (preview
-        ? '<p class="nm-about">This is what your friends see when you nudge them, with a double buzz on their phone.</p>'
+        ? '<p class="nm-about">This is what your friends see when you nudge them, with a buzz on their phone.</p>'
         : `<div class="nm-actions"><button type="button" class="m3-btn filled small" data-nm="chat">${icon('chat')}Say hi</button>` +
-          `<button type="button" class="m3-btn tonal small" data-nm="back">${icon('waving_hand')}Nudge back</button></div>`) +
+          `<button type="button" class="m3-btn tonal small" data-nm="back"><span class="nm-back-emoji" aria-hidden="true">${K.emoji}</span>${K.back}</button></div>`) +
       '<span class="nm-timer" aria-hidden="true"></span></div>';
     document.body.appendChild(el);
     if (typeof el.showPopover === 'function') {
@@ -416,7 +547,7 @@
       });
       el.querySelector('[data-nm="back"]').addEventListener('click', (e) => {
         hold();
-        nudge(u.name, e.currentTarget).then(() => setTimeout(close, 700));
+        nudge(u.name, e.currentTarget, kind).then(() => setTimeout(close, 700));
       });
     }
     // going somewhere else puts it away: it was about the page you were on
@@ -453,12 +584,41 @@
         c.animate([{ scale: '0.4' }, { scale: '1.35' }, { scale: '1' }], { duration: 420, easing: 'cubic-bezier(.2,1.4,.4,1)' });
         face.animate([{ rotate: '0deg' }, { rotate: '-14deg' }, { rotate: '11deg' }, { rotate: '-6deg' }, { rotate: '0deg' }], { duration: 520, easing: 'ease-out' });
         shake();
+        M3.burst(face, K.burst, { count: K.count });
+        floaters();
       }
       schedule();
     };
-    // the phone buzzes twice, like a knock (calm mode: one soft tap)
-    const buzz = () => haptic(calm() ? 12 : [110, 90, 110]);
-    current = { el, name: u.name, again, close };
+    // the phone buzzes in the kind's own rhythm (a wave: twice, like a knock; calm mode: one soft tap)
+    const buzz = () => haptic(calm() ? 12 : K.buzz);
+    // hearts, sparks or thoughts drift up from the picture, as the kind goes
+    const floaters = () => {
+      if (quiet || closing || !K.floats.length || !face.isConnected) return;
+      const c = centre(face);
+      for (let i = 0; i < 7; i++) {
+        const f = document.createElement('span');
+        f.className = 'nm-float';
+        f.textContent = K.floats[i % K.floats.length];
+        f.style.left = (c.x + (Math.random() - 0.5) * c.w).toFixed(1) + 'px';
+        f.style.top = (c.y + c.h * 0.2).toFixed(1) + 'px';
+        el.appendChild(f);
+        const rise = 46 + Math.random() * 44;
+        const drift = (Math.random() - 0.5) * 60;
+        const turn = (Math.random() - 0.5) * 50;
+        f.animate(
+          [
+            { transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0 },
+            { transform: `translate(calc(-50% + ${(drift * 0.35).toFixed(1)}px), calc(-50% - ${(rise * 0.35).toFixed(1)}px)) rotate(${(turn / 2).toFixed(1)}deg) scale(1.15)`, opacity: 1, offset: 0.3 },
+            { transform: `translate(calc(-50% + ${drift.toFixed(1)}px), calc(-50% - ${rise.toFixed(1)}px)) rotate(${turn.toFixed(1)}deg) scale(0.8)`, opacity: 0 },
+          ],
+          { duration: 1200 + Math.random() * 600, delay: i * 110, easing: 'cubic-bezier(0.2, 0.6, 0.3, 1)', fill: 'both' }
+        ).finished.then(
+          () => f.remove(),
+          () => f.remove()
+        );
+      }
+    };
+    current = { el, name: u.name, kind, again, close };
 
     buzz();
     if (!quiet) {
@@ -475,7 +635,8 @@
       el.querySelector('.nm-glow').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 420, easing: 'ease-out' });
       face.animate([{ scale: '0', rotate: '-30deg' }, { scale: '1.18', rotate: '8deg', offset: 0.6 }, { scale: '1', rotate: '0deg' }], { duration: 560, delay: 180, easing: 'cubic-bezier(0.2, 1.3, 0.4, 1)', fill: 'backwards' });
       setTimeout(() => !closing && shake(), 380);
-      setTimeout(() => !closing && M3.burst(face, 'play', { count: 12 }), 520);
+      setTimeout(() => !closing && M3.burst(face, K.burst, { count: K.count }), 520);
+      setTimeout(floaters, 640);
       // the halo keeps changing shape while it's up
       const halos = [...el.querySelectorAll('.nm-halo')];
       let step = 1;
@@ -494,7 +655,7 @@
 
   Nook.hook('personMenu', (name) =>
     !off && isFriend(name) && !store.isMe(name)
-      ? [{ label: `Nudge u/${name}`, symbol: 'waving_hand', onSelect: () => nudge(name, document.querySelector(`[data-act="person-menu"][data-user="${CSS.escape(name)}"]`)) }]
+      ? [{ label: `Nudge u/${name}`, symbol: 'waving_hand', onSelect: () => setTimeout(() => pick(name, document.querySelector(`[data-act="person-menu"][data-user="${CSS.escape(name)}"]`)), 0) }]
       : []
   );
 
@@ -534,7 +695,7 @@
     const input = box.querySelector('#set-nudges');
     box.querySelector('#nudge-preview').addEventListener('click', () => {
       if (current) current.close();
-      setTimeout(() => moment(store.state.me.name, { preview: true }), current ? 300 : 0);
+      setTimeout(() => moment(store.state.me.name, { preview: true, kind: lastKind() }), current ? 300 : 0);
     });
     try {
       const s = await api.get('/api/nudges');

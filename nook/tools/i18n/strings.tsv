@@ -99,35 +99,33 @@ b7692b3	text	js/account.js:119	If you ever forget your password, this code gets 
 6c10692	text	js/account.js:122	Copy code
 8114061	text	js/account.js:123	I’ve saved it somewhere safe.
 2e02623	text	js/account.js:124	Continue
-cb1c651	text	js/account.js:127	Opening Budgie…
-8f26c65	text	js/account.js:127	Loading
-84eedfa	text	js/account.js:132	Not from this network
-4d669b0	text	js/account.js:132	This can happen on a network many people share, like mobile data, a school’s or a café’s. If you think it’s a mistake, contact Budgie.
-042c862	text	js/account.js:133	Try again
-005287e	text	js/account.js:134	Almost there
-42b35d1	text	js/account.js:134	Can’t reach Budgie
-cb8327f	text	js/account.js:134	Budgie’s server hasn’t been connected yet. Check back soon.
-ffcf32e	text	js/account.js:134	Budgie’s server isn’t answering. It may be restarting, or your connection may be down.
-ecbe1a2	text	js/account.js:153	Budgie
-e40123b	text	js/account.js:162	Hide password
-22c4bab	text	js/account.js:215	Too easy to guess. A few random words work well.
-cce442a	text	js/account.js:215	Okay. A few random words work well.
-61dedcf	text	js/account.js:215	Good
-cf84687	text	js/account.js:215	Strong
-1fe494b	text	js/account.js:224	At least 8 characters
-8e3df45	text	js/account.js:256	Copied
-b3ac170	text	js/account.js:292	Wait for the robot check to say “Success!” (tick it if it asks).
-6ce533a	text	js/account.js:293	The robot check couldn’t load. If something blocks challenges.cloudflare.com here (an ad blocker, say), allow it on Budgie, or try another browser.
-727e0a2	text	js/account.js:319	The robot check hit a problem. It’ll try again; if it keeps failing, reload the page.
-a575c8e	text	js/account.js:365	Enter all 6 digits of your invite code.
-d981d87	text	js/account.js:366	Use 3–20 letters, numbers or underscores.
-d76968a	text	js/account.js:367	Use at least 8 characters.
-9e1c503	text	js/account.js:368	Tick the box to say you’re 13 or older and agree, to continue.
-7463bc8	text	js/account.js:371	Type all 6 digits.
-3d29dcc	text	js/account.js:373	Enter your username.
-c47233a	text	js/account.js:374	Enter your recovery code.
-2877212	text	js/account.js:375	Choose a new password.
-46affb9	text	js/account.js:375	Enter your password.
+84eedfa	text	js/account.js:129	Not from this network
+4d669b0	text	js/account.js:129	This can happen on a network many people share, like mobile data, a school’s or a café’s. If you think it’s a mistake, contact Budgie.
+042c862	text	js/account.js:130	Try again
+005287e	text	js/account.js:131	Almost there
+42b35d1	text	js/account.js:131	Can’t reach Budgie
+cb8327f	text	js/account.js:131	Budgie’s server hasn’t been connected yet. Check back soon.
+ffcf32e	text	js/account.js:131	Budgie’s server isn’t answering. It may be restarting, or your connection may be down.
+ecbe1a2	text	js/account.js:150	Budgie
+e40123b	text	js/account.js:159	Hide password
+22c4bab	text	js/account.js:212	Too easy to guess. A few random words work well.
+cce442a	text	js/account.js:212	Okay. A few random words work well.
+61dedcf	text	js/account.js:212	Good
+cf84687	text	js/account.js:212	Strong
+1fe494b	text	js/account.js:221	At least 8 characters
+8e3df45	text	js/account.js:253	Copied
+b3ac170	text	js/account.js:289	Wait for the robot check to say “Success!” (tick it if it asks).
+6ce533a	text	js/account.js:290	The robot check couldn’t load. If something blocks challenges.cloudflare.com here (an ad blocker, say), allow it on Budgie, or try another browser.
+727e0a2	text	js/account.js:316	The robot check hit a problem. It’ll try again; if it keeps failing, reload the page.
+a575c8e	text	js/account.js:362	Enter all 6 digits of your invite code.
+d981d87	text	js/account.js:363	Use 3–20 letters, numbers or underscores.
+d76968a	text	js/account.js:364	Use at least 8 characters.
+9e1c503	text	js/account.js:365	Tick the box to say you’re 13 or older and agree, to continue.
+7463bc8	text	js/account.js:368	Type all 6 digits.
+3d29dcc	text	js/account.js:370	Enter your username.
+c47233a	text	js/account.js:371	Enter your recovery code.
+2877212	text	js/account.js:372	Choose a new password.
+46affb9	text	js/account.js:372	Enter your password.
 df4d7ce	text	js/achievements-data.js:25	Opened Budgie on {n} different days
 5b6c7f4	text	js/achievements-data.js:25	Opened Budgie for the first time
 ffa7fd8	text	js/achievements-data.js:26	On fire
@@ -1236,89 +1234,110 @@ af94a40	pattern	js/rewards.js:1060	you’re at {0} {1}
 8088c90	text	js/rewards.js:1205	Unlock them with achievements
 d5922fd	text	js/rewards.js:1228	Name effects
 99ef38a	text	js/rewards.js:1236	Achievements unlock these. Tap a locked one to see how to get it.
-90335b6	text	js/social.js:67	an hour
-f547c40	text	js/social.js:67	a minute
-689e86c	pattern	js/social.js:78	Nudge u/{1}
-d14b2eb	text	js/social.js:78	Get their attention
-9c085b8	text	js/social.js:79	Nudge
-427dd60	pattern	js/social.js:102	u/{0} isn’t taking nudges right now
-d477a91	pattern	js/social.js:104	You can nudge u/{0} again in {1}
-3360768	text	js/social.js:105	one more
-195ceba	pattern	js/social.js:105	Get their attention ({0} this hour)
-c80adf9	pattern	js/social.js:107	Nudge u/{0}. {1}.
-9d6a2c7	pattern	js/social.js:172	· {0} left
-3105f5c	text	js/social.js:172	· none left
-411cff6	pattern	js/social.js:173	Nudged u/{0}{1}
-ccb57ff	text	js/social.js:354	wants your attention
-c617c38	text	js/social.js:357	This is what your friends see when you nudge them, with a double buzz on their phone.
-3596bd6	text	js/social.js:359	Nudge back
-80a2fc9	pattern	js/social.js:497	Nudge u/{0}
-df2673d	pattern	js/social.js:507	Ban u/{1} and their networks
-ed7cf8b	text	js/social.js:507	Ban account and network
-2cc44f2	text	js/social.js:526	Nudges
-d5e495e	text	js/social.js:527	Let friends nudge me
-877df40	text	js/social.js:527	A friend can nudge you to get your attention, up to 3 times an hour. You get a notification, and if Budgie is open, your screen gives a little shake.
-3257e0d	text	js/social.js:529	See what a nudge looks like
-5dea60b	text	js/social.js:556	Friends can nudge you
-af2dad3	text	js/social.js:556	Nudges are off: friends can’t nudge you
-2d8a6f7	text	js/social.js:568	1 day
-0a8dd6a	text	js/social.js:568	7 days
-7d4278a	text	js/social.js:568	30 days
-af0fa7c	text	js/social.js:568	Permanent
-f75ac48	text	js/social.js:569	Ban evasion
-72d8a12	text	js/social.js:575	for a day
-7bc6be5	pattern	js/social.js:575	for {0} days
-25ffdc8	pattern	js/social.js:585	On {0} the ban ends by itself, and u/{1} can come back. You can lift it sooner on the Moderation page.
-66b5ae2	text	js/social.js:586	It lasts until you lift it, on the Moderation page.
-e583d00	pattern	js/social.js:588	Ban u/{0} and their networks?
-0584aa7	text	js/social.js:593	Their account is banned and signed out everywhere, and nobody can use Budgie from the internet connections they used in the last 90 days.
-8af872a	text	js/social.js:594	Looking at their networks
-8b95e1c	pattern	js/social.js:595	Phone networks, schools and cafés give lots of people the same address. While the ban lasts, everyone on these networks is locked out, not just u/{0}.
-a4ddcb6	text	js/social.js:596	Why (they’ll see it)
-91dce5d	text	js/social.js:622	network they used gets banned
-3ac7461	text	js/social.js:622	networks they used get banned
-82a528d	text	js/social.js:623	network an admin uses too is left alone
-dd1e97a	text	js/social.js:623	networks an admin uses too are left alone
-38758a3	text	js/social.js:624	other account used these networks lately
-70cd95c	text	js/social.js:624	other accounts used these networks lately
-2166f4e	pattern	js/social.js:626	No networks seen for u/{0} in the last 90 days, so only their account is banned.
-ce458b2	text	js/social.js:627	Their account is already banned: it stays banned however this ends.
-db29475	text	js/social.js:628	Their networks are already banned once; this adds another.
-2aac7de	text	js/social.js:641	Say why: they’ll see it.
-8ffa6d4	pattern	js/social.js:651	Banned u/{0} {1}
-f4f0af2	text	js/social.js:689	Networks banned too
-1920878	text	js/social.js:690	Ban their networks too
-a0dabc4	text	js/social.js:700	Network bans
-ccb1414	text	js/social.js:701	Ban an account together with the internet connections it used in the last 90 days, so it can’t simply come back with a new one. Budgie never keeps anyone’s address, only a keyed hash of it.
-2f4740a	text	js/social.js:702	Who to ban
-ecbfef8	text	js/social.js:704	Loading network bans
-1ec8563	text	js/social.js:710	Until it’s lifted
-5a316ee	pattern	js/social.js:716	{0} days left
-812bda6	pattern	js/social.js:716	{0} h left
-a99cdd5	pattern	js/social.js:716	{0} min left
-c6b0aff	pattern	js/social.js:718	Until {0}
-ec93c71	text	js/social.js:743	One network
-6454b79	text	js/social.js:744	Account only
-decfa1d	text	js/social.js:744	Banned with nook ipban
-3af5caf	text	js/social.js:747	account comes back when it ends
-efd0976	text	js/social.js:748	Lift
-566c5c5	text	js/social.js:752	No network bans
-5fb6a90	text	js/social.js:752	Nobody is locked out of Budgie by their network.
-466c062	pattern	js/social.js:761	Lift the ban on u/{0}?
-d1ae7bf	text	js/social.js:761	Lift this network ban?
-77b3217	pattern	js/social.js:767	Their network can use Budgie again, and u/{0} can sign in again.
-f4d0ddd	pattern	js/social.js:768	Their networks can use Budgie again, and u/{0} can sign in again.
-6b46ab1	text	js/social.js:770	Their network can use Budgie again. Their account stays banned, if it was banned some other way.
-61c9fab	text	js/social.js:771	Their networks can use Budgie again. Their account stays banned, if it was banned some other way.
-22a0095	text	js/social.js:772	Everyone on that network can use Budgie again.
-744aa4b	text	js/social.js:773	Lift it
-58a6d70	pattern	js/social.js:779	Lifted: u/{0} can come back
-f649c96	text	js/social.js:779	Ban lifted
-eaedab5	text	js/social.js:794	Type the username of the account to ban.
-ff86e3a	text	js/social.js:796	There’s nobody by that name.
-0b453f3	text	js/social.js:797	Admins can’t be banned, and neither can the networks they use.
-34a702c	text	js/social.js:798	You can’t ban yourself.
-413920b	text	js/social.js:811	If you think it’s a mistake, contact Budgie.
+90335b6	text	js/social.js:69	an hour
+f547c40	text	js/social.js:69	a minute
+689e86c	pattern	js/social.js:80	Nudge u/{1}
+d14b2eb	text	js/social.js:80	Get their attention
+9c085b8	text	js/social.js:81	Nudge
+427dd60	pattern	js/social.js:104	u/{0} isn’t taking nudges right now
+d477a91	pattern	js/social.js:106	You can nudge u/{0} again in {1}
+3360768	text	js/social.js:107	one more
+195ceba	pattern	js/social.js:107	Get their attention ({0} this hour)
+c80adf9	pattern	js/social.js:109	Nudge u/{0}. {1}.
+9d6a2c7	pattern	js/social.js:180	· {0} left
+3105f5c	text	js/social.js:180	· none left
+80a2fc9	pattern	js/social.js:288	Nudge u/{0}
+7b2a07e	text	js/social.js:290	1 left this hour
+7fcc0bb	pattern	js/social.js:290	{0} left this hour
+ccb57ff	text	js/social.js:406	wants your attention
+97ae448	text	js/social.js:406	Wave back
+becb700	pattern	js/social.js:406	Waved at u/{0}
+dc7c867	text	js/social.js:407	Hug
+2d50ee5	text	js/social.js:407	sent you a hug
+7038f34	text	js/social.js:407	Hug back
+c1005ee	pattern	js/social.js:407	Sent u/{0} a hug
+a64fe86	text	js/social.js:408	High five
+7252792	text	js/social.js:408	High five back
+63703b6	pattern	js/social.js:408	High-fived u/{0}
+dc87a50	text	js/social.js:409	Poke
+54021d1	text	js/social.js:409	poked you
+c16c93a	text	js/social.js:409	Poke back
+47e2325	pattern	js/social.js:409	Poked u/{0}
+92913d1	text	js/social.js:410	Thinking of you
+51a32c7	text	js/social.js:410	is thinking of you
+36142be	text	js/social.js:410	Thinking of you too
+3dab1ff	pattern	js/social.js:410	Told u/{0} you’re thinking of them
+b15a12f	text	js/social.js:411	Hype
+c1682f8	text	js/social.js:411	is hyping you up
+defbab6	text	js/social.js:411	Hype back
+1a5214f	pattern	js/social.js:411	Hyped up u/{0}
+b9dfcd5	text	js/social.js:488	This is what your friends see when you nudge them, with a buzz on their phone.
+df2673d	pattern	js/social.js:668	Ban u/{1} and their networks
+ed7cf8b	text	js/social.js:668	Ban account and network
+2cc44f2	text	js/social.js:687	Nudges
+d5e495e	text	js/social.js:688	Let friends nudge me
+877df40	text	js/social.js:688	A friend can nudge you to get your attention, up to 3 times an hour. You get a notification, and if Budgie is open, your screen gives a little shake.
+3257e0d	text	js/social.js:690	See what a nudge looks like
+5dea60b	text	js/social.js:717	Friends can nudge you
+af2dad3	text	js/social.js:717	Nudges are off: friends can’t nudge you
+2d8a6f7	text	js/social.js:729	1 day
+0a8dd6a	text	js/social.js:729	7 days
+7d4278a	text	js/social.js:729	30 days
+af0fa7c	text	js/social.js:729	Permanent
+f75ac48	text	js/social.js:730	Ban evasion
+72d8a12	text	js/social.js:736	for a day
+7bc6be5	pattern	js/social.js:736	for {0} days
+25ffdc8	pattern	js/social.js:746	On {0} the ban ends by itself, and u/{1} can come back. You can lift it sooner on the Moderation page.
+66b5ae2	text	js/social.js:747	It lasts until you lift it, on the Moderation page.
+e583d00	pattern	js/social.js:749	Ban u/{0} and their networks?
+0584aa7	text	js/social.js:754	Their account is banned and signed out everywhere, and nobody can use Budgie from the internet connections they used in the last 90 days.
+8af872a	text	js/social.js:755	Looking at their networks
+8b95e1c	pattern	js/social.js:756	Phone networks, schools and cafés give lots of people the same address. While the ban lasts, everyone on these networks is locked out, not just u/{0}.
+a4ddcb6	text	js/social.js:757	Why (they’ll see it)
+91dce5d	text	js/social.js:783	network they used gets banned
+3ac7461	text	js/social.js:783	networks they used get banned
+82a528d	text	js/social.js:784	network an admin uses too is left alone
+dd1e97a	text	js/social.js:784	networks an admin uses too are left alone
+38758a3	text	js/social.js:785	other account used these networks lately
+70cd95c	text	js/social.js:785	other accounts used these networks lately
+2166f4e	pattern	js/social.js:787	No networks seen for u/{0} in the last 90 days, so only their account is banned.
+ce458b2	text	js/social.js:788	Their account is already banned: it stays banned however this ends.
+db29475	text	js/social.js:789	Their networks are already banned once; this adds another.
+2aac7de	text	js/social.js:802	Say why: they’ll see it.
+8ffa6d4	pattern	js/social.js:812	Banned u/{0} {1}
+f4f0af2	text	js/social.js:850	Networks banned too
+1920878	text	js/social.js:851	Ban their networks too
+a0dabc4	text	js/social.js:861	Network bans
+ccb1414	text	js/social.js:862	Ban an account together with the internet connections it used in the last 90 days, so it can’t simply come back with a new one. Budgie never keeps anyone’s address, only a keyed hash of it.
+2f4740a	text	js/social.js:863	Who to ban
+ecbfef8	text	js/social.js:865	Loading network bans
+1ec8563	text	js/social.js:871	Until it’s lifted
+5a316ee	pattern	js/social.js:877	{0} days left
+812bda6	pattern	js/social.js:877	{0} h left
+a99cdd5	pattern	js/social.js:877	{0} min left
+c6b0aff	pattern	js/social.js:879	Until {0}
+ec93c71	text	js/social.js:904	One network
+6454b79	text	js/social.js:905	Account only
+decfa1d	text	js/social.js:905	Banned with nook ipban
+3af5caf	text	js/social.js:908	account comes back when it ends
+efd0976	text	js/social.js:909	Lift
+566c5c5	text	js/social.js:913	No network bans
+5fb6a90	text	js/social.js:913	Nobody is locked out of Budgie by their network.
+466c062	pattern	js/social.js:922	Lift the ban on u/{0}?
+d1ae7bf	text	js/social.js:922	Lift this network ban?
+77b3217	pattern	js/social.js:928	Their network can use Budgie again, and u/{0} can sign in again.
+f4d0ddd	pattern	js/social.js:929	Their networks can use Budgie again, and u/{0} can sign in again.
+6b46ab1	text	js/social.js:931	Their network can use Budgie again. Their account stays banned, if it was banned some other way.
+61c9fab	text	js/social.js:932	Their networks can use Budgie again. Their account stays banned, if it was banned some other way.
+22a0095	text	js/social.js:933	Everyone on that network can use Budgie again.
+744aa4b	text	js/social.js:934	Lift it
+58a6d70	pattern	js/social.js:940	Lifted: u/{0} can come back
+f649c96	text	js/social.js:940	Ban lifted
+eaedab5	text	js/social.js:955	Type the username of the account to ban.
+ff86e3a	text	js/social.js:957	There’s nobody by that name.
+0b453f3	text	js/social.js:958	Admins can’t be banned, and neither can the networks they use.
+34a702c	text	js/social.js:959	You can’t ban yourself.
+413920b	text	js/social.js:972	If you think it’s a mistake, contact Budgie.
 fd7a736	text	js/stickers.js:37	As it is
 1cc7820	text	js/stickers.js:37	Circle
 e4f8199	text	js/stickers.js:37	Cookie
@@ -1903,6 +1922,7 @@ bb11a8e	text	js/views.js:1873	Rules
 afba69b	pattern	js/views.js:1885	You’re {0}
 fa1a3b8	text	js/views.js:1885	You’re one of Budgie’s moderators
 7ff5a6d	text	js/views.js:1887	Sections
+8f26c65	text	js/views.js:1888	Loading
 7cd9e1b	text	js/views.js:1925	Owner · can do everything
 4b9f66a	pattern	js/views.js:1932	Take u/{2}’s role away
 c7bc011	text	js/views.js:1932	Take role away
@@ -2084,7 +2104,7 @@ af7faa3	text	server/server.js:293	This reads as a threat, or as wishing harm on 
 6845850	text	server/server.js:468	GIF search is off.
 b07eede	text	server/server.js:471	That GIF can’t be sent.
 d78feba	text	server/server.js:475	That’s a lot of pictures. Try again in a little while.
-0e7102b	text	server/server.js:531	Budgie’s Terms and Privacy Policy have changed for Budgie 1.4: achievements and streaks, profile rewards, Activity (what you listen to and play, from Last.fm, Steam or Budgie for Windows and Linux, shown to friends unless you choose otherwise), stickers and emojis, and nudges. To make bans hold, Budgie now keeps a scrambled form of the networks you use it from, never the address itself, for 90 days. Read them in Settings → Privacy and legal.
+d6a4857	text	server/server.js:531	Budgie’s Terms and Privacy Policy have changed: sticker blasts, stickers you share with everyone and nests’ chats (1.5), and two-step sign-in and Budgie for Mac (1.6). Read them in Settings → Privacy and legal.
 8efd22e	text	server/server.js:548	You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!
 6833da1	text	server/server.js:550	You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.
 fdce4cb	pattern	server/server.js:551	u/{0} gave you
@@ -2232,26 +2252,31 @@ e182a96	pattern	server/server.js:2581	A moderator removed your {0}. Reason: {1}.
 3813e92	text	server/server.js:2591	Admins can’t be banned. Remove their admin role first.
 5518c6b	text	server/server.js:2665	That’s too big to send.
 9152125	text	server/server.js:2677	That request wasn’t valid JSON.
-3457cf4	text	server/server.js:2714	This site isn’t allowed to use Budgie’s server.
-662a485	text	server/server.js:2742	Please sign in again.
-9fdd326	text	server/server.js:2745	Too many requests. Slow down a little.
-a626b4f	text	server/server.js:2746	Only admins can do that.
-af782c4	text	server/server.js:2764	There’s nothing here.
-6e67440	text	server/server.js:2771	Something went wrong on Budgie’s server. Try again in a moment.
-fc02421	text	server/social.js:184	Budgie can’t be used from this network right now.
-ad0e292	text	server/social.js:224	Admins can’t be banned, and neither can the networks they use. Remove their admin role first.
-d4027ec	text	server/social.js:248	That’s this computer’s own address, which stands for everyone, so it can’t be banned.
-8ce80eb	text	server/social.js:248	That isn’t an IP address.
-ce7b8b5	pattern	server/social.js:251	An admin (u/{0}) used that network in the last {1} days, so it can’t be banned.
-83680e3	text	server/social.js:270	That ban is already gone.
-7e351d0	text	server/social.js:370	You can’t nudge yourself. Nice try, though.
-13e7fac	text	server/social.js:373	You can only nudge friends.
-d030fcc	text	server/social.js:384	You’re nudging very fast. Give it a moment.
-1bbd459	pattern	server/social.js:386	u/{0} isn’t taking nudges right now.
-778e180	pattern	server/social.js:391	You’ve nudged u/{0} {1} times this hour. You can nudge them again in {2}.
-d8f39a4	pattern	server/social.js:392	That’s a lot of nudges this hour. You can nudge again in {0}.
-2f0dc0b	pattern	server/social.js:395	u/{0} has had a lot of nudges this hour. Try a message instead?
-f9a0bde	pattern	server/social.js:404	u/{0} wants your attention 👋{1}
+3457cf4	text	server/server.js:2727	This site isn’t allowed to use Budgie’s server.
+662a485	text	server/server.js:2755	Please sign in again.
+9fdd326	text	server/server.js:2758	Too many requests. Slow down a little.
+a626b4f	text	server/server.js:2759	Only admins can do that.
+af782c4	text	server/server.js:2777	There’s nothing here.
+6e67440	text	server/server.js:2784	Something went wrong on Budgie’s server. Try again in a moment.
+fc02421	text	server/social.js:185	Budgie can’t be used from this network right now.
+ad0e292	text	server/social.js:225	Admins can’t be banned, and neither can the networks they use. Remove their admin role first.
+d4027ec	text	server/social.js:249	That’s this computer’s own address, which stands for everyone, so it can’t be banned.
+8ce80eb	text	server/social.js:249	That isn’t an IP address.
+ce7b8b5	pattern	server/social.js:252	An admin (u/{0}) used that network in the last {1} days, so it can’t be banned.
+83680e3	text	server/social.js:271	That ban is already gone.
+7e351d0	text	server/social.js:371	You can’t nudge yourself. Nice try, though.
+13e7fac	text	server/social.js:374	You can only nudge friends.
+f9a0bde	pattern	server/social.js:389	u/{0} wants your attention 👋{1}
+647f310	pattern	server/social.js:390	u/{0} sent you a hug 🫶{1}
+5c65049	pattern	server/social.js:391	u/{0} high-fived you 🙌{1}
+ea029c8	pattern	server/social.js:392	u/{0} poked you 👉{1}
+f3d5df0	pattern	server/social.js:393	u/{0} is thinking of you 💭{1}
+eb5187c	pattern	server/social.js:394	u/{0} is hyping you up 🔥{1}
+d030fcc	text	server/social.js:398	You’re nudging very fast. Give it a moment.
+1bbd459	pattern	server/social.js:402	u/{0} isn’t taking nudges right now.
+778e180	pattern	server/social.js:407	You’ve nudged u/{0} {1} times this hour. You can nudge them again in {2}.
+d8f39a4	pattern	server/social.js:408	That’s a lot of nudges this hour. You can nudge again in {0}.
+2f0dc0b	pattern	server/social.js:411	u/{0} has had a lot of nudges this hour. Try a message instead?
 7bb2ac1	pattern	server/stickers.js:384	Your emojis are full ({0}). Delete one to make room.
 374948b	pattern	server/stickers.js:384	Your stickers are full ({0}). Delete one to make room.
 7c8f36c	text	server/stickers.js:393	An emoji’s name is 2–32 small letters, numbers or underscores (like party_budgie).

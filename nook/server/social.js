@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS nudges (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS nudges_from ON nudges (from_id, created_at);
+-- (the kind of nudge, 1.6, is added below for databases from before it)
 CREATE INDEX IF NOT EXISTS nudges_to ON nudges (to_id, created_at);
 CREATE TABLE IF NOT EXISTS social_prefs (
   user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -380,9 +381,24 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
     return Object.assign({ on: nudgesOn(other.id) }, allowance(user.id, other.id));
   });
 
+  // (1.6) a nudge has a kind: a wave, a hug, a high five, a poke, "thinking of you", or hype; each says its own words
+  // in the inbox and on their phone, and has its own moment on their screen
+  if (!db.raw.prepare('PRAGMA table_info(nudges)').all().some((c) => c.name === 'kind')) db.raw.exec("ALTER TABLE nudges ADD COLUMN kind TEXT NOT NULL DEFAULT 'wave'");
+  // (each note is a whole sentence, so the app can translate it; `x` is the count, " ×2", when there's one)
+  const KINDS = {
+    wave: { text: (n, x) => `u/${n} wants your attention 👋${x}`, symbol: 'waving_hand' },
+    hug: { text: (n, x) => `u/${n} sent you a hug 🫶${x}`, symbol: 'favorite' },
+    five: { text: (n, x) => `u/${n} high-fived you 🙌${x}`, symbol: 'sign_language' },
+    poke: { text: (n, x) => `u/${n} poked you 👉${x}`, symbol: 'touch_app' },
+    thinking: { text: (n, x) => `u/${n} is thinking of you 💭${x}`, symbol: 'cloud' },
+    hype: { text: (n, x) => `u/${n} is hyping you up 🔥${x}`, symbol: 'local_fire_department' },
+  };
+
   route('POST', '/api/nudges', ({ user, body }) => {
     limit('nudge:' + user.id, 10, MINUTE, 'You’re nudging very fast. Give it a moment.');
     const other = friendFor(user, body.to);
+    const kind = Object.prototype.hasOwnProperty.call(KINDS, body.kind) ? body.kind : 'wave';
+    const K = KINDS[kind];
     if (!nudgesOn(other.id)) fail(403, `u/${other.name} isn’t taking nudges right now.`, { off: true });
     const mine = allowance(user.id, other.id);
     if (!mine.left) {
@@ -394,21 +410,25 @@ CREATE INDEX IF NOT EXISTS ip_bans_batch ON ip_bans (batch);`);
     const received = db.get('SELECT COUNT(*) AS n FROM nudges WHERE to_id = ? AND created_at > ?', other.id, now() - HOUR).n;
     if (received >= NUDGES_RECEIVED) fail(429, `u/${other.name} has had a lot of nudges this hour. Try a message instead?`);
     const t = now();
-    db.run('INSERT INTO nudges (from_id, to_id, created_at) VALUES (?, ?, ?)', user.id, other.id, t);
+    db.run('INSERT INTO nudges (from_id, to_id, created_at, kind) VALUES (?, ?, ?, ?)', user.id, other.id, t, kind);
     // the inbox note (and with it, the notification on their phone), which opens the chat with whoever nudged.
     // Nudged again before they've seen the last one (within the hour), it's one note that counts them, rather than
     // a row of the same words: the earlier note goes, and the new one says ×2, ×3
     const href = '#/messages/' + encodeURIComponent(user.name);
-    const earlier = db.all("SELECT id, text FROM notes WHERE user_id = ? AND kind = 'nudge' AND href = ? AND read_at IS NULL AND created_at > ?", other.id, href, t - HOUR);
+    // (the same kind counts up; another kind is a note of its own)
+    const said = K.text(user.name, '');
+    const earlier = db
+      .all("SELECT id, text FROM notes WHERE user_id = ? AND kind = 'nudge' AND href = ? AND read_at IS NULL AND created_at > ?", other.id, href, t - HOUR)
+      .filter((r) => r.text === said || r.text.startsWith(said + ' ×'));
     const times = earlier.reduce((n, r) => n + (Number((/×(\d+)$/.exec(r.text) || [])[1]) || 1), 1);
-    notify(other.id, { kind: 'nudge', text: `u/${user.name} wants your attention 👋${times > 1 ? ' ×' + times : ''}`, href, symbol: 'waving_hand', shape: 'sunny' });
+    notify(other.id, { kind: 'nudge', text: K.text(user.name, times > 1 ? ' ×' + times : ''), href, symbol: K.symbol, shape: 'sunny' });
     // (only once the new one is in: a note's number is reused if the newest goes first, and their app would think
     // it already had it)
     for (const r of earlier) db.run('DELETE FROM notes WHERE id = ?', r.id);
     // and their open devices hear it now, rather than at their next check for news
-    signal(other.id, 'nudge', { from: user.name, at: t });
+    signal(other.id, 'nudge', { from: user.name, at: t, kind });
     if (modules.stats && modules.stats.add) modules.stats.add(user.id, 'nudges.sent');
-    return Object.assign({ ok: true, to: other.name }, allowance(user.id, other.id));
+    return Object.assign({ ok: true, to: other.name, kind }, allowance(user.id, other.id));
   });
 
   // whether friends may nudge you (Settings → Nudges)
