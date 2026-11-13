@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
 );`);
   // (1.7) Last.fm is gone: the usernames linked to it, its key, and a song it was showing
   if (db.raw.prepare('PRAGMA table_info(presence)').all().some((c) => c.name === 'lastfm')) {
-    db.raw.exec("UPDATE presence SET music = '' WHERE json_extract(music, '$.source') = 'lastfm'");
+    db.raw.exec("UPDATE presence SET music = '' WHERE json_valid(music) AND json_extract(music, '$.source') = 'lastfm'; UPDATE presence SET music = '' WHERE music != '' AND NOT json_valid(music); UPDATE presence SET game = '' WHERE game != '' AND NOT json_valid(game)");
     try {
       db.raw.exec('ALTER TABLE presence DROP COLUMN lastfm');
     } catch (_) {
@@ -804,8 +804,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   /** what ran out goes, rows with nothing in them go, and the memory of people long gone is let go */
   function tidyUp() {
     const t = now();
-    db.run("UPDATE presence SET music = '' WHERE music != '' AND COALESCE(json_extract(music, '$.until'), 0) < ?", t);
-    db.run("UPDATE presence SET game = '' WHERE game != '' AND COALESCE(json_extract(game, '$.until'), 0) < ?", t);
+    db.run("UPDATE presence SET music = '' WHERE music != '' AND json_valid(music) AND COALESCE(json_extract(music, '$.until'), 0) < ?", t);
+    db.run("UPDATE presence SET game = '' WHERE game != '' AND json_valid(game) AND COALESCE(json_extract(game, '$.until'), 0) < ?", t);
     db.run("DELETE FROM presence WHERE music = '' AND game = '' AND steam_id = '' AND visibility = 'friends'");
     db.run("DELETE FROM presence_art WHERE file = '' AND fetched_at < ?", t - 7 * DAY);
     db.run('DELETE FROM presence_genres WHERE fetched_at < ?', t - 90 * DAY);
