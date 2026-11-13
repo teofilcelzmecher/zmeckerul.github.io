@@ -527,8 +527,8 @@ function notify(userId, note) {
 // the last change to the Terms or Privacy Policy that matters to people already here: they're told once
 // (the robot check on sign-up since 0.5.1 only concerns new accounts, so it isn't one)
 const NOTICE = {
-  version: '1.6.0, 2026-11-12',
-  text: 'Budgie’s Terms and Privacy Policy have changed: sticker blasts, stickers you share with everyone and nests’ chats (1.5), and two-step sign-in and Budgie for Mac (1.6). Read them in Settings → Privacy and legal.',
+  version: '1.7.0, 2026-11-13',
+  text: 'Budgie’s Terms and Privacy Policy have changed for 1.7: linking Spotify, hearing and listening along to friends’ songs, the Music app on iPhone, and games with friends. Read them in Settings → Privacy and legal.',
 };
 if (db.meta('terms-told') !== NOTICE.version) {
   for (const u of db.all('SELECT id FROM users')) notify(u.id, { kind: 'system', text: NOTICE.text, symbol: 'gavel', shape: 'pixelCircle' });
@@ -2821,7 +2821,7 @@ moduleCtx.signal = signal;
 // 1.5: what nest chat checks and keeps a message with (as group chats do), and what someone may do in a nest
 Object.assign(moduleCtx, { vet, checkText, chatMedia, keepMedia, mediaOut, dropMedia });
 moduleCtx.nest = { perms: nestPerms, ban: nestBan, row: nestRow };
-for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels', 'music']) modules[name] = require('./' + name).install(moduleCtx) || {};
+for (const name of ['stats', 'achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels', 'music', 'games']) modules[name] = require('./' + name).install(moduleCtx) || {};
 
 if (require.main === module) {
   server.listen(CONFIG.port, CONFIG.host, () => {

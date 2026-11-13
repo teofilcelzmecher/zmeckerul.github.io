@@ -12,7 +12,9 @@ const APP_FILES = ['js/account.js', 'js/app.js', 'js/calls.js', 'js/pickers.js',
   // 1.5
   'js/blasts.js', 'js/channels.js',
   // 1.6
-  'js/intro.js'];
+  'js/intro.js',
+  // 1.7
+  'js/games.js'];
 const M3_FILES = ['../m3/m3.js'];
 const SERVER = 'server/server.js';
 
@@ -138,7 +140,7 @@ for (const f of M3_FILES) scan(f);
 scan(SERVER, { server: true });
 scan('server/textmodel.js', { server: true });
 // 1.4 server modules: the notes and errors people see, found the same way as in server.js
-for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels', 'music']) scan('server/' + f + '.js', { server: true });
+for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels', 'music', 'games']) scan('server/' + f + '.js', { server: true });
 // Budgie's own starter nests: tagline, description, rules, flairs and category are Budgie's words (the title is a name)
 scan('js/data.js', { data: true });
 // the page itself

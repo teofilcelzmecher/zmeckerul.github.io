@@ -1294,6 +1294,8 @@
     if (m.kind === 'theme') return d.color ? `${who} changed the chat’s colour` : `${who} set the chat back to its usual colours`;
     // a sticker blast (1.5, js/blasts.js)
     if (m.kind === 'blast') return Nook.blasts ? Nook.blasts.lineText(m, inGroup) : `${who} blasted stickers`;
+    // a game with a friend (1.7, js/games.js)
+    if (m.kind === 'game') return Nook.games ? Nook.games.lineText(m) : `${who} started a game`;
     if (m.kind === 'call') {
       const kind = d.media === 'video' ? 'video call' : 'voice call';
       if (inGroup) return `${who} started a ${kind} · ${d.missed ? 'nobody joined' : duration(d.secs)}`;
@@ -1322,6 +1324,7 @@
     const d = lineData(m);
     if (m.kind === 'theme') return 'palette';
     if (m.kind === 'blast') return 'celebration';
+    if (m.kind === 'game') return 'sports_esports';
     if (m.kind === 'call') return d.missed && !m.mine ? (d.media === 'video' ? 'missed_video_call' : 'call_missed') : d.media === 'video' ? 'videocam' : 'call';
     return { created: 'groups', added: 'person_add', removed: 'person_remove', left: 'logout', renamed: 'edit', owner: 'shield_person' }[d.type] || 'info';
   }
@@ -1367,7 +1370,7 @@
       if (m.kind) {
         close();
         // a sticker blast (1.5) is a pile of the sticker and how many, on its sender's side
-        html += m.kind === 'blast' && Nook.blasts ? Nook.blasts.lineHTML(m, them) : chatLine(m, them, inGroup);
+        html += m.kind === 'blast' && Nook.blasts ? Nook.blasts.lineHTML(m, them) : m.kind === 'game' && Nook.games ? Nook.games.cardHTML(m) : chatLine(m, them, inGroup);
         continue;
       }
       if (inGroup && !m.mine && store.isBlocked(m.from)) {
@@ -1425,7 +1428,7 @@
   }
 
   /** a chat page around a conversation: its header, the messages, and the box to write in (or why you can't) */
-  function chatPage(head, { placeholder, locked = '' } = {}) {
+  function chatPage(head, { placeholder, locked = '', play = '' } = {}) {
     return (
       '<div class="page single chat-page"><div class="col">' +
       head +
@@ -1433,14 +1436,14 @@
       (locked ||
         `<button type="button" class="chat-jump" id="chat-jump" hidden>${icon('arrow_downward')}<span>New messages</span></button>` +
           '<div class="chat-attach" id="chat-attach" hidden></div>' +
-          `<form class="chat-box" id="chat-box">${chatTools()}<textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="${esc(placeholder)}" aria-label="Message" enterkeyhint="send"></textarea>` +
+          `<form class="chat-box" id="chat-box">${chatTools(play)}<textarea class="m3-field" id="chat-input" rows="1" maxlength="2000" placeholder="${esc(placeholder)}" aria-label="Message" enterkeyhint="send"></textarea>` +
           `<button class="m3-icon-btn filled chat-send" type="submit" aria-label="Send" disabled>${icon('send')}</button></form>`) +
       '</div></div>'
     );
   }
 
-  /** what can go in a message besides words, once the server takes pictures (0.9.5) */
-  function chatTools() {
+  /** what can go in a message besides words, once the server takes pictures (0.9.5); with a friend, a game (1.7) */
+  function chatTools(play = '') {
     if (!serverAt('0.9.5')) return '';
     return (
       '<div class="chat-tools">' +
@@ -1449,6 +1452,7 @@
       (Nook.pickers && Nook.pickers.gifsOn() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="gif" aria-label="Find a GIF" data-tooltip="GIFs">${icon('gif_box')}</button>` : '') +
       (Nook.stickers && Nook.stickers.available() ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="sticker" aria-label="Stickers and your emojis" data-tooltip="Stickers">${icon('sticky_note_2')}</button>` : '') +
       `<button type="button" class="m3-icon-btn chat-tool only-hover" data-chat="emoji" aria-label="Emoji" data-tooltip="Emoji">${icon('mood')}</button>` +
+      (play && Nook.games && Nook.games.canPlay(play) ? `<button type="button" class="m3-icon-btn chat-tool" data-chat="game" data-with="${esc(play)}" aria-label="Play a game with u/${esc(play)}" data-tooltip="Play a game">${icon('sports_esports')}</button>` : '') +
       '</div>'
     );
   }
@@ -1597,8 +1601,11 @@
     };
     form.addEventListener('click', async (e) => {
       const tool = e.target.closest('[data-chat]');
-      if (!tool || !Nook.pickers) return;
+      if (!tool) return;
       const kind = tool.dataset.chat;
+      // a game with this friend (1.7, js/games.js)
+      if (kind === 'game' && Nook.games) return Nook.games.open(tool.dataset.with);
+      if (!Nook.pickers) return;
       if (kind === 'emoji') return Nook.pickers.emoji(tool, (emoji) => Nook.pickers.insertAt(input, emoji));
       if (kind === 'sticker' && Nook.stickers) {
         // a sticker goes as soon as it's picked, as its own message; one of your emojis goes where you're writing
@@ -1765,6 +1772,7 @@
       wear: theme ? { color: theme, always: true } : undefined,
       html: chatPage(head, {
         placeholder: `Message u/${u.name}`,
+        play: u.name,
         locked: store.isBlocked(u.name)
           ? `<div class="card chat-locked"><p>You blocked u/${esc(u.name)}. Unblock them to be friends and message again.</p><div class="toolbar"><button class="m3-btn tonal" data-act="unblock" data-user="${esc(u.name)}">${icon('lock_open')}Unblock</button></div></div>`
           : friends

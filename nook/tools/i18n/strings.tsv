@@ -1,7 +1,6 @@
 56186c4	text	../m3/m3.js:705	linear(0, 1)
 768c55d	pattern	../m3/m3.js:3435	M{0}A{1} {2} 0 {3} 1 {4}
 781961b	text	../m3/m3.js:4084	Pause
-5d12bd5	text	../m3/m3.js:4084	Play
 2a00965	pattern	../m3/m3.js:4399	left:calc({0}% - {1}px);top:calc({2}% - {3}px)
 f251697	pattern	../m3/m3.js:4407	color-mix(in srgb, var({0}) {1}%, transparent)
 c50d15b	text	index.html	An example post
@@ -57,8 +56,8 @@ ea7aba9	text	index.html	Kind by design
 5458522	text	index.html	Word lists and small AI checks on Budgie’s own server stop bullying, nudity and scams. Swearing gets dotted out, and real people read every report.
 282ef67	text	index.html	Private by default
 92f24c9	text	index.html	No email or phone number to sign up. Budgie doesn’t track you or sell your data.
-fd3b56e	text	index.html	Budgie 1.6 is here
-56dc33c	text	index.html	Chats in every nest, sticker blasts for your friends, two-step sign-in, and Budgie for Mac. Built from scratch by one developer, and open to everyone. Something not right? Say so in n/budgiehq and it gets fixed.
+138c999	text	index.html	Budgie 1.7 is here
+daf6c41	text	index.html	Hear what your friends are listening to: link Spotify, play 30 seconds of their song, or listen along. And play Tic-tac-toe, Connect Four or Rock Paper Scissors with them, right in your chat. Built from scratch by one developer, and open to everyone. Something not right? Say so in n/budgiehq and it gets fixed.
 356c338	text	index.html	Find your nest
 6b6f01e	text	index.html	Your nests
 90c9352	text	index.html	Shortcuts
@@ -707,19 +706,20 @@ f8dc09c	pattern	js/app.js:3326	Posting… {0}%
 ac641a9	text	js/app.js:3333	Not posted yet
 e48ea12	pattern	js/app.js:3339	Posted to n/{0}
 25897b2	text	js/app.js:3453	Sent a sticker
-cf9b770	text	js/app.js:3474	Open
-3fae594	text	js/app.js:3513	This post was just removed.
-8d7d168	text	js/app.js:3553	Can’t reach Budgie’s server right now. Your changes may not save until it’s back.
-1fe8448	text	js/app.js:3567	You’ve been signed out. Sign in again to carry on.
-d95a6e6	pattern	js/app.js:3591	Badge unlocked: {0}
-bfb96f2	text	js/app.js:3609	Time for a breather?
-f0b4035	pattern	js/app.js:3612	You’ve been on Budgie for about {0} minutes. Stretch, sip some water, look at something far away. The nests will still be here.
-17afc17	text	js/app.js:3613	5 more minutes
-8d607e8	text	js/app.js:3613	Take a break
-43708e1	text	js/app.js:3618	See you soon
-d9c883a	text	js/app.js:3628	Back to top
-505dddc	text	js/app.js:3761	Refreshing
-6f0ebb5	text	js/app.js:3768	You’re up to date
+5d12bd5	text	js/app.js:3466	Play
+cf9b770	text	js/app.js:3476	Open
+3fae594	text	js/app.js:3515	This post was just removed.
+8d7d168	text	js/app.js:3555	Can’t reach Budgie’s server right now. Your changes may not save until it’s back.
+1fe8448	text	js/app.js:3569	You’ve been signed out. Sign in again to carry on.
+d95a6e6	pattern	js/app.js:3593	Badge unlocked: {0}
+bfb96f2	text	js/app.js:3611	Time for a breather?
+f0b4035	pattern	js/app.js:3614	You’ve been on Budgie for about {0} minutes. Stretch, sip some water, look at something far away. The nests will still be here.
+17afc17	text	js/app.js:3615	5 more minutes
+8d607e8	text	js/app.js:3615	Take a break
+43708e1	text	js/app.js:3620	See you soon
+d9c883a	text	js/app.js:3630	Back to top
+505dddc	text	js/app.js:3763	Refreshing
+6f0ebb5	text	js/app.js:3770	You’re up to date
 21536ce	text	js/blasts.js:42	Nice!
 91bb266	text	js/blasts.js:43	Great!
 67371e3	text	js/blasts.js:44	On fire!
@@ -1025,6 +1025,46 @@ e40fbab	text	js/data.js:95	Ask anything. Seriously, anything.
 043d204	text	js/data.js:97	Serious tag means serious answers
 b74a208	text	js/data.js:98	Serious
 5f941ab	text	js/data.js:98	Fun
+db043aa	text	js/games.js:22	Three in a row wins
+677444f	text	js/games.js:23	Connect Four
+2a9eecc	text	js/games.js:23	Drop them in, four in a row wins
+5079557	text	js/games.js:24	Rock Paper Scissors
+5a2b368	text	js/games.js:24	Best of three, picked at the same time
+468d79c	text	js/games.js:27	Rock
+22d507f	text	js/games.js:28	Paper
+faf4c3e	text	js/games.js:29	Scissors
+8ba3d1c	text	js/games.js:53	It’s a draw
+c75428e	text	js/games.js:55	You gave up
+d480c28	pattern	js/games.js:55	{0} gave up. You win!
+e3a4b01	text	js/games.js:56	You won!
+f3bfb40	pattern	js/games.js:61	Waiting for {0}…
+46aff5b	pattern	js/games.js:62	Your pick. {0} has picked
+e5af99d	text	js/games.js:62	Your pick
+8a4e604	text	js/games.js:64	Your turn
+1562b08	pattern	js/games.js:64	{0}’s turn
+63c6627	text	js/games.js:72	a game
+637aeee	pattern	js/games.js:73	You started a game of {0}
+6c4fec5	pattern	js/games.js:73	u/{0} wants to play {1}
+e879b0b	text	js/games.js:81	Board
+ccc0008	pattern	js/games.js:85	Square {0}: {1}
+105929f	pattern	js/games.js:85	Square {0}
+b14e98d	pattern	js/games.js:104	Column {0}, full
+9d9f12d	pattern	js/games.js:104	Column {0}
+66f3cad	pattern	js/games.js:116	You {0}, u/{1} {2}
+196c24e	pattern	js/games.js:120	Last round: you {0}, u/{1} {2}
+3cbdbba	text	js/games.js:122	You took the round
+bb9524c	pattern	js/games.js:122	u/{0} took the round
+5f9ebbb	text	js/games.js:122	A tie
+032d717	text	js/games.js:145	Rematch
+a29d0ff	text	js/games.js:146	Give up
+f2bd7ab	text	js/games.js:167	Setting up the board…
+5c6de76	pattern	js/games.js:228	Play with u/{0}
+e5d00f0	text	js/games.js:329	Give up this game?
+555762f	pattern	js/games.js:332	u/{0} wins this one.
+bb76090	text	js/games.js:334	Keep playing
+597ca6a	pattern	js/games.js:364	{0} with u/{1}: {2}
+df87bfc	pattern	js/games.js:364	u/{0} played. Your turn in {1}
+aa29ce9	pattern	js/games.js:399	Your turn in {0}
 de5ad35	text	js/intro.js:43	Welcome to Budgie
 d109fc8	text	js/intro.js:43	Small, friendly communities, chats and calls. No ads, and nobody tracking you.
 f6ad2f0	text	js/intro.js:44	Nests are communities for what you love. Join a few, and what’s posted in them fills your Home.
@@ -1843,183 +1883,186 @@ da24830	text	js/views.js:1276	Yesterday
 f6782cc	pattern	js/views.js:1294	{0} changed the chat’s colour
 6c33f07	pattern	js/views.js:1294	{0} set the chat back to its usual colours
 057d0f3	pattern	js/views.js:1296	{0} blasted stickers
-12d8c53	text	js/views.js:1298	video call
-329f832	text	js/views.js:1298	voice call
-02e2a4d	text	js/views.js:1299	nobody joined
-c6fb65f	pattern	js/views.js:1299	{0} started a {1} · {2}
-c6f4ef4	pattern	js/views.js:1300	{0} · no answer
-d7a34c4	pattern	js/views.js:1300	Missed {0}
-548f138	pattern	js/views.js:1306	{0} made the group with {1}
-c677cc3	pattern	js/views.js:1306	{0} made the group
-fca2d99	pattern	js/views.js:1312	{0} left the group
-1a74c3f	pattern	js/views.js:1314	A moderator renamed the group “{0}”
-ff89d6d	pattern	js/views.js:1314	{0} renamed the group “{1}”
-53f3c8a	pattern	js/views.js:1316	{0} {1} now the group’s owner
-d01d900	text	js/views.js:1328	Photo
-2e9d0e7	text	js/views.js:1331	Sticker
-e1075f2	text	js/views.js:1331	📷 Photo
-f988151	pattern	js/views.js:1342	Open {2}
-db9f241	text	js/views.js:1357	A message
-7377c12	pattern	js/views.js:1357	{0} from someone you blocked
-d5b4754	text	js/views.js:1393	Call back
-ab54fe4	text	js/views.js:1417	Not sent. Tap to try again
-cf76551	text	js/views.js:1418	Sending…
-56564dc	text	js/views.js:1419	Seen
-35f49dc	text	js/views.js:1419	Sent
-4294022	text	js/views.js:1432	Loading messages
-6d86712	text	js/views.js:1434	New messages
-9bc2575	text	js/views.js:1437	Send
-193bc8f	text	js/views.js:1448	Send a photo or GIF
-0661521	text	js/views.js:1448	Photo or GIF
-3ca337a	text	js/views.js:1450	Stickers and your emojis
-9dca595	text	js/views.js:1450	Stickers
-01cbdb4	pattern	js/views.js:1459	Voice call {1}
-3cdd912	pattern	js/views.js:1460	Video call {1}
-623acb7	text	js/views.js:1498	Older messages
-3156b97	text	js/views.js:1586	. Add a message, or just send it
-2603f45	pattern	js/views.js:1586	{1} ready to send{2}
-7a3ff77	pattern	js/views.js:1587	Don’t send this {0}
-1145e17	pattern	js/views.js:1711	Open {0}
-babfeaf	text	js/views.js:1712	Report message
-2ce4408	text	js/views.js:1712	Moderators will see it, and who sent it
-f8a41bd	text	js/views.js:1714	It goes for everyone
-608fcea	text	js/views.js:1714	As one of the nest’s team
-3c82c2a	text	js/views.js:1714	Delete message
-ebbc7d3	text	js/views.js:1722	Couldn’t copy that.
-29207df	text	js/views.js:1754	All messages
-08f90a0	pattern	js/views.js:1758	More for u/{1}
-42dc84a	pattern	js/views.js:1762	Chat with u/{0}
-51d0a08	pattern	js/views.js:1767	Message u/{0}
-9e2d4e4	pattern	js/views.js:1769	You blocked u/{0}. Unblock them to be friends and message again.
-8164104	pattern	js/views.js:1772	You can message u/{0} once you’re friends.
-f165127	text	js/views.js:1782	No messages yet. Say hi!
-145422f	text	js/views.js:1791	That group isn’t there any more, or you’re not in it.
-3de899d	pattern	js/views.js:1796	About {1}
-4be5c02	pattern	js/views.js:1804	Message {0}
-ebdb842	text	js/views.js:1820	You’re no longer in that group.
-d4ac74b	text	js/views.js:1838	A video call
-6021bcb	text	js/views.js:1838	A voice call
-4e8d25e	pattern	js/views.js:1838	{0} is going on
-0baaf59	text	js/views.js:1854	Pin posts
-4ec23e0	text	js/views.js:1854	Pin up to 3 posts to the top of the nest
-09ee485	text	js/views.js:1855	Remove posts and comments
-4640296	text	js/views.js:1855	Take down what breaks the rules, and handle reports
-c1c36aa	text	js/views.js:1856	Ban people
-15e76da	text	js/views.js:1856	Stop someone posting and commenting in this nest
-e0018fc	text	js/views.js:1857	Edit the rules
-eeaa230	text	js/views.js:1857	Change the rules, the tagline and the description
-cf2dee3	text	js/views.js:1858	Manage the team
-991ba30	text	js/views.js:1858	Give people roles and take them away
-3a05e08	text	js/views.js:1861	Everything, including the team
-ad3b15c	text	js/views.js:1862	Moderator
-45c3080	text	js/views.js:1862	Pins, removes posts and comments, and bans people
-1e7eebd	text	js/views.js:1863	Helper
-9e733c4	text	js/views.js:1863	Pins, and removes posts and comments
-d5d8448	text	js/views.js:1864	Your own
-dd34741	text	js/views.js:1864	Name it and choose what it can do
-401a6e7	pattern	js/views.js:1870	There’s no nest called n/{0}.
-0a7918e	pattern	js/views.js:1872	Only the people who run n/{0} can see this page.
-bb11a8e	text	js/views.js:1873	Rules
-1057c57	text	js/views.js:1873	Bans
-88bc3fe	text	js/views.js:1873	Reports
-2820a15	pattern	js/views.js:1879	Manage n/{0}
-6e95fcf	text	js/views.js:1884	Back to the nest
-8082827	text	js/views.js:1885	its owner
-474541b	pattern	js/views.js:1885	on its team, as {0}
-afba69b	pattern	js/views.js:1885	You’re {0}
-fa1a3b8	text	js/views.js:1885	You’re one of Budgie’s moderators
-7ff5a6d	text	js/views.js:1887	Sections
-8f26c65	text	js/views.js:1888	Loading
-7cd9e1b	text	js/views.js:1925	Owner · can do everything
-4b9f66a	pattern	js/views.js:1932	Take u/{2}’s role away
-c7bc011	text	js/views.js:1932	Take role away
-64fbd99	text	js/views.js:1932	Change
-14be504	text	js/views.js:1933	Step down
-36d1115	text	js/views.js:1938	Add someone
-d6fdb11	text	js/views.js:1939	Nobody yet. Budgie’s own moderators look after this nest.
-679a254	text	js/views.js:1941	What each role can do
-fcbe640	text	js/views.js:1943	A role with a name you choose, that can do only what you pick. People can only give the kinds of access they have themselves, and only the owner can let someone manage the team.
-9c3d74e	text	js/views.js:1952	Everyone sees these on the nest’s page. Keep them short: up to 10, each up to 120 characters.
-d119887	text	js/views.js:1954	Add a rule
-73b79b1	text	js/views.js:1955	About the nest
-b0f7948	text	js/views.js:1956	Tagline
-55f8ebc	text	js/views.js:1957	Description
-78e1790	text	js/views.js:1962	Rule
-cdf3b54	text	js/views.js:1962	Be kind
-b4f57cd	text	js/views.js:1963	Move up
-558f30c	text	js/views.js:1964	Remove this rule
-56a2285	text	js/views.js:1992	Saving…
-45365e3	text	js/views.js:2007	for good
-9438be1	pattern	js/views.js:2009	Banned from n/{0}
-08e80bc	text	js/views.js:2009	Ban someone
-deb7bdd	text	js/views.js:2010	A ban only stops someone posting and commenting here. They can still read the nest, and use the rest of Budgie.
-0d94779	pattern	js/views.js:2015	· by u/{0}
-d2671bf	text	js/views.js:2015	Unban
-9b309d3	text	js/views.js:2018	Nobody is banned.
-9936e42	text	js/views.js:2032	Automatic check
-dc4c613	pattern	js/views.js:2033	by u/{0}
-e4556e9	text	js/views.js:2036	Nothing wrong
-5f378a2	text	js/views.js:2042	No open reports. All quiet.
-3e613a9	pattern	js/views.js:2057	Step down from n/{0}’s team?
-52e10ec	pattern	js/views.js:2057	Take u/{0}’s role away?
-3b67229	text	js/views.js:2060	You won’t be able to do anything here a member can’t. Someone on the team can give you a role again.
-7db04ae	text	js/views.js:2060	They’ll be an ordinary member of the nest again, and they’re told.
-44a7d07	pattern	js/views.js:2071	u/{0} can post here again
-ceda476	pattern	js/views.js:2095	u/{0}’s role
-e6c951d	text	js/views.js:2095	Add someone to the team
-1f9fb8a	pattern	js/views.js:2100	Who (they have to have joined n/{0})
-c3f104d	text	js/views.js:2101	Role
-52f62ef	text	js/views.js:2104	Glaze guru
-376b0e8	text	js/views.js:2104	Its name
-55b45c7	text	js/views.js:2128	Who should it be?
-078c893	text	js/views.js:2133	Give the role a name.
-7f38eaa	text	js/views.js:2134	Pick at least one thing it can do.
-8701ce2	pattern	js/views.js:2140	u/{0} is on the team
-dd54aae	pattern	js/views.js:2162	Ban u/{0} from n/{1}?
-d4ea664	pattern	js/views.js:2162	Ban someone from n/{0}
-7d53161	text	js/views.js:2167	Who
-21e2cae	text	js/views.js:2168	Why
-fe3a541	text	js/views.js:2169	Or say why in your own words
-4286c1f	text	js/views.js:2170	A day
-51e2a8b	text	js/views.js:2170	A week
-6d17c38	text	js/views.js:2170	A month
-a30ccf2	text	js/views.js:2170	For good
-2c8c5a4	text	js/views.js:2170	For how long
-781dac8	text	js/views.js:2171	They’re told, with the reason. They can still read the nest, and use the rest of Budgie.
-bfa1bfb	text	js/views.js:2184	Ban
-b9095bc	text	js/views.js:2191	Who should be banned?
-ed238a0	text	js/views.js:2192	Say why: they’ll be told.
-6744c15	text	js/views.js:2197	a day
-5ba5116	text	js/views.js:2197	any more
-0af579f	pattern	js/views.js:2197	u/{0} can’t post in n/{1} {2}
-e4f0b58	text	js/views.js:2212	The picture
-aeb8371	text	js/views.js:2213	Profile picture
-51af07e	text	js/views.js:2217	Only Budgie’s moderators can see this page.
-093452d	text	js/views.js:2223	Open reports, newest first. Whoever you act on is told what and why.
-1914680	text	js/views.js:2224	Loading reports
-e5fd9dc	text	js/views.js:2226	Reason they’ll see
-740179b	text	js/views.js:2226	Ban an account
-9f734fb	text	js/views.js:2243	Already gone.
-388353f	text	js/views.js:2244	· already removed
-9709093	text	js/views.js:2244	· banned
-1f46b6e	pattern	js/views.js:2244	by u/{0}{1}{2}
-b4d19ad	text	js/views.js:2246	flagged by the automatic check
-3d539d6	pattern	js/views.js:2246	reported by u/{0}
-2ebb22b	text	js/views.js:2251	Remove picture
-dc3ae7e	text	js/views.js:2253	Clear profile
-70afe9e	text	js/views.js:2255	Dismiss
-9ad6472	text	js/views.js:2259	Nothing to review
-42ff611	text	js/views.js:2259	No open reports. Nice and calm.
-3c049f5	text	js/views.js:2269	Report dismissed
-86689c8	text	js/views.js:2270	Account banned
-8150251	text	js/views.js:2271	Removed, and its author told why
-d9f9d87	pattern	js/views.js:2271	{0} removed, and its owner told why
-6bfd4bc	text	js/views.js:2271	Profile cleared, and its owner told why
-83b5b57	text	js/views.js:2289	Banned and signed out
-475c848	text	js/views.js:2302	Not found
-cb02233	text	js/views.js:2304	Nothing to see here
-9cc815b	text	js/views.js:2304	This page doesn’t exist.
-5c53da3	text	js/views.js:2304	Back home
+8123b45	pattern	js/views.js:1298	{0} started a game
+12d8c53	text	js/views.js:1300	video call
+329f832	text	js/views.js:1300	voice call
+02e2a4d	text	js/views.js:1301	nobody joined
+c6fb65f	pattern	js/views.js:1301	{0} started a {1} · {2}
+c6f4ef4	pattern	js/views.js:1302	{0} · no answer
+d7a34c4	pattern	js/views.js:1302	Missed {0}
+548f138	pattern	js/views.js:1308	{0} made the group with {1}
+c677cc3	pattern	js/views.js:1308	{0} made the group
+fca2d99	pattern	js/views.js:1314	{0} left the group
+1a74c3f	pattern	js/views.js:1316	A moderator renamed the group “{0}”
+ff89d6d	pattern	js/views.js:1316	{0} renamed the group “{1}”
+53f3c8a	pattern	js/views.js:1318	{0} {1} now the group’s owner
+d01d900	text	js/views.js:1331	Photo
+2e9d0e7	text	js/views.js:1334	Sticker
+e1075f2	text	js/views.js:1334	📷 Photo
+f988151	pattern	js/views.js:1345	Open {2}
+db9f241	text	js/views.js:1360	A message
+7377c12	pattern	js/views.js:1360	{0} from someone you blocked
+d5b4754	text	js/views.js:1396	Call back
+ab54fe4	text	js/views.js:1420	Not sent. Tap to try again
+cf76551	text	js/views.js:1421	Sending…
+56564dc	text	js/views.js:1422	Seen
+35f49dc	text	js/views.js:1422	Sent
+4294022	text	js/views.js:1435	Loading messages
+6d86712	text	js/views.js:1437	New messages
+9bc2575	text	js/views.js:1440	Send
+193bc8f	text	js/views.js:1451	Send a photo or GIF
+0661521	text	js/views.js:1451	Photo or GIF
+3ca337a	text	js/views.js:1453	Stickers and your emojis
+9dca595	text	js/views.js:1453	Stickers
+0de7f75	pattern	js/views.js:1455	Play a game with u/{1}
+a54d0e8	text	js/views.js:1455	Play a game
+01cbdb4	pattern	js/views.js:1463	Voice call {1}
+3cdd912	pattern	js/views.js:1464	Video call {1}
+623acb7	text	js/views.js:1502	Older messages
+3156b97	text	js/views.js:1590	. Add a message, or just send it
+2603f45	pattern	js/views.js:1590	{1} ready to send{2}
+7a3ff77	pattern	js/views.js:1591	Don’t send this {0}
+1145e17	pattern	js/views.js:1718	Open {0}
+babfeaf	text	js/views.js:1719	Report message
+2ce4408	text	js/views.js:1719	Moderators will see it, and who sent it
+f8a41bd	text	js/views.js:1721	It goes for everyone
+608fcea	text	js/views.js:1721	As one of the nest’s team
+3c82c2a	text	js/views.js:1721	Delete message
+ebbc7d3	text	js/views.js:1729	Couldn’t copy that.
+29207df	text	js/views.js:1761	All messages
+08f90a0	pattern	js/views.js:1765	More for u/{1}
+42dc84a	pattern	js/views.js:1769	Chat with u/{0}
+51d0a08	pattern	js/views.js:1774	Message u/{0}
+9e2d4e4	pattern	js/views.js:1777	You blocked u/{0}. Unblock them to be friends and message again.
+8164104	pattern	js/views.js:1780	You can message u/{0} once you’re friends.
+f165127	text	js/views.js:1790	No messages yet. Say hi!
+145422f	text	js/views.js:1799	That group isn’t there any more, or you’re not in it.
+3de899d	pattern	js/views.js:1804	About {1}
+4be5c02	pattern	js/views.js:1812	Message {0}
+ebdb842	text	js/views.js:1828	You’re no longer in that group.
+d4ac74b	text	js/views.js:1846	A video call
+6021bcb	text	js/views.js:1846	A voice call
+4e8d25e	pattern	js/views.js:1846	{0} is going on
+0baaf59	text	js/views.js:1862	Pin posts
+4ec23e0	text	js/views.js:1862	Pin up to 3 posts to the top of the nest
+09ee485	text	js/views.js:1863	Remove posts and comments
+4640296	text	js/views.js:1863	Take down what breaks the rules, and handle reports
+c1c36aa	text	js/views.js:1864	Ban people
+15e76da	text	js/views.js:1864	Stop someone posting and commenting in this nest
+e0018fc	text	js/views.js:1865	Edit the rules
+eeaa230	text	js/views.js:1865	Change the rules, the tagline and the description
+cf2dee3	text	js/views.js:1866	Manage the team
+991ba30	text	js/views.js:1866	Give people roles and take them away
+3a05e08	text	js/views.js:1869	Everything, including the team
+ad3b15c	text	js/views.js:1870	Moderator
+45c3080	text	js/views.js:1870	Pins, removes posts and comments, and bans people
+1e7eebd	text	js/views.js:1871	Helper
+9e733c4	text	js/views.js:1871	Pins, and removes posts and comments
+d5d8448	text	js/views.js:1872	Your own
+dd34741	text	js/views.js:1872	Name it and choose what it can do
+401a6e7	pattern	js/views.js:1878	There’s no nest called n/{0}.
+0a7918e	pattern	js/views.js:1880	Only the people who run n/{0} can see this page.
+bb11a8e	text	js/views.js:1881	Rules
+1057c57	text	js/views.js:1881	Bans
+88bc3fe	text	js/views.js:1881	Reports
+2820a15	pattern	js/views.js:1887	Manage n/{0}
+6e95fcf	text	js/views.js:1892	Back to the nest
+8082827	text	js/views.js:1893	its owner
+474541b	pattern	js/views.js:1893	on its team, as {0}
+afba69b	pattern	js/views.js:1893	You’re {0}
+fa1a3b8	text	js/views.js:1893	You’re one of Budgie’s moderators
+7ff5a6d	text	js/views.js:1895	Sections
+8f26c65	text	js/views.js:1896	Loading
+7cd9e1b	text	js/views.js:1933	Owner · can do everything
+4b9f66a	pattern	js/views.js:1940	Take u/{2}’s role away
+c7bc011	text	js/views.js:1940	Take role away
+64fbd99	text	js/views.js:1940	Change
+14be504	text	js/views.js:1941	Step down
+36d1115	text	js/views.js:1946	Add someone
+d6fdb11	text	js/views.js:1947	Nobody yet. Budgie’s own moderators look after this nest.
+679a254	text	js/views.js:1949	What each role can do
+fcbe640	text	js/views.js:1951	A role with a name you choose, that can do only what you pick. People can only give the kinds of access they have themselves, and only the owner can let someone manage the team.
+9c3d74e	text	js/views.js:1960	Everyone sees these on the nest’s page. Keep them short: up to 10, each up to 120 characters.
+d119887	text	js/views.js:1962	Add a rule
+73b79b1	text	js/views.js:1963	About the nest
+b0f7948	text	js/views.js:1964	Tagline
+55f8ebc	text	js/views.js:1965	Description
+78e1790	text	js/views.js:1970	Rule
+cdf3b54	text	js/views.js:1970	Be kind
+b4f57cd	text	js/views.js:1971	Move up
+558f30c	text	js/views.js:1972	Remove this rule
+56a2285	text	js/views.js:2000	Saving…
+45365e3	text	js/views.js:2015	for good
+9438be1	pattern	js/views.js:2017	Banned from n/{0}
+08e80bc	text	js/views.js:2017	Ban someone
+deb7bdd	text	js/views.js:2018	A ban only stops someone posting and commenting here. They can still read the nest, and use the rest of Budgie.
+0d94779	pattern	js/views.js:2023	· by u/{0}
+d2671bf	text	js/views.js:2023	Unban
+9b309d3	text	js/views.js:2026	Nobody is banned.
+9936e42	text	js/views.js:2040	Automatic check
+dc4c613	pattern	js/views.js:2041	by u/{0}
+e4556e9	text	js/views.js:2044	Nothing wrong
+5f378a2	text	js/views.js:2050	No open reports. All quiet.
+3e613a9	pattern	js/views.js:2065	Step down from n/{0}’s team?
+52e10ec	pattern	js/views.js:2065	Take u/{0}’s role away?
+3b67229	text	js/views.js:2068	You won’t be able to do anything here a member can’t. Someone on the team can give you a role again.
+7db04ae	text	js/views.js:2068	They’ll be an ordinary member of the nest again, and they’re told.
+44a7d07	pattern	js/views.js:2079	u/{0} can post here again
+ceda476	pattern	js/views.js:2103	u/{0}’s role
+e6c951d	text	js/views.js:2103	Add someone to the team
+1f9fb8a	pattern	js/views.js:2108	Who (they have to have joined n/{0})
+c3f104d	text	js/views.js:2109	Role
+52f62ef	text	js/views.js:2112	Glaze guru
+376b0e8	text	js/views.js:2112	Its name
+55b45c7	text	js/views.js:2136	Who should it be?
+078c893	text	js/views.js:2141	Give the role a name.
+7f38eaa	text	js/views.js:2142	Pick at least one thing it can do.
+8701ce2	pattern	js/views.js:2148	u/{0} is on the team
+dd54aae	pattern	js/views.js:2170	Ban u/{0} from n/{1}?
+d4ea664	pattern	js/views.js:2170	Ban someone from n/{0}
+7d53161	text	js/views.js:2175	Who
+21e2cae	text	js/views.js:2176	Why
+fe3a541	text	js/views.js:2177	Or say why in your own words
+4286c1f	text	js/views.js:2178	A day
+51e2a8b	text	js/views.js:2178	A week
+6d17c38	text	js/views.js:2178	A month
+a30ccf2	text	js/views.js:2178	For good
+2c8c5a4	text	js/views.js:2178	For how long
+781dac8	text	js/views.js:2179	They’re told, with the reason. They can still read the nest, and use the rest of Budgie.
+bfa1bfb	text	js/views.js:2192	Ban
+b9095bc	text	js/views.js:2199	Who should be banned?
+ed238a0	text	js/views.js:2200	Say why: they’ll be told.
+6744c15	text	js/views.js:2205	a day
+5ba5116	text	js/views.js:2205	any more
+0af579f	pattern	js/views.js:2205	u/{0} can’t post in n/{1} {2}
+e4f0b58	text	js/views.js:2220	The picture
+aeb8371	text	js/views.js:2221	Profile picture
+51af07e	text	js/views.js:2225	Only Budgie’s moderators can see this page.
+093452d	text	js/views.js:2231	Open reports, newest first. Whoever you act on is told what and why.
+1914680	text	js/views.js:2232	Loading reports
+e5fd9dc	text	js/views.js:2234	Reason they’ll see
+740179b	text	js/views.js:2234	Ban an account
+9f734fb	text	js/views.js:2251	Already gone.
+388353f	text	js/views.js:2252	· already removed
+9709093	text	js/views.js:2252	· banned
+1f46b6e	pattern	js/views.js:2252	by u/{0}{1}{2}
+b4d19ad	text	js/views.js:2254	flagged by the automatic check
+3d539d6	pattern	js/views.js:2254	reported by u/{0}
+2ebb22b	text	js/views.js:2259	Remove picture
+dc3ae7e	text	js/views.js:2261	Clear profile
+70afe9e	text	js/views.js:2263	Dismiss
+9ad6472	text	js/views.js:2267	Nothing to review
+42ff611	text	js/views.js:2267	No open reports. Nice and calm.
+3c049f5	text	js/views.js:2277	Report dismissed
+86689c8	text	js/views.js:2278	Account banned
+8150251	text	js/views.js:2279	Removed, and its author told why
+d9f9d87	pattern	js/views.js:2279	{0} removed, and its owner told why
+6bfd4bc	text	js/views.js:2279	Profile cleared, and its owner told why
+83b5b57	text	js/views.js:2297	Banned and signed out
+475c848	text	js/views.js:2310	Not found
+cb02233	text	js/views.js:2312	Nothing to see here
+9cc815b	text	js/views.js:2312	This page doesn’t exist.
+5c53da3	text	js/views.js:2312	Back home
 506419a	text	server/achievements.js:202	That isn’t a date.
 33b6bde	text	server/achievements.js:205	Your device’s date looks wrong. Check its clock, then open Budgie again.
 482de84	pattern	server/achievements.js:317	Achievements are here: your badges became achievements with tiers, I to V, and you’ve already reached {0}. See them on your profile, and pick a few to show off.
@@ -2058,6 +2101,13 @@ f9b56f8	pattern	server/channels.js:211	Join n/{0} to talk in its channels.
 1701712	pattern	server/channels.js:213	You’re banned from n/{0}, so you can’t talk in its channels. Reason: {1}
 df0e31f	text	server/channels.js:236	You can only delete your own messages.
 ca084b3	pattern	server/channels.js:258	A moderator removed your message in n/{0} #{1}: {2}
+b26583e	text	server/games.js:192	That game isn’t there.
+6d2b43d	text	server/games.js:197	That’s a lot of games for one hour. Finish a few first!
+8518511	text	server/games.js:199	Pick a game.
+2262ba8	text	server/games.js:203	Play with a friend, not yourself.
+e92dd23	text	server/games.js:204	You can only play with friends.
+46f156c	text	server/games.js:246	Slow down a little!
+3190308	text	server/games.js:248	This game’s over. Start another one!
 1f6a14b	text	server/music.js:410	This link to Spotify has run out. Start again from Settings → Activity in Budgie.
 e29bbf5	text	server/music.js:411	You didn’t let Budgie see what you play on Spotify, so nothing is linked.
 35f7de9	text	server/music.js:411	Spotify didn’t link. Try again from Settings → Activity in Budgie.
@@ -2122,7 +2172,7 @@ af7faa3	text	server/server.js:293	This reads as a threat, or as wishing harm on 
 6845850	text	server/server.js:468	GIF search is off.
 b07eede	text	server/server.js:471	That GIF can’t be sent.
 d78feba	text	server/server.js:475	That’s a lot of pictures. Try again in a little while.
-d6a4857	text	server/server.js:531	Budgie’s Terms and Privacy Policy have changed: sticker blasts, stickers you share with everyone and nests’ chats (1.5), and two-step sign-in and Budgie for Mac (1.6). Read them in Settings → Privacy and legal.
+e4fc085	text	server/server.js:531	Budgie’s Terms and Privacy Policy have changed for 1.7: linking Spotify, hearing and listening along to friends’ songs, the Music app on iPhone, and games with friends. Read them in Settings → Privacy and legal.
 8efd22e	text	server/server.js:548	You’re an Early Bird: you joined Budgie before version 1.0, so your profile wears the Early Bird badge for good. Thanks for being here early!
 6833da1	text	server/server.js:550	You’re one of Budgie’s developers: your profile wears the Developer badge, and you can give people the Tester badge from their profile.
 fdce4cb	pattern	server/server.js:551	u/{0} gave you
