@@ -66,6 +66,8 @@
 }
 .nudge-btn[aria-disabled='true'] {
   opacity: 0.72;
+  /* still takes a tap: it shakes its head and says when the next nudge is */
+  pointer-events: auto;
 }
 .nudge-btn.is-off .nudge-hand .m3-icon {
   color: inherit;

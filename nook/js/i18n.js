@@ -54,6 +54,8 @@
         if (!m) return escapeRe(part);
         order.push(Number(m[1]));
         if (/(?:^|[\s(])[un]\/$|[“«„"]\s?$/.test(parts[i - 1] || '') || /^\s?[”»“"]|^[’']s\b/.test(parts[i + 1] || '')) raw.add(Number(m[1]));
+        // a count at the very end, straight after an emoji ("u/{0} sent you a hug 🫶{1}", with " ×2"), may not be there at all
+        if (i === parts.length - 2 && parts[i + 1] === '' && /[^\p{L}\p{N}\p{P}\s]$/u.test(parts[i - 1] || '')) return '(.*?)';
         // a name made of several words, then a last slot ("Achievement unlocked: {0} {1}", with "Hello, Budgie" and "I"): the first takes all but the last word
         return parts[i + 1] === ' ' && /^\{\d+\}$/.test(parts[i + 2] || '') && i + 3 >= parts.length - 1 ? '(.+)' : '(.+?)';
       })
