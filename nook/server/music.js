@@ -196,6 +196,11 @@ CREATE TABLE IF NOT EXISTS music_songs (
     return { status: res.status, body: json };
   }
 
+  /** (2026) Spotify's answer for an account the server's Spotify app hasn't been told about: its Development Mode lets
+   * in only the people its owner adds in Spotify's dashboard (User Management), up to five */
+  const notAllowed = (answer) => !!answer && answer.status === 403 && /not registered|developer dashboard|user may not be registered/i.test(JSON.stringify(answer.body || ''));
+  const NOT_ALLOWED = 'Spotify doesn’t let this account use this Budgie server’s Spotify app yet. Ask whoever runs Budgie to add you in Spotify’s developer dashboard (User Management), then link it again.';
+
   /** someone's Spotify link goes (they unlinked, or Spotify ended it: then `why` says so in their inbox) */
   function unlink(userId, why) {
     db.run("DELETE FROM music_links WHERE user_id = ? AND service = 'spotify'", userId);
@@ -420,7 +425,12 @@ CREATE TABLE IF NOT EXISTS music_songs (
     );
     // who they are on Spotify, and whether they can listen along (Premium)
     const me = await spotify(linkOf(p.userId), 'GET', '/me');
-    const account = me && me.body ? tidy(me.body.display_name || me.body.id || '', 60) : '';
+    if (notAllowed(me)) {
+      db.run("DELETE FROM music_links WHERE user_id = ? AND service = 'spotify'", p.userId);
+      fail(403, NOT_ALLOWED, { notAllowed: true });
+    }
+    const account = me && me.status === 200 && me.body ? tidy(me.body.display_name || me.body.id || '', 60) : '';
+    // (Spotify stopped saying who has Premium in 2026: it's known from the first song listened along to, then)
     const premium = me && me.body && me.body.product === 'premium' ? 1 : 0;
     db.run("UPDATE music_links SET account = ?, premium = ? WHERE user_id = ? AND service = 'spotify'", account, premium, p.userId);
     asked.delete(p.userId);
@@ -518,6 +528,7 @@ CREATE TABLE IF NOT EXISTS music_songs (
     const answer = await spotify(link, 'PUT', '/me/player/play', { uris: [uri], position_ms: Math.round(position) });
     if (!answer) fail(503, 'Spotify isn’t answering right now. Try again in a minute.');
     if (answer.status === 404) fail(409, 'Open Spotify on your phone or computer first, play anything for a moment, then try again.', { device: true });
+    if (notAllowed(answer)) fail(403, NOT_ALLOWED, { notAllowed: true });
     if (answer.status === 403) fail(403, 'Listening along needs Spotify Premium: Spotify only lets Budgie start songs for Premium accounts.', { premium: true });
     if (answer.status >= 400) fail(502, 'Spotify didn’t start the song. Try again in a minute.');
     if (!link.premium) db.run("UPDATE music_links SET premium = 1 WHERE user_id = ? AND service = 'spotify'", user.id);

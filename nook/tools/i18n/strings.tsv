@@ -2114,22 +2114,22 @@ b26583e	text	server/games.js:192	That game isn’t there.
 e92dd23	text	server/games.js:204	You can only play with friends.
 46f156c	text	server/games.js:246	Slow down a little!
 3190308	text	server/games.js:248	This game’s over. Start another one!
-1f6a14b	text	server/music.js:410	This link to Spotify has run out. Start again from Settings → Activity in Budgie.
-e29bbf5	text	server/music.js:411	You didn’t let Budgie see what you play on Spotify, so nothing is linked.
-35f7de9	text	server/music.js:411	Spotify didn’t link. Try again from Settings → Activity in Budgie.
-67dd92e	text	server/music.js:413	Spotify didn’t send what Budgie needs. Try again from Settings → Activity in Budgie.
-e56c51a	text	server/music.js:415	Spotify didn’t finish linking. Try again in a minute.
-2bc4616	text	server/music.js:440	There’s nobody called that on Budgie.
-70f2303	text	server/music.js:442	You’re not listening to anything right now.
-8e985f8	pattern	server/music.js:442	u/{0} isn’t listening to anything right now.
-a5ae2a0	text	server/music.js:448	That’s a lot of songs in a row. Try again in a minute.
-33dbc90	text	server/music.js:503	Link your Spotify in Settings → Activity first.
-311854f	text	server/music.js:505	That’s your own song.
-8b99142	pattern	server/music.js:513	Spotify doesn’t seem to have “{0}”.
-018748a	text	server/music.js:519	Spotify isn’t answering right now. Try again in a minute.
-6a1b876	text	server/music.js:520	Open Spotify on your phone or computer first, play anything for a moment, then try again.
-2079958	text	server/music.js:521	Listening along needs Spotify Premium: Spotify only lets Budgie start songs for Premium accounts.
-32585e3	text	server/music.js:522	Spotify didn’t start the song. Try again in a minute.
+1f6a14b	text	server/music.js:415	This link to Spotify has run out. Start again from Settings → Activity in Budgie.
+e29bbf5	text	server/music.js:416	You didn’t let Budgie see what you play on Spotify, so nothing is linked.
+35f7de9	text	server/music.js:416	Spotify didn’t link. Try again from Settings → Activity in Budgie.
+67dd92e	text	server/music.js:418	Spotify didn’t send what Budgie needs. Try again from Settings → Activity in Budgie.
+e56c51a	text	server/music.js:420	Spotify didn’t finish linking. Try again in a minute.
+2bc4616	text	server/music.js:450	There’s nobody called that on Budgie.
+70f2303	text	server/music.js:452	You’re not listening to anything right now.
+8e985f8	pattern	server/music.js:452	u/{0} isn’t listening to anything right now.
+a5ae2a0	text	server/music.js:458	That’s a lot of songs in a row. Try again in a minute.
+33dbc90	text	server/music.js:513	Link your Spotify in Settings → Activity first.
+311854f	text	server/music.js:515	That’s your own song.
+8b99142	pattern	server/music.js:523	Spotify doesn’t seem to have “{0}”.
+018748a	text	server/music.js:529	Spotify isn’t answering right now. Try again in a minute.
+6a1b876	text	server/music.js:530	Open Spotify on your phone or computer first, play anything for a moment, then try again.
+2079958	text	server/music.js:532	Listening along needs Spotify Premium: Spotify only lets Budgie start songs for Premium accounts.
+32585e3	text	server/music.js:533	Spotify didn’t start the song. Try again in a minute.
 8caa8b7	text	server/presence.js:180	This reads as hurtful to an automatic check, so it can’t be your status. If it got you wrong, try putting it differently.
 ca5b212	text	server/presence.js:181	this activity status might be
 b611af7	text	server/presence.js:640	That’s a lot of updates. Try again in a minute.
