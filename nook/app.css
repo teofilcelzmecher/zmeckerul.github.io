@@ -2524,6 +2524,27 @@ h1 .pride-flag,
   background: var(--m3-secondary-container);
   color: var(--m3-on-secondary-container);
 }
+/* (1.7) the same size as the streak and featured achievements under the name (css/achievements.css): 32px on a
+   computer, 30px with smaller words on a phone, and a 24px (22px) shape */
+.special-badge m3-shape-icon {
+  width: 24px;
+  height: 24px;
+}
+@media (max-width: 719px) {
+  .special-badges {
+    gap: 5px;
+  }
+  .special-badge {
+    gap: 5px;
+    height: 30px;
+    padding-right: 12px;
+    font-size: var(--m3-fs-smaller);
+  }
+  .special-badge m3-shape-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
 /* "Dev" after a developer's name on posts and comments */
 .tag.dev {
   display: inline-flex;
@@ -2853,7 +2874,9 @@ body.plain-names :is(.name-font-rounded, .name-font-hand, .name-font-serif, .nam
     scale var(--m3-motion-bounce);
 }
 .profile-main.mine > .profile-edit:active {
-  border-radius: var(--m3-r-full);
+  /* round: half the button exactly. (From the "full" 9999px, the springy way back to 16px overshot below nothing,
+     and the pencil showed as a sharp box for a moment.) */
+  border-radius: 24px;
 }
 /* with a banner, the name starts just under it: the pencil keeps level with the name */
 .profile-hero.has-banner .profile-main.mine > .profile-edit {

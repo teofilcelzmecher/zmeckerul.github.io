@@ -265,7 +265,8 @@
   display: flex;
   gap: 8px;
 }
-.ip-actions span {
+/* the pills only, not the icons in them (which took the pills' padding and colour, and were cut off) */
+.ip-actions > span {
   display: grid;
   place-items: center;
   height: 32px;

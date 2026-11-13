@@ -219,7 +219,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  /* (1.7) the same height as the badges above them (Developer, Early Bird: app.css .special-badge) */
+  height: 32px;
   padding: 0 12px 0 8px;
   border: 0;
   border-radius: var(--m3-r-full);
@@ -256,6 +257,7 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ach-b) 55%, transparent);
 }
 .ach-feat .ach-badge {
+  --ach-size: 24px !important;
   filter: none;
 }
 .ach-feat b {
@@ -273,7 +275,8 @@
   }
   .ach-streak-pill,
   .ach-feat {
-    min-height: 30px;
+    gap: 5px;
+    height: 30px;
     font-size: var(--m3-fs-smaller);
   }
   .ach-feat .ach-badge {

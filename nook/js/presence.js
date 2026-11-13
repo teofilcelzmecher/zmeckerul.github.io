@@ -136,8 +136,25 @@
     const at = Math.max(0, Math.min(m.duration, (m.position || 0) + (m.paused ? 0 : Date.now() + skew - (m.at || m.since))));
     return { share: at / m.duration, left: Math.max(0, m.duration - at) };
   }
-  /** whether you could listen along here: with your Spotify (once linked), or the Music app on Budgie for iPhone */
-  const canListenAlong = () => !!((musicState && musicState.spotify) || appleMusic());
+  /**
+   * (1.7) a phone or tablet: Budgie for iPhone or Android, or a browser on one. Nothing else on it can be seen, and
+   * Spotify isn't linked there: since 2026 Spotify's rules let Budgie's Spotify app have only a handful of people
+   * (Budgie for your computer sees what Spotify plays by itself, for everyone)
+   */
+  const onPhone = () => {
+    if (window.BUDGIE_DESKTOP) return false;
+    const A = window.BUDGIE_APPLE;
+    if (A) return A.platform === 'ios';
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+    const ua = navigator.userAgent;
+    return !!((navigator.userAgentData && navigator.userAgentData.mobile) || /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1));
+  };
+  const SPOTIFY_PHONE_NOTE = 'Due to Spotify’s recent API rules, Budgie can’t link Spotify on phones. Budgie for your computer can still show what you play on Spotify.';
+  /**
+   * whether you could listen along here: with your Spotify (linked, or, on a computer, once you link it), or the Music
+   * app on Budgie for iPhone
+   */
+  const canListenAlong = () => !!(onPhone() ? spotifyLinked() || appleMusic() : (musicState && musicState.spotify) || appleMusic());
   /**
    * a friend's song, in a row under it: a play button (30 seconds of it, the ring round it filling as it plays),
    * Listen along, and Open in Spotify or Apple Music (with its words when there's room, as there is without Listen
@@ -638,10 +655,11 @@
     return D && typeof D.onActivity === 'function' && typeof D.setActivityOptions === 'function' ? D : null;
   };
   let options = { music: true, games: true };
-  // on a Windows or Linux computer's browser, the desktop app is worth a mention (it finds music and games by itself)
+  // on a computer's browser (Windows, Linux, or a Mac since 1.7), the desktop app is worth a mention: it finds music
+  // (and, on Windows and Linux, games) by itself
   const offerDesktop = () =>
     !window.BUDGIE_DESKTOP && !window.BUDGIE_APPLE && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) &&
-    /Windows|Linux/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && matchMedia('(pointer: fine)').matches;
+    /Windows|Linux|Macintosh/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent) && !onPhone() && matchMedia('(pointer: fine)').matches;
 
   Nook.hook('settingsSections', (header) =>
     off ? '' : `<section id="activity-settings">${header('cookie12', 'graphic_eq', 'Activity')}<div class="card setting-card pres-settings" data-pres-settings><m3-loading class="pres-loading"></m3-loading></div></section>`
@@ -699,7 +717,9 @@
         'Type what you’re listening to or playing, for as long as you like (up to a day). It’s just words, so it doesn’t count towards music or game achievements.',
         `<div class="toolbar"><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="music">${icon('music_note')}Listening to…</button><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="game">${icon('sports_esports')}Playing…</button></div>`
       ) +
-      (mus
+      (mus && onPhone() && !(mus.spotify && mus.spotify.linked)
+        ? source('cookie9', 'graphic_eq', 'Spotify', SPOTIFY_PHONE_NOTE, `<p class="muted pres-off pres-get">${icon('computer')}<span><a href="download.html">Get Budgie for your computer</a></span></p>`)
+        : mus
         ? source(
             'cookie9',
             'graphic_eq',
@@ -1058,6 +1078,7 @@
     const state = await musicStatus();
     const via = state && state.spotify && state.spotify.linked ? 'spotify' : appleMusic() ? 'apple' : '';
     if (!via) {
+      if (onPhone()) return M3.snackbar(SPOTIFY_PHONE_NOTE, { timeout: 10000 });
       if (!state || !state.spotify) return M3.snackbar('Listening along needs Spotify, and it isn’t set up on this Budgie server yet.');
       linkAsk = M3.snackbar('Link your Spotify to listen along with friends.', { action: { label: 'Link Spotify', onClick: openSettings } });
       return;
