@@ -26,7 +26,7 @@ const add = (text, kind, where) => {
 // what counts as words people read
 const KEYS = new Set(['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'End', 'Tab', 'Enter', 'Escape', 'Backspace', 'Delete', 'BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'DOMContentLoaded', 'NotAllowedError', 'AbortError', 'NotFoundError', 'NotReadableError', 'OverconstrainedError', 'TypeError', 'Shift', 'Control', 'Meta', 'Alt', 'Space', 'Spacebar']);
 // code that only looks like words: class lists, selectors, font names, css values, a command, names that are never translated
-const NOT_WORDS = new Set(['button, a, input', 'name-fx name-fx-', 'img.pres-cover, img.pres-glow', 'h1 .name-fx', 'Google Sans Flex', 'Material Symbols Rounded', 'Symbols', 'Ab1', 'UTC', '{0} {1}px "{2}"', 'nook award <user> <id> [tier]', 'Last.fm', 'Steam', 'PC']);
+const NOT_WORDS = new Set(['button, a, input', 'name-fx name-fx-', 'img.pres-cover, img.pres-glow', 'h1 .name-fx', 'Google Sans Flex', 'Material Symbols Rounded', 'Symbols', 'Ab1', 'UTC', '{0} {1}px "{2}"', 'nook award <user> <id> [tier]', 'Steam', 'PC', 'Spotify', 'Apple Music', 'Premium']);
 function looksLikeUI(t) {
   if (!t || t.length < 2) return false;
   if (NOT_WORDS.has(t) || /^[IVX]+$/.test(t) || /^;?--[\w-]+:/.test(t) || /^(?:translate[XYZ]?|inset|circle|ellipse|polygon)\(/.test(t)) return false;
@@ -138,7 +138,7 @@ for (const f of M3_FILES) scan(f);
 scan(SERVER, { server: true });
 scan('server/textmodel.js', { server: true });
 // 1.4 server modules: the notes and errors people see, found the same way as in server.js
-for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels']) scan('server/' + f + '.js', { server: true });
+for (const f of ['achievements', 'rewards', 'presence', 'stickers', 'social', 'blasts', 'channels', 'music']) scan('server/' + f + '.js', { server: true });
 // Budgie's own starter nests: tagline, description, rules, flairs and category are Budgie's words (the title is a name)
 scan('js/data.js', { data: true });
 // the page itself

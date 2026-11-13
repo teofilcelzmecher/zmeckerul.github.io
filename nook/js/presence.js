@@ -717,7 +717,7 @@
             'flower',
             'music_note',
             'Apple Music',
-            'Share the song the Music app on this iPhone is playing, while you’re using Budgie. On a friend’s song, Play in Apple Music plays it here (a whole song needs an Apple Music subscription).',
+            'Share the song the Music app on this iPhone is playing, while you’re using Budgie. Without Spotify, Listen along plays a friend’s song in the Music app (a whole song needs an Apple Music subscription).',
             `<label class="switch-row"><span class="switch-text"><span>Share what the Music app plays</span><small>Your iPhone asks you first</small></span><input type="checkbox" class="m3-switch" role="switch" id="pres-am"${amOn() ? ' checked' : ''}></label>`
           )
         : '') +
@@ -726,7 +726,7 @@
         'sports_esports',
         'Steam',
         'Link your Steam profile: paste its link, or the name in its custom URL. Your profile and its Game details must be public in Steam’s privacy settings.',
-        !s.available.steam && !s.steam ? '<p class="muted pres-off">Steam isn’t set up on this Budgie server yet.</p>' : s.steam ? linked('steam', s.steam.name || s.steam.id) : linkForm('steam', 'Steam profile link or name', 'Link')
+        !s.available.steam && !s.steam ? '<p class="muted pres-off">Steam isn’t set up on this Budgie server yet.</p>' : s.steam ? linked('steam', s.steam.name || s.steam.id) : linkForm('steam', 'Steam profile link or name', 'Link Steam')
       ) +
       (D
         ? source(
@@ -1059,7 +1059,7 @@
     const via = state && state.spotify && state.spotify.linked ? 'spotify' : appleMusic() ? 'apple' : '';
     if (!via) {
       if (!state || !state.spotify) return M3.snackbar('Listening along needs Spotify, and it isn’t set up on this Budgie server yet.');
-      linkAsk = M3.snackbar('Link your Spotify to listen along with friends.', { action: { label: 'Link', onClick: openSettings } });
+      linkAsk = M3.snackbar('Link your Spotify to listen along with friends.', { action: { label: 'Link Spotify', onClick: openSettings } });
       return;
     }
     btn.setAttribute('aria-busy', 'true');
@@ -1076,7 +1076,7 @@
       along.timer = setInterval(follow, 15000);
       alongPill();
     } catch (error) {
-      if (error.link) M3.snackbar(error.message, { action: { label: 'Link', onClick: openSettings } });
+      if (error.link) M3.snackbar(error.message, { action: { label: 'Link Spotify', onClick: openSettings } });
       else app().showError(error);
     } finally {
       btn.removeAttribute('aria-busy');
