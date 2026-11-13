@@ -30,7 +30,7 @@ const textmodel = require('./textmodel');
 const video = require('./video');
 const makePush = require('./push');
 
-const VERSION = '1.6.0';
+const VERSION = '1.7.0';
 const TERMS = '1.0.0, 2026-10-30';
 const CONFIG = {
   port: Number(process.env.NOOK_PORT) || 8787,

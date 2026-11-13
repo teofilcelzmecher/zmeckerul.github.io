@@ -823,7 +823,8 @@
     );
   }
 
-  // on a phone a menu rises from the bottom as a sheet, where your thumb already is
+  // on a phone a menu rises from the bottom as a sheet, where your thumb already is (other parts of the app use it too)
+  app.menu = (anchor, items, options) => menu(anchor, items, options);
   function menu(anchor, items, options) {
     if (!matchMedia('(max-width: 719px) and (pointer: coarse)').matches) return M3.menu(anchor, items, options);
     const list = items.filter(Boolean);

@@ -896,7 +896,9 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   }
 
   return {
-    // (1.7) for music.js: Spotify's sightings, its link and place in a song, and who may see whose
+    // (1.7) for music.js: Spotify's sightings, its link and place in a song, and who may see whose, and the one
+    // budget of iTunes Search calls both modules share (about twenty a minute, Apple asks)
+    itunesPace,
     sighted,
     withdraw,
     merge,

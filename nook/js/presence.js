@@ -107,20 +107,96 @@
   // the controller's shape: a pixel circle (it's a game, after all), then softer ones, round and round
   const GAME_SHAPES = ['pixelCircle', 'cookie4', 'puffyDiamond', 'clover4'];
 
+  // ---- (1.7) music: hearing a friend's song, listening along, Spotify and Apple Music --------------------------
+
+  // what this server can do with music (from 1.7), and whether your own Spotify is linked: asked once, and again after
+  // linking or unlinking
+  const musicOn = () => !!(Nook.views && Nook.views.serverAt && Nook.views.serverAt('1.7.0'));
+  let musicState = null;
+  let musicAsk = null;
+  function musicStatus(fresh) {
+    if (!musicOn()) return Promise.resolve(null);
+    if (fresh) musicAsk = null;
+    if (!musicAsk)
+      musicAsk = api.get('/api/music').then(
+        (r) => (musicState = r),
+        () => (musicAsk = null)
+      );
+    return musicAsk;
+  }
+  const spotifyLinked = () => !!(musicState && musicState.spotify && musicState.spotify.linked);
+  // Budgie for iPhone reads what the Music app plays, and plays a song in it (apps/apple/native/native.js)
+  const appleMusic = () => {
+    const A = window.BudgieAppleMusic;
+    return A && typeof A.now === 'function' && typeof A.play === 'function' ? A : null;
+  };
+  /** where in a song someone is now: a share of it (0 to 1), and how long until it ends */
+  function songPlace(m) {
+    if (!m.duration) return null;
+    const at = Math.max(0, Math.min(m.duration, (m.position || 0) + (m.paused ? 0 : Date.now() + skew - (m.at || m.since))));
+    return { share: at / m.duration, left: Math.max(0, m.duration - at) };
+  }
+  /** whether you could listen along here: with your Spotify (once linked), or the Music app on Budgie for iPhone */
+  const canListenAlong = () => !!((musicState && musicState.spotify) || appleMusic());
+  /**
+   * a friend's song, in a row under it: a play button (30 seconds of it, the ring round it filling as it plays),
+   * Listen along, and Open in Spotify or Apple Music (with its words when there's room, as there is without Listen
+   * along)
+   */
+  function songActs(name) {
+    if (!musicOn()) return '';
+    const n = esc(name);
+    const along = canListenAlong();
+    return (
+      '<div class="pres-acts">' +
+      `<button type="button" class="pres-play" data-music="preview" data-name="${n}" aria-label="Hear 30 seconds of it" data-tooltip="Preview">${icon('play_arrow')}</button>` +
+      (along ? `<button type="button" class="m3-btn small pres-act pres-along-btn" data-music="along" data-name="${n}">${icon('headphones')}<span>Listen along</span></button>` : '') +
+      (along
+        ? `<button type="button" class="m3-icon-btn small pres-act pres-open" data-music="open" data-name="${n}" aria-haspopup="menu" aria-label="Open in Spotify or Apple Music" data-tooltip="Open in…">${icon('open_in_new')}</button>`
+        : `<button type="button" class="m3-btn small pres-act pres-open wide" data-music="open" data-name="${n}" aria-haspopup="menu">${icon('open_in_new')}<span>Open in…</span></button>`) +
+      '</div>'
+    );
+  }
+  /** the line showing how far into the song they are: where it starts from, and how long it runs on */
+  function progressLine(m) {
+    const place = songPlace(m);
+    if (!place) return '';
+    return `<span class="pres-progress${m.paused ? ' paused' : ''}" aria-hidden="true" data-mark="${esc(`${m.at || ''}|${m.paused ? 1 : 0}`)}" style="--from:${place.share.toFixed(4)};--left:${Math.round(place.left)}ms"><i></i></span>`;
+  }
+  /** the same song, newly asked about: the line carries on from where they are now (the card isn't drawn again) */
+  function syncProgress(card, m) {
+    const bar = card.querySelector('.pres-progress');
+    const mark = `${m.at || ''}|${m.paused ? 1 : 0}`;
+    if (!bar || bar.dataset.mark === mark) return;
+    const place = songPlace(m);
+    if (!place) return;
+    bar.dataset.mark = mark;
+    bar.style.setProperty('--from', place.share.toFixed(4));
+    bar.style.setProperty('--left', Math.round(place.left) + 'ms');
+    bar.classList.toggle('paused', !!m.paused);
+    // a new line, so its animation starts again from here
+    bar.innerHTML = '<i></i>';
+  }
+
   /** the big card for a song, on a profile */
-  function musicCard(m, own) {
+  function musicCard(m, own, name) {
+    const theirs = !own && name && musicOn();
     const src = artSrc(m.art);
     const genres = (m.genres || []).slice(0, 2);
     return (
       `<div class="pres-card pres-music${src ? ' has-art' : ''}" data-slot="music"${own ? ' data-pres-act="mine" data-m3-ripple role="button" tabindex="0" aria-label="Change or clear what you’re listening to"' : ''}>` +
       (src ? `<img class="pres-glow" src="${esc(src)}" alt="" aria-hidden="true">` : '') +
-      `<div class="pres-art" aria-hidden="true"><span class="pres-vinyl"${src ? ` style="--art:url('${esc(src)}')"` : ''}></span>` +
-      (src ? `<img class="pres-cover" src="${esc(src)}" alt="" crossorigin="anonymous">` : `<span class="pres-cover pres-cover-empty">${icon('music_note')}</span>`) +
+      `<div class="pres-art"><span class="pres-vinyl" aria-hidden="true"${src ? ` style="--art:url('${esc(src)}')"` : ''}></span>` +
+      (src ? `<img class="pres-cover" src="${esc(src)}" alt="" crossorigin="anonymous">` : `<span class="pres-cover pres-cover-empty" aria-hidden="true">${icon('music_note')}</span>`) +
       '</div>' +
       `<div class="pres-info"><span class="pres-label">${EQ}<span class="pres-word">Listening</span>${sourceTag(m)}</span>` +
       `<b class="pres-title" translate="no">${esc(clean(m.title))}</b>` +
       (m.artist || m.album ? `<span class="pres-sub" translate="no">${esc(clean(m.artist || ''))}${m.artist && m.album ? ' · ' : ''}${m.album ? `<span class="pres-album">${esc(clean(m.album))}</span>` : ''}</span>` : '') +
-      `<span class="pres-meta"><span data-since="${m.since}">${esc(forHowLong(m.since))}</span>${genres.length ? `<span class="pres-genres" translate="no">${genres.map(esc).join(' · ')}</span>` : ''}</span></div>` +
+      `<span class="pres-meta"><span data-since="${m.since}">${esc(forHowLong(m.since))}</span>${genres.length ? `<span class="pres-genres" translate="no">${genres.map(esc).join(' · ')}</span>` : ''}</span>` +
+      // how far into the song they are, running on by itself to its end
+      progressLine(m) +
+      '</div>' +
+      (theirs ? songActs(name) : '') +
       (own ? `<span class="pres-edit" aria-hidden="true">${icon('edit')}</span>` : '') +
       '</div>'
     );
@@ -223,16 +299,19 @@
     let changed = false;
     for (const slot of ['music', 'game']) {
       const x = act && act[slot];
-      const sig = cardSig(slot, x);
+      const sig = cardSig(slot, x) + (slot === 'music' && x ? `|${!!x.duration}|${x.link || ''}|${canListenAlong()}|${musicOn()}` : '');
       let card = el.querySelector(`.pres-card[data-slot="${slot}"]`);
-      if (card && card.dataset.sig === sig) continue;
+      if (card && card.dataset.sig === sig) {
+        if (slot === 'music') syncProgress(card, x);
+        continue;
+      }
       changed = true;
       if (!x) {
         if (card) card.remove();
         continue;
       }
       const next = document.createElement('div');
-      next.innerHTML = slot === 'music' ? musicCard(x, own) : gameCard(x, own);
+      next.innerHTML = slot === 'music' ? musicCard(x, own, name) : gameCard(x, own);
       const fresh = next.firstElementChild;
       fresh.dataset.sig = sig;
       fresh.dataset.key = slot === 'music' ? JSON.stringify([x.title, x.artist || '']) : x.name;
@@ -244,6 +323,14 @@
       guardImages(fresh);
       wearArt(fresh);
       if (!sameThing) arrive(fresh);
+      // a preview playing on the card it replaced: on with the same song, stopped for another
+      if (slot === 'music' && player && player.name === name && !player.btn.isConnected) {
+        const btn = sameThing && fresh.querySelector('.pres-play');
+        if (btn) {
+          player.btn = btn;
+          setPlaying(btn, true);
+        } else stopPreview();
+      }
     }
     // your own profile with nothing on: a way to share something
     const empty = !(act && (act.music || act.game));
@@ -479,6 +566,7 @@
     }
   });
   document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-music], .pres-acts a')) return;
     // someone else's card answers a tap: a little burst of notes (or pixels) and a buzz, just for fun
     const card = !e.target.closest('[data-pres-act]') && e.target.closest('.pres-card');
     if (card) {
@@ -540,6 +628,7 @@
     }
     paint(main);
     refresh(false);
+    if (musicOn() && !musicState) musicStatus().then(() => paint());
   });
 
   // ---- Settings → Activity -----------------------------------------------------------------------------------
@@ -578,6 +667,8 @@
         return;
       }
     }
+    // (1.7) Spotify and Apple Music, from a server that has them
+    const mus = await musicStatus();
     if (!box.isConnected) return;
     mine(s.activity);
     const seg = (id, value, opts) =>
@@ -608,6 +699,28 @@
         'Type what you’re listening to or playing, for as long as you like (up to a day). It’s just words, so it doesn’t count towards music or game achievements.',
         `<div class="toolbar"><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="music">${icon('music_note')}Listening to…</button><button type="button" class="m3-btn tonal" data-pres-act="set" data-slot="game">${icon('sports_esports')}Playing…</button></div>`
       ) +
+      (mus
+        ? source(
+            'cookie9',
+            'graphic_eq',
+            'Spotify',
+            'Link your Spotify, and your friends see what you’re playing on it, about every 20 seconds while you use Budgie. With Spotify Premium, you can listen along with them too.',
+            !mus.spotify
+              ? '<p class="muted pres-off">Spotify isn’t set up on this Budgie server yet.</p>'
+              : mus.spotify.linked
+              ? `<div class="pres-linked"><span class="chip static">${icon('link')}<span translate="no">${esc(mus.spotify.account || 'Spotify')}</span>${mus.spotify.premium ? '<span class="pres-premium">Premium</span>' : ''}</span><button type="button" class="m3-btn text small" data-music-unlink>${icon('link_off')}Unlink</button></div>`
+              : `<a class="m3-btn filled pres-spotify" data-music-link href="#" target="_blank" rel="noopener" aria-disabled="true">${icon('link')}Link Spotify</a><small class="muted pres-spotify-note">You’ll sign in on Spotify’s own page, then come back here.</small>`
+          )
+        : '') +
+      (mus && appleMusic()
+        ? source(
+            'flower',
+            'music_note',
+            'Apple Music',
+            'Share the song the Music app on this iPhone is playing, while you’re using Budgie. On a friend’s song, Play in Apple Music plays it here (a whole song needs an Apple Music subscription).',
+            `<label class="switch-row"><span class="switch-text"><span>Share what the Music app plays</span><small>Your iPhone asks you first</small></span><input type="checkbox" class="m3-switch" role="switch" id="pres-am"${amOn() ? ' checked' : ''}></label>`
+          )
+        : '') +
       source(
         'pixelCircle',
         'sports_esports',
@@ -620,12 +733,12 @@
             'clover8',
             'computer',
             'This computer',
-            'Budgie for Windows and Linux can see the music your computer plays (Spotify and other players) and the games it runs. Nothing else on your computer is looked at.',
+            'Budgie for your computer can see the music it plays (Spotify, Apple Music and other players) and the games it runs. Nothing else on your computer is looked at.',
             `<label class="switch-row"><span class="switch-text"><span>Show what I’m listening to</span><small>From your computer’s media controls</small></span><input type="checkbox" class="m3-switch" role="switch" id="pres-d-music"${options.music !== false ? ' checked' : ''}></label>` +
               `<label class="switch-row"><span class="switch-text"><span>Show what I’m playing</span><small>Games running on this computer</small></span><input type="checkbox" class="m3-switch" role="switch" id="pres-d-games"${options.games !== false ? ' checked' : ''}></label>`
           )
         : '') +
-      (offerDesktop() ? `<p class="muted pres-off pres-get">${icon('computer')}<span>Budgie for Windows and Linux can show what your computer plays and runs by itself. <a href="download.html">Get it</a></span></p>` : '') +
+      (offerDesktop() ? `<p class="muted pres-off pres-get">${icon('computer')}<span>Budgie for your computer can show what it plays and runs by itself. <a href="download.html">Get it</a></span></p>` : '') +
       '<p class="muted pres-privacy">Budgie keeps what you’re listening to and playing right now, and counts the songs, artists, genres and games you play for your achievements and your profile’s Lately. Album art is fetched by Budgie’s own server, so no other company sees who’s looking.</p>';
 
     // who can see it
@@ -677,6 +790,62 @@
         );
       });
     }
+    // (1.7) Spotify: its sign-in page's address is asked for now, so the button opens it straight from the tap
+    const link = box.querySelector('[data-music-link]');
+    if (link)
+      api.post('/api/music/spotify/start', {}).then(
+        (r) => {
+          link.href = r.url;
+          link.removeAttribute('aria-disabled');
+        },
+        (error) => {
+          link.insertAdjacentHTML('afterend', `<span class="error" role="alert">${esc(error.message)}</span>`);
+          link.remove();
+        }
+      );
+    const unlink = box.querySelector('[data-music-unlink]');
+    if (unlink)
+      unlink.addEventListener('click', () =>
+        api.del('/api/music/spotify').then(
+          () => {
+            M3.snackbar('Spotify is unlinked. You can also take Budgie’s access away in your Spotify account’s settings.');
+            musicStatus(true).then(() => {
+              fillSettings(box);
+              paint();
+            });
+          },
+          (error) => app().showError(error)
+        )
+      );
+    const am = box.querySelector('#pres-am');
+    if (am)
+      am.addEventListener('change', async () => {
+        const A = appleMusic();
+        if (!am.checked) {
+          try {
+            localStorage.removeItem(AM_KEY);
+          } catch (_) {
+            /* nothing kept */
+          }
+          clearInterval(amTimer);
+          if (amSent) api.post('/api/activity', { source: 'desktop', music: null }).then((r) => mine(r.activity), () => {});
+          amSent = '';
+          return;
+        }
+        const answer = A ? await Promise.resolve(A.ask()).catch(() => 'off') : 'off';
+        if (answer !== 'on') {
+          am.checked = false;
+          return M3.snackbar('Let Budgie use Apple Music: iPhone Settings → Apps → Budgie → Media & Apple Music.', { timeout: 12000 });
+        }
+        try {
+          localStorage.setItem(AM_KEY, '1');
+        } catch (_) {
+          /* only while it's open, then */
+        }
+        haptic([8, 40, 12]);
+        M3.toast('Sharing what the Music app plays', { symbol: 'music_note', shape: 'flower' });
+        amStart();
+      });
     // the desktop app's own switches
     if (D) {
       for (const [id, key] of [['#pres-d-music', 'music'], ['#pres-d-games', 'games']]) {
@@ -705,7 +874,7 @@
     const a = latest || {};
     const m = a.music && a.music.playing !== false && options.music !== false && a.music.title ? a.music : null;
     const g = a.game && options.games !== false && a.game.name ? a.game : null;
-    const music = m ? { title: String(m.title).slice(0, 150), artist: String(m.artist || '').slice(0, 100), album: String(m.album || '').slice(0, 100), app: String(m.app || '').slice(0, 32) } : null;
+    const music = m ? { title: String(m.title).slice(0, 150), artist: String(m.artist || '').slice(0, 100), album: String(m.album || '').slice(0, 100), app: String(m.app || '').slice(0, 32), duration: Math.round(Number(m.duration) || 0) || undefined, position: Math.round(Number(m.position) || 0) || undefined } : null;
     const game = g ? { name: String(g.name).slice(0, 80) } : null;
     const sig = JSON.stringify([music, game]);
     const t = Date.now();
@@ -732,6 +901,236 @@
       console.error('desktop activity', error);
     }
   })();
+
+  // ---- (1.7) a friend's song: its preview, listening along, Apple Music ---------------------------------------
+
+  // one preview at a time, in a player of its own: the ring round the play button fills as it plays, the record spins
+  let player = null;
+  function setPlaying(btn, on) {
+    btn.classList.toggle('is-playing', on);
+    btn.setAttribute('aria-label', on ? 'Stop the preview' : 'Hear 30 seconds of it');
+    btn.dataset.tooltip = on ? 'Stop' : 'Preview';
+    const glyph = btn.querySelector('.m3-icon');
+    if (glyph) glyph.textContent = on ? 'pause' : 'play_arrow';
+    if (!on) btn.style.removeProperty('--t');
+    const card = btn.closest('.pres-card');
+    if (card) card.classList.toggle('is-previewing', on);
+  }
+  function stopPreview() {
+    if (!player) return;
+    const { audio, btn } = player;
+    player = null;
+    audio.pause();
+    audio.removeAttribute('src');
+    setPlaying(btn, false);
+  }
+  window.addEventListener('hashchange', stopPreview);
+  document.addEventListener('visibilitychange', () => document.hidden && stopPreview());
+  // what /api/music/song said of the song someone's playing, for a minute (a new song is asked about afresh)
+  const songs = new Map();
+  const songMark = (name) => {
+    const m = (actOf(name) || {}).music;
+    return lower(name) + '\n' + (m ? `${m.title}\n${m.artist || ''}` : '');
+  };
+  async function songFor(name) {
+    const mark = songMark(name);
+    const kept = songs.get(mark);
+    if (kept && Date.now() - kept.at < 60000) return kept.song;
+    const song = await api.get('/api/music/song?name=' + encodeURIComponent(name));
+    songs.set(mark, { at: Date.now(), song });
+    return song;
+  }
+  async function preview(btn) {
+    const name = btn.dataset.name;
+    const same = player && player.btn === btn;
+    stopPreview();
+    if (same) return;
+    btn.setAttribute('aria-busy', 'true');
+    let song;
+    try {
+      song = await songFor(name);
+    } catch (error) {
+      return app().showError(error);
+    } finally {
+      btn.removeAttribute('aria-busy');
+    }
+    if (!song.preview) return M3.snackbar('There’s no preview of this song, sorry.');
+    const audio = new Audio(api.url(song.preview));
+    player = { audio, btn, name };
+    audio.addEventListener('timeupdate', () => player && player.audio === audio && player.btn.style.setProperty('--t', Math.min(1, audio.currentTime / (audio.duration || 30)).toFixed(3)));
+    audio.addEventListener('ended', () => player && player.audio === audio && stopPreview());
+    audio.play().then(
+      () => {
+        if (!player || player.audio !== audio) return;
+        haptic([6, 30, 6]);
+        setPlaying(player.btn, true);
+      },
+      () => {
+        if (!player || player.audio !== audio) return;
+        stopPreview();
+        M3.snackbar('The preview didn’t start. Tap it again.');
+      }
+    );
+  }
+
+  // open their song in Spotify or Apple Music (where it is on Apple Music is asked for as the menu opens)
+  function openIn(btn) {
+    const name = btn.dataset.name;
+    const m = (actOf(name) || {}).music || {};
+    let found = null;
+    const looking = songFor(name).then(
+      (song) => (found = song),
+      () => (found = {})
+    );
+    const go = (url) => window.open(url, '_blank', 'noopener');
+    const apple = (song) => (song && song.apple ? go(song.apple) : M3.snackbar('This song doesn’t seem to be on Apple Music.'));
+    (app().menu || M3.menu)(btn, [
+      m.link ? { label: 'Open in Spotify', symbol: 'graphic_eq', onSelect: () => go(m.link) } : null,
+      // already known: opened in the tap itself, so the browser doesn't stop it as a pop-up
+      { label: 'Open in Apple Music', symbol: 'music_note', onSelect: () => (found ? apple(found) : looking.then(apple)) },
+    ].filter(Boolean));
+  }
+
+  // listening along: their song on your Spotify (or, on Budgie for iPhone without Spotify, in its Music app), from where
+  // they are in it, then the next one they play, and the next, until you stop (or they do, or three hours pass)
+  let along = null;
+  let linkAsk = null; // the snackbar asking you to link Spotify, put away once you listen along
+  function alongPill() {
+    let pill = document.getElementById('pres-along');
+    if (!along) return pill && pill.remove();
+    if (!pill) {
+      document.body.insertAdjacentHTML('beforeend', `<div class="pres-along" id="pres-along" role="status"><span class="pres-along-eq">${MINI_EQ}</span><span class="pres-along-text"></span><button type="button" class="m3-btn text small" data-music="stop">${icon('stop')}Stop</button></div>`);
+      pill = document.getElementById('pres-along');
+    }
+    pill.querySelector('.pres-along-text').textContent = along.via === 'apple' ? `Listening along with u/${along.name} in Apple Music` : `Listening along with u/${along.name}`;
+  }
+  function stopAlong(why) {
+    if (!along) return;
+    clearInterval(along.timer);
+    along = null;
+    alongPill();
+    if (why) M3.snackbar(why);
+  }
+  /** their song, now, where you listen: { title } */
+  async function playAlong(name, via) {
+    if (via === 'spotify') return api.post('/api/music/listen', { name });
+    const A = appleMusic();
+    const song = await songFor(name);
+    if (!A || !song.appleId) throw new Error('This song doesn’t seem to be on Apple Music.');
+    const m = (actOf(name) || {}).music || {};
+    const place = songPlace(m);
+    const r = (await A.play(song.appleId, place ? Math.round(place.share * m.duration) : 0)) || {};
+    if (!r.ok) throw new Error(r.error === 'denied' ? 'Let Budgie use Apple Music: iPhone Settings → Apps → Budgie → Media & Apple Music.' : 'Apple Music didn’t play it. Playing a whole song needs an Apple Music subscription.');
+    return { title: song.title };
+  }
+  async function follow() {
+    if (!along || document.hidden) return;
+    if (Date.now() > along.until) return stopAlong('Listening along stopped after three hours.');
+    const who = along;
+    let a;
+    try {
+      a = (await api.get('/api/activity?names=' + encodeURIComponent(who.name))).activities[who.name];
+    } catch (_) {
+      return;
+    }
+    if (along !== who) return;
+    const m = a && a.music;
+    if (!m) {
+      who.quiet++;
+      if (who.quiet >= 3) stopAlong(`u/${who.name} stopped listening, so listening along stopped too.`);
+      return;
+    }
+    who.quiet = 0;
+    const key = JSON.stringify([m.title, m.artist || '']);
+    if (key === who.key) return;
+    who.key = key;
+    playAlong(who.name, who.via).then(
+      (r) => along === who && M3.toast(`Now: ${r.title}`, { symbol: 'headphones', shape: 'cookie9' }),
+      (error) => along === who && stopAlong(error.message)
+    );
+  }
+  async function listenAlong(btn) {
+    const name = btn.dataset.name;
+    if (along && along.name === name) return stopAlong('You stopped listening along.');
+    const state = await musicStatus();
+    const via = state && state.spotify && state.spotify.linked ? 'spotify' : appleMusic() ? 'apple' : '';
+    if (!via) {
+      if (!state || !state.spotify) return M3.snackbar('Listening along needs Spotify, and it isn’t set up on this Budgie server yet.');
+      linkAsk = M3.snackbar('Link your Spotify to listen along with friends.', { action: { label: 'Link', onClick: openSettings } });
+      return;
+    }
+    btn.setAttribute('aria-busy', 'true');
+    try {
+      const r = await playAlong(name, via);
+      if (linkAsk) linkAsk.close();
+      linkAsk = null;
+      stopPreview();
+      haptic([8, 40, 12]);
+      M3.toast(via === 'apple' ? `Playing “${r.title}” in Apple Music` : `Playing “${r.title}” on your Spotify`, { symbol: 'headphones', shape: 'cookie9' });
+      const m = (actOf(name) || {}).music;
+      stopAlong();
+      along = { name, via, key: m ? JSON.stringify([m.title, m.artist || '']) : '', quiet: 0, until: Date.now() + 3 * 3600000 };
+      along.timer = setInterval(follow, 15000);
+      alongPill();
+    } catch (error) {
+      if (error.link) M3.snackbar(error.message, { action: { label: 'Link', onClick: openSettings } });
+      else app().showError(error);
+    } finally {
+      btn.removeAttribute('aria-busy');
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-music]');
+    if (!btn) return;
+    const what = btn.dataset.music;
+    if (what === 'preview') preview(btn);
+    else if (what === 'along') listenAlong(btn);
+    else if (what === 'open') openIn(btn);
+    else if (what === 'stop') stopAlong('You stopped listening along.');
+  });
+
+  // Spotify linked (or unlinked) in another window or on another device: the settings and the cards catch up
+  Nook.hook('signal', (type) => {
+    if (type !== 'music') return;
+    musicStatus(true).then((state) => {
+      for (const box of document.querySelectorAll('[data-pres-settings]')) fillSettings(box);
+      paint();
+      if (state && state.spotify && state.spotify.linked) M3.toast('Spotify is linked', { symbol: 'link', shape: 'cookie9' });
+    });
+  });
+
+  // Budgie for iPhone, with "Share what the Music app plays" on: what it plays, every 20 seconds while Budgie is open
+  // (sent like a computer's sighting, so it lasts three minutes on the server unless it comes again)
+  const AM_KEY = 'nook-applemusic';
+  const amOn = () => {
+    try {
+      return localStorage.getItem(AM_KEY) === '1';
+    } catch (_) {
+      return false;
+    }
+  };
+  let amSent = '';
+  let amTimer = 0;
+  function amBeat() {
+    const A = appleMusic();
+    if (!A || !amOn() || document.hidden || !api.signedIn() || !musicOn()) return;
+    Promise.resolve(A.now()).then((n) => {
+      const music = n && n.playing && n.title ? { title: String(n.title).slice(0, 150), artist: String(n.artist || '').slice(0, 100), album: String(n.album || '').slice(0, 100), app: 'Apple Music', duration: Math.round(Number(n.duration) || 0), position: Math.round(Number(n.position) || 0), appleId: /^[0-9]{1,15}$/.test(String(n.id || '')) ? String(n.id) : undefined } : null;
+      const sig = music ? JSON.stringify([music.title, music.artist]) : '';
+      if (!music && !amSent) return;
+      amSent = sig;
+      api.post('/api/activity', { source: 'desktop', music }).then((r) => mine(r.activity), () => {});
+    }, () => {});
+  }
+  function amStart() {
+    clearInterval(amTimer);
+    if (!appleMusic() || !amOn()) return;
+    amTimer = setInterval(amBeat, 20000);
+    amBeat();
+  }
+  document.addEventListener('visibilitychange', () => !document.hidden && amOn() && amBeat());
+  setTimeout(amStart, 3000);
 
   Nook.presence = {
     /** what someone is doing, as last heard (null for nothing, or not known yet) */

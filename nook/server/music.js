@@ -278,7 +278,6 @@ CREATE TABLE IF NOT EXISTS music_songs (
       .replace(/[^\p{L}\p{N}]+/gu, ' ')
       .trim();
   const songKeyOf = (m) => crypto.createHash('sha256').update('song1\n' + presence.songKey(m)).digest('hex').slice(0, 32);
-  let itunesStamps = [];
   const lookups = new Map();
 
   /** what iTunes Search knows of a song: { appleUrl, appleId, preview } (kept for a month), or null */
@@ -288,11 +287,8 @@ CREATE TABLE IF NOT EXISTS music_songs (
     if (kept && kept.fetched_at > now() - 30 * DAY) return kept;
     if (lookups.has(key)) return lookups.get(key);
     const job = (async () => {
-      // about twenty a minute, Apple asks
-      const t = now();
-      itunesStamps = itunesStamps.filter((s) => s > t - MINUTE);
-      if (itunesStamps.length >= (FAST ? 600 : 18)) return kept || null;
-      itunesStamps.push(t);
+      // about twenty a minute, Apple asks: the same budget as presence.js's lookups of album art
+      if (!presence.itunesPace()) return kept || null;
       const term = [m.artist, m.title].filter(Boolean).join(' ').slice(0, 200);
       let answer = null;
       try {
@@ -394,7 +390,10 @@ CREATE TABLE IF NOT EXISTS music_songs (
   route('POST', '/api/music/spotify/start', ({ user }) => {
     limit('spotify-start:' + user.id, 20, HOUR, 'That’s a lot of tries. Wait a little and try again.');
     if (!clientId()) fail(503, 'Spotify isn’t set up on this Budgie server yet.');
-    for (const [s, p] of pending) if (p.at < now() - 15 * MINUTE || p.userId === user.id) pending.delete(s);
+    // links run out after 15 minutes; someone's three newest still work (Settings open in two windows, a second tap)
+    for (const [s, p] of pending) if (p.at < now() - 15 * MINUTE) pending.delete(s);
+    const theirs = [...pending].filter(([, p]) => p.userId === user.id);
+    for (const [s] of theirs.slice(0, Math.max(0, theirs.length - 2))) pending.delete(s);
     const state = b64url(crypto.randomBytes(24));
     const verifier = b64url(crypto.randomBytes(48));
     pending.set(state, { userId: user.id, verifier, at: now() });

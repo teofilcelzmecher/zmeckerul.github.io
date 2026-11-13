@@ -225,6 +225,224 @@
   --m3-icon-size: 16px;
 }
 
+/* ---- (1.7) a friend's song: how far in they are, and what you can do with it ------------------------------ */
+
+/* how far into the song they are: a thin line that runs on by itself to the song's end */
+.pres-progress {
+  position: relative;
+  display: block;
+  height: 3px;
+  margin: 7px 4px 1px 0;
+  overflow: hidden;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+.pres-progress i {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  transform: scaleX(var(--from, 0));
+  transform-origin: left;
+  animation: pres-progress var(--left, 0ms) linear forwards;
+}
+.pres-card[data-pres-act] .pres-progress {
+  /* room for the pencil on your own card */
+  margin-inline-end: 34px;
+}
+.pres-progress.paused i {
+  animation: none;
+}
+[dir='rtl'] .pres-progress i {
+  transform-origin: right;
+}
+@keyframes pres-progress {
+  from {
+    transform: scaleX(var(--from, 0));
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* the play button, Listen along and Open in…: a row across the bottom of the card, in its own (the album's) colours */
+.pres-card:has(> .pres-acts) {
+  flex-wrap: wrap;
+  row-gap: 12px;
+  padding-inline-end: 12px;
+}
+.pres-acts {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 0 100%;
+  align-items: center;
+  gap: 8px;
+}
+.pres-acts .pres-act {
+  --m3-btn-bg: color-mix(in srgb, var(--m3-on-primary-container) 12%, transparent);
+  --m3-btn-bg-hover: color-mix(in srgb, var(--m3-on-primary-container) 19%, transparent);
+  --m3-btn-fg: var(--m3-on-primary-container);
+  --m3-ripple: color-mix(in srgb, var(--m3-on-primary-container) 22%, transparent);
+  flex: none;
+  height: 40px;
+}
+.pres-acts .m3-btn.pres-act {
+  padding-inline-end: 16px;
+}
+.pres-acts .m3-icon-btn.pres-act {
+  width: 40px;
+}
+/* Listen along (or Open in…, without it) takes the room there is */
+.pres-acts .pres-along-btn,
+.pres-acts .pres-open.wide {
+  flex: 1 1 auto;
+}
+
+/* the play button: 30 seconds of the song, the ring round it filling as it plays */
+@property --t {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+.pres-play {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--m3-primary);
+  color: var(--m3-on-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: --t 260ms linear, scale 300ms var(--m3-ease-emphasized-decel, ease), background-color 200ms ease;
+}
+.pres-play .m3-icon {
+  --m3-icon-size: 24px;
+  --m3-icon-fill: 1;
+}
+.pres-play::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(var(--m3-primary) calc(var(--t) * 360deg), color-mix(in srgb, var(--m3-on-primary-container) 18%, transparent) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.pres-play.is-playing::before {
+  opacity: 1;
+}
+.pres-play:not(.is-playing) {
+  transition: scale 300ms var(--m3-ease-emphasized-decel, ease), background-color 200ms ease;
+}
+@media (hover: hover) {
+  .pres-play:hover {
+    background: color-mix(in srgb, var(--m3-on-primary) 10%, var(--m3-primary));
+  }
+}
+.pres-play:active {
+  scale: 0.92;
+}
+.pres-play:focus-visible {
+  outline: 3px solid var(--m3-on-primary-container);
+  outline-offset: 5px;
+}
+.pres-play[aria-busy='true'] .m3-icon {
+  animation: pres-play-wait 0.9s ease-in-out infinite alternate;
+}
+@keyframes pres-play-wait {
+  to {
+    opacity: 0.35;
+  }
+}
+/* the record turns faster while you hear it */
+.pres-card.is-previewing .pres-vinyl {
+  animation-duration: 1.8s;
+}
+
+/* listening along: a pill above everything, until you stop */
+.pres-along {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 6px 6px 6px 16px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-inverse-surface, var(--m3-surface-container-highest));
+  box-shadow: var(--m3-elevation-3);
+  color: var(--m3-inverse-on-surface, var(--m3-on-surface));
+  font-size: var(--m3-fs-small);
+  font-weight: 650;
+  translate: -50% 0;
+  animation: pres-along-in 420ms var(--m3-ease-emphasized-decel, ease) both;
+}
+.pres-along .m3-btn.text {
+  --m3-btn-fg: var(--m3-inverse-primary, var(--m3-primary));
+  --m3-btn-bg-hover: color-mix(in srgb, var(--m3-inverse-primary, var(--m3-primary)) 12%, transparent);
+  flex: none;
+}
+.pres-along-eq {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.pres-along-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@keyframes pres-along-in {
+  from {
+    opacity: 0;
+    translate: -50% 16px;
+  }
+}
+@media (max-width: 719px) {
+  .pres-along {
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+  body.bars-hidden .pres-along,
+  body.typing .pres-along,
+  body.keyboard .pres-along {
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Settings: Spotify */
+.pres-premium {
+  margin-inline-start: 4px;
+  padding: 1px 6px;
+  border-radius: var(--m3-r-full);
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 750;
+}
+.pres-spotify-note {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--m3-fs-smallie);
+}
+.pres-spotify[aria-disabled='true'] {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 /* an equaliser: four bars that bounce (a calm card holds them still, at different heights) */
 .pres-eq {
   display: inline-flex;
@@ -816,12 +1034,14 @@
   .pres-eq i,
   .pres-pad m3-shape,
   .pres-pad i,
-  .pres-live::after {
+  .pres-live::after,
+  .pres-progress i,
+  .pres-along {
     animation: none !important;
   }
 }
-:root[data-m3-reduce-motion] :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after),
-body.calm :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after) {
+:root[data-m3-reduce-motion] :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-progress i, .pres-along),
+body.calm :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-progress i, .pres-along) {
   animation: none !important;
 }
 :root[data-m3-reduce-motion] .pres-pad i,
