@@ -460,11 +460,11 @@
     const errors = [];
     addEventListener('error', (e) => errors.push(String(e.message)));
     // 9 seconds after it starts; signed in and still loading (a simulator's first start can be much slower than
-    // that), once the app has drawn its first page instead, giving up after 45 seconds so a page that never gets
-    // there still reports
+    // that: 37 seconds on the build machine's iPhone and iPad alike), once the app has drawn its first page instead,
+    // giving up after 75 seconds so a page that never gets there still reports
     const drawn = () => !html.classList.contains('gated') && !!document.querySelector('#main > *');
     const report = () => {
-      if (signedIn() && !drawn() && performance.now() < 45000) return setTimeout(report, 250);
+      if (signedIn() && !drawn() && performance.now() < 75000) return setTimeout(report, 250);
       post('debug', {
         info: {
           secure: window.isSecureContext,

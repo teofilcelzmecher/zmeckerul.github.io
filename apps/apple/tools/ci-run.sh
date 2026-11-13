@@ -25,7 +25,7 @@ report() { # udid
   local data
   data=$(xcrun simctl get_app_container "$1" com.budgiesocial.app data 2>/dev/null) && echo "$data/Documents/budgie-diagnostics.json"
 }
-# the page reports 9 seconds after it starts, or once it has drawn when it's still loading then (up to 45 seconds); a
+# the page reports 9 seconds after it starts, or once it has drawn when it's still loading then (up to 75 seconds); a
 # simulator's first start can take longer than that, so this waits for this launch's report (the last one is removed
 # before each launch, so it's never read again by mistake), then takes the screenshot
 shoot() { # udid, name, phase
