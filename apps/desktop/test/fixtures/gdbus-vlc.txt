@@ -1,0 +1,1 @@
+({'PlaybackStatus': <'Paused'>, 'Metadata': <{'mpris:trackid': <objectpath '/org/budgie/track/0'>, 'mpris:length': <int64 215000000>, 'xesam:title': <"It's \"quoted\" — ünïcödé ✓ 🎵">, 'xesam:artist': <['Ärtist \\ back']>, 'xesam:album': <'Line'>}>, 'Volume': <1.0>, 'Position': <int64 42000000>, 'CanPlay': <true>, 'Rate': <1.0>},)

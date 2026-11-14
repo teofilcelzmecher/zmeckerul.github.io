@@ -1,0 +1,224 @@
+# Budgie for iPhone, iPhone Duo, iPad and Mac: builds the app on GitHub's Macs (no Mac of your own needed), runs it on
+# an iPhone, an iPhone Duo and an iPad in the simulator and on the Mac against a test server, with screenshots, and,
+# once App Store Connect's key is in the repository's secrets, signs it and sends it to TestFlight and App Store
+# Connect for both iOS and macOS. See apps/apple/README.md.
+name: Apple app
+
+on:
+  push:
+    branches: [claude/community-social-media-app-m1k3uc]
+    paths: ['apps/apple/**', 'nook/**', 'm3/**', '.github/workflows/apple.yml']
+  workflow_dispatch:
+    inputs:
+      push_key_id:
+        description: The notifications key's id, to check that it isn't what's in ASC_KEY_P8
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    outputs:
+      flags: ${{ steps.xcode.outputs.flags }}
+      xcode: ${{ steps.xcode.outputs.path }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: The newest Xcode
+        id: xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          # the newest that isn't a beta (a beta can't send apps to the App Store)
+          X=$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|release_candidate|_rc' | sort -V | tail -1)
+          sudo xcode-select -s "$X"
+          xcodebuild -version
+          V=$(xcodebuild -version | head -1 | awk '{print $2}')
+          echo "path=$X" >> "$GITHUB_OUTPUT"
+          # iPhone Duo's hinge is in the iOS 27.1 SDK
+          if [ "$(printf '%s\n27.1\n' "$V" | sort -V | head -1)" = "27.1" ]; then echo "flags=BUDGIE_HINGE" >> "$GITHUB_OUTPUT"; fi
+          xcrun simctl list runtimes
+
+      - name: XcodeGen
+        run: brew install xcodegen
+
+      - name: Budgie's screens, and the Xcode project
+        run: |
+          python3 apps/apple/tools/build-www.py
+          cd apps/apple
+          xcodegen generate
+          python3 tools/fix-project.py
+
+      - name: Build for iPhone and iPad (simulator)
+        working-directory: apps/apple
+        run: |
+          set -o pipefail
+          xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Debug -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO BUDGIE_FLAGS="${{ steps.xcode.outputs.flags }}" build 2>&1 | tee build-ios.log | grep -E "error:|warning: .*Budgie/|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build-ios.log
+
+      - name: Build for the Mac
+        working-directory: apps/apple
+        run: |
+          set -o pipefail
+          xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Debug -destination 'platform=macOS' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build 2>&1 | tee build-mac.log | grep -E "error:|warning: .*Budgie/|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" build-mac.log
+
+      - name: Run it on an iPhone, an iPhone Duo, an iPad and the Mac
+        run: |
+          mkdir -p "$RUNNER_TEMP/budgie-data"
+          NOOK_DATA="$RUNNER_TEMP/budgie-data" NOOK_PORT=8799 NOOK_TEXT_CHECK=off NOOK_PICTURE_CHECK=off \
+            nohup node nook/server/server.js > "$RUNNER_TEMP/server.log" 2>&1 &
+          TOKEN=$(node apps/apple/tools/ci-seed.js)
+          bash apps/apple/tools/ci-run.sh "$TOKEN" "$RUNNER_TEMP/screens"
+
+      - name: Keep the screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: budgie-apple-checks-${{ github.run_number }}
+          path: |
+            ${{ runner.temp }}/screens/
+            ${{ runner.temp }}/server.log
+            apps/apple/build-ios.log
+            apps/apple/build-mac.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  # App Store Connect's key, checked with Apple in a minute (the build takes a quarter of an hour), with what's wrong in words
+  keys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      PUSH_KEY_ID: ${{ inputs.push_key_id }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: apps/apple/tools
+      - name: App Store Connect's key
+        run: |
+          if [ -z "$ASC_KEY_ID$ASC_ISSUER_ID$ASC_KEY_P8$APPLE_TEAM_ID" ]; then echo "No App Store Connect key in the secrets yet"; exit 0; fi
+          python3 apps/apple/tools/clean-p8.py "$RUNNER_TEMP/AuthKey.p8"
+          python3 apps/apple/tools/check-asc.py "$RUNNER_TEMP/AuthKey.p8"
+          rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+  release:
+    needs: [build, keys]
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - name: Only with App Store Connect's key
+        id: ready
+        run: |
+          if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No App Store Connect key in the secrets yet, so the app was built and checked but not sent to TestFlight"
+          fi
+
+      - if: steps.ready.outputs.go == 'true'
+        uses: actions/checkout@v5
+
+      - name: Xcode, XcodeGen and the project
+        if: steps.ready.outputs.go == 'true'
+        run: |
+          sudo xcode-select -s "${{ needs.build.outputs.xcode }}"
+          brew install xcodegen
+          python3 apps/apple/tools/build-www.py
+          cd apps/apple
+          xcodegen generate
+          python3 tools/fix-project.py
+          python3 tools/clean-p8.py "$RUNNER_TEMP/AuthKey.p8"
+          if ! openssl pkey -in "$RUNNER_TEMP/AuthKey.p8" -noout 2>/dev/null; then
+            echo "::error::The ASC_KEY_P8 secret isn't a whole App Store Connect key. Paste all of the .p8 file's text again, from -----BEGIN PRIVATE KEY----- to -----END PRIVATE KEY----- (the key you made for GitHub, not the notifications one)"
+            exit 1
+          fi
+
+      - name: Store certificates and profiles, made through App Store Connect's key
+        if: steps.ready.outputs.go == 'true'
+        working-directory: apps/apple
+        run: |
+          set -eo pipefail
+          SIGN="$RUNNER_TEMP/signing"
+          ASC_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" python3 tools/asc-sign.py setup "$SIGN"
+          set -a; . "$SIGN/env.sh"; set +a
+          # the certificates' names hold the account's legal name: never in the (public) log
+          for v in "$SIGN_DIST" "$SIGN_INSTALLER" "$(printf '%s' "$SIGN_DIST" | sed -E 's/^[^:]*: (.*) \([A-Z0-9]{10}\)$/\1/')"; do echo "::add-mask::$v"; done
+          # a keychain of its own for them, searched by Xcode and codesign
+          KC="$RUNNER_TEMP/budgie.keychain-db"
+          security create-keychain -p "$P12_PASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$P12_PASS" "$KC"
+          for f in dist installer; do
+            security import "$SIGN/$f.p12" -k "$KC" -P "$P12_PASS" -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/security >/dev/null
+          done
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$P12_PASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          { echo "KC=$KC"; cat "$SIGN/env"; } >> "$GITHUB_ENV"
+
+      - name: Sign and send to App Store Connect (iPhone and iPad, then Mac)
+        if: steps.ready.outputs.go == 'true'
+        working-directory: apps/apple
+        run: |
+          set -eo pipefail
+          # the ids without what pasting can add (spaces, line breaks, invisible characters, punctuation)
+          ASC_KEY_ID=$(printf '%s' "$ASC_KEY_ID" | LC_ALL=C tr -cd 'A-Za-z0-9' | tr 'a-z' 'A-Z')
+          ASC_ISSUER_ID=$(printf '%s' "$ASC_ISSUER_ID" | LC_ALL=C tr -cd '0-9A-Fa-f-')
+          APPLE_TEAM_ID=$(printf '%s' "$APPLE_TEAM_ID" | LC_ALL=C tr -cd 'A-Za-z0-9' | tr 'a-z' 'A-Z')
+          AUTH=(-authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          # what the App Store gets: notifications through Apple's real service, not its test one
+          sed 's#<string>development</string>#<string>production</string>#' Budgie/Budgie.entitlements > "$RUNNER_TEMP/Budgie.entitlements"
+          sed 's#<string>development</string>#<string>production</string>#' Budgie/BudgieMac.entitlements > "$RUNNER_TEMP/BudgieMac.entitlements"
+          for PLATFORM in iOS macOS; do
+            if [ "$PLATFORM" = iOS ]; then PROFILE="$PROFILE_IOS"; ENT="$RUNNER_TEMP/Budgie.entitlements"; INSTALLER=""
+            else PROFILE="$PROFILE_MAC"; ENT="$RUNNER_TEMP/BudgieMac.entitlements"; INSTALLER="<key>installerSigningCertificate</key><string>$SIGN_INSTALLER</string>"; fi
+            cat > "$RUNNER_TEMP/export.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>$SIGN_DIST</string>
+            $INSTALLER
+            <key>provisioningProfiles</key><dict><key>com.budgiesocial.app</key><string>$PROFILE</string></dict>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+            xcodebuild -project Budgie.xcodeproj -scheme Budgie -configuration Release -destination "generic/platform=$PLATFORM" \
+              -archivePath "$RUNNER_TEMP/Budgie-$PLATFORM.xcarchive" DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$SIGN_DIST" PROVISIONING_PROFILE_SPECIFIER="$PROFILE" \
+              CODE_SIGN_ENTITLEMENTS="$ENT" OTHER_CODE_SIGN_FLAGS="--keychain $KC" \
+              CURRENT_PROJECT_VERSION="${{ github.run_number }}" BUDGIE_FLAGS="${{ needs.build.outputs.flags }}" archive | tail -40
+            xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Budgie-$PLATFORM.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+              -exportPath "$RUNNER_TEMP/export-$PLATFORM" "${AUTH[@]}" | tail -40
+          done
+
+      - name: Revoke this build's certificates and delete its profiles
+        if: always() && steps.ready.outputs.go == 'true'
+        working-directory: apps/apple
+        run: |
+          ASC_KEY_PATH="$RUNNER_TEMP/AuthKey.p8" python3 tools/asc-sign.py cleanup "$RUNNER_TEMP/signing" || true
+          security delete-keychain "$RUNNER_TEMP/budgie.keychain-db" 2>/dev/null || true
+          rm -rf "$RUNNER_TEMP/AuthKey.p8" "$RUNNER_TEMP/signing"

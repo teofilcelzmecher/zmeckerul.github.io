@@ -1,0 +1,172 @@
+01cbdb4	Apel vocal {1}	Llamada de voz {1}	Appel vocal {1}	Sprachanruf {1}	Chiamata vocale {1}
+3cdd912	Apel video {1}	Videollamada {1}	Appel vidéo {1}	Videoanruf {1}	Videochiamata {1}
+623acb7	Mesaje mai vechi	Mensajes anteriores	Messages plus anciens	Ältere Nachrichten	Messaggi precedenti
+2603f45	{1} gata de trimis{2}	{1} lista para enviar{2}	{1} prête à envoyer{2}	{1} bereit zum Senden{2}	{1} pronta da inviare{2}
++Photo ready to send. Add a message, or just send it	Poză gata de trimis. Adaugă un mesaj sau trimite-o așa	Foto lista para enviar. Añade un mensaje o envíala tal cual	Photo prête à envoyer. Ajoute un message, ou envoie-la telle quelle	Foto bereit zum Senden. Schreib eine Nachricht dazu oder schick es einfach	Foto pronta da inviare. Aggiungi un messaggio, o inviala così
++GIF ready to send. Add a message, or just send it	GIF gata de trimis. Adaugă un mesaj sau trimite-l așa	GIF listo para enviar. Añade un mensaje o envíalo tal cual	GIF prêt à envoyer. Ajoute un message, ou envoie-le tel quel	GIF bereit zum Senden. Schreib eine Nachricht dazu oder schick es einfach	GIF pronta da inviare. Aggiungi un messaggio, o inviala così
++Photo ready to send	Poză gata de trimis	Foto lista para enviar	Photo prête à envoyer	Foto bereit zum Senden	Foto pronta da inviare
++GIF ready to send	GIF gata de trimis	GIF listo para enviar	GIF prêt à envoyer	GIF bereit zum Senden	GIF pronta da inviare
+7a3ff77	Nu trimite: {0}	No enviar: {0}	Ne pas envoyer : {0}	Nicht senden: {0}	Non inviare: {0}
++Don’t send this photo	Nu trimite poza	No enviar esta foto	Ne pas envoyer cette photo	Dieses Foto nicht senden	Non inviare questa foto
++Don’t send this GIF	Nu trimite GIF-ul	No enviar este GIF	Ne pas envoyer ce GIF	Dieses GIF nicht senden	Non inviare questa GIF
+1145e17	Deschide {0}	Abrir {0}	Ouvrir {0}	{0} öffnen	Apri {0}
+babfeaf	Raportează mesajul	Denunciar mensaje	Signaler le message	Nachricht melden	Segnala messaggio
+2ce4408	Moderatorii îl vor vedea, și pe cine l-a trimis	Los moderadores lo verán, y quién lo envió	Les modérateurs le verront, ainsi que son expéditeur	Moderatoren sehen sie und wer sie geschickt hat	I moderatori lo vedranno, e chi l’ha inviato
+ebbc7d3	Nu s-a putut copia.	No se pudo copiar.	Copie impossible.	Kopieren fehlgeschlagen.	Impossibile copiare.
+29207df	Toate mesajele	Todos los mensajes	Tous les messages	Alle Nachrichten	Tutti i messaggi
+08f90a0	Mai multe pentru u/{1}	Más para u/{1}	Plus pour u/{1}	Mehr für u/{1}	Altro per u/{1}
+42dc84a	Conversație cu u/{0}	Chat con u/{0}	Discussion avec u/{0}	Chat mit u/{0}	Chat con u/{0}
+51d0a08	Scrie-i lui u/{0}	Escribir a u/{0}	Écrire à u/{0}	u/{0} schreiben	Scrivi a u/{0}
+9e2d4e4	L-ai blocat pe u/{0}. Deblochează ca să fiți prieteni și să vă scrieți din nou.	Bloqueaste a u/{0}. Desbloquéalo para volver a ser amigos y escribiros.	Tu as bloqué u/{0}. Débloque cette personne pour redevenir amis et vous écrire.	Du hast u/{0} blockiert. Entsperre die Person, um wieder befreundet zu sein und zu schreiben.	Hai bloccato u/{0}. Sbloccalo per tornare amici e scrivervi.
+8164104	Îi poți scrie lui u/{0} după ce deveniți prieteni.	Podrás escribir a u/{0} cuando seáis amigos.	Tu pourras écrire à u/{0} une fois amis.	Du kannst u/{0} schreiben, sobald ihr befreundet seid.	Potrai scrivere a u/{0} quando sarete amici.
+f165127	Încă niciun mesaj. Salută!	Aún no hay mensajes. ¡Saluda!	Pas encore de messages. Dis bonjour !	Noch keine Nachrichten. Sag Hallo!	Ancora nessun messaggio. Saluta!
+145422f	Grupul ăsta nu mai există sau nu mai ești în el.	Ese grupo ya no existe, o no estás en él.	Ce groupe n’existe plus, ou tu n’en fais pas partie.	Diese Gruppe gibt es nicht mehr, oder du bist nicht darin.	Quel gruppo non c’è più, o non ne fai parte.
+3de899d	Despre {1}	Sobre {1}	À propos de {1}	Über {1}	Info su {1}
+4be5c02	Scrie în {0}	Escribir en {0}	Écrire dans {0}	In {0} schreiben	Scrivi in {0}
+ebdb842	Nu mai ești în grupul ăsta.	Ya no estás en ese grupo.	Tu ne fais plus partie de ce groupe.	Du bist nicht mehr in dieser Gruppe.	Non fai più parte di quel gruppo.
+4e8d25e	E în desfășurare: {0}	Hay en curso: {0}	En cours : {0}	Läuft gerade: {0}	In corso: {0}
++A video call is going on	E un apel video în desfășurare	Hay una videollamada en curso	Un appel vidéo est en cours	Ein Videoanruf läuft gerade	C’è una videochiamata in corso
++A voice call is going on	E un apel vocal în desfășurare	Hay una llamada de voz en curso	Un appel vocal est en cours	Ein Sprachanruf läuft gerade	C’è una chiamata vocale in corso
+0baaf59	Fixează postări	Fijar publicaciones	Épingler des publications	Beiträge anheften	Fissa i post
+4ec23e0	Fixează până la 3 postări în partea de sus a cuibului	Fija hasta 3 publicaciones arriba del nido	Épingle jusqu’à 3 publications en haut du nid	Bis zu 3 Beiträge oben im Nest anheften	Fissa fino a 3 post in cima al nido
+09ee485	Elimină postări și comentarii	Quitar publicaciones y comentarios	Retirer des publications et commentaires	Beiträge und Kommentare entfernen	Rimuovi post e commenti
+4640296	Elimină ce încalcă regulile și gestionează rapoartele	Quita lo que incumple las normas y gestiona las denuncias	Retire ce qui enfreint les règles et traite les signalements	Entfernen, was gegen die Regeln verstößt, und Meldungen bearbeiten	Rimuovi ciò che viola le regole e gestisci le segnalazioni
+c1c36aa	Interzice oameni	Expulsar a gente	Bannir des gens	Leute sperren	Banna persone
+15e76da	Oprește pe cineva să posteze și să comenteze în acest cuib	Impide que alguien publique y comente en este nido	Empêche quelqu’un de publier et commenter dans ce nid	Jemanden vom Posten und Kommentieren in diesem Nest abhalten	Impedisci a qualcuno di pubblicare e commentare in questo nido
+e0018fc	Editează regulile	Editar las normas	Modifier les règles	Regeln bearbeiten	Modifica le regole
+eeaa230	Schimbă regulile, sloganul și descrierea	Cambia las normas, el lema y la descripción	Change les règles, l’accroche et la description	Regeln, Slogan und Beschreibung ändern	Cambia le regole, lo slogan e la descrizione
+cf2dee3	Gestionează echipa	Gestionar el equipo	Gérer l’équipe	Team verwalten	Gestisci il team
+991ba30	Dă și ia roluri	Da y quita roles	Donne et retire des rôles	Rollen vergeben und entziehen	Assegna e togli ruoli
+4e7afeb	=	Administrador	=	=	Amministratore
+3a05e08	Totul, inclusiv echipa	Todo, incluido el equipo	Tout, y compris l’équipe	Alles, auch das Team	Tutto, team compreso
+ad3b15c	Moderator	Moderador	Modérateur	Moderator	Moderatore
+45c3080	Fixează, elimină postări și comentarii și interzice oameni	Fija, quita publicaciones y comentarios, y expulsa a gente	Épingle, retire publications et commentaires, et bannit	Heftet an, entfernt Beiträge und Kommentare und sperrt Leute	Fissa, rimuove post e commenti, e banna persone
+1e7eebd	Ajutor	Ayudante	Assistant	Helfer	Aiutante
+9e733c4	Fixează și elimină postări și comentarii	Fija y quita publicaciones y comentarios	Épingle et retire publications et commentaires	Heftet an und entfernt Beiträge und Kommentare	Fissa e rimuove post e commenti
+d5d8448	Al tău	Personalizado	Personnalisé	Eigene	Personalizzato
+dd34741	Dă-i un nume și alege ce poate face	Ponle nombre y elige qué puede hacer	Donne-lui un nom et choisis ce qu’il peut faire	Gib ihr einen Namen und wähle, was sie darf	Dagli un nome e scegli cosa può fare
+401a6e7	Nu există niciun cuib numit n/{0}.	No hay ningún nido llamado n/{0}.	Il n’y a pas de nid appelé n/{0}.	Es gibt kein Nest namens n/{0}.	Non esiste un nido chiamato n/{0}.
+0a7918e	Doar cei care conduc n/{0} pot vedea această pagină.	Solo quienes llevan n/{0} pueden ver esta página.	Seules les personnes qui gèrent n/{0} peuvent voir cette page.	Nur die Leute, die n/{0} leiten, sehen diese Seite.	Solo chi gestisce n/{0} può vedere questa pagina.
+bb11a8e	Reguli	Normas	Règles	Regeln	Regole
+1057c57	Interdicții	Expulsiones	Bannissements	Sperren	Ban
+88bc3fe	Rapoarte	Denuncias	Signalements	Meldungen	Segnalazioni
+2820a15	Gestionează n/{0}	Gestionar n/{0}	Gérer n/{0}	n/{0} verwalten	Gestisci n/{0}
+6e95fcf	Înapoi la cuib	Volver al nido	Retour au nid	Zurück zum Nest	Torna al nido
+474541b	în echipă, ca {0}	en su equipo, como {0}	dans son équipe, en tant que {0}	im Team, als {0}	nel team, come {0}
+afba69b	Ești {0}	Eres {0}	Tu es {0}	Du bist {0}	Sei {0}
++You’re its owner	Ești proprietarul lui	Eres su dueño	Tu en es propriétaire	Du bist der Besitzer	Ne sei il proprietario
++You’re on its team, as {0}	Ești în echipă, ca {0}	Estás en su equipo, como {0}	Tu fais partie de son équipe, en tant que {0}	Du bist im Team, als {0}	Sei nel team, come {0}
++You’re one of Budgie’s moderators	Ești unul dintre moderatorii Budgie	Eres moderador de Budgie	Tu fais partie des modérateurs de Budgie	Du bist Moderator bei Budgie	Sei uno dei moderatori di Budgie
+7ff5a6d	Secțiuni	Secciones	Sections	Bereiche	Sezioni
+7cd9e1b	Proprietar · poate face orice	Dueño · puede hacerlo todo	Propriétaire · peut tout faire	Besitzer · darf alles	Proprietario · può fare tutto
+4b9f66a	Ia-i rolul lui u/{2}	Quitarle el rol a u/{2}	Retirer le rôle de u/{2}	u/{2} die Rolle entziehen	Togli il ruolo a u/{2}
+c7bc011	Ia rolul	Quitar rol	Retirer le rôle	Rolle entziehen	Togli ruolo
+64fbd99	Schimbă	Cambiar	Changer	Ändern	Cambia
+14be504	Retrage-te	Dejar el puesto	Se retirer	Zurücktreten	Lascia il ruolo
+36d1115	Adaugă pe cineva	Añadir a alguien	Ajouter quelqu’un	Jemanden hinzufügen	Aggiungi qualcuno
+d6fdb11	Încă nimeni. Moderatorii Budgie au grijă de acest cuib.	Nadie todavía. Los moderadores de Budgie cuidan este nido.	Personne pour l’instant. Les modérateurs de Budgie s’occupent de ce nid.	Noch niemand. Budgies eigene Moderatoren kümmern sich um dieses Nest.	Ancora nessuno. I moderatori di Budgie si occupano di questo nido.
+679a254	Ce poate face fiecare rol	Qué puede hacer cada rol	Ce que peut faire chaque rôle	Was jede Rolle darf	Cosa può fare ogni ruolo
+fcbe640	Un rol cu un nume ales de tine, care poate face doar ce alegi. Oamenii pot da doar tipurile de acces pe care le au ei înșiși, și doar proprietarul poate lăsa pe cineva să gestioneze echipa.	Un rol con el nombre que elijas, que solo puede hacer lo que marques. Cada cual solo puede dar los permisos que tiene, y solo el dueño puede dejar que alguien gestione el equipo.	Un rôle au nom de ton choix, qui ne peut faire que ce que tu coches. On ne peut donner que les accès qu’on a soi-même, et seul le propriétaire peut confier la gestion de l’équipe.	Eine Rolle mit einem Namen deiner Wahl, die nur darf, was du auswählst. Man kann nur Rechte vergeben, die man selbst hat, und nur der Besitzer kann jemanden das Team verwalten lassen.	Un ruolo con un nome a tua scelta, che può fare solo ciò che selezioni. Si possono dare solo i permessi che si hanno, e solo il proprietario può far gestire il team a qualcuno.
+9c3d74e	Toată lumea le vede pe pagina cuibului. Păstrează-le scurte: până la 10, fiecare de până la 120 de caractere.	Todo el mundo las ve en la página del nido. Que sean cortas: hasta 10, de hasta 120 caracteres cada una.	Tout le monde les voit sur la page du nid. Fais court : jusqu’à 10, de 120 caractères maximum chacune.	Alle sehen sie auf der Seite des Nests. Halte sie kurz: bis zu 10, jede bis zu 120 Zeichen.	Tutti le vedono nella pagina del nido. Tienile brevi: fino a 10, ognuna fino a 120 caratteri.
+d119887	Adaugă o regulă	Añadir una norma	Ajouter une règle	Regel hinzufügen	Aggiungi una regola
+73b79b1	Despre cuib	Sobre el nido	À propos du nid	Über das Nest	Info sul nido
+b0f7948	Slogan	Lema	Accroche	Slogan	Slogan
+55f8ebc	Descriere	Descripción	Description	Beschreibung	Descrizione
+78e1790	Regulă	Norma	Règle	Regel	Regola
+cdf3b54	Fii amabil	Sé amable	Sois bienveillant	Sei freundlich	Sii gentile
+b4f57cd	Mută mai sus	Subir	Monter	Nach oben	Sposta su
+558f30c	Elimină regula	Quitar esta norma	Retirer cette règle	Regel entfernen	Rimuovi questa regola
+56a2285	Se salvează…	Guardando…	Enregistrement…	Wird gespeichert…	Salvataggio…
+45365e3	definitiv	para siempre	définitivement	dauerhaft	per sempre
++until {0}	până pe {0}	hasta el {0}	jusqu’au {0}	bis {0}	fino al {0}
+9438be1	Interzis în n/{0}	Expulsado de n/{0}	Banni de n/{0}	In n/{0} gesperrt	Bannato da n/{0}
+08e80bc	Interzice pe cineva	Expulsar a alguien	Bannir quelqu’un	Jemanden sperren	Banna qualcuno
+deb7bdd	O interdicție oprește doar postările și comentariile aici. Persoana poate citi în continuare cuibul și poate folosi restul Budgie.	Una expulsión solo impide publicar y comentar aquí. Esa persona puede seguir leyendo el nido y usar el resto de Budgie.	Un bannissement empêche seulement de publier et commenter ici. La personne peut toujours lire le nid et utiliser le reste de Budgie.	Eine Sperre verhindert nur Posten und Kommentieren hier. Die Person kann das Nest weiter lesen und den Rest von Budgie nutzen.	Un ban impedisce solo di pubblicare e commentare qui. La persona può ancora leggere il nido e usare il resto di Budgie.
+0d94779	· de u/{0}	· por u/{0}	· par u/{0}	· von u/{0}	· da u/{0}
+d2671bf	Anulează interdicția	Readmitir	Débannir	Entsperren	Rimuovi ban
+9b309d3	Nimeni nu e interzis.	No hay nadie expulsado.	Personne n’est banni.	Niemand ist gesperrt.	Nessuno è bannato.
+9936e42	Verificare automată	Revisión automática	Vérification automatique	Automatische Prüfung	Controllo automatico
+dc4c613	de u/{0}	por u/{0}	par u/{0}	von u/{0}	da u/{0}
++by u/{0} · already removed	de u/{0} · deja eliminat	por u/{0} · ya quitado	par u/{0} · déjà retiré	von u/{0} · schon entfernt	da u/{0} · già rimosso
++by u/{0} · banned	de u/{0} · interzis	por u/{0} · expulsado	par u/{0} · banni	von u/{0} · gesperrt	da u/{0} · bannato
++by u/{0} · already removed · banned	de u/{0} · deja eliminat · interzis	por u/{0} · ya quitado · expulsado	par u/{0} · déjà retiré · banni	von u/{0} · schon entfernt · gesperrt	da u/{0} · già rimosso · bannato
+e4556e9	Nimic în neregulă	Nada raro	Rien à signaler	Alles in Ordnung	Niente di strano
+5f378a2	Niciun raport deschis. Liniște.	No hay denuncias abiertas. Todo tranquilo.	Aucun signalement ouvert. Tout est calme.	Keine offenen Meldungen. Alles ruhig.	Nessuna segnalazione aperta. Tutto tranquillo.
+3e613a9	Te retragi din echipa n/{0}?	¿Dejar el equipo de n/{0}?	Quitter l’équipe de n/{0} ?	Aus dem Team von n/{0} zurücktreten?	Lasciare il team di n/{0}?
+52e10ec	Îi iei rolul lui u/{0}?	¿Quitarle el rol a u/{0}?	Retirer le rôle de u/{0} ?	u/{0} die Rolle entziehen?	Togliere il ruolo a u/{0}?
+3b67229	Nu vei mai putea face aici nimic din ce nu poate un membru. Cineva din echipă îți poate da din nou un rol.	No podrás hacer aquí nada que no pueda hacer un miembro. Alguien del equipo puede volver a darte un rol.	Tu ne pourras rien faire de plus qu’un membre ici. Quelqu’un de l’équipe pourra te redonner un rôle.	Du kannst hier nichts mehr tun, was ein Mitglied nicht kann. Jemand im Team kann dir wieder eine Rolle geben.	Non potrai fare qui niente più di un membro. Qualcuno del team potrà ridarti un ruolo.
+7db04ae	Va fi din nou un membru obișnuit al cuibului și e anunțat.	Volverá a ser un miembro normal del nido, y se le avisa.	La personne redevient un membre ordinaire du nid, et elle est prévenue.	Die Person wird wieder ein normales Mitglied des Nests und erfährt es.	Tornerà a essere un membro normale del nido, e viene avvisato.
+44a7d07	u/{0} poate posta din nou aici	u/{0} puede volver a publicar aquí	u/{0} peut de nouveau publier ici	u/{0} kann hier wieder posten	u/{0} può di nuovo pubblicare qui
+ceda476	Rolul lui u/{0}	Rol de u/{0}	Rôle de u/{0}	Rolle von u/{0}	Ruolo di u/{0}
+e6c951d	Adaugă pe cineva în echipă	Añadir a alguien al equipo	Ajouter quelqu’un à l’équipe	Jemanden zum Team hinzufügen	Aggiungi qualcuno al team
+1f9fb8a	Cine (trebuie să fie în n/{0})	Quién (tiene que haberse unido a n/{0})	Qui (doit avoir rejoint n/{0})	Wer (muss n/{0} beigetreten sein)	Chi (deve far parte di n/{0})
+c3f104d	Rol	Rol	Rôle	Rolle	Ruolo
+52f62ef	Guru al glazurii	Gurú del esmalte	Pro de l’émail	Glasur-Guru	Guru della smaltatura
+376b0e8	Numele lui	Su nombre	Son nom	Ihr Name	Il suo nome
+55b45c7	Cine să fie?	¿Quién?	Qui ça ?	Wer soll es sein?	Chi dovrebbe essere?
+078c893	Dă-i rolului un nume.	Ponle un nombre al rol.	Donne un nom au rôle.	Gib der Rolle einen Namen.	Dai un nome al ruolo.
+7f38eaa	Alege cel puțin un lucru pe care îl poate face.	Elige al menos una cosa que pueda hacer.	Choisis au moins une chose qu’il peut faire.	Wähle mindestens eine Sache, die sie darf.	Scegli almeno una cosa che può fare.
+8701ce2	u/{0} e în echipă	u/{0} está en el equipo	u/{0} fait partie de l’équipe	u/{0} ist im Team	u/{0} è nel team
+dd54aae	Interzici u/{0} în n/{1}?	¿Expulsar a u/{0} de n/{1}?	Bannir u/{0} de n/{1} ?	u/{0} in n/{1} sperren?	Bannare u/{0} da n/{1}?
+d4ea664	Interzice pe cineva în n/{0}	Expulsar a alguien de n/{0}	Bannir quelqu’un de n/{0}	Jemanden in n/{0} sperren	Banna qualcuno da n/{0}
+7d53161	Cine	Quién	Qui	Wer	Chi
+21e2cae	De ce	Por qué	Pourquoi	Warum	Perché
+fe3a541	Sau spune motivul cu cuvintele tale	O di el motivo con tus palabras	Ou explique pourquoi avec tes mots	Oder sag den Grund in eigenen Worten	O spiega il motivo con parole tue
+2c8c5a4	Pentru cât timp	Durante cuánto tiempo	Pour combien de temps	Wie lange	Per quanto tempo
+781dac8	E anunțat, cu motivul. Poate citi în continuare cuibul și poate folosi restul Budgie.	Se le avisa, con el motivo. Puede seguir leyendo el nido y usar el resto de Budgie.	La personne est prévenue, avec la raison. Elle peut toujours lire le nid et utiliser le reste de Budgie.	Die Person erfährt es, mit Grund. Sie kann das Nest weiter lesen und den Rest von Budgie nutzen.	Viene avvisato, con il motivo. Può ancora leggere il nido e usare il resto di Budgie.
+bfa1bfb	Interzice	Expulsar	Bannir	Sperren	Banna
+b9095bc	Pe cine interzici?	¿A quién quieres expulsar?	Qui faut-il bannir ?	Wen sperren?	Chi va bannato?
+ed238a0	Spune de ce: va fi anunțat.	Di por qué: se le avisará.	Explique pourquoi : la personne sera prévenue.	Sag warum: Die Person erfährt es.	Spiega perché: verrà avvisato.
+0af579f	u/{0} nu poate posta în n/{1} {2}	u/{0} no puede publicar en n/{1} {2}	u/{0} ne peut pas publier dans n/{1} {2}	u/{0} kann in n/{1} nicht posten {2}	u/{0} non può pubblicare in n/{1} {2}
++u/{0} can’t post in n/{1} for a day	u/{0} nu poate posta în n/{1} o zi	u/{0} no puede publicar en n/{1} durante un día	u/{0} ne peut pas publier dans n/{1} pendant un jour	u/{0} kann einen Tag lang nicht in n/{1} posten	u/{0} non può pubblicare in n/{1} per un giorno
++u/{0} can’t post in n/{1} for {2} days	u/{0} nu poate posta în n/{1} {2} zile	u/{0} no puede publicar en n/{1} durante {2} días	u/{0} ne peut pas publier dans n/{1} pendant {2} jours	u/{0} kann {2} Tage lang nicht in n/{1} posten	u/{0} non può pubblicare in n/{1} per {2} giorni
++u/{0} can’t post in n/{1} any more	u/{0} nu mai poate posta în n/{1}	u/{0} ya no puede publicar en n/{1}	u/{0} ne peut plus publier dans n/{1}	u/{0} kann nicht mehr in n/{1} posten	u/{0} non può più pubblicare in n/{1}
+51af07e	Doar moderatorii Budgie pot vedea această pagină.	Solo los moderadores de Budgie pueden ver esta página.	Seuls les modérateurs de Budgie peuvent voir cette page.	Nur Budgies Moderatoren sehen diese Seite.	Solo i moderatori di Budgie possono vedere questa pagina.
+093452d	Rapoarte deschise, cele mai noi primele. Oricine e vizat de o acțiune află ce și de ce.	Denuncias abiertas, las más nuevas primero. A quien afecte lo que hagas se le dice qué y por qué.	Signalements ouverts, les plus récents d’abord. La personne visée est informée de quoi et pourquoi.	Offene Meldungen, neueste zuerst. Wen du betriffst, erfährt was und warum.	Segnalazioni aperte, le più recenti prima. Chi è coinvolto viene avvisato di cosa e perché.
+1914680	Se încarcă rapoartele	Cargando denuncias	Chargement des signalements	Meldungen werden geladen	Caricamento segnalazioni
+e5fd9dc	Motivul pe care îl va vedea	Motivo que verá	Raison qu’elle verra	Grund, den die Person sieht	Motivo che vedrà
+740179b	Interzice un cont	Expulsar una cuenta	Bannir un compte	Konto sperren	Banna un account
+9f734fb	Deja dispărut.	Ya no está.	Déjà parti.	Schon weg.	Già sparito.
+1f46b6e	de u/{0}{1}{2}	por u/{0}{1}{2}	par u/{0}{1}{2}	von u/{0}{1}{2}	da u/{0}{1}{2}
+3d539d6	raportat de u/{0}	denunciado por u/{0}	signalé par u/{0}	gemeldet von u/{0}	segnalato da u/{0}
+2ebb22b	Elimină poza	Quitar imagen	Retirer l’image	Bild entfernen	Rimuovi immagine
+dc3ae7e	Golește profilul	Vaciar perfil	Vider le profil	Profil leeren	Svuota profilo
+70afe9e	Respinge	Descartar	Ignorer	Verwerfen	Ignora
+9ad6472	Nimic de verificat	Nada que revisar	Rien à examiner	Nichts zu prüfen	Niente da controllare
+42ff611	Niciun raport deschis. Calm și frumos.	No hay denuncias abiertas. Todo en calma.	Aucun signalement ouvert. Tout est calme.	Keine offenen Meldungen. Schön ruhig.	Nessuna segnalazione aperta. Tutto calmo.
+3c049f5	Raport respins	Denuncia descartada	Signalement ignoré	Meldung verworfen	Segnalazione ignorata
+86689c8	Cont interzis	Cuenta expulsada	Compte banni	Konto gesperrt	Account bannato
+8150251	Eliminat, iar autorul a aflat de ce	Quitado, y se le dijo al autor por qué	Retiré, et son auteur sait pourquoi	Entfernt, und der Autor hat den Grund erfahren	Rimosso, e l’autore sa perché
+d9f9d87	{0} eliminat, iar proprietarul a aflat de ce	{0}: quitado, y se le dijo a su dueño por qué	{0} retiré, et son propriétaire sait pourquoi	{0} entfernt, und die Person hat den Grund erfahren	{0} rimosso, e il proprietario sa perché
++Picture removed, and its owner told why	Poză eliminată, iar proprietarul a aflat de ce	Foto quitada, y se le dijo a su dueño por qué	Photo retirée, et son propriétaire sait pourquoi	Bild entfernt, und die Person hat den Grund erfahren	Foto rimossa, e il proprietario sa perché
++Banner removed, and its owner told why	Banner eliminat, iar proprietarul a aflat de ce	Banner quitado, y se le dijo a su dueño por qué	Bannière retirée, et son propriétaire sait pourquoi	Banner entfernt, und die Person hat den Grund erfahren	Banner rimosso, e il proprietario sa perché
+6bfd4bc	Profil golit, iar proprietarul a aflat de ce	Perfil vaciado, y se le dijo a su dueño por qué	Profil vidé, et son propriétaire sait pourquoi	Profil geleert, und die Person hat den Grund erfahren	Profilo svuotato, e il proprietario sa perché
+83b5b57	Interzis și deconectat	Expulsado y con la sesión cerrada	Banni et déconnecté	Gesperrt und abgemeldet	Bannato e disconnesso
+475c848	Nu s-a găsit	No encontrado	Introuvable	Nicht gefunden	Non trovato
+5c53da3	Înapoi acasă	Volver al inicio	Retour à l’accueil	Zurück zum Start	Torna alla home
+2734ef0	Pozele trebuie să fie JPEG, PNG sau GIF.	Las imágenes deben ser JPEG, PNG o GIF.	Les images doivent être en JPEG, PNG ou GIF.	Bilder müssen JPEG, PNG oder GIF sein.	Le immagini devono essere JPEG, PNG o GIF.
+18d5fd3	Pozele trebuie să fie JPEG sau PNG.	Las imágenes deben ser JPEG o PNG.	Les images doivent être en JPEG ou PNG.	Bilder müssen JPEG oder PNG sein.	Le immagini devono essere JPEG o PNG.
+64a8164	{0} e prea mare (limita e {1}).	{0}: demasiado grande (el límite es {1}).	{0} trop lourd (la limite est de {1}).	{0} ist zu groß (Grenze: {1}).	{0} troppo grande (il limite è {1}).
++That GIF is too big (the limit is {0}).	GIF-ul e prea mare (limita e {0}).	Ese GIF es demasiado grande (el límite es {0}).	Ce GIF est trop lourd (la limite est de {0}).	Das GIF ist zu groß (Grenze: {0}).	La GIF è troppo grande (il limite è {0}).
++That image is too big (the limit is {0}).	Imaginea e prea mare (limita e {0}).	Esa imagen es demasiado grande (el límite es {0}).	Cette image est trop lourde (la limite est de {0}).	Das Bild ist zu groß (Grenze: {0}).	L’immagine è troppo grande (il limite è {0}).
+9e0f88a	GIF-urile nu pot fi puse aici.	Aquí no se pueden poner GIF.	Les GIF ne sont pas acceptés ici.	GIFs sind hier nicht möglich.	Qui non si possono mettere GIF.
+0c80308	GIF-ul pare stricat.	Ese GIF parece estar roto.	Ce GIF semble cassé.	Das GIF scheint kaputt zu sein.	La GIF sembra danneggiata.
+b0e4392	GIF-ul e prea mare (cel mult {0}×{1} pixeli).	Ese GIF es demasiado grande ({0}×{1} píxeles como mucho).	Ce GIF est trop grand ({0}×{1} pixels maximum).	Das GIF ist zu groß (höchstens {0}×{1} Pixel).	La GIF è troppo grande (massimo {0}×{1} pixel).
+9eae0f3	Asta nu e un GIF.	Eso no es un GIF.	Ce n’est pas un GIF.	Das ist kein GIF.	Questa non è una GIF.
+fd0bdca	Nu pare a fi un JPEG, PNG sau GIF.	Eso no parece un JPEG, PNG ni GIF.	Ça ne ressemble pas à un JPEG, PNG ou GIF.	Das sieht nicht nach JPEG, PNG oder GIF aus.	Non sembra un JPEG, PNG o GIF.
+f7f0da7	Nu pare a fi un JPEG sau PNG.	Eso no parece un JPEG ni PNG.	Ça ne ressemble pas à un JPEG ou PNG.	Das sieht nicht nach JPEG oder PNG aus.	Non sembra un JPEG o PNG.
+92bc006	S-ar putea ca poza asta să nu fie potrivită pentru toată lumea de pe Budgie (o verificare automată a semnalat-o), așa că nu poate fi poză de profil sau banner. Încearcă alta.	Puede que esta imagen no sea adecuada para todo el mundo en Budgie (una revisión automática la marcó), así que no puede ser foto de perfil ni banner. Prueba con otra.	Cette image pourrait ne pas convenir à tout le monde sur Budgie (une vérification automatique l’a signalée), elle ne peut donc pas servir de photo de profil ou de bannière. Essaies-en une autre.	Dieses Bild ist vielleicht nicht für alle auf Budgie geeignet (eine automatische Prüfung hat es markiert), deshalb kann es kein Profilbild oder Banner sein. Versuch ein anderes.	Questa immagine potrebbe non andare bene per tutti su Budgie (un controllo automatico l’ha segnalata), quindi non può essere foto profilo o banner. Provane un’altra.
+b9034c4	S-ar putea ca poza asta să nu fie în regulă de trimis (o verificare automată a semnalat-o ca posibil sexuală), așa că nu a fost trimisă.	Puede que esta imagen no sea adecuada para enviar (una revisión automática la marcó como posiblemente sexual), así que no se envió.	Cette image pourrait ne pas être acceptable (une vérification automatique l’a signalée comme peut-être sexuelle), elle n’a donc pas été envoyée.	Dieses Bild ist vielleicht nicht in Ordnung (eine automatische Prüfung hat es als möglicherweise sexuell markiert), deshalb wurde es nicht gesendet.	Questa immagine potrebbe non andare bene (un controllo automatico l’ha segnalata come forse sessuale), quindi non è stata inviata.
+77e7be5	S-ar putea ca videoclipul ăsta să nu fie potrivit pentru toată lumea de pe Budgie (o verificare automată l-a semnalat ca posibil sexual), așa că nu poate fi publicat.	Puede que este vídeo no sea adecuado para todo el mundo en Budgie (una revisión automática lo marcó como posiblemente sexual), así que no se puede publicar.	Cette vidéo pourrait ne pas convenir à tout le monde sur Budgie (une vérification automatique l’a signalée comme peut-être sexuelle), elle ne peut donc pas être publiée.	Dieses Video ist vielleicht nicht für alle auf Budgie geeignet (eine automatische Prüfung hat es als möglicherweise sexuell markiert), deshalb kann es nicht gepostet werden.	Questo video potrebbe non andare bene per tutti su Budgie (un controllo automatico l’ha segnalato come forse sessuale), quindi non si può pubblicare.
+e51cb1a	Poza pare să arate nuditate sau conținut sexual, care nu sunt permise pe Budgie.	Esta imagen parece mostrar desnudos o contenido sexual, que no se permiten en Budgie.	Cette image semble montrer de la nudité ou du contenu sexuel, ce qui n’est pas autorisé sur Budgie.	Dieses Bild scheint Nacktheit oder sexuelle Inhalte zu zeigen, die auf Budgie nicht erlaubt sind.	Questa immagine sembra mostrare nudità o contenuti sessuali, non permessi su Budgie.
+60e1b2b	Poza nu a putut fi citită. Încearcă alta.	No se pudo leer esa imagen. Prueba con otra.	Impossible de lire cette image. Essaies-en une autre.	Das Bild konnte nicht gelesen werden. Versuch ein anderes.	Impossibile leggere l’immagine. Provane un’altra.
+6a17353	Pozele nu pot fi verificate acum, așa că nu pot fi publicate. Încearcă din nou peste un minut.	Ahora no se pueden revisar las imágenes, así que no se pueden publicar. Vuelve a intentarlo en un minuto.	Les images ne peuvent pas être vérifiées pour l’instant, donc pas publiées. Réessaie dans une minute.	Bilder können gerade nicht geprüft werden, deshalb können sie nicht gepostet werden. Versuch es in einer Minute noch mal.	Le immagini non si possono controllare ora, quindi non si possono pubblicare. Riprova tra un minuto.
+d870d61	Fără conținut sexual	Nada de contenido sexual	Pas de contenu sexuel	Keine sexuellen Inhalte	Niente contenuti sessuali
+4fa37d9	Verificarea automată a semnalat ceva de verificat: {0}	La revisión automática marcó algo para revisar: {0}	La vérification automatique a signalé quelque chose à examiner : {0}	Die automatische Prüfung hat etwas zum Ansehen markiert: {0}	Il controllo automatico ha segnalato qualcosa da guardare: {0}
+8bc1403	Sună ca un atac la cineva. Poți să nu fii de acord sau să glumești cât vrei, dar nu jignind oamenii.	Esto parece un ataque a alguien. Puedes discrepar o bromear todo lo que quieras, pero sin rebajar a nadie.	Ça ressemble à une attaque contre quelqu’un. Tu peux être en désaccord ou plaisanter autant que tu veux, mais sans rabaisser les gens.	Das liest sich wie ein Angriff auf jemanden. Widersprich oder scherze, so viel du willst, aber ohne andere runterzumachen.	Sembra un attacco a qualcuno. Puoi non essere d’accordo o scherzare quanto vuoi, ma senza sminuire le persone.
+c7cf00d	Sună ca o insultă la adresa cuiva. Poți să nu fii de acord sau să glumești cât vrei, dar nu jignind oamenii.	Esto parece un insulto a alguien. Puedes discrepar o bromear todo lo que quieras, pero sin rebajar a nadie.	Ça ressemble à une insulte envers quelqu’un. Tu peux être en désaccord ou plaisanter autant que tu veux, mais sans rabaisser les gens.	Das liest sich wie eine Beleidigung. Widersprich oder scherze, so viel du willst, aber ohne andere runterzumachen.	Sembra un insulto rivolto a qualcuno. Puoi non essere d’accordo o scherzare quanto vuoi, ma senza sminuire le persone.
+af7faa3	Sună ca o amenințare sau ca și cum i-ai dori cuiva răul.	Esto parece una amenaza, o desearle daño a alguien.	Ça ressemble à une menace, ou à souhaiter du mal à quelqu’un.	Das liest sich wie eine Drohung oder als würdest du jemandem Schaden wünschen.	Sembra una minaccia, o un augurio di male a qualcuno.
+12acb98	Sună ca un atac la oameni pentru cine sunt: de unde vin, religia, rasa, genul sau orientarea lor.	Esto parece atacar a la gente por quién es: su origen, religión, raza, género u orientación.	Ça ressemble à attaquer les gens pour ce qu’ils sont : leur origine, leur religion, leur couleur de peau, leur genre ou leur orientation.	Das liest sich wie ein Angriff auf Menschen dafür, wer sie sind: Herkunft, Religion, Hautfarbe, Geschlecht oder Sexualität.	Sembra un attacco alle persone per ciò che sono: provenienza, religione, etnia, genere o orientamento.
+0e301e7	Sună sexual. Budgie nu permite mesaje sexuale: toată lumea de aici are cel puțin 13 ani, iar mulți sunt adolescenți.	Esto parece sexual. Budgie no permite mensajes sexuales: todo el mundo aquí tiene 13 años o más, y muchos son adolescentes.	Ça a l’air sexuel. Budgie n’autorise pas les messages sexuels : tout le monde ici a 13 ans ou plus, et beaucoup sont ados.	Das liest sich sexuell. Budgie erlaubt keine sexuellen Nachrichten: Alle hier sind mindestens 13, und viele sind Teenager.	Sembra sessuale. Budgie non permette messaggi sessuali: tutti qui hanno almeno 13 anni, e molti sono adolescenti.
+1f2834c	Pentru o verificare automată, numele ăsta de utilizator pare jignitor sau nepoliticos. Încearcă altul.	A una revisión automática, ese nombre de usuario le parece ofensivo o grosero. Prueba con otro.	Pour une vérification automatique, ce nom d’utilisateur semble blessant ou grossier. Essaies-en un autre.	Für eine automatische Prüfung wirkt dieser Benutzername verletzend oder unhöflich. Versuch einen anderen.	Per un controllo automatico, questo nome utente sembra offensivo o maleducato. Provane un altro.
+6845850	Căutarea de GIF-uri e oprită.	La búsqueda de GIF está desactivada.	La recherche de GIF est désactivée.	Die GIF-Suche ist aus.	La ricerca GIF è disattivata.

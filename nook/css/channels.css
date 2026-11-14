@@ -1,0 +1,95 @@
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+/* Nest chat (Budgie 1.5): js/channels.js */
+
+/* the header: the channel and the nest, and under them a row of the nest's channels */
+.ch-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.ch-hash {
+  margin-right: 1px;
+  color: var(--m3-on-surface-variant);
+  font-weight: 500;
+}
+.chat-who .ch-hash {
+  color: var(--m3-primary);
+}
+.ch-chips {
+  display: flex;
+  flex: 1 0 100%;
+  gap: 6px;
+  margin: 0 -4px;
+  padding: 0 4px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ch-chips::-webkit-scrollbar {
+  display: none;
+}
+.ch-chips m3-loading {
+  --m3-loading-color: var(--m3-primary);
+  width: 28px;
+  height: 28px;
+}
+.ch-chip {
+  position: relative;
+  flex: none;
+  min-height: 32px;
+  text-decoration: none;
+}
+.ch-chip[aria-current='page'] {
+  border-color: transparent;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.ch-chip[aria-current='page'] .ch-hash {
+  color: inherit;
+}
+/* something new since you last looked */
+.ch-new {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--m3-error);
+}
+
+/* the nest's admins: the list of channels, each to move, change or delete */
+.ch-list {
+  display: grid;
+  gap: 4px;
+}
+.ch-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px 4px 4px 14px;
+  border-radius: var(--m3-r-large);
+  background: var(--m3-surface-container-high);
+}
+.ch-row .row-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.ch-row .row-text small {
+  overflow: hidden;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ch-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ch-name-row .ch-hash {
+  font-size: 1.4rem;
+}
+.ch-name-row input {
+  flex: 1;
+}

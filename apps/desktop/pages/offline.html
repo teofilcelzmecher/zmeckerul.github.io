@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src file:; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <title>Budgie</title>
+    <link rel="stylesheet" href="page.css" />
+    <style>
+      body {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 14px;
+        padding: 24px;
+        text-align: center;
+      }
+      img {
+        width: 112px;
+        height: 112px;
+        filter: grayscale(0.6);
+        opacity: 0.8;
+      }
+      h1 {
+        margin: 6px 0 0;
+        font-size: 26px;
+        font-weight: 720;
+      }
+      p {
+        max-width: 34ch;
+        margin: 0 0 8px;
+        color: var(--on-variant);
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="../icons/logo-128.png" alt="" />
+    <h1 id="title"></h1>
+    <p id="body"></p>
+    <button type="button" class="btn filled" id="retry"></button>
+    <script src="../strings.js"></script>
+    <script src="offline.js"></script>
+  </body>
+</html>

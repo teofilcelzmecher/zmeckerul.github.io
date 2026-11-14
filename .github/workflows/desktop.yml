@@ -1,0 +1,189 @@
+# Budgie for Windows, Mac and Linux: builds the app on GitHub's machines (Windows on Windows, the Mac app on a Mac,
+# every Linux package on Ubuntu), and when apps/desktop/package.json has a version that hasn't been released yet, publishes them as a release
+# (desktop-v<version>), which budgiesocial.com/download.html links to. A release is never changed after: a fix to the
+# app goes out as the next version. (Budgie's screens come from the website, so most changes need no new app at all.)
+# See apps/desktop/README.md.
+name: Desktop app
+
+on:
+  push:
+    branches: [claude/community-social-media-app-m1k3uc]
+    paths: ['apps/desktop/**', '.github/workflows/desktop.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci
+      # an installer for Windows 10 and 11, for the person installing it alone (no administrator needed)
+      - run: npx electron-builder --win --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: apps/desktop/dist/Budgie-Setup.exe
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      # rpm for Fedora and openSUSE's package, bsdtar for Arch's
+      - run: sudo apt-get update -q && sudo apt-get install -y -q rpm libarchive-tools
+      - run: npm ci
+      # x64 and ARM: an AppImage (any Linux), .deb (Debian, Ubuntu, Linux Mint), .rpm (Fedora, openSUSE), a package
+      # for Arch, and a plain .tar.gz
+      - run: npx electron-builder --linux --publish never
+      - name: Check the packages
+        run: |
+          ls -la dist
+          # each architecture's package holds its own architecture's app
+          file dist/linux-unpacked/budgie-social | grep -q 'x86-64'
+          file dist/linux-arm64-unpacked/budgie-social | grep -q 'aarch64'
+          dpkg-deb -I dist/budgie-social-amd64.deb | grep -q 'Architecture: amd64'
+          dpkg-deb -I dist/budgie-social-arm64.deb | grep -q 'Architecture: arm64'
+          bsdtar -xOf dist/budgie-social-x64.pacman .PKGINFO | grep -q 'arch = x86_64'
+          bsdtar -xOf dist/budgie-social-aarch64.pacman .PKGINFO | grep -q 'arch = aarch64'
+          # and the .deb installs and starts here (Ubuntu), in the tray with its window hidden
+          sudo apt-get install -y -q ./dist/budgie-social-amd64.deb xvfb
+          test -x /usr/bin/budgie-social
+          ( BUDGIE_DATA=$RUNNER_TEMP/budgie xvfb-run -a timeout 20 budgie-social --hidden --no-sandbox || [ $? -eq 124 ] )
+          test -f $RUNNER_TEMP/budgie/settings.json
+          cat $RUNNER_TEMP/budgie/settings.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
+            apps/desktop/dist/*.rpm
+            apps/desktop/dist/*.pacman
+            apps/desktop/dist/*.tar.gz
+          if-no-files-found: error
+
+  # 1.6: one app for Apple silicon and Intel Macs, as a .dmg and a .zip. With a Developer ID certificate in the
+  # secrets (MAC_CERT_P12, its password MAC_CERT_PASSWORD) it's signed with it and notarized by Apple with App Store
+  # Connect's key; without, it's signed ad hoc, which a Mac opens once it's allowed in System Settings → Privacy &
+  # Security (the download page says how)
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: npm ci
+      - name: Build
+        env:
+          MAC_CERT_P12: ${{ secrets.MAC_CERT_P12 }}
+          MAC_CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [ -n "$MAC_CERT_P12" ] && [ -n "$ASC_KEY_P8" ]; then
+            python3 ../apple/tools/clean-p8.py "$RUNNER_TEMP/asc.p8"
+            CSC_LINK="$MAC_CERT_P12" CSC_KEY_PASSWORD="$MAC_CERT_PASSWORD" \
+            APPLE_API_KEY="$RUNNER_TEMP/asc.p8" APPLE_API_KEY_ID="$ASC_KEY_ID" APPLE_API_ISSUER="$ASC_ISSUER_ID" \
+              npx electron-builder --mac --publish never -c.mac.hardenedRuntime=true -c.mac.notarize=true
+            rm -f "$RUNNER_TEMP/asc.p8"
+          else
+            echo "::notice::No Developer ID certificate in the secrets, so the Mac app is signed ad hoc (not notarized)"
+            CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --mac --publish never -c.mac.identity=-
+          fi
+      - name: Check the app
+        run: |
+          ls -la dist
+          # both kinds of Mac in one, and signed throughout
+          lipo -archs dist/mac-universal/Budgie.app/Contents/MacOS/Budgie | grep -q 'x86_64 arm64'
+          codesign --verify --deep --strict --verbose=2 dist/mac-universal/Budgie.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: |
+            apps/desktop/dist/Budgie.dmg
+            apps/desktop/dist/Budgie-mac.zip
+          if-no-files-found: error
+
+  release:
+    needs: [windows, linux, mac]
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/claude/community-social-media-app-m1k3uc'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: version
+        run: |
+          v=$(node -p "require('./apps/desktop/package.json').version")
+          echo "version=$v" >> $GITHUB_OUTPUT
+          if gh release view "desktop-v$v" >/dev/null 2>&1; then echo "released=yes" >> $GITHUB_OUTPUT; else echo "released=no" >> $GITHUB_OUTPUT; fi
+      - name: Already released
+        if: steps.version.outputs.released == 'yes'
+        run: echo "Budgie ${{ steps.version.outputs.version }} for Windows, Mac and Linux is already out; raise the version in apps/desktop/package.json for a new one."
+      - uses: actions/download-artifact@v4
+        if: steps.version.outputs.released == 'no'
+        with:
+          path: files
+          merge-multiple: true
+      - name: The AUR package (budgie-social-bin)
+        if: steps.version.outputs.released == 'no'
+        run: |
+          python3 apps/desktop/tools/aur.py "${{ steps.version.outputs.version }}" files/budgie-social-amd64.deb files/budgie-social-arm64.deb apps/desktop/LICENSE aur
+          cp aur/PKGBUILD files/PKGBUILD
+          cp aur/.SRCINFO files/SRCINFO
+          (cd files && sha256sum * > SHA256SUMS.txt)
+          ls -la files
+      - name: Publish
+        if: steps.version.outputs.released == 'no'
+        run: |
+          v="${{ steps.version.outputs.version }}"
+          cat > notes.md <<EOF
+          Budgie $v for Windows, Mac and Linux. Download it from https://budgiesocial.com/download.html.
+
+          | | |
+          |---|---|
+          | Windows 10 and 11 | Budgie-Setup.exe |
+          | Mac (Apple silicon and Intel, macOS 12 or newer) | Budgie.dmg (or Budgie-mac.zip) |
+          | Debian, Ubuntu, Linux Mint, Pop!_OS, Zorin | budgie-social-amd64.deb (ARM: budgie-social-arm64.deb) |
+          | Fedora, openSUSE | budgie-social-x86_64.rpm (ARM: budgie-social-aarch64.rpm) |
+          | Arch, Manjaro, EndeavourOS | budgie-social-bin on the AUR, or budgie-social-x64.pacman (ARM: budgie-social-aarch64.pacman) |
+          | Any Linux | Budgie-x86_64.AppImage, or budgie-social-x64.tar.gz (ARM: Budgie-arm64.AppImage, budgie-social-arm64.tar.gz) |
+
+          SHA256SUMS.txt has each file's checksum.
+          EOF
+          gh release create "desktop-v$v" files/* --target "$GITHUB_SHA" --title "Budgie for Windows, Mac and Linux $v" --notes-file notes.md --latest

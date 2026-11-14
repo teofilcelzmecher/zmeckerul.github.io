@@ -1,0 +1,413 @@
+/* Copyright (C) 2026 teofilcelzmecher. All rights reserved. See LICENSE. */
+/* Sticker blasts (Budgie 1.5): js/blasts.js */
+
+/* ---- a sticker: the picture (a GIF keeps moving), with a soft shadow under it -------------------------------- */
+
+.bl-art {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--bl-s, 56px);
+  height: var(--bl-s, 56px);
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.22));
+}
+.bl-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ---- the strip: small, at the bottom of the screen, one row of big stickers swiped sideways --------------------- */
+
+.bl-tray {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* over the page and the bottom bar, under the side menu and its scrim (as the storage notice) */
+  z-index: 75;
+  display: grid;
+  gap: 2px;
+  width: min(600px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+  border-radius: 24px 24px 0 0;
+  background: var(--m3-surface-container-low);
+  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.16);
+}
+.bl-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 0 2px 0 4px;
+}
+.bl-tabs {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.bl-tabs[hidden],
+.bl-find[hidden] {
+  display: none;
+}
+.bl-tabs .chip {
+  flex: none;
+  min-height: 32px;
+  font-size: var(--m3-fs-smaller);
+}
+.bl-tabs .chip[aria-selected='true'] {
+  border-color: transparent;
+  background: var(--m3-secondary-container);
+  color: var(--m3-on-secondary-container);
+}
+.bl-find {
+  flex: 1;
+  min-width: 0;
+}
+.bl-find input {
+  width: 100%;
+  min-height: 38px;
+  padding-block: 6px;
+}
+.bl-strip {
+  display: flex;
+  gap: 2px;
+  padding: 2px 2px 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 4px;
+  scrollbar-width: thin;
+}
+@media (hover: none) {
+  .bl-strip {
+    scrollbar-width: none;
+  }
+  .bl-strip::-webkit-scrollbar {
+    display: none;
+  }
+}
+.bl-tile {
+  display: grid;
+  flex: none;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  width: 92px;
+  padding: 4px 2px 2px;
+  border: 0;
+  border-radius: 20px;
+  background: none;
+  color: var(--m3-on-surface-variant);
+  font: inherit;
+  cursor: pointer;
+  scroll-snap-align: start;
+  /* a tap throws, a swipe scrolls, and a long press is for holding: no menu, no magnifier */
+  touch-action: pan-x;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 150ms;
+}
+@media (hover: hover) {
+  .bl-tile:hover {
+    background: var(--m3-surface-container-high);
+  }
+}
+.bl-tile:focus-visible {
+  outline: 3px solid var(--m3-primary);
+  outline-offset: -2px;
+}
+.bl-tile small {
+  max-width: 100%;
+  min-height: 1.3em;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* the first of yours makes a new one */
+.bl-make {
+  position: relative;
+  color: var(--m3-primary);
+}
+.bl-make-ring {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 2px;
+  border: 2px dashed color-mix(in srgb, var(--m3-primary) 55%, transparent);
+  border-radius: 50%;
+}
+.bl-make-ring .m3-icon {
+  --m3-icon-size: 32px;
+}
+.bl-make input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.bl-empty {
+  flex: 0 0 min(260px, 70vw);
+  align-self: center;
+  margin: 0 8px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+  line-height: 1.4;
+}
+.bl-loading {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 72px;
+}
+
+/* on a phone it's from side to side, over the bottom bar */
+@media (max-width: 719px) {
+  body.blasting .bottom-nav {
+    translate: 0 110%;
+  }
+  .bl-tray {
+    width: 100vw;
+  }
+}
+
+/* ---- what flies: over everything, never in the way --------------------------------------------------------- */
+
+.bl-layer,
+.bl-layer[popover] {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--m3-on-surface);
+  pointer-events: none;
+}
+.bl-flyer {
+  position: absolute;
+  will-change: transform, offset-distance, opacity;
+}
+/* what flies off a sticker as it lands, in the page's colours */
+.bl-spark {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--m3-primary);
+  will-change: transform, opacity;
+}
+.bl-spark.t1 {
+  background: var(--m3-tertiary);
+}
+.bl-spark.t2 {
+  width: 5px;
+  height: 5px;
+  background: var(--m3-secondary);
+}
+/* a ring going out from the picture now and then */
+.bl-ring {
+  position: absolute;
+  box-sizing: border-box;
+  border: 3px solid var(--m3-primary);
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+
+/* the combo beside your friend's picture, in Budgie's own font (Google Sans Flex), with a soft glow in the page's
+   colour so it reads over whatever's behind it */
+.bl-combo {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  color: var(--m3-on-surface);
+  font-family: var(--m3-font);
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px var(--nook-page, var(--m3-background)),
+    0 0 12px color-mix(in srgb, var(--nook-page, var(--m3-background)) 85%, transparent),
+    0 2px 6px rgb(0 0 0 / 0.22);
+  transform: translateY(-50%);
+}
+.bl-combo[hidden] {
+  display: none;
+}
+.bl-combo-x {
+  color: var(--m3-tertiary);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.bl-combo b {
+  display: inline-block;
+  font-size: 2.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  transform-origin: 30% 60%;
+}
+/* what it says at ×10, ×25, ×50 … */
+.bl-combo-word {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  color: var(--m3-tertiary);
+  font-size: 1rem;
+  font-weight: 800;
+  opacity: 0;
+}
+
+/* ---- arriving: the card at the top (the stickers fly round it) ------------------------------------------------ */
+
+.bl-card {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  padding: 8px 18px 8px 8px;
+  border: 0;
+  border-radius: 28px;
+  background: var(--m3-surface-container-highest);
+  color: var(--m3-on-surface);
+  box-shadow: var(--m3-elevation-3);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  pointer-events: auto;
+  translate: -50% 0;
+}
+.bl-card-text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.bl-card-text b,
+.bl-card-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bl-card-text small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.bl-card-count {
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- in the chat: the sticker piled up, and how many --------------------------------------------------------- */
+
+.bl-line {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  margin: 10px 0 6px 36px;
+}
+.bl-line.mine {
+  justify-items: end;
+  margin-left: 0;
+}
+.bl-pile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 88px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bl-pile > span {
+  position: absolute;
+}
+.bl-pile-back {
+  translate: -16px 6px;
+  rotate: -16deg;
+  opacity: 0.85;
+}
+.bl-pile-mid {
+  translate: 14px 4px;
+  rotate: 12deg;
+  opacity: 0.92;
+}
+.bl-pile-top {
+  rotate: -3deg;
+  transition: rotate 200ms var(--m3-ease-standard), scale 200ms var(--m3-ease-standard);
+}
+@media (hover: hover) {
+  .bl-pile:hover .bl-pile-top {
+    rotate: 6deg;
+    scale: 1.08;
+  }
+}
+.bl-count {
+  position: absolute;
+  right: -6px;
+  bottom: 0;
+  padding: 2px 9px;
+  border-radius: var(--m3-r-full);
+  background: var(--m3-tertiary);
+  color: var(--m3-on-tertiary);
+  font-size: var(--m3-fs-smaller);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--m3-elevation-1);
+}
+.bl-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
+.bl-when .m3-icon {
+  --m3-icon-size: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-pile-top {
+    transition: none;
+  }
+}
+
+/* while blasting, the name beside the picture steps back, so the combo has the space to itself */
+#main .profile-main .who > h1,
+#main .profile-main .who > h1 + .muted {
+  transition: opacity 220ms var(--m3-ease-standard);
+}
+body.blasting #main .profile-main .who > h1,
+body.blasting #main .profile-main .who > h1 + .muted {
+  opacity: 0.08;
+}
