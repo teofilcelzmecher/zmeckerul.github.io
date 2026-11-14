@@ -35,7 +35,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   }
   await call('POST', '/api/messages', { to: 'wren', body: 'golden hour at the old harbour tomorrow?' }, tk.robin);
   await call('POST', '/api/messages', { to: 'robin', body: 'perfect, I’ll bring the film camera 📷' }, tk.wren);
-  process.stdout.write(tk.wren);
+  // the checks give the app this token on its command line, where a value starting with "-" is taken for the next
+  // option and dropped (about 1 token in 64: the app then opens signed out); signing in again gives a new one
+  let token = tk.wren;
+  for (let i = 0; token.startsWith('-') && i < 8; i++) token = (await call('POST', '/api/login', { name: 'wren', password: 'correct horse battery' })).token;
+  if (!token || token.startsWith('-')) throw new Error('no token the command line can carry');
+  process.stdout.write(token);
 })().catch((e) => {
   console.error(e);
   process.exit(1);
