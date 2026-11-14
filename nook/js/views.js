@@ -960,7 +960,10 @@
         sw('set-themeNooks', 'Wear nests’ and profiles’ colours', 'The whole app re-themes itself when you visit a nest, or someone’s profile in the colours they picked.', s.themeNooks) +
         sw('set-tintPosts', 'Tint posts by their nest', 'In mixed feeds, each card takes its nest’s colours.', s.tintPosts) +
         sw('set-reduceMotion', 'Reduce motion', 'Stop things that move on their own and keep pages still as they change.', s.reduceMotion) +
-        sw('set-haptics', 'Haptic taps', 'A tiny buzz when you vote, spark, save or join, on phones that can.', s.haptics !== false) +
+        // (1.8) how much Budgie taps back: each choice plays a feel when you pick it
+        (Nook.fx.canFeel()
+          ? `<div class="setting-row haptic-row"><span class="switch-text"><span>Haptics</span><small>How much Budgie taps back when you touch, send, win or get a call. Subtle keeps to the moments that matter; Max adds the little extras.</small></span>${segmented('set-haptics', [['off', 'Off'], ['subtle', 'Subtle'], ['standard', 'Standard'], ['strong', 'Max']], s.haptics === false ? 'off' : s.hapticLevel || 'standard', 'Haptics')}</div>`
+          : '') +
         sw('set-nameFonts', 'Name fonts', 'Show names in the fonts and effects people picked for them. Off, every name is plain, in Budgie’s own font.', s.nameFonts !== false) +
         (ui.theme.offline ? '<p class="muted">Couldn’t load the colour library (offline?), so only the built-in scheme is available right now.</p>' : '') +
         '</div></section>' +
@@ -1047,7 +1050,18 @@
         };
         root.querySelectorAll('.swatch').forEach((b) => b.addEventListener('click', () => pickSeed(b.dataset.seed, b)));
         $('#set-color').addEventListener('change', (e) => pickSeed(e.target.value, e.target));
-        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'haptics', 'filterLanguage', 'nameFonts']) {
+        const feel = $('#set-haptics');
+        if (feel) {
+          feel.addEventListener('change', (e) => {
+            const level = e.detail.value;
+            s.haptics = level !== 'off';
+            s.hapticLevel = level === 'off' ? s.hapticLevel || 'standard' : level;
+            store.save();
+            // a taste of it: Subtle's soft success, up to Max's full one
+            if (level !== 'off') Nook.fx.haptic('success', { level: { subtle: 1, standard: 2, strong: 3 }[level] });
+          });
+        }
+        for (const key of ['themeNooks', 'tintPosts', 'reduceMotion', 'compact', 'calm', 'filterLanguage', 'nameFonts']) {
           $('#set-' + key).addEventListener('change', (e) => {
             s[key] = e.target.checked;
             apply();
@@ -1597,7 +1611,7 @@
     const queue = (m) => {
       pending.push(m);
       deliver(m);
-      Nook.fx.haptic(8);
+      Nook.fx.haptic('send');
     };
     form.addEventListener('click', async (e) => {
       const tool = e.target.closest('[data-chat]');
@@ -1705,7 +1719,7 @@
       openedAt = performance.now();
       const m = c.thread().messages.find((x) => String(x.id) === bubble.dataset.message);
       if (!m) return;
-      Nook.fx.haptic(10);
+      Nook.fx.haptic('longPress');
       const sticker = m.media && m.media.type === 'sticker' && Nook.stickers;
       ui.sheet({
         html:

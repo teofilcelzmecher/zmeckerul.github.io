@@ -214,7 +214,7 @@
     try {
       const r = await api.post('/api/games', { to: name, kind, again: again || undefined });
       games.set(r.game.id, r.game);
-      fx.haptic([8, 30, 8]);
+      fx.haptic('send');
       await store.sync().catch(() => {});
     } catch (error) {
       app().showError(error);
@@ -275,7 +275,7 @@
     }
     games.set(id, guess);
     repaint(id);
-    fx.haptic(g.kind === 'c4' ? [4, 40, 10] : 8);
+    fx.haptic(g.kind === 'c4' ? 'drop' : g.kind === 'rps' ? 'shake' : 'move');
     try {
       const body = g.kind === 'ttt' ? { cell: Number(value) } : g.kind === 'c4' ? { col: Number(value) } : { pick: value };
       const r = await api.post(`/api/games/${id}/move`, body);
@@ -296,20 +296,22 @@
     games.set(g.id, g);
     repaint(g.id);
     if (g.winner && was && !was.winner) cheer(g);
+    // (1.8) they've moved and it's your turn: a tap, so you feel it even looking away
+    else if (was && !g.winner && myTurn(g) && !myTurn(was)) fx.haptic('tap');
   }
 
   function cheer(g) {
     const card = document.querySelector(`.gm-card[data-game="${g.id}"]`);
     if (g.winner === g.you) {
-      fx.haptic([10, 50, 10, 50, 20]);
+      fx.haptic('win');
       if (card && !still()) {
         const r = card.getBoundingClientRect();
         fx.confetti({ x: r.left + r.width / 2, y: r.top + 40 }, { shapes: ['sunny', 'burst', 'flower', 'heart'], count: 30, power: 1.1 });
       }
     } else if (g.winner !== 'draw') {
-      fx.haptic(30);
+      fx.haptic('lose');
       if (card && !still()) card.animate([{ translate: '0 0' }, { translate: '-6px 0' }, { translate: '6px 0' }, { translate: '-3px 0' }, { translate: '0 0' }], { duration: 380, easing: 'ease-out' });
-    }
+    } else fx.haptic('draw');
   }
 
   document.addEventListener('click', (e) => {

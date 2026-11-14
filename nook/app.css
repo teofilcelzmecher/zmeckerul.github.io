@@ -2185,6 +2185,14 @@ body.calm :is(.badge, .badge-dot) {
   color: var(--m3-on-surface-variant);
   font-size: var(--m3-fs-smaller);
 }
+/* (1.8) the haptics row: its words like a switch's, its four strengths underneath */
+.haptic-row .switch-text {
+  display: grid;
+}
+.haptic-row small {
+  color: var(--m3-on-surface-variant);
+  font-size: var(--m3-fs-smaller);
+}
 
 .form-actions {
   display: flex;

@@ -8,6 +8,7 @@ import Foundation
 import UIKit
 import SafariServices
 import AudioToolbox
+import CoreHaptics
 #else
 import AppKit
 #endif
@@ -130,6 +131,89 @@ enum Haptics {
             }
             at += ms
         }
+    }
+
+    // ---- 1.8: feels -------------------------------------------------------------------------------------------
+    // The page describes each moment's feel as taps (how hard and how sharp, 0 to 1) and buzzes (a vibration that
+    // lasts, rising or falling) at times in milliseconds. An iPhone plays it with Core Haptics as it is; a device
+    // without it (an iPad) taps each tap at its strength; a Mac taps its trackpad for the taps.
+
+    #if os(iOS)
+    private static let rich = CHHapticEngine.capabilitiesForHardware().supportsHaptics
+    private static var engine: CHHapticEngine?
+
+    /// the Taptic Engine, started the first time it's needed; it sleeps when idle and wakes for the next feel
+    private static func taptic() -> CHHapticEngine? {
+        guard rich else { return nil }
+        if let engine { return engine }
+        guard let made = try? CHHapticEngine() else { return nil }
+        made.playsHapticsOnly = true
+        made.isAutoShutdownEnabled = true
+        // the system reset it (another app took the hardware, say): it's made again next time
+        made.resetHandler = { Task { @MainActor in Haptics.engine = nil } }
+        engine = made
+        return made
+    }
+    #endif
+
+    static func play(events: [[String: Any]]) {
+        let list = Array(events.prefix(48))
+        let num = { (e: [String: Any], key: String, fallback: Double) -> Double in (e[key] as? NSNumber)?.doubleValue ?? fallback }
+        #if os(iOS)
+        if let engine = taptic() {
+            var parts: [CHHapticEvent] = []
+            var curves: [CHHapticParameterCurve] = []
+            for e in list {
+                let at = num(e, "t", 0) / 1000
+                let strength = CHHapticEventParameter(parameterID: .hapticIntensity, value: Float(min(1, max(0, num(e, "i", 0.5)))))
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: Float(min(1, max(0, num(e, "s", 0.5)))))
+                if (e["k"] as? String) == "buzz" {
+                    let length = max(0.02, num(e, "d", 100) / 1000)
+                    parts.append(CHHapticEvent(eventType: .hapticContinuous, parameters: [strength, sharpness], relativeTime: at, duration: length))
+                    // a buzz that rises from almost nothing, or falls away to nothing
+                    switch e["r"] as? String {
+                    case "rise":
+                        curves.append(CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0, value: 0.15), .init(relativeTime: length, value: 1)], relativeTime: at))
+                    case "fall":
+                        curves.append(CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0, value: 1), .init(relativeTime: length, value: 0)], relativeTime: at))
+                    default:
+                        break
+                    }
+                } else {
+                    parts.append(CHHapticEvent(eventType: .hapticTransient, parameters: [strength, sharpness], relativeTime: at))
+                }
+            }
+            do {
+                let pattern = try CHHapticPattern(events: parts, parameterCurves: curves)
+                try engine.start()
+                try engine.makePlayer(with: pattern).start(atTime: CHHapticTimeImmediate)
+                return
+            } catch {
+                Haptics.engine = nil
+            }
+        }
+        // no Core Haptics here: each tap at its strength (sharp ones rigid, dull ones soft), each buzz a heavy tap
+        for e in list {
+            let at = num(e, "t", 0)
+            let strength = num(e, "i", 0.5)
+            let sharpness = num(e, "s", 0.5)
+            let buzz = (e["k"] as? String) == "buzz"
+            Task { @MainActor in
+                if at > 0 { try? await Task.sleep(nanoseconds: UInt64(at * 1_000_000)) }
+                let style: UIImpactFeedbackGenerator.FeedbackStyle = buzz ? .heavy : sharpness >= 0.75 ? .rigid : sharpness <= 0.3 ? .soft : strength >= 0.75 ? .heavy : strength >= 0.45 ? .medium : .light
+                UIImpactFeedbackGenerator(style: style).impactOccurred(intensity: CGFloat(min(1, max(0.1, strength))))
+            }
+        }
+        #else
+        for e in list where (e["k"] as? String) != "buzz" {
+            let at = num(e, "t", 0)
+            let sharpness = num(e, "s", 0.5)
+            Task { @MainActor in
+                if at > 0 { try? await Task.sleep(nanoseconds: UInt64(at * 1_000_000)) }
+                NSHapticFeedbackManager.defaultPerformer.perform(sharpness >= 0.6 ? .alignment : .levelChange, performanceTime: .now)
+            }
+        }
+        #endif
     }
 
     private static func tap(_ ms: Double) {

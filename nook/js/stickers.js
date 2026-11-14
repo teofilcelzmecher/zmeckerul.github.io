@@ -200,7 +200,7 @@
     ], { duration: 760, easing: 'cubic-bezier(.2,.8,.25,1)' });
     if (!mine) {
       setTimeout(() => img.isConnected && M3.burst(img, 'play', { count: 7 }), 260);
-      fx.haptic([6, 40, 10]);
+      fx.haptic('react');
     }
   }
 
@@ -234,7 +234,7 @@
     try {
       const r = await api.post(`/api/stickers/${encodeURIComponent(s.id)}/save`, {});
       keep(r.sticker);
-      fx.haptic([8, 30, 14]);
+      fx.haptic('save');
       if (from && !calm()) M3.burst(from, 'hearts', { count: 10 });
       const was = s.kind === 'emoji' && s.name && r.sticker.name !== s.name ? ` as :${r.sticker.name}:` : '';
       M3.toast(s.kind === 'emoji' ? `Saved to your emojis${was}` : 'Saved to your stickers', { symbol: 'library_add_check', shape: 'puffy' });
@@ -253,7 +253,7 @@
     try {
       const r = await api.patch(`/api/stickers/${encodeURIComponent(s.id)}`, { shared: !!on });
       keep(Object.assign({}, byId(s.id) || s, r.sticker));
-      fx.haptic(8);
+      fx.haptic(on ? 'toggleOn' : 'toggleOff');
       M3.toast(on ? 'Shared: anyone can find it in Browse' : 'Not shared any more', { symbol: on ? 'public' : 'public_off', shape: 'puffy' });
       return r.sticker;
     } catch (error) {
@@ -627,7 +627,7 @@
           outline.addEventListener('change', () => {
             model.outline = outline.checked;
             paint();
-            fx.haptic(6);
+            fx.haptic('select');
           });
         if (emoji) name.addEventListener('input', () => {
           const at = name.selectionStart;
@@ -704,7 +704,7 @@
                 err.textContent = error.message;
                 if (error.field === 'name') nameBox.focus();
                 if (!calm()) fx.play(stage, [{ transform: 'translateX(0)' }, { transform: 'translateX(-8px)' }, { transform: 'translateX(8px)' }, { transform: 'translateX(-4px)' }, { transform: 'none' }], { duration: 320 });
-                fx.haptic([20, 40, 20]);
+                fx.haptic('error');
               });
             return false;
           },
@@ -715,7 +715,7 @@
 
   /** a new one's moment: it's slapped down like a real sticker, with a burst and a buzz */
   function celebrate(el) {
-    fx.haptic([10, 45, 22]);
+    fx.haptic('post');
     if (!el || calm()) return;
     fx.play(el, [
       { transform: 'none' },
@@ -877,14 +877,14 @@
           if (manage) return itemMenu(s, e.target.closest('[data-stk-id]'));
           used(s.id);
           if (s.kind === 'sticker') {
-            fx.haptic(10);
+            fx.haptic('send');
             return close(s);
           }
           if (field && Nook.pickers) {
             const before = field.value.slice(0, field.selectionStart ?? field.value.length);
             Nook.pickers.insertAt(field, (before && !/\s$/.test(before) ? ' ' : '') + `:${s.name}: `);
           }
-          fx.haptic(8);
+          fx.haptic('tap');
           close(null);
         });
         grid.addEventListener('contextmenu', (e) => {
@@ -901,7 +901,7 @@
           const tile = e.target.closest('[data-stk-id]');
           timer = setTimeout(() => {
             held = true;
-            fx.haptic(12);
+            fx.haptic('longPress');
             itemMenu(s, tile);
           }, 480);
         });
@@ -1029,7 +1029,7 @@
     field.dispatchEvent(new Event('input', { bubbles: true }));
     used(e.id);
     closeSuggest();
-    fx.haptic(6);
+    fx.haptic('select');
     field.focus({ preventScroll: true });
   }
 

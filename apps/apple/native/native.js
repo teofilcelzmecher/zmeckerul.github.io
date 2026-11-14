@@ -74,6 +74,13 @@
   } catch (_) {
     /* left as it was */
   }
+  // (1.8) a moment's whole feel (taps and buzzes, see fx.js), played by Core Haptics on the Swift side
+  window.BudgieHaptics = {
+    play(events) {
+      const list = (Array.isArray(events) ? events : []).slice(0, 48).map((e) => ({ t: +e.t || 0, k: e.k === 'buzz' ? 'buzz' : 'tap', i: +e.i || 0, s: +e.s || 0, d: +e.d || 0, r: e.r || '' }));
+      if (list.length) post('haptics', { events: list });
+    },
+  };
 
   // ---- sharing and links -------------------------------------------------------------------------------------
   try {

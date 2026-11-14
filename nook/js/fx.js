@@ -29,16 +29,148 @@
   root.style.setProperty('--nook-spring-lively', `${lively.duration}ms ${lively.easing}`);
   root.style.setProperty('--nook-spring-snappy', `${snappy.duration}ms ${snappy.easing}`);
 
-  function haptic(pattern = 8) {
-    if (store.state.settings.haptics === false || !navigator.vibrate) return;
+  // ---- haptics (1.8) ------------------------------------------------------------------------------------------
+  // Each moment has its own feel, written once as taps (a knock: how hard, i, and how sharp, s, both 0 to 1) and
+  // buzzes (a vibration that lasts d ms, and can rise or fall) at times t in ms. The phone plays it as well as it
+  // can: Budgie for iPhone with Core Haptics, Budgie for Android with its vibrator's own effects (clicks, ticks,
+  // thuds, spins, rises and falls), a browser on Android as plain buzzes. Every feel has a depth: 1 for the moments
+  // that matter (sent, won, a call), 2 for everyday touches, 3 for the small extras; the setting (Off, Subtle,
+  // Standard, Strong) says how deep to go, and how hard.
+  const T = (t, i, s = 0.5) => ({ t, k: 'tap', i, s });
+  const B = (t, d, i, s = 0.3, r = '') => ({ t, k: 'buzz', d, i, s, r });
+  const HAPTICS = {
+    // touching things
+    tap: [2, [T(0, 0.45, 0.6)]],
+    select: [2, [T(0, 0.32, 0.9)]],
+    tick: [3, [T(0, 0.22, 1)]],
+    toggleOn: [2, [T(0, 0.45, 0.6), T(70, 0.75, 0.85)]],
+    toggleOff: [2, [T(0, 0.65, 0.6), T(70, 0.35, 0.35)]],
+    open: [3, [B(0, 60, 0.3, 0.2, 'rise'), T(60, 0.4, 0.5)]],
+    close: [3, [T(0, 0.3, 0.4)]],
+    longPress: [2, [B(0, 50, 0.35, 0.3, 'rise'), T(50, 0.8, 0.7)]],
+    refresh: [2, [T(0, 0.55, 0.8)]],
+    // how things went
+    success: [1, [T(0, 0.5, 0.6), T(110, 0.9, 0.7)]],
+    warning: [1, [T(0, 0.7, 0.5), T(160, 0.7, 0.5)]],
+    error: [1, [T(0, 0.9, 0.9), T(90, 0.7, 0.6), T(180, 0.9, 0.3)]],
+    delete: [1, [B(0, 90, 0.7, 0.2, 'fall'), T(90, 0.8, 0.3)]],
+    // people and posts
+    upvote: [2, [T(0, 0.45, 0.8), T(60, 0.75, 0.95)]],
+    downvote: [2, [T(0, 0.6, 0.25)]],
+    spark: [2, [T(0, 0.5, 1), T(50, 0.6, 1), T(100, 0.8, 1), B(100, 140, 0.25, 1, 'fall')]],
+    save: [2, [T(0, 0.55, 0.5), T(80, 0.4, 0.85)]],
+    join: [1, [T(0, 0.6, 0.5), T(90, 0.9, 0.6), B(90, 120, 0.3, 0.3, 'fall')]],
+    friend: [1, [T(0, 0.5, 0.5), T(120, 0.6, 0.55), T(240, 0.9, 0.75)]],
+    send: [1, [B(0, 70, 0.4, 0.5, 'rise'), T(70, 0.7, 0.9)]],
+    receive: [1, [T(0, 0.55, 0.4), T(80, 0.35, 0.6)]],
+    post: [1, [B(0, 120, 0.45, 0.4, 'rise'), T(120, 1, 0.8)]],
+    react: [2, [T(0, 0.6, 0.9), T(45, 0.4, 1)]],
+    // the fun ones
+    nudge: [1, [T(0, 1, 0.6), T(150, 1, 0.6), B(320, 260, 0.5, 0.2, 'fall')]],
+    blast: [1, [T(0, 1, 0.35), T(35, 0.8, 0.9), T(70, 0.9, 0.5), T(100, 0.7, 1), T(135, 0.85, 0.4), T(170, 0.6, 0.9), T(210, 0.7, 0.6), T(255, 0.5, 1), T(300, 0.55, 0.5), T(350, 0.4, 0.8), B(0, 420, 0.55, 0.6, 'fall')]],
+    achievement: [1, [T(0, 0.6, 0.7), T(100, 0.7, 0.8), T(200, 0.8, 0.9), T(300, 1, 1), B(300, 400, 0.4, 0.8, 'fall')]],
+    streak: [2, [T(0, 0.7, 0.8), T(90, 0.9, 0.9)]],
+    // games
+    move: [2, [T(0, 0.6, 0.7)]],
+    drop: [2, [T(0, 0.3, 0.5), T(190, 1, 0.15)]],
+    shake: [2, [T(0, 0.5, 0.4)]],
+    win: [1, [T(0, 0.7, 0.6), T(110, 0.8, 0.7), T(220, 1, 0.9), B(220, 450, 0.45, 0.7, 'fall')]],
+    lose: [1, [B(0, 260, 0.6, 0.1, 'fall'), T(260, 0.6, 0.1)]],
+    draw: [1, [T(0, 0.5, 0.5), T(140, 0.5, 0.5)]],
+    // calls
+    ring: [1, [B(0, 300, 0.8, 0.4), B(450, 300, 0.8, 0.4)]],
+    connect: [1, [T(0, 0.6, 0.8), T(90, 0.9, 0.9)]],
+    hangup: [1, [T(0, 0.8, 0.3), T(100, 0.5, 0.2)]],
+    mute: [2, [T(0, 0.5, 0.35)]],
+    unmute: [2, [T(0, 0.5, 0.85)]],
+  };
+  const DEPTH = { off: 0, subtle: 1, standard: 2, strong: 3 };
+  /** how deep the haptics go, 0 (off) to 3 (strong): the setting, or Standard; the old on/off switch still says off */
+  function hapticLevel() {
+    const s = store.state.settings;
+    if (s.haptics === false) return 0;
+    return DEPTH[s.hapticLevel] != null ? DEPTH[s.hapticLevel] : 2;
+  }
+  /** a buzz in milliseconds, or a browser's pattern of them, as a feel (what the app asked for before 1.8) */
+  function fromMs(pattern) {
+    const out = [];
+    let at = 0;
+    (Array.isArray(pattern) ? pattern : [pattern]).forEach((ms, i) => {
+      ms = Math.max(0, Number(ms) || 0);
+      if (i % 2 === 0 && ms) out.push(ms > 30 ? B(at, ms, 0.8, 0.3) : T(at, Math.min(1, 0.25 + ms / 16), 0.55));
+      at += ms;
+    });
+    return out;
+  }
+  /** a feel as a browser's pattern (on, off, on...): it can only buzz, so a harder tap buzzes a little longer */
+  function toPattern(events) {
+    const spans = events.map((e) => [e.t, e.t + (e.k === 'buzz' ? Math.round(e.d * Math.max(0.4, e.i)) : Math.round(5 + 16 * e.i))]).sort((a, b) => a[0] - b[0]);
+    const merged = [];
+    for (const [a, b] of spans) {
+      const last = merged[merged.length - 1];
+      if (last && a <= last[1] + 8) last[1] = Math.max(last[1], b);
+      else merged.push([a, b]);
+    }
+    const out = [];
+    let at = 0;
+    merged.forEach(([a, b], k) => {
+      if (k === 0) a > 0 && out.push(0, a);
+      else out.push(a - at);
+      out.push(b - a);
+      at = b;
+    });
+    return out;
+  }
+  let lastFeel = { name: '', at: 0 };
+  let lastAnyAt = 0;
+  /** a light feel that plays only if nothing else was felt for the same touch (on Strong: a button's tick) */
+  function hapticIfQuiet(what) {
+    const asked = performance.now();
+    setTimeout(() => lastAnyAt < asked && haptic(what), 30);
+  }
+  /**
+   * a feel: haptic('send'), haptic('win'), ... (or, as before 1.8, a buzz in ms or a pattern). `level` plays it at
+   * that depth instead of the setting's (Settings lets you feel each one).
+   */
+  function haptic(what = 'tap', { level } = {}) {
+    const depth = level != null ? level : hapticLevel();
+    if (!depth) return;
+    let events;
+    if (typeof what === 'string') {
+      const feel = HAPTICS[what];
+      if (!feel || feel[0] > depth) return;
+      // the same feel twice in a moment (a finger running over a row of things) is felt once
+      const now = performance.now();
+      if (what === lastFeel.name && now - lastFeel.at < 40) return;
+      lastFeel = { name: what, at: now };
+      events = feel[1];
+    } else events = fromMs(what);
+    if (!events.length) return;
+    lastAnyAt = performance.now();
+    // Subtle is softer, Strong harder and its buzzes a little longer
+    const hard = [0, 0.7, 1, 1.25][depth];
+    const out = events.map((e) => Object.assign({}, e, { i: Math.min(1, e.i * hard) }, e.k === 'buzz' ? { d: Math.round(e.d * (depth === 3 ? 1.15 : 1)) } : {}));
+    // the Android and Apple apps play it themselves
+    const native = window.BudgieHaptics;
+    if (native && native.play) {
+      try {
+        native.play(out);
+      } catch (_) {
+        /* not this time */
+      }
+      return;
+    }
+    if (!navigator.vibrate) return;
     // the browser only lets a page buzz once you've touched it
     if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
     try {
-      navigator.vibrate(pattern);
+      navigator.vibrate(toPattern(out));
     } catch (_) {
       /* not allowed here */
     }
   }
+  /** whether this device can feel anything at all (a phone's browser, or the Android and Apple apps) */
+  const canFeel = () => !!((window.BudgieHaptics && window.BudgieHaptics.play) || navigator.vibrate);
 
   function play(el, keyframes, options) {
     if (!el || !el.animate || reduced()) return null;
@@ -283,7 +415,7 @@
   }
 
   Nook.fx = {
-    gentle, lively, snappy, decel, accel, reduced, haptic, play, settled, pop, nudge, stagger, flipHeight, expand,
+    gentle, lively, snappy, decel, accel, reduced, haptic, hapticIfQuiet, HAPTICS, hapticLevel, canFeel, play, settled, pop, nudge, stagger, flipHeight, expand,
     collapseOut, countUp, flyTo, confetti, share, unshare, transition, reveal, supported, tone, onScreen, centre,
   };
 })();

@@ -109,7 +109,7 @@
       dlg.querySelector('.intro-skip').hidden = last;
       if (i === 0 && !still()) blob.start();
       else blob.stop();
-      fx.haptic(6);
+      fx.haptic('select');
     };
     // the screen that's mostly showing is the one that moves
     const seen = new IntersectionObserver(

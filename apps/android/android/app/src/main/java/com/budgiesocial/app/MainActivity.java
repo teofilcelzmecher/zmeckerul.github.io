@@ -12,6 +12,8 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // (1.8) Budgie's own haptics: each moment's feel with the vibrator's richest effects (BudgieHapticsPlugin)
+        registerPlugin(BudgieHapticsPlugin.class);
         super.onCreate(savedInstanceState);
         // after super.onCreate: Capacitor has switched from the splash theme to the app's own by then, so the window
         // is built in the app's theme. Edge to edge: the page goes under the status and navigation bars, and makes

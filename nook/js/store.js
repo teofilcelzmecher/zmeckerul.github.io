@@ -16,7 +16,7 @@
   const DATA = window.NOOK_DATA;
   const BOOT = window.NOOK_BOOT;
   const ME = '__me__';
-  const VERSION = '1.7.0';
+  const VERSION = '1.7.1';
   const SYNC_EVERY = 15000;
 
   const SPARKS = [
@@ -50,7 +50,7 @@
     return {
       settings: {
         mode: 'system', seed: '#6750a4', variant: 'tonalSpot', themeNooks: true, tintPosts: true,
-        calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false, haptics: true,
+        calm: false, compact: false, sort: 'hot', breakMinutes: 0, reduceMotion: false, haptics: true, hapticLevel: 'standard',
       },
       saved: [], collections: [], hidden: [], streak: { count: 0, last: '', best: 0 }, badges: {}, visited: [], recent: [],
       draft: null, tourDone: false, sparksGiven: 0, noticeSeen: false, localNotes: [], read: [],

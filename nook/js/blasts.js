@@ -345,7 +345,7 @@
         comboNum.animate([{ scale: 1 }, { scale: 1.7, rotate: `${8 * wiggle}deg`, offset: 0.35 }, { scale: 0.95, rotate: '0deg', offset: 0.7 }, { scale: 1 }], { duration: 520, easing: 'cubic-bezier(.2,.9,.3,1)' });
         const r = comboNum.getBoundingClientRect();
         sparks(sky, r.left + r.width / 2, r.top + r.height / 2, 12, 70);
-        fx.haptic([12, 40, 18]);
+        fx.haptic('spark');
       } else {
         comboNum.animate([{ scale: 1.32, rotate: `${4 * wiggle}deg` }, { scale: 1, rotate: '0deg' }], { duration: 200, easing: 'cubic-bezier(.2,1.5,.4,1)' });
       }
@@ -370,7 +370,7 @@
       api
         .post('/api/blasts', { to: friend.name, sticker: b.what.sticker, count: b.count })
         .then(() => {
-          fx.haptic([6, 30, 10]);
+          fx.haptic('send');
           store.sync().catch(() => {});
         })
         .catch((error) => M3.snackbar(error.message || 'Couldn’t send that blast. Try again.'));
@@ -488,7 +488,7 @@
       const b = burst;
       b.timer = setTimeout(() => flush(b), SEND_AFTER);
       paintCombo(b);
-      fx.haptic(4);
+      fx.haptic('select');
       if (still()) return;
       // the sticker on the strip gives a little kick as each one leaves it
       const pic = t.querySelector('.bl-art');
@@ -580,7 +580,7 @@
       if (from && !mine && !preview) location.hash = '#/messages/' + encodeURIComponent(from);
     });
     if (!still()) fx.play(card, [{ opacity: 0, translate: '-50% -24px', scale: 0.85 }, { opacity: 1, translate: '-50% 0', scale: 1 }], { duration: 420, easing: 'cubic-bezier(.2,1.4,.4,1)' });
-    fx.haptic([10, 50, 10, 50, 24]);
+    fx.haptic('blast');
     const pieces = still() ? 0 : Math.min(30, 6 + Math.round(Math.sqrt(count) * 4));
     const timers = [];
     for (let i = 0; i < pieces; i++) {
@@ -714,7 +714,6 @@
       input.disabled = true;
       try {
         await api.put('/api/blasts/prefs', { on });
-        fx.haptic(8);
         M3.toast(on ? 'Friends can blast you with stickers' : 'Sticker blasts are off', { symbol: on ? 'celebration' : 'notifications_paused', shape: 'softBurst' });
       } catch (error) {
         input.checked = !on;

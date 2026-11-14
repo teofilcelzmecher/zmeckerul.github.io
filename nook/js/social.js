@@ -145,7 +145,7 @@
     const a = allowances.get(lower(name));
     if (a && a.on === false) return M3.toast(`u/${name} isn’t taking nudges right now`, { symbol: 'notifications_paused', shape: 'sunny' });
     if (a && !a.left && a.next > Date.now()) {
-      haptic(6);
+      haptic('warning');
       wiggle(from);
       return M3.toast(`You can nudge u/${name} again in ${waitWords(a.next)}`, { symbol: 'schedule', shape: 'sunny' });
     }
@@ -208,7 +208,7 @@
    * (with their picture nowhere on the screen, it takes off upwards, out of sight) */
   function sent(name, from) {
     // a rising triple tap: light, medium, heavy
-    haptic([6, 55, 10, 55, 22]);
+    haptic('send');
     if (still()) return;
     const start = from && visible(from) ? from.querySelector('.nudge-hand') || from : null;
     if (!start) return;
@@ -657,7 +657,7 @@
       schedule();
     };
     // the phone buzzes twice, like a knock (calm mode: one soft tap)
-    const buzz = () => haptic(calm() ? 12 : [110, 90, 110]);
+    const buzz = () => haptic(calm() ? 'tap' : 'nudge');
     current = { el, name: u.name, again, close };
 
     if (!quiet) {
@@ -768,7 +768,6 @@
       input.disabled = true;
       try {
         await api.put('/api/nudges', { on });
-        haptic(8);
         M3.toast(on ? 'Friends can nudge you' : 'Nudges are off: friends can’t nudge you', { symbol: on ? 'waving_hand' : 'notifications_paused', shape: 'sunny' });
       } catch (error) {
         input.checked = !on;
@@ -863,7 +862,7 @@
               .post('/api/admin/ipbans', { name, days, reason: why })
               .then(async (done) => {
                 close(done);
-                haptic([20, 40, 20]);
+                haptic('success');
                 M3.toast(`Banned u/${done.name} ${forWords(days)}`, { symbol: 'gavel', shape: 'softBoom' });
                 await store.sync().catch(() => {});
                 document.dispatchEvent(new CustomEvent('nook-ipbans'));

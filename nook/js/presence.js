@@ -502,7 +502,7 @@
               o.setAttribute('aria-checked', String(o === b));
               o.setAttribute('aria-pressed', String(o === b));
             }
-            haptic(6);
+            haptic('select');
           });
         }
         setTimeout(() => {
@@ -538,7 +538,7 @@
               .post('/api/activity', { source: 'manual', [slot]: item, minutes })
               .then((r) => {
                 mine(r.activity);
-                haptic([8, 40, 12]);
+                haptic('success');
                 close(true);
                 M3.toast(music ? 'Your friends can see what you’re listening to' : 'Your friends can see what you’re playing', { symbol: music ? 'music_note' : 'sports_esports', shape: music ? 'cookie12' : 'pixelCircle' });
               })
@@ -557,7 +557,7 @@
     return api.post('/api/activity', { clear: slot }).then(
       (r) => {
         mine(r.activity);
-        haptic(8);
+        haptic('toggleOff');
       },
       (error) => app().showError(error)
     );
@@ -587,14 +587,14 @@
     // someone else's card answers a tap: a little burst of notes (or pixels) and a buzz, just for fun
     const card = !e.target.closest('[data-pres-act]') && e.target.closest('.pres-card');
     if (card) {
-      haptic(card.dataset.slot === 'music' ? [6, 30, 6] : 10);
+      haptic('tap');
       if (!still()) M3.burst(card.querySelector('.pres-cover, .pres-pad') || card, card.dataset.slot === 'music' ? 'playlist' : 'play', { count: 12 });
       return;
     }
     const target = e.target.closest('[data-pres-act]');
     if (!target) return;
     const act = target.dataset.presAct;
-    haptic(6);
+    haptic('tap');
     if (act === 'add') {
       M3.menu(target, [
         { label: 'Listening to…', symbol: 'music_note', onSelect: () => setStatus('music') },
@@ -786,7 +786,7 @@
         button.setAttribute('aria-busy', 'true');
         api.post('/api/activity/' + id, { id: input.value.trim() }).then(
           (r) => {
-            haptic([8, 40, 12]);
+            haptic('success');
             M3.toast('Steam is linked', { symbol: 'link', shape: 'pixelCircle' });
             if (r.warning) M3.snackbar(r.warning, { timeout: 12000 });
             fillSettings(box, r);
@@ -862,7 +862,7 @@
         } catch (_) {
           /* only while it's open, then */
         }
-        haptic([8, 40, 12]);
+        haptic('success');
         M3.toast('Sharing what the Music app plays', { symbol: 'music_note', shape: 'flower' });
         amStart();
       });
@@ -985,7 +985,7 @@
     audio.play().then(
       () => {
         if (!player || player.audio !== audio) return;
-        haptic([6, 30, 6]);
+        haptic('select');
         setPlaying(player.btn, true);
       },
       () => {
@@ -1089,7 +1089,7 @@
       if (linkAsk) linkAsk.close();
       linkAsk = null;
       stopPreview();
-      haptic([8, 40, 12]);
+      haptic('success');
       M3.toast(via === 'apple' ? `Playing “${r.title}” in Apple Music` : `Playing “${r.title}” on your Spotify`, { symbol: 'headphones', shape: 'cookie9' });
       const m = (actOf(name) || {}).music;
       stopAlong();

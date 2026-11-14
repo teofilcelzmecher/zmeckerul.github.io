@@ -424,7 +424,7 @@
     glide.style.opacity = '0';
     requestAnimationFrame(placeGlide);
     fx.stagger($$('.drawer-me, .nav-item, .nav-heading, .nav-foot', drawer), { y: 12, step: 22, max: 14 });
-    fx.haptic(6);
+    fx.haptic('open');
     $('#drawer-close').focus({ preventScroll: true });
   }
   function closeDrawer() {
@@ -470,7 +470,7 @@
   for (const id of ['#theme-btn', '#drawer-theme']) {
     $(id).addEventListener('click', (e) => {
       const r = e.currentTarget.getBoundingClientRect();
-      fx.haptic(6);
+      fx.haptic('select');
       fx.reveal(r.left + r.width / 2, r.top + r.height / 2, () => {
         S().mode = ui.theme.isDark() ? 'light' : 'dark';
         store.save();
@@ -642,7 +642,7 @@
     const next = store.vote(p.id, dir);
     $$(`.vote[data-post-id="${p.id}"]`).forEach((box) => setVoteBox(box, next, store.score(p), dir, box.contains(btn) ? btn : null));
     if (next === 1) M3.burst(btn, 'play', { count: 7 });
-    fx.haptic(next ? 10 : 5);
+    fx.haptic(next === 1 ? 'upvote' : next === -1 ? 'downvote' : 'tap');
   };
 
   ACTIONS.cvote = (btn) => {
@@ -653,7 +653,7 @@
     const next = store.voteComment(c.id, dir);
     setVoteBox(box, next, store.commentScore(c), dir, btn);
     if (next === 1) M3.burst(btn, 'play', { count: 5 });
-    fx.haptic(next ? 8 : 4);
+    fx.haptic(next === 1 ? 'upvote' : next === -1 ? 'downvote' : 'tap');
   };
 
   /** a post's sparks, changed in place: counts roll, a new kind springs in, the last of one shrinks away */
@@ -677,7 +677,7 @@
         redraw();
       }
     }
-    fx.haptic(now.mine ? 12 : 5);
+    fx.haptic(now.mine ? 'spark' : 'tap');
     if (!now.mine) return;
     const chip = $(`[data-post="${p.id}"] .spark[data-kind="${kind}"]`);
     if (!chip) return;
@@ -785,7 +785,7 @@
       M3.burst(mine, 'play', { count: 10 });
       fx.pop(mine.querySelector('.m3-icon'), 0.2);
     }
-    fx.haptic([8, 50, 8]);
+    fx.haptic('success');
     M3.toast('Vote counted', { symbol: 'how_to_vote', shape: 'pill' });
   };
 
@@ -797,7 +797,7 @@
       b.setAttribute('aria-pressed', String(on));
       b.dataset.tooltip = on ? 'Saved' : 'Save';
     });
-    fx.haptic(on ? 10 : 5);
+    fx.haptic(on ? 'save' : 'toggleOff');
     // saved, it flies to Saved, which catches it; where Saved isn't in sight, a toast says so
     const target = on ? savedTarget() : null;
     if (on) fx.pop(btn.querySelector('.m3-icon'), 0.5);
@@ -805,7 +805,7 @@
       fx.flyTo(btn, target, { shape: 'clover4', size: 24 }).then((flew) => {
         if (!flew) return M3.toast('Saved', { symbol: 'bookmark_added', shape: 'clover4' });
         fx.pop(target, 0.7);
-        fx.haptic(6);
+        fx.haptic('tick');
       });
     } else {
       M3.toast(on ? 'Saved' : 'Removed from saved', { symbol: on ? 'bookmark_added' : 'bookmark_remove', shape: 'clover4' });
@@ -869,7 +869,7 @@
 
   ACTIONS.unveil = (btn) => {
     const veil = btn.closest('.post-veil');
-    fx.haptic(6);
+    fx.haptic('tap');
     fx.settled(fx.play(btn, [{ opacity: 1, scale: 1 }, { opacity: 0, scale: 0.8 }], { duration: 160, fill: 'forwards' })).then(() => veil.classList.remove('is-veiled'));
   };
 
@@ -1140,7 +1140,7 @@
       if (joined && fresh.getBoundingClientRect().width) M3.burst(fresh, 'playlist', { count: 8 });
     });
     renderDrawerNooks();
-    fx.haptic(joined ? [10, 40, 10] : 6);
+    fx.haptic(joined ? 'join' : 'toggleOff');
     // joined, its icon flies into Your nooks, where its new row slides in to catch it
     const row = joined ? $(`#nav-nooks a[href="#/n/${c.id}"]`) : null;
     const catcher = row && row.querySelector('m3-shape-icon');
@@ -1164,7 +1164,7 @@
   const ruleHTML = (r) => `<p class="mod-rule">${icon('gavel')}<b>${esc(r.rule)}</b></p><p>${esc(r.why)}</p>`;
 
   function blockedSheet(block) {
-    fx.haptic([20, 40, 20]);
+    fx.haptic('warning');
     return ui.sheet({
       headline: 'This can’t be posted',
       symbol: 'block',
@@ -1180,6 +1180,7 @@
   function showError(error) {
     if (!error) return;
     if (error.rule) return blockedSheet({ rule: error.rule, why: error.message });
+    fx.haptic('error');
     M3.snackbar(error.message || 'Something went wrong. Try again.');
   }
   app.showError = showError;
@@ -1259,7 +1260,7 @@
       fx.play(el.querySelector(':scope > .c-main'), [{ opacity: 0.4 }, { opacity: 1 }], { duration: 250 });
       fx.play(el.querySelector(':scope > .c-children'), [{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: fx.decel });
     }
-    fx.haptic(5);
+    fx.haptic('select');
   }
   ACTIONS.collapse = (btn) => toggleCollapse(btn.closest('.comment'));
 
@@ -1312,7 +1313,7 @@
       // the new comment opens into the thread
       fx.expand(document.getElementById('c-' + c.id));
       jumpToComment(c.id);
-      fx.haptic(10);
+      fx.haptic('send');
       M3.toast(parentId ? 'Reply posted' : 'Comment posted', { symbol: 'chat', shape: 'clover4' });
     });
   }
@@ -1374,7 +1375,7 @@
       btn.disabled = false;
       return showError(error);
     }
-    fx.haptic(10);
+    fx.haptic('friend');
     if (status === 'friends') {
       M3.burst(btn, 'hearts', { count: 10 });
       M3.toast(`You and u/${name} are friends now`, { symbol: 'diversity_1', shape: 'heart' });
@@ -1424,7 +1425,7 @@
     } catch (error) {
       return showError(error);
     }
-    fx.haptic(10);
+    fx.haptic('warning');
     M3.toast(`You blocked u/${name}`, { symbol: 'block', shape: 'softBoom' });
   }
   async function unblockPerson(name) {
@@ -1470,7 +1471,7 @@
       } catch (error) {
         return showError(error);
       }
-      fx.haptic(8);
+      fx.haptic('select');
     });
   }
 
@@ -1532,7 +1533,7 @@
       btn.disabled = false;
       return showError(error);
     }
-    fx.haptic(10);
+    fx.haptic('success');
     if (on) M3.burst(btn, 'play', { count: 10 });
     M3.toast(on ? `u/${name} is a Tester now` : `u/${name} isn’t a Tester any more`, { symbol: 'science', shape: 'softBurst' });
     render();
@@ -1680,7 +1681,7 @@
               .then(() => {
                 close(true);
                 M3.toast('Two-step sign-in is on', { symbol: 'verified_user', shape: 'gem' });
-                fx.haptic([10, 40, 10]);
+                fx.haptic('success');
                 refreshSettings();
               })
               .catch((error) => (err.textContent = error.message));
@@ -1811,7 +1812,7 @@
     $$('.note.unread', main).forEach((note, i) => setTimeout(() => note.classList.remove('unread'), fx.reduced() ? 0 : i * 70));
     const count = $('.page-head .muted', main);
     if (count) M3.rollText(count, plural(0, 'unread notification'));
-    fx.haptic(8);
+    fx.haptic('success');
     M3.toast('All caught up', { symbol: 'done_all', shape: 'clover4' });
   };
 
@@ -1964,7 +1965,7 @@
       // a nook is born: confetti in its own shape and colours
       setTimeout(() => {
         fx.confetti($('.nook-hero .nook-avatar', main) || { x: innerWidth / 2, y: innerHeight / 3 }, { shapes: [c.shape, c.shape, 'sunny', 'heart'], count: 40, power: 1.2 });
-        fx.haptic([12, 60, 12, 60, 20]);
+        fx.haptic('achievement');
       }, 450);
     }, 140);
   }
@@ -2060,7 +2061,7 @@
                 setTimeout(() => {
                   go('#/messages/g/' + encodeURIComponent(g.id));
                   M3.toast(`${g.name} is ready`, { symbol: 'groups', shape: g.shape });
-                  fx.haptic([10, 40, 10]);
+                  fx.haptic('success');
                 }, 140);
               })
               .catch((error) => (err.textContent = error.message));
@@ -3343,7 +3344,7 @@
         if (!card) return;
         fx.pop(card, 0.94);
         fx.confetti(card.querySelector('.post-title') || card, { shapes: [model.nook.shape, 'sunny', 'heart', 'cookie9'], count: 26 });
-        fx.haptic([10, 60, 20]);
+        fx.haptic('post');
       }, 380);
     });
   };
@@ -3451,8 +3452,12 @@
 
   const said = (m, inGroup) =>
     m.kind ? views.lineText(m, inGroup) : !m.body && m.media && m.media.type === 'sticker' ? 'Sent a sticker' : ui.plain(S().filterLanguage === false ? m.body : Nook.mod.soften(m.body), 70);
+  // (1.8) a message from someone else: two soft taps, wherever you are (a blast has its own, much bigger feel)
+  const fromSomeoneElse = (m) =>
+    !!(m && m.from && m.kind !== 'blast' && m.kind !== 'theme' && m.from.toLowerCase() !== ((store.state.me || {}).name || '').toLowerCase() && !store.isBlocked(m.from));
   store.on('messages', (incoming = []) => {
     renderBadges();
+    if (incoming.some(fromSomeoneElse)) fx.haptic('receive');
     // sticker blasts (1.5) come in flying wherever you are, if the live connection hasn't brought them already
     if (Nook.blasts) incoming.filter((m) => m.kind === 'blast').forEach((m) => Nook.blasts.arrived(m));
     // a group's chat only listens for its own news
@@ -3469,12 +3474,36 @@
 
   store.on('gmessages', (incoming = []) => {
     renderBadges();
+    if (incoming.some(fromSomeoneElse)) fx.haptic('receive');
     if (main._onMessages && route && (route.view === 'groupThread' || route.view === 'messagesPage')) return main._onMessages(incoming);
     const last = incoming[incoming.length - 1];
     const g = last && store.group(last.group);
     if (!g || (last.from && store.isBlocked(last.from))) return;
     M3.snackbar(`${g.name} · ${last.from && !last.kind ? 'u/' + last.from + ': ' : ''}${said(last, true)}`, { timeout: 6000, action: { label: 'Open', onClick: () => go('#/messages/g/' + encodeURIComponent(g.id)) } });
   });
+
+  // (1.8) the little things, everywhere: a switch taps up as it turns on and down as it turns off, and a choice (a
+  // segment, a chip, a tab, a place in the bar or the menu) clicks; on Strong, any other button gives a light tick
+  // too, unless what it does has a feel of its own
+  document.addEventListener(
+    'change',
+    (e) => {
+      const t = e.target;
+      if (t instanceof HTMLInputElement && (t.classList.contains('m3-switch') || t.getAttribute('role') === 'switch')) fx.haptic(t.checked ? 'toggleOn' : 'toggleOff');
+    },
+    true
+  );
+  document.addEventListener(
+    'click',
+    (e) => {
+      const t = e.target instanceof Element ? e.target : null;
+      if (!t) return;
+      if (t.closest('.m3-segment, .m3-chip, .nav-item, [role="tab"]')) return fx.haptic('select');
+      const b = t.closest('button, .m3-btn, [role="button"]');
+      if (b && !b.disabled) fx.hapticIfQuiet('tick');
+    },
+    true
+  );
 
   store.on('groups', () => {
     renderBadges();
@@ -3592,7 +3621,7 @@
     setTimeout(() => {
       M3.toast(`Badge unlocked: ${badge.name}`, { symbol: badge.symbol, shape: badge.shape, timeout: 3200 });
       fx.confetti({ x: innerWidth / 2, y: innerHeight - (innerWidth < 720 ? 130 : 60) }, { shapes: [badge.shape, badge.shape, 'sunny'], count: 24, power: 0.9 });
-      fx.haptic([8, 50, 8]);
+      fx.haptic('achievement');
     }, 600);
   });
 
@@ -3632,7 +3661,7 @@
   fab.innerHTML = '<m3-shape shape="cookie9" aria-hidden="true"></m3-shape><span translate="no" class="m3-icon" aria-hidden="true">arrow_upward</span>';
   document.body.appendChild(fab);
   fab.addEventListener('click', () => {
-    fx.haptic(8);
+    fx.haptic('tap');
     fx.play(fab.querySelector('m3-shape'), [{ rotate: '0deg' }, { rotate: '360deg' }], { duration: 800, easing: 'cubic-bezier(.3,0,.2,1)' });
     scrollTo({ top: 0, behavior: fx.reduced() ? 'auto' : 'smooth' });
   });
@@ -3735,7 +3764,7 @@
     // far enough: it changes shape and taps once, so you know letting go will refresh
     if (t >= 1 && !pull.armed) {
       pull.armed = true;
-      fx.haptic(8);
+      fx.haptic('refresh');
       if (shape) shape.transitionTo('softBurst', { spring: true });
     } else if (t < 1 && pull.armed) {
       pull.armed = false;
@@ -3766,7 +3795,7 @@
     Promise.all([store.sync(), wait]).then(() => {
       render();
       resetPull();
-      fx.haptic(6);
+      fx.haptic('tick');
       M3.toast('You’re up to date', { symbol: 'refresh', shape: 'cookie9' });
     });
   });

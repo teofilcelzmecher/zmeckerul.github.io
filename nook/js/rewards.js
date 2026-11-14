@@ -1076,7 +1076,7 @@
             if (kind === 'font') panel.querySelectorAll('.rw-sample.name-fx').forEach(liven);
             paintStage(kind);
             paintBar();
-            fx.haptic(5);
+            fx.haptic('select');
           };
 
           panel.addEventListener('click', (e) => {
@@ -1120,8 +1120,8 @@
                 const art = panel.querySelector(`[data-rw-try="${CSS.escape(id)}"] .rw-tile-art`);
                 if (!still()) M3.burst($('#rw-av'), kind === 'frame' ? 'playlist' : 'play', { count: 12 });
                 if (art) fx.pop(art, 0.7);
-                fx.haptic([8, 40, 14]);
-              } else fx.haptic(8);
+                fx.haptic('success');
+              } else fx.haptic('tap');
             } catch (error) {
               paintBar(error.message || 'Couldn’t wear that. Try again.');
               // something unlocked or locked since: what the server says now
@@ -1303,7 +1303,7 @@
       look[kind] = b.dataset.rwPick;
       b.parentElement.querySelectorAll('[data-rw-pick]').forEach((t) => t.setAttribute('aria-pressed', String(t === b)));
       fx.pop(b.querySelector('.rw-tile-art'), 0.86);
-      fx.haptic(5);
+      fx.haptic('select');
       picked(kind);
     });
     return { paint };

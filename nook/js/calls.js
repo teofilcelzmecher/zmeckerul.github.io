@@ -260,8 +260,13 @@
   let looping = 0;
   function loop(name, every) {
     unloop();
-    SOUNDS[name]();
-    looping = setInterval(() => SOUNDS[name](), every);
+    const once = () => {
+      SOUNDS[name]();
+      // (1.8) a call ringing here buzzes like a phone, with every ring
+      if (name === 'ring') fx.haptic('ring');
+    };
+    once();
+    looping = setInterval(once, every);
   }
   function unloop() {
     clearInterval(looping);
@@ -492,7 +497,6 @@
     el.addEventListener('keydown', (e) => e.key === 'Escape' && decline(call));
     fx.play(el.querySelector('.ring-card'), [{ opacity: 0, transform: 'translateY(40px) scale(0.92)' }, { opacity: 1, transform: 'none' }], { duration: fx.lively.duration, easing: fx.lively.easing });
     loop('ring', 2600);
-    if (navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500, 300, 500, 300, 500, 300, 500]);
     // a keyboard can answer straight away (on a phone, focus would only bring up a tooltip)
     if (matchMedia('(hover: hover)').matches) el.querySelector('[data-ring="answer"]').focus({ preventScroll: true });
     // the server stops the ringing after 35 seconds; this is in case its word never arrives
@@ -940,7 +944,10 @@
       if (state === peer.state) return;
       peer.state = state;
       if (state === 'connected') {
-        if (!active.startedAt) active.startedAt = Date.now();
+        if (!active.startedAt) {
+          active.startedAt = Date.now();
+          fx.haptic('connect');
+        }
         peer.tries = 0;
         fitBitrate();
       }
@@ -1138,7 +1145,7 @@
     micLive();
     tell();
     controls();
-    fx.haptic(8);
+    fx.haptic(active.mic ? 'unmute' : 'mute');
   }
 
   /** deafen: you hear nobody (nor their shared screens' sound, nor the soundboard), and your microphone goes off too.
@@ -1155,7 +1162,7 @@
     tell();
     controls();
     (active.deaf ? SOUNDS.deafen : SOUNDS.undeafen)();
-    fx.haptic(8);
+    fx.haptic(active.deaf ? 'mute' : 'unmute');
   }
 
   /** what you hear of someone: their voice (unless you've deafened or muted them for yourself) at the volume you set,
@@ -1196,7 +1203,7 @@
     selfView();
     controls();
     layout();
-    fx.haptic(8);
+    fx.haptic(active.cam ? 'toggleOn' : 'toggleOff');
   }
 
   // ---- sharing your screen (on a computer; phones' browsers can't) ----------------------------------------------
@@ -1370,6 +1377,7 @@
     wake(false);
     poll.needed();
     SOUNDS.end();
+    fx.haptic('hangup');
     if (was.call.group) {
       // the group's call may carry on without you
       if (reason !== 'you') going.delete(was.id);
@@ -1750,7 +1758,7 @@
         } catch (_) {
           /* it stays there for this call */
         }
-        fx.haptic(6);
+        fx.haptic('select');
       }
       drag = null;
       placeSelf(true);
@@ -1976,7 +1984,7 @@
     } else if (active.focus === key) active.focus = nextFocus(key);
     if (!on && active.theater === peer.screenTile) closeTheater();
     drawTile(peer);
-    fx.haptic(6);
+    fx.haptic('select');
   }
   /** they stopped sharing, so you stopped watching */
   function stopWatching(peer) {
@@ -2050,7 +2058,7 @@
         .catch(() => {});
     }
     active.peers.forEach((p) => p.screenTile && streamTools(p));
-    fx.haptic(6);
+    fx.haptic('select');
   }
   function closeTheater() {
     if (!active || !active.theater) return;
@@ -2266,7 +2274,7 @@
     if (!active) return;
     const now = Date.now();
     active.reacts = active.reacts.filter((t) => now - t < 10000);
-    if (active.reacts.length >= 6) return fx.haptic(20);
+    if (active.reacts.length >= 6) return fx.haptic('warning');
     active.reacts.push(now);
     const r = Object.assign({ id: ++active.reactId + '-' + now.toString(36) }, what);
     tell({ react: r });

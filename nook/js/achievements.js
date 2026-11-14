@@ -49,16 +49,8 @@
   // the Android and Apple apps: their own haptics and share sheet (which shares words and links, not pictures)
   const nativeApp = () => !!((window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || window.BUDGIE_APPLE);
 
-  /** a haptic pattern. In the apps it works straight away (a browser only lets a page buzz once it's been touched) */
-  function buzz(pattern) {
-    if (S().haptics === false || !navigator.vibrate) return;
-    if (!nativeApp()) return fx.haptic(pattern);
-    try {
-      navigator.vibrate(pattern);
-    } catch (_) {
-      /* not here */
-    }
-  }
+  /** a feel (1.8: by name, see fx.js). The apps play it straight away; a browser once the page has been touched */
+  const buzz = (feel) => fx.haptic(feel);
 
   const store_ = (key, value) => {
     try {
@@ -361,8 +353,8 @@
             fx.confetti({ x: top.left + top.width / 2, y: top.top }, { shapes: [item.e.shape, 'sunny', item.e.shape], colors: item.e.tier === 5 ? ['#ff7eb3', '#ffb46b', '#fff176', '#7dffb0', '#6fd3ff', '#b98bff'] : metal, count: 18, power: 0.8 });
           }
         }, 380);
-        buzz([8, 60, 12, 60, item.e.tier >= 4 ? 40 : 24]);
-      } else buzz(10);
+        buzz('achievement');
+      } else buzz('success');
     });
   }
 
@@ -568,7 +560,7 @@
       }
       // a tap anywhere carries on (not the one that might still be landing as it opened)
       if (performance.now() - openedAt > 450 || e.target.closest('.ach-m-go')) {
-        buzz(6);
+        buzz('tap');
         close();
       }
     });
@@ -699,7 +691,7 @@
       // held still: the card as it ends, with one tap of the phone
       fillRing(ringEl, ring.at, 0);
       rollOdometer(dlg, 0);
-      buzz(big ? [10, 60, 30] : 12);
+      buzz(big ? 'streak' : 'tap');
       later(close, big || rewards.length ? 12000 : 7000);
       return finished;
     }
@@ -714,7 +706,7 @@
     spark.animate([{ transform: 'scale(0) rotate(-90deg)' }, { transform: 'scale(1) rotate(0deg)' }], { duration: 320, easing: 'cubic-bezier(.2,1.6,.4,1)', fill: 'both' });
     raf = requestAnimationFrame(frame);
     later(() => {
-      buzz(5);
+      buzz('tick');
       sparkShape.transitionTo(icy ? 'clover8' : 'burst', { spring: true });
     }, 260);
     later(() => {
@@ -723,14 +715,14 @@
       const grow = M3.motion.springEasing({ spring: 3.6, damping: 0.26 });
       flameAll.animate([{ transform: 'scale(0.1)' }, { transform: `scale(${big ? 1.06 : 1})` }], { duration: grow.duration, easing: grow.easing, fill: 'forwards' });
       emberRate = icy ? 10 : 18;
-      buzz(9);
+      buzz('streak');
     }, 520);
     if (icy) {
       // the ice cracks: shards fly, and the flame warms up from blue to fire
       later(() => {
         const o = origin();
         for (let i = 0; i < 28; i++) ember(o, true);
-        buzz([6, 80, 6]);
+        buzz('spark');
         const stops = svg.querySelectorAll('#achfo stop, #achfm stop');
         const warm = ['#ff3d00', '#ff7a00', '#ffc400', '#ff9100', '#ffe082'];
         stops.forEach((s, i) => s.animate([{ stopColor: s.getAttribute('stop-color') }, { stopColor: warm[i] }], { duration: 700, easing: 'ease-in-out', fill: 'forwards' }));
@@ -745,7 +737,7 @@
     later(() => {
       const o = origin();
       for (let i = 0; i < (big ? 70 : 36); i++) ember(o, true);
-      buzz(big ? [20, 70, 60] : 20);
+      buzz(big ? 'achievement' : 'success');
       fillRing(ringEl, ring.at, 900);
       dlg.querySelector('.ach-m-count').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }, { transform: 'scale(1)' }], { duration: 420, easing: 'ease-out' });
       if (big) {
@@ -1166,7 +1158,7 @@
       if (data) data.featured = r.featured;
       repaintMine();
       M3.toast(ids.length ? 'Featured on your profile' : 'Nothing featured', { symbol: 'push_pin', shape: 'burst' });
-      buzz(8);
+      buzz('success');
       return true;
     } catch (error) {
       app().showError(error);
@@ -1209,9 +1201,9 @@
           else if (chosen.size < FEATURED_MAX) {
             chosen.add(id);
             fx.pop(b.querySelector('.ach-badge'), 0.7);
-          } else return buzz([6, 40, 6]);
+          } else return buzz('warning');
           b.setAttribute('aria-pressed', String(chosen.has(id)));
-          buzz(6);
+          buzz('select');
           sync();
         });
       },
@@ -1499,7 +1491,7 @@
         body.addEventListener('click', async (ev) => {
           const b = ev.target.closest('[data-flex]');
           if (!b) return;
-          buzz(6);
+          buzz('tap');
           const what = b.dataset.flex;
           if (what === 'share') {
             const url = ui.linkTo('#/u/' + encodeURIComponent(meName()));
@@ -1557,7 +1549,7 @@
             await store.sendMessage(b.dataset.name, '', { image, width: canvas.width, height: canvas.height });
             close();
             M3.toast(`Sent to u/${b.dataset.name}`, { symbol: 'send', shape: 'heart' });
-            buzz([6, 40, 12]);
+            buzz('send');
           } catch (error) {
             b.disabled = false;
             b.classList.remove('sending');

@@ -190,6 +190,8 @@ final class WebController: NSObject, ObservableObject {
             return nil
         case "haptic":
             Haptics.play(body["pattern"] as? [Double] ?? [])
+        case "haptics":
+            Haptics.play(events: body["events"] as? [[String: Any]] ?? [])
         case "share":
             return await Platform.share(from: webView, title: body["title"] as? String ?? "", text: body["text"] as? String ?? "", url: body["url"] as? String ?? "")
         case "open":
