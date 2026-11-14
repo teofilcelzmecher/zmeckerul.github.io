@@ -191,25 +191,44 @@
     );
   }
   /** the line showing how far into the song they are: where it starts from, and how long it runs on */
+  // (1.7.2) Material 3's wavy line, as Android's media player has it: the part played is a wave, running while the
+  // song plays and smoothing out flat when it's paused (and always flat held still); the rest is a straight track
+  const placeMark = (m) => `${m.at || ''}|${m.paused ? 1 : 0}`;
+  const placeData = (m, place) => ({ dur: m.duration, pos: Math.round(place.share * m.duration), t: Date.now(), paused: m.paused ? 1 : 0 });
   function progressLine(m) {
     const place = songPlace(m);
     if (!place) return '';
-    return `<span class="pres-progress${m.paused ? ' paused' : ''}" aria-hidden="true" data-mark="${esc(`${m.at || ''}|${m.paused ? 1 : 0}`)}" style="--from:${place.share.toFixed(4)};--left:${Math.round(place.left)}ms"><i></i></span>`;
+    const d = placeData(m, place);
+    return `<m3-wavy-progress class="pres-progress" aria-hidden="true" value="${place.share.toFixed(5)}"${!m.paused && !still() ? ' playing' : ''} data-mark="${esc(placeMark(m))}" data-dur="${d.dur}" data-pos="${d.pos}" data-t="${d.t}" data-paused="${d.paused}"></m3-wavy-progress>`;
   }
   /** the same song, newly asked about: the line carries on from where they are now (the card isn't drawn again) */
   function syncProgress(card, m) {
     const bar = card.querySelector('.pres-progress');
-    const mark = `${m.at || ''}|${m.paused ? 1 : 0}`;
-    if (!bar || bar.dataset.mark === mark) return;
+    if (!bar || bar.dataset.mark === placeMark(m)) return;
     const place = songPlace(m);
     if (!place) return;
-    bar.dataset.mark = mark;
-    bar.style.setProperty('--from', place.share.toFixed(4));
-    bar.style.setProperty('--left', Math.round(place.left) + 'ms');
-    bar.classList.toggle('paused', !!m.paused);
-    // a new line, so its animation starts again from here
-    bar.innerHTML = '<i></i>';
+    bar.dataset.mark = placeMark(m);
+    Object.assign(bar.dataset, placeData(m, place));
+    runProgress(bar, true);
   }
+  /** a line's place now: where the song was when it was drawn, and the time since (unless it's paused) */
+  function runProgress(bar, fresh = false) {
+    const paused = bar.dataset.paused === '1';
+    const held = still();
+    const dur = Number(bar.dataset.dur) || 0;
+    if (!dur) return;
+    // held still, the line stays where it was drawn, or last heard of (as it always has), only flat
+    if (!held || fresh || !bar.hasAttribute('value')) {
+      const pos = Number(bar.dataset.pos) + (paused ? 0 : Date.now() - Number(bar.dataset.t));
+      bar.setAttribute('value', String(Math.round(Math.min(1, Math.max(0, pos / dur)) * 1e5) / 1e5));
+    }
+    bar.toggleAttribute('playing', !paused && !held);
+  }
+  // the lines run on with their songs: a few times a second, on whatever shows one (the wave itself moves by itself)
+  setInterval(() => {
+    if (document.hidden) return;
+    for (const bar of document.querySelectorAll('m3-wavy-progress.pres-progress')) runProgress(bar);
+  }, 250);
 
   /** the big card for a song, on a profile */
   function musicCard(m, own, name) {

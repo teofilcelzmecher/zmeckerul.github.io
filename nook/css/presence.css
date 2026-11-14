@@ -271,42 +271,19 @@
 
 /* ---- (1.7) a friend's song: how far in they are, and what you can do with it ------------------------------ */
 
-/* how far into the song they are: a thin line that runs on by itself to the song's end */
+/* how far into the song they are: (1.7.2) Material 3's wavy line (the kit's m3-wavy-progress), in the card's own
+   colours. The part played is a wave while the song plays, flat when it's paused; the rest is a straight track */
 .pres-progress {
-  position: relative;
+  --m3-progress-active: currentColor;
+  --m3-progress-track: color-mix(in srgb, currentColor 22%, transparent);
   display: block;
-  height: 3px;
-  margin: 7px 4px 1px 0;
-  overflow: hidden;
-  border-radius: var(--m3-r-full);
-  background: color-mix(in srgb, currentColor 18%, transparent);
-}
-.pres-progress i {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: currentColor;
-  transform: scaleX(var(--from, 0));
-  transform-origin: left;
-  animation: pres-progress var(--left, 0ms) linear forwards;
+  height: 14px;
+  min-width: 0;
+  margin: 3px 4px -3px -2px;
 }
 .pres-card[data-pres-act] .pres-progress {
   /* room for the pencil on your own card */
   margin-inline-end: 34px;
-}
-.pres-progress.paused i {
-  animation: none;
-}
-[dir='rtl'] .pres-progress i {
-  transform-origin: right;
-}
-@keyframes pres-progress {
-  from {
-    transform: scaleX(var(--from, 0));
-  }
-  to {
-    transform: scaleX(1);
-  }
 }
 
 /* the play button, Listen along and Open in…: a row across the bottom of the card, in its own (the album's) colours */
@@ -1079,13 +1056,12 @@
   .pres-pad m3-shape,
   .pres-pad i,
   .pres-live::after,
-  .pres-progress i,
   .pres-along {
     animation: none !important;
   }
 }
-:root[data-m3-reduce-motion] :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-progress i, .pres-along),
-body.calm :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-progress i, .pres-along) {
+:root[data-m3-reduce-motion] :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-along),
+body.calm :is(.pres-vinyl, .pres-eq i, .pres-pad m3-shape, .pres-pad i, .pres-live::after, .pres-along) {
   animation: none !important;
 }
 :root[data-m3-reduce-motion] .pres-pad i,
