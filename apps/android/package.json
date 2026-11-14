@@ -1,6 +1,6 @@
 {
   "name": "budgie-android",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "private": true,
   "description": "Budgie for Android: the app, with Budgie's screens inside and Android's own haptics, notifications and back button around them.",
   "license": "UNLICENSED",

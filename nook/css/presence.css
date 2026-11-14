@@ -185,6 +185,50 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* (1.7.2) words too long for their line slide along, like a music app's (presence.js moves them): they fade at the
+   end, and at the start too while they're moving */
+@property --slide-fade {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+[data-slide] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-slide].sliding {
+  text-overflow: clip;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--slide-fade), #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 var(--slide-fade), #000 calc(100% - 16px), transparent);
+}
+.slide-run {
+  display: inline;
+}
+/* the words, then the same words again after a gap (presence.js's SLIDE.gap), so the start comes round seamlessly */
+.sliding > .slide-run {
+  display: inline-flex;
+  gap: 36px;
+  will-change: transform;
+}
+.slide-words {
+  flex: none;
+  white-space: nowrap;
+}
+/* held still (less motion, or calm mode): a card's title and artist take a second line rather than being cut */
+.slide-held[data-slide-wrap] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.slide-held[data-slide-wrap] .slide-words {
+  white-space: normal;
+}
 /* someone else's card answers a tap with a little burst */
 .pres-card:not([data-pres-act]) {
   -webkit-tap-highlight-color: transparent;

@@ -38,6 +38,7 @@ const mod = require('../js/moderation.js');
 const TEST_API = (process.env.NOOK_ACTIVITY_API || '').replace(/\/$/, '');
 const STEAM_API = TEST_API ? TEST_API + '/steam' : 'https://api.steampowered.com';
 const ITUNES_API = TEST_API ? TEST_API + '/itunes/search' : 'https://itunes.apple.com/search';
+const ITUNES_LOOKUP = TEST_API ? TEST_API + '/itunes/lookup' : 'https://itunes.apple.com/lookup';
 // where album art may be downloaded from (Apple's and Spotify's picture servers), and nowhere else
 const ART_HOSTS = [/^is\d+-ssl\.mzstatic\.com$/, /^i\.scdn\.co$/];
 
@@ -46,6 +47,54 @@ const SLOTS = ['music', 'game'];
 const RANK = { manual: 3, desktop: 2, spotify: 1.5, steam: 1 };
 const VISIBILITY = ['everyone', 'friends', 'nobody'];
 const LIMITS = { title: 150, artist: 100, album: 100, app: 32, game: 80 };
+
+// ---- who's on a song (1.7.2) ------------------------------------------------------------------------------
+
+// A collaboration comes as one line, joined in different ways: "Justice & Tame Impala" (Apple), "Justice, Tame
+// Impala" (Spotify and most computers), "Justice feat. Tame Impala", "x"... Each artist on it counts on their own.
+// A band's own name keeps its "&" or comma: the ones below, and a band with its backing band ("Bob Marley & The
+// Wailers"), unless the part with "The" is someone heard on their own (The Weeknd)
+const FEATURING = /\s+(?:feat\.?|ft\.?|featuring|with|w\/|x|×|vs\.?|versus)\s+/i;
+const ONE_ACT = new Set(
+  [
+    'Simon & Garfunkel', 'Mumford & Sons', 'Earth, Wind & Fire', 'Crosby, Stills & Nash', 'Crosby, Stills, Nash & Young', 'Emerson, Lake & Palmer',
+    'Blood, Sweat & Tears', 'Peter, Paul and Mary', 'Black Country, New Road', 'Tyler, The Creator', 'Hall & Oates', 'Daryl Hall & John Oates',
+    'Belle & Sebastian', 'Above & Beyond', 'Chase & Status', 'Iron & Wine', 'Years & Years', 'Brooks & Dunn', 'Big & Rich', 'Sonny & Cher',
+    'Ike & Tina Turner', 'Sam & Dave', 'Peaches & Herb', 'Ashford & Simpson', 'Captain & Tennille', 'Jan & Dean', 'Matt & Kim', 'She & Him',
+    'Tegan & Sara', 'Tegan and Sara', 'Aly & AJ', 'Sly & Robbie', 'Chloe x Halle', 'Macklemore & Ryan Lewis', 'Angus & Julia Stone', 'Now, Now',
+    'Lily & Madeleine', 'Nico & Vinz', 'Kraak & Smaak', 'Dimitri Vegas & Like Mike',
+  ].map((n) => n.toLowerCase())
+);
+/**
+ * the artists on a line, each once, as they're written there. `alone(name)` says whether a name starting with "The"
+ * has been heard on its own (so "Swedish House Mafia & The Weeknd" is two, and "Bob Marley & The Wailers" one)
+ */
+function artistsOf(line, alone = () => false) {
+  const out = [];
+  const add = (name) => {
+    name = String(name || '').trim();
+    if (name && !out.some((n) => n.toLowerCase() === name.toLowerCase())) out.push(name);
+  };
+  const whole = String(line || '').trim();
+  if (!whole) return out;
+  if (ONE_ACT.has(whole.toLowerCase())) return [whole];
+  for (const piece of whole.split(FEATURING)) {
+    if (ONE_ACT.has(piece.trim().toLowerCase())) {
+      add(piece);
+      continue;
+    }
+    const parts = piece.split(/\s*,\s+|\s+&\s+/).filter((p) => p.trim());
+    // "& The Wailers": the band's own (unless that "The" is an artist of their own)
+    if (parts.length > 1 && parts.some((p, i) => i > 0 && /^the\s/i.test(p.trim()) && !alone(p.trim()))) add(piece);
+    else parts.forEach(add);
+  }
+  return out;
+}
+/** the artists featured in a title: "Neverender (feat. Tame Impala)" has Tame Impala on it too */
+function featuredIn(title) {
+  const m = /[([](?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+)[)\]]|\s(?:feat\.|ft\.|featuring)\s+(.+)$/i.exec(String(title || ''));
+  return m ? (m[1] || m[2] || '').trim() : '';
+}
 
 function install(ctx) {
   const { db, route, limit, fail, now, CONFIG, VERSION, MINUTE, HOUR, DAY, friendship, hasBlocked, lastSeen, textmodel, autoReport, CLI, modules, serving } = ctx;
@@ -93,6 +142,11 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     }
   }
   db.raw.exec("DELETE FROM meta WHERE key = 'lastfm-key'");
+  // (1.7.2) covers are looked for better now: the songs none was found for before are looked for again
+  if (db.meta('art-looked-again') !== '1.7.2') {
+    db.run("DELETE FROM presence_art WHERE file = ''");
+    db.meta('art-looked-again', '1.7.2');
+  }
 
   // ---- small helpers ------------------------------------------------------------------------------------
 
@@ -183,19 +237,34 @@ CREATE TABLE IF NOT EXISTS presence_genres (
 
   // ---- calls to Steam and iTunes ------------------------------------------------------------------------
 
-  /** a budget of calls a minute: take() is false once it's spent (whoever asked tries again later) */
+  /**
+   * a budget of calls a minute: take() is false once it's spent (whoever asked tries again later); take.wait(ms)
+   * waits for the next one to come free instead, up to ms (false if it wouldn't in time)
+   */
   function pace(perMinute) {
     let stamps = [];
-    return () => {
+    const take = () => {
       const t = now();
       stamps = stamps.filter((s) => s > t - MINUTE);
       if (stamps.length >= perMinute) return false;
       stamps.push(t);
       return true;
     };
+    take.wait = async (most) => {
+      const until = now() + most;
+      while (!take()) {
+        const free = stamps[0] + MINUTE - now() + 20;
+        if (now() + free > until) return false;
+        await new Promise((r) => setTimeout(r, Math.max(20, free)));
+      }
+      return true;
+    };
+    return take;
   }
   // Apple asks for about twenty calls a minute
   const itunesPace = pace(FAST ? 600 : 18);
+  // (1.7.2) a song's cover waits its turn when many are being looked for at once, instead of not being looked for
+  const ITUNES_WAIT = FAST ? 3000 : 45000;
 
   /** JSON from outside, or null when it couldn't be had (the reason goes to the log, without the URL and its key) */
   async function getJson(url, what) {
@@ -258,7 +327,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
 
   // ---- album art ----------------------------------------------------------------------------------------
 
-  /** a kept picture's address, '' when it's known there's none (for a week), null when nobody has looked yet */
+  /** a kept picture's address, '' when it's known there's none (for two days), null when nobody has looked yet */
   function keptArt(key) {
     const row = db.get('SELECT file, fetched_at, used_at FROM presence_art WHERE key = ?', key);
     if (!row) return null;
@@ -266,7 +335,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       if (row.used_at < now() - HOUR) db.run('UPDATE presence_art SET used_at = ? WHERE key = ?', now(), key);
       return artUrl(row.file);
     }
-    return row.fetched_at > now() - 7 * DAY ? '' : null;
+    return row.fetched_at > now() - 2 * DAY ? '' : null;
   }
 
   const allowedArt = (src) => {
@@ -279,21 +348,77 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     }
   };
 
-  /** a song's picture on Apple's iTunes Search (and its genre): { art, genre }, null for none, undefined for "not now" */
-  async function itunes(m) {
-    if (!itunesPace()) return undefined;
-    const term = [m.artist, m.title].filter(Boolean).join(' ').slice(0, 200);
-    const answer = await getJson(`${ITUNES_API}?${new URLSearchParams({ term, media: 'music', entity: 'song', limit: '8' })}`, 'iTunes Search');
+  // words only, without accents, "(Remastered 2011)", "- Radio Edit" or "feat. someone": for matching songs up
+  const plain = (s) =>
+    lower(s)
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\(.*?\)|\[.*?\]/g, ' ')
+      .replace(/\s[-–—]\s.*$/, ' ')
+      .replace(/\b(feat|ft|featuring)\b\.?\s.*$/, ' ')
+      .replace(/[^\p{L}\p{N}]+/gu, ' ')
+      .trim();
+  /** a title in the words Apple's search knows it by: without what's in brackets, "- Remastered" or who's featured */
+  const searchWords = (s) =>
+    String(s || '')
+      .replace(/\s*[([][^)\]]*[)\]]/g, ' ')
+      .replace(/\s[-–—]\s.*$/, ' ')
+      .replace(/\s(?:feat|ft|featuring)\.?\s.*$/i, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  /** an artist as Apple knows them: without a video site's " - Topic" or "VEVO" */
+  const artistWords = (s) => String(s || '').replace(/\s*-\s*topic$/i, '').replace(/vevo$/i, '').trim();
+  const artOf = (r) => ({ art: r.artworkUrl100.replace(/\/\d+x\d+bb\.(jpg|png|webp)$/, '/300x300bb.jpg'), genre: typeof r.primaryGenreName === 'string' ? r.primaryGenreName : '' });
+
+  /** Apple's answers that have a picture: [] for none, undefined for "not now" (its turn didn't come, or no answer) */
+  async function askApple(url) {
+    if (!(await itunesPace.wait(ITUNES_WAIT))) return undefined;
+    const answer = await getJson(url, 'iTunes Search');
     if (!answer) return undefined;
-    // words only, without "(Remastered 2011)", "- Radio Edit" or "feat. someone", to match the song up
-    const plain = (s) => lower(s).replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/\s-\s.*$/, ' ').replace(/\b(feat|ft)\.? .*$/, ' ').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-    const title = plain(m.title);
-    const artist = plain(m.artist);
-    const results = (Array.isArray(answer.results) ? answer.results : []).filter((r) => r && typeof r.artworkUrl100 === 'string');
-    const byArtist = (r) => !artist || plain(r.artistName).includes(artist) || artist.includes(plain(r.artistName));
-    const best = results.find((r) => plain(r.trackName) === title && byArtist(r)) || results.find((r) => plain(r.trackName).startsWith(title) && byArtist(r)) || (artist ? results.find(byArtist) : null);
-    if (!best) return null;
-    return { art: best.artworkUrl100.replace(/\/\d+x\d+bb\.(jpg|png|webp)$/, '/300x300bb.jpg'), genre: typeof best.primaryGenreName === 'string' ? best.primaryGenreName : '' };
+    return (Array.isArray(answer.results) ? answer.results : []).filter((r) => r && typeof r.artworkUrl100 === 'string');
+  }
+  const search = (params) => askApple(`${ITUNES_API}?${new URLSearchParams(Object.assign({ media: 'music', limit: '10' }, params))}`);
+
+  /**
+   * a song's picture on Apple's iTunes Search (and its genre): { art, genre }, null for none, undefined for "not now".
+   * (1.7.2) A song from the Music app is looked up by its own number in Apple Music. Others by their first artist and
+   * title (whoever else is on it, in any order; the title without "(Remastered)" or "feat."), then by their album,
+   * then by the title alone
+   */
+  async function itunes(m) {
+    if (m.appleId) {
+      const got = await askApple(`${ITUNES_LOOKUP}?${new URLSearchParams({ id: m.appleId })}`);
+      if (got === undefined) return undefined;
+      if (got.length) return artOf(got[0]);
+    }
+    const artists = artistsOf(artistWords(m.artist)).map(artistWords).filter(Boolean);
+    let title = searchWords(m.title);
+    // "Artist - Title" (a video's name, from a browser): the title is what comes after the artist
+    const dash = /^(.+?)\s[-–—]\s(.+)$/.exec(String(m.title || ''));
+    if (dash && artists.some((a) => plain(a) && (plain(dash[1]).includes(plain(a)) || plain(a).includes(plain(dash[1]))))) title = searchWords(dash[2]);
+    const want = artists.map(plain).filter((a) => a.length > 1);
+    const byArtist = (r) => {
+      if (!want.length) return true;
+      const got = plain(r.artistName);
+      return !!got && want.some((a) => got.includes(a) || a.includes(got));
+    };
+    const name = plain(title);
+    const pick = (results) => (name ? results.find((r) => plain(r.trackName) === name && byArtist(r)) || results.find((r) => plain(r.trackName).startsWith(name) && byArtist(r)) : null);
+    const first = await search({ term: [artists[0], title].filter(Boolean).join(' ').slice(0, 200), entity: 'song' });
+    if (first === undefined) return undefined;
+    let best = pick(first);
+    if (!best && m.album) {
+      const album = plain(m.album);
+      const albums = album ? await search({ term: [artists[0], searchWords(m.album)].filter(Boolean).join(' ').slice(0, 200), entity: 'album' }) : null;
+      if (albums) best = albums.find((r) => byArtist(r) && (plain(r.collectionName) === album || plain(r.collectionName).startsWith(album)));
+    }
+    if (!best && name.length >= 3 && want.length) {
+      const titled = await search({ term: title.slice(0, 200), entity: 'song', limit: '25' });
+      if (titled) best = pick(titled);
+    }
+    // at least the artist's: one of their songs in the first answer
+    best = best || (want.length ? first.find(byArtist) : null);
+    return best ? artOf(best) : null;
   }
 
   /** downloads a picture into the art folder: its address here, or '' */
@@ -363,7 +488,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
           }
         }
         art = src ? await download(src, key) : '';
-        // nothing there: remembered for a week, so nobody asks again and again (but "not now" isn't remembered)
+        // nothing there: remembered for two days, so nobody asks again and again (but "not now" isn't remembered)
         if (!art && looked) db.run('INSERT INTO presence_art (key, fetched_at, used_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET fetched_at = excluded.fetched_at', key, now(), now());
       }
       return { art: art || '', genres: await genresFor(m.artist, genre) };
@@ -386,10 +511,10 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     return true;
   }
 
-  /** once a song's picture and genres are known, the song wears them (if it's still playing) */
+  /** once a song's picture and genres are known, the song wears them (if it's still playing); done when it does */
   function dressSong(userId, m, image) {
-    if (!mayLookUp(userId, m)) return;
-    lookup(m, image)
+    if (!mayLookUp(userId, m)) return null;
+    return lookup(m, image)
       .then(({ art, genres }) => {
         const cur = live(parse((rowOf(userId) || {}).music));
         if (!cur || songKey(cur) !== songKey(m)) return;
@@ -403,6 +528,15 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   }
 
   // ---- counting real listening and playing (for achievements) ----------------------------------------------
+
+  /** whether this artist has been heard on their own on this server (so "& The Weeknd" is an artist, not a band's) */
+  const heardAlone = (name) => !!db.get("SELECT 1 AS x FROM stat_items WHERE key = 'music.artists' AND item = ? LIMIT 1", lower(name));
+  /** the artists on a song: its artist line's, and anyone featured in its title */
+  const songArtists = (m) => {
+    const all = artistsOf(m.artist, heardAlone);
+    for (const name of artistsOf(featuredIn(m.title), heardAlone)) if (!all.some((n) => lower(n) === lower(name))) all.push(name);
+    return all;
+  };
 
   const tracks = new Map(); // user id -> where their listening and playing stand, in memory
   const trackOf = (userId) => {
@@ -463,7 +597,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     s.counted.set(key, t);
     s.hour.push(t);
     stats.addItem(userId, 'music.songs', key, `${m.title}\n${m.artist || ''}`);
-    if (m.artist) stats.addItem(userId, 'music.artists', lower(m.artist), m.artist);
+    // (1.7.2) everyone on it, each on their own: "Justice & Tame Impala" is Justice, and Tame Impala
+    for (const name of songArtists(m)) stats.addItem(userId, 'music.artists', lower(name), name);
     genresFor(m.artist, '')
       .then((genres) => {
         for (const g of genres) stats.addItem(userId, 'music.genres', g, genreLabel(g));
@@ -534,7 +669,8 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       item.genres = same ? cur.genres : undefined;
     }
     save(userId, slot, item);
-    if (slot === 'music' && (!same || !cur.art)) dressSong(userId, item, image);
+    if (slot === 'music' && (!same || !cur.art)) return dressSong(userId, item, image);
+    return null;
   }
 
   /** a place stops saying something: it goes, if that's what was showing */
@@ -558,7 +694,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     if (item.source === 'desktop') trackOf(userId)[slot].desktopAt = t;
     if (slot === 'music') heardMusic(userId, item, t);
     else sawGame(userId, item, t);
-    offer(userId, slot, item, t, image);
+    return offer(userId, slot, item, t, image);
   }
 
   /** what someone types: it shows (over anything else) for its minutes */
@@ -567,7 +703,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     dismissed.delete(`${userId}:${slot}`);
     if (slot === 'music') item.art = keptArt(artKey(songKey(item))) || undefined;
     save(userId, slot, item);
-    if (slot === 'music' && !item.art) dressSong(userId, item, '');
+    return slot === 'music' && !item.art ? dressSong(userId, item, '') : null;
   }
 
   /** cleared by hand: whatever shows goes, and a song or game that was found by itself stays away until it changes */
@@ -646,12 +782,13 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       }
       return { activity: activityOut(rowOf(user.id)), now: t };
     }
+    const dressing = []; // a new song's cover and genres, being looked for
     if (body.source === 'desktop') {
       limit('activity:' + user.id, 60, 10 * MINUTE, 'That’s a lot of updates. Budgie will catch up in a minute.');
       for (const slot of SLOTS) {
         if (!(slot in body)) continue;
         const item = readItem(slot, body[slot], 'desktop');
-        if (item) sighted(user.id, slot, item, '');
+        if (item) dressing.push(sighted(user.id, slot, item, ''));
         else withdraw(user.id, slot, 'desktop');
       }
     } else if (body.source === 'manual') {
@@ -660,8 +797,11 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       const items = SLOTS.map((slot) => [slot, readItem(slot, body[slot], 'manual')]).filter(([, item]) => item);
       if (!items.length) fail(400, 'Say what you’re listening to or playing.');
       await checkTyped(user, items.flatMap(([slot, item]) => (slot === 'music' ? [item.title, item.artist] : [item.name])));
-      for (const [slot, item] of items) setManual(user.id, slot, item, minutes, t);
+      for (const [slot, item] of items) dressing.push(setManual(user.id, slot, item, minutes, t));
     } else fail(400, 'That isn’t a place Budgie knows activity from.');
+    // (1.7.2) a cover is usually found in a moment: the answer waits a little for it, so the song shows with it at once
+    const jobs = dressing.filter(Boolean);
+    if (jobs.length) await Promise.race([Promise.all(jobs), new Promise((r) => setTimeout(r, FAST ? 4000 : 2500))]);
     return { activity: activityOut(rowOf(user.id)), now: t };
   });
 
@@ -737,7 +877,18 @@ CREATE TABLE IF NOT EXISTS presence_genres (
       const [title, artist] = String(r.label || '').split('\n');
       return { title: title || r.item, artist: artist || undefined, plays: r.count, art: artOfSong(r.item) };
     });
-    const artists = top('music.artists', 8).map((r) => ({ name: r.label || r.item, plays: r.count }));
+    // (1.7.2) each artist on their own, also those counted together before ("Justice & Tame Impala")
+    const merged = new Map();
+    for (const r of top('music.artists', 40)) {
+      for (const name of artistsOf(r.label || r.item, heardAlone)) {
+        const k = lower(name);
+        const had = merged.get(k) || { name, plays: 0, lastAt: 0 };
+        had.plays += r.count;
+        had.lastAt = Math.max(had.lastAt, r.lastAt);
+        merged.set(k, had);
+      }
+    }
+    const artists = [...merged.values()].sort((a, b) => b.plays - a.plays || b.lastAt - a.lastAt).slice(0, 8).map(({ name, plays }) => ({ name, plays }));
     const genres = top('music.genres', 8).map((r) => ({ name: r.label || genreLabel(r.item), plays: r.count }));
     const games = top('games.played', 6).map((r) => ({ name: r.label || r.item, plays: r.count }));
     if (!songs.length && !artists.length && !games.length) return { lately: null };
@@ -807,7 +958,7 @@ CREATE TABLE IF NOT EXISTS presence_genres (
     db.run("UPDATE presence SET music = '' WHERE music != '' AND json_valid(music) AND COALESCE(json_extract(music, '$.until'), 0) < ?", t);
     db.run("UPDATE presence SET game = '' WHERE game != '' AND json_valid(game) AND COALESCE(json_extract(game, '$.until'), 0) < ?", t);
     db.run("DELETE FROM presence WHERE music = '' AND game = '' AND steam_id = '' AND visibility = 'friends'");
-    db.run("DELETE FROM presence_art WHERE file = '' AND fetched_at < ?", t - 7 * DAY);
+    db.run("DELETE FROM presence_art WHERE file = '' AND fetched_at < ?", t - 2 * DAY);
     db.run('DELETE FROM presence_genres WHERE fetched_at < ?', t - 90 * DAY);
     for (const [id, tr] of tracks) if (Math.max(tr.music.at, tr.game.at, tr.music.desktopAt || 0, tr.game.desktopAt || 0) < t - HOUR) tracks.delete(id);
     for (const key of dismissed.keys()) if (!tracks.has(Number(key.split(':')[0]))) dismissed.delete(key);
@@ -929,4 +1080,4 @@ CREATE TABLE IF NOT EXISTS presence_genres (
   };
 }
 
-module.exports = { install };
+module.exports = { install, artistsOf, featuredIn };

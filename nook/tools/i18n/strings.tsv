@@ -1166,113 +1166,113 @@ c572d19	text	js/pickers.js:300	That picture is too big. Try one under 30 MB.
 c23f7c7	pattern	js/pickers.js:308	That GIF is too large. Try one at most {0}×{1} pixels.
 b680ece	text	js/pickers.js:311	Couldn’t read that GIF.
 e62a972	text	js/pickers.js:327	Couldn’t read that picture. Try a JPEG, PNG or GIF.
-af43448	text	js/presence.js:86	just started
-fcf7344	pattern	js/presence.js:87	for {0} min
-65a90e7	pattern	js/presence.js:90	for {0} h {1} min
-3350964	pattern	js/presence.js:90	for {0} h
-bae7d5b	text	js/presence.js:94	Status
-0393174	text	js/presence.js:152	Due to Spotify’s recent API rules, Budgie can’t link Spotify on phones. Budgie for your computer can still show what you play on Spotify.
-af00016	text	js/presence.js:169	Hear 30 seconds of it
-2334466	text	js/presence.js:170	Listen along
-bf331ee	text	js/presence.js:172	Open in Spotify or Apple Music
-eed7d59	text	js/presence.js:172	Open in…
-dc35348	text	js/presence.js:209	Listening
-298c390	text	js/presence.js:227	Playing
-e6823c0	pattern	js/presence.js:255	Listening to {0}
-59448d0	pattern	js/presence.js:256	Playing {0}
-6385332	text	js/presence.js:356	Share a song or game
-bc7b335	text	js/presence.js:444	1 play
-ad7864d	text	js/presence.js:449	Top songs
-dcff5e0	text	js/presence.js:460	of music
-21a4e3e	text	js/presence.js:460	of games
-dd780cc	text	js/presence.js:463	Lately
-6b32985	text	js/presence.js:463	Last 30 days
-1528d87	text	js/presence.js:465	Artists
-96817ad	text	js/presence.js:466	Genres
-398ed32	text	js/presence.js:467	Games
-d3ddf7a	text	js/presence.js:476	30 min
-f030c3d	text	js/presence.js:476	1 hour
-7b47150	text	js/presence.js:476	4 hours
-09541ae	text	js/presence.js:476	Until I clear it
-7cc4c50	text	js/presence.js:486	What are you listening to?
-abb439d	text	js/presence.js:486	What are you playing?
-bd1189c	text	js/presence.js:491	Song
-2fad87e	text	js/presence.js:491	Song name
-dd53821	text	js/presence.js:491	Artist (optional)
-ded93de	text	js/presence.js:491	Who it’s by
-e3e8284	text	js/presence.js:491	Game
-e617db3	text	js/presence.js:491	Game name
-5e51caf	text	js/presence.js:492	Show it for
-5088947	text	js/presence.js:495	It’s just words, so it doesn’t count towards music or game achievements. Only the people you chose in Settings → Activity see it.
-00c5d50	text	js/presence.js:531	Say which song.
-7edaf03	text	js/presence.js:531	Say which game.
-13078f0	text	js/presence.js:543	Your friends can see what you’re listening to
-0daaeda	text	js/presence.js:543	Your friends can see what you’re playing
-7520df0	text	js/presence.js:600	Listening to…
-6023c56	text	js/presence.js:601	Playing…
-8714662	text	js/presence.js:603	Activity settings
-412d603	text	js/presence.js:609	Set a song instead
-f5b43aa	text	js/presence.js:609	Set a game instead
-719ea39	text	js/presence.js:610	Clear
-81c0d91	text	js/presence.js:665	Activity
-597d17e	text	js/presence.js:693	Who can see it
-b984a8e	text	js/presence.js:699	typed by you
-e43b515	text	js/presence.js:699	from your device
-c93e111	text	js/presence.js:699	from Spotify
-064409f	text	js/presence.js:699	from Steam
-0dc2913	text	js/presence.js:707	Unlink
-b1ec521	text	js/presence.js:710	Show your friends the song you’re listening to and the game you’re playing: on your profile, in chats and in their list of friends.
-c756f6a	text	js/presence.js:711	Everyone
-148ba2d	text	js/presence.js:711	Nobody
-d5f4bf4	text	js/presence.js:716	Set it yourself
-03bf166	text	js/presence.js:717	Type what you’re listening to or playing, for as long as you like (up to a day). It’s just words, so it doesn’t count towards music or game achievements.
-d98501c	text	js/presence.js:721	Get Budgie for your computer
-18285e3	text	js/presence.js:727	Link your Spotify, and your friends see what you’re playing on it, about every 20 seconds while you use Budgie. With Spotify Premium, you can listen along with them too.
-13c95db	text	js/presence.js:729	Spotify isn’t set up on this Budgie server yet.
-b0e8c5b	text	js/presence.js:732	Link Spotify
-e594720	text	js/presence.js:732	You’ll sign in on Spotify’s own page, then come back here.
-8287655	text	js/presence.js:740	Share the song the Music app on this iPhone is playing, while you’re using Budgie. Without Spotify, Listen along plays a friend’s song in the Music app (a whole song needs an Apple Music subscription).
-0a03106	text	js/presence.js:741	Share what the Music app plays
-29afe06	text	js/presence.js:741	Your iPhone asks you first
-3c5d6c2	text	js/presence.js:748	Link your Steam profile: paste its link, or the name in its custom URL. Your profile and its Game details must be public in Steam’s privacy settings.
-0fa6534	text	js/presence.js:749	Steam isn’t set up on this Budgie server yet.
-1913c85	text	js/presence.js:749	Steam profile link or name
-b4757a2	text	js/presence.js:749	Link Steam
-4ccce6f	text	js/presence.js:755	This computer
-5690f2c	text	js/presence.js:756	Budgie for your computer can see the music it plays (Spotify, Apple Music and other players) and the games it runs. Nothing else on your computer is looked at.
-90f74f7	text	js/presence.js:757	Show what I’m listening to
-f0218fd	text	js/presence.js:757	From your computer’s media controls
-d286d85	text	js/presence.js:758	Show what I’m playing
-1e257dd	text	js/presence.js:758	Games running on this computer
-5d8cedd	text	js/presence.js:761	Budgie for your computer can show what it plays and runs by itself.
-83d98fe	text	js/presence.js:761	Get it
-1540cf1	text	js/presence.js:762	Budgie keeps what you’re listening to and playing right now, and counts the songs, artists, genres and games you play for your achievements and your profile’s Lately. Album art is fetched by Budgie’s own server, so no other company sees who’s looking.
-358dbf5	text	js/presence.js:769	Everyone can see what you’re listening to and playing.
-250fbe8	text	js/presence.js:769	Only your friends can see what you’re listening to and playing.
-04c23c1	text	js/presence.js:769	Nobody can see what you’re listening to and playing.
-f017d3b	text	js/presence.js:790	Steam is linked
-a6bc13d	text	js/presence.js:806	Steam is unlinked.
-d1f04d4	text	js/presence.js:831	Spotify is unlinked. You can also take Budgie’s access away in your Spotify account’s settings.
-69c8c73	text	js/presence.js:858	Let Budgie use Apple Music: iPhone Settings → Apps → Budgie → Media & Apple Music.
-f742854	text	js/presence.js:866	Sharing what the Music app plays
-ba2d26c	text	js/presence.js:934	Stop the preview
-f688aee	text	js/presence.js:980	There’s no preview of this song, sorry.
-c9965a8	text	js/presence.js:994	The preview didn’t start. Tap it again.
-d29caa1	text	js/presence.js:1009	This song doesn’t seem to be on Apple Music.
-05e1678	text	js/presence.js:1011	Open in Spotify
-fbc5cd1	text	js/presence.js:1013	Open in Apple Music
-1e9f556	pattern	js/presence.js:1028	Listening along with u/{0} in Apple Music
-d853c89	pattern	js/presence.js:1028	Listening along with u/{0}
-9f6767f	text	js/presence.js:1046	Apple Music didn’t play it. Playing a whole song needs an Apple Music subscription.
-5bdb86d	text	js/presence.js:1051	Listening along stopped after three hours.
-2d816f4	pattern	js/presence.js:1063	u/{0} stopped listening, so listening along stopped too.
-a139bcc	pattern	js/presence.js:1071	Now: {0}
-33527d2	text	js/presence.js:1077	You stopped listening along.
-219b070	text	js/presence.js:1082	Listening along needs Spotify, and it isn’t set up on this Budgie server yet.
-fe4d87c	text	js/presence.js:1083	Link your Spotify to listen along with friends.
-9375dd8	pattern	js/presence.js:1093	Playing “{0}” in Apple Music
-0133a70	pattern	js/presence.js:1093	Playing “{0}” on your Spotify
-25e92c7	text	js/presence.js:1123	Spotify is linked
+af43448	text	js/presence.js:102	just started
+fcf7344	pattern	js/presence.js:103	for {0} min
+65a90e7	pattern	js/presence.js:106	for {0} h {1} min
+3350964	pattern	js/presence.js:106	for {0} h
+bae7d5b	text	js/presence.js:110	Status
+0393174	text	js/presence.js:168	Due to Spotify’s recent API rules, Budgie can’t link Spotify on phones. Budgie for your computer can still show what you play on Spotify.
+af00016	text	js/presence.js:185	Hear 30 seconds of it
+2334466	text	js/presence.js:186	Listen along
+bf331ee	text	js/presence.js:188	Open in Spotify or Apple Music
+eed7d59	text	js/presence.js:188	Open in…
+dc35348	text	js/presence.js:225	Listening
+298c390	text	js/presence.js:243	Playing
+e6823c0	pattern	js/presence.js:271	Listening to {0}
+59448d0	pattern	js/presence.js:272	Playing {0}
+6385332	text	js/presence.js:372	Share a song or game
+bc7b335	text	js/presence.js:527	1 play
+ad7864d	text	js/presence.js:532	Top songs
+dcff5e0	text	js/presence.js:543	of music
+21a4e3e	text	js/presence.js:543	of games
+dd780cc	text	js/presence.js:546	Lately
+6b32985	text	js/presence.js:546	Last 30 days
+1528d87	text	js/presence.js:548	Artists
+96817ad	text	js/presence.js:549	Genres
+398ed32	text	js/presence.js:550	Games
+d3ddf7a	text	js/presence.js:559	30 min
+f030c3d	text	js/presence.js:559	1 hour
+7b47150	text	js/presence.js:559	4 hours
+09541ae	text	js/presence.js:559	Until I clear it
+7cc4c50	text	js/presence.js:569	What are you listening to?
+abb439d	text	js/presence.js:569	What are you playing?
+bd1189c	text	js/presence.js:574	Song
+2fad87e	text	js/presence.js:574	Song name
+dd53821	text	js/presence.js:574	Artist (optional)
+ded93de	text	js/presence.js:574	Who it’s by
+e3e8284	text	js/presence.js:574	Game
+e617db3	text	js/presence.js:574	Game name
+5e51caf	text	js/presence.js:575	Show it for
+5088947	text	js/presence.js:578	It’s just words, so it doesn’t count towards music or game achievements. Only the people you chose in Settings → Activity see it.
+00c5d50	text	js/presence.js:614	Say which song.
+7edaf03	text	js/presence.js:614	Say which game.
+13078f0	text	js/presence.js:626	Your friends can see what you’re listening to
+0daaeda	text	js/presence.js:626	Your friends can see what you’re playing
+7520df0	text	js/presence.js:683	Listening to…
+6023c56	text	js/presence.js:684	Playing…
+8714662	text	js/presence.js:686	Activity settings
+412d603	text	js/presence.js:692	Set a song instead
+f5b43aa	text	js/presence.js:692	Set a game instead
+719ea39	text	js/presence.js:693	Clear
+81c0d91	text	js/presence.js:748	Activity
+597d17e	text	js/presence.js:776	Who can see it
+b984a8e	text	js/presence.js:782	typed by you
+e43b515	text	js/presence.js:782	from your device
+c93e111	text	js/presence.js:782	from Spotify
+064409f	text	js/presence.js:782	from Steam
+0dc2913	text	js/presence.js:790	Unlink
+b1ec521	text	js/presence.js:793	Show your friends the song you’re listening to and the game you’re playing: on your profile, in chats and in their list of friends.
+c756f6a	text	js/presence.js:794	Everyone
+148ba2d	text	js/presence.js:794	Nobody
+d5f4bf4	text	js/presence.js:799	Set it yourself
+03bf166	text	js/presence.js:800	Type what you’re listening to or playing, for as long as you like (up to a day). It’s just words, so it doesn’t count towards music or game achievements.
+d98501c	text	js/presence.js:804	Get Budgie for your computer
+18285e3	text	js/presence.js:810	Link your Spotify, and your friends see what you’re playing on it, about every 20 seconds while you use Budgie. With Spotify Premium, you can listen along with them too.
+13c95db	text	js/presence.js:812	Spotify isn’t set up on this Budgie server yet.
+b0e8c5b	text	js/presence.js:815	Link Spotify
+e594720	text	js/presence.js:815	You’ll sign in on Spotify’s own page, then come back here.
+8287655	text	js/presence.js:823	Share the song the Music app on this iPhone is playing, while you’re using Budgie. Without Spotify, Listen along plays a friend’s song in the Music app (a whole song needs an Apple Music subscription).
+0a03106	text	js/presence.js:824	Share what the Music app plays
+29afe06	text	js/presence.js:824	Your iPhone asks you first
+3c5d6c2	text	js/presence.js:831	Link your Steam profile: paste its link, or the name in its custom URL. Your profile and its Game details must be public in Steam’s privacy settings.
+0fa6534	text	js/presence.js:832	Steam isn’t set up on this Budgie server yet.
+1913c85	text	js/presence.js:832	Steam profile link or name
+b4757a2	text	js/presence.js:832	Link Steam
+4ccce6f	text	js/presence.js:838	This computer
+5690f2c	text	js/presence.js:839	Budgie for your computer can see the music it plays (Spotify, Apple Music and other players) and the games it runs. Nothing else on your computer is looked at.
+90f74f7	text	js/presence.js:840	Show what I’m listening to
+f0218fd	text	js/presence.js:840	From your computer’s media controls
+d286d85	text	js/presence.js:841	Show what I’m playing
+1e257dd	text	js/presence.js:841	Games running on this computer
+5d8cedd	text	js/presence.js:844	Budgie for your computer can show what it plays and runs by itself.
+83d98fe	text	js/presence.js:844	Get it
+1540cf1	text	js/presence.js:845	Budgie keeps what you’re listening to and playing right now, and counts the songs, artists, genres and games you play for your achievements and your profile’s Lately. Album art is fetched by Budgie’s own server, so no other company sees who’s looking.
+358dbf5	text	js/presence.js:853	Everyone can see what you’re listening to and playing.
+250fbe8	text	js/presence.js:853	Only your friends can see what you’re listening to and playing.
+04c23c1	text	js/presence.js:853	Nobody can see what you’re listening to and playing.
+f017d3b	text	js/presence.js:874	Steam is linked
+a6bc13d	text	js/presence.js:890	Steam is unlinked.
+d1f04d4	text	js/presence.js:915	Spotify is unlinked. You can also take Budgie’s access away in your Spotify account’s settings.
+69c8c73	text	js/presence.js:942	Let Budgie use Apple Music: iPhone Settings → Apps → Budgie → Media & Apple Music.
+f742854	text	js/presence.js:950	Sharing what the Music app plays
+ba2d26c	text	js/presence.js:1018	Stop the preview
+f688aee	text	js/presence.js:1064	There’s no preview of this song, sorry.
+c9965a8	text	js/presence.js:1078	The preview didn’t start. Tap it again.
+d29caa1	text	js/presence.js:1093	This song doesn’t seem to be on Apple Music.
+05e1678	text	js/presence.js:1095	Open in Spotify
+fbc5cd1	text	js/presence.js:1097	Open in Apple Music
+1e9f556	pattern	js/presence.js:1112	Listening along with u/{0} in Apple Music
+d853c89	pattern	js/presence.js:1112	Listening along with u/{0}
+9f6767f	text	js/presence.js:1130	Apple Music didn’t play it. Playing a whole song needs an Apple Music subscription.
+5bdb86d	text	js/presence.js:1135	Listening along stopped after three hours.
+2d816f4	pattern	js/presence.js:1147	u/{0} stopped listening, so listening along stopped too.
+a139bcc	pattern	js/presence.js:1155	Now: {0}
+33527d2	text	js/presence.js:1161	You stopped listening along.
+219b070	text	js/presence.js:1166	Listening along needs Spotify, and it isn’t set up on this Budgie server yet.
+fe4d87c	text	js/presence.js:1167	Link your Spotify to listen along with friends.
+9375dd8	pattern	js/presence.js:1177	Playing “{0}” in Apple Music
+0133a70	pattern	js/presence.js:1177	Playing “{0}” on your Spotify
+25e92c7	text	js/presence.js:1207	Spotify is linked
 18b737b	text	js/rewards.js:31	name effect
 66bfb85	text	js/rewards.js:31	Your name comes alive on your profile, and wears a gentle version on posts, comments and chats.
 ffe688a	text	js/rewards.js:32	Fonts
@@ -2137,21 +2137,21 @@ a5ae2a0	text	server/music.js:458	That’s a lot of songs in a row. Try again in 
 6a1b876	text	server/music.js:530	Open Spotify on your phone or computer first, play anything for a moment, then try again.
 2079958	text	server/music.js:532	Listening along needs Spotify Premium: Spotify only lets Budgie start songs for Premium accounts.
 32585e3	text	server/music.js:533	Spotify didn’t start the song. Try again in a minute.
-8caa8b7	text	server/presence.js:180	This reads as hurtful to an automatic check, so it can’t be your status. If it got you wrong, try putting it differently.
-ca5b212	text	server/presence.js:181	this activity status might be
-b611af7	text	server/presence.js:640	That’s a lot of updates. Try again in a minute.
-7ee821f	text	server/presence.js:642	That can’t be cleared.
-b81bf69	text	server/presence.js:650	That’s a lot of updates. Budgie will catch up in a minute.
-f9118bd	text	server/presence.js:658	That’s a lot of statuses for one hour. Try again later.
-c3f8bff	text	server/presence.js:661	Say what you’re listening to or playing.
-385130c	text	server/presence.js:664	That isn’t a place Budgie knows activity from.
-739209a	text	server/presence.js:681	Choose everyone, friends or nobody.
-1cb8458	text	server/presence.js:689	That’s a lot of tries. Wait a little and try again.
-5df0243	text	server/presence.js:699	Paste your Steam profile’s link, its 17-digit number, or the name in its custom URL.
-df94d3f	text	server/presence.js:702	Steam isn’t answering right now. Try again in a minute.
-d571104	pattern	server/presence.js:703	Steam doesn’t know a profile called “{0}”.
-31d8dc2	text	server/presence.js:706	That isn’t a Steam profile’s number.
-869326a	text	server/presence.js:710	Steam doesn’t know that profile.
+8caa8b7	text	server/presence.js:234	This reads as hurtful to an automatic check, so it can’t be your status. If it got you wrong, try putting it differently.
+ca5b212	text	server/presence.js:235	this activity status might be
+b611af7	text	server/presence.js:776	That’s a lot of updates. Try again in a minute.
+7ee821f	text	server/presence.js:778	That can’t be cleared.
+b81bf69	text	server/presence.js:787	That’s a lot of updates. Budgie will catch up in a minute.
+f9118bd	text	server/presence.js:795	That’s a lot of statuses for one hour. Try again later.
+c3f8bff	text	server/presence.js:798	Say what you’re listening to or playing.
+385130c	text	server/presence.js:801	That isn’t a place Budgie knows activity from.
+739209a	text	server/presence.js:821	Choose everyone, friends or nobody.
+1cb8458	text	server/presence.js:829	That’s a lot of tries. Wait a little and try again.
+5df0243	text	server/presence.js:839	Paste your Steam profile’s link, its 17-digit number, or the name in its custom URL.
+df94d3f	text	server/presence.js:842	Steam isn’t answering right now. Try again in a minute.
+d571104	pattern	server/presence.js:843	Steam doesn’t know a profile called “{0}”.
+31d8dc2	text	server/presence.js:846	That isn’t a Steam profile’s number.
+869326a	text	server/presence.js:850	Steam doesn’t know that profile.
 e8b2890	text	server/rewards.js:116	That’s a lot of changing. Wait a little and try again.
 8176307	text	server/rewards.js:121	name fonts
 14182b2	pattern	server/rewards.js:121	That isn’t one of Budgie’s {0}.

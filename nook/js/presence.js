@@ -64,10 +64,26 @@
   }
 
   let timer = 0;
+  // (1.7.2) a song that's only just started often gets its cover a moment later: asked about again soon, a few times
+  const artTries = new Map(); // a name and song -> times asked again for its cover
+  function coverSoon() {
+    if (artTries.size > 200) artTries.clear();
+    let soon = false;
+    for (const [name, { act }] of cache) {
+      const m = act && act.music;
+      if (!m || m.art || Date.now() + skew - m.since > 120000) continue;
+      const k = `${name}\n${m.title}\n${m.artist || ''}`;
+      const tries = artTries.get(k) || 0;
+      if (tries >= 3) continue;
+      artTries.set(k, tries + 1);
+      soon = true;
+    }
+    return soon;
+  }
   function schedule() {
     clearTimeout(timer);
     if (off || document.hidden) return;
-    timer = setTimeout(() => refresh(true), REFRESH);
+    timer = setTimeout(() => refresh(true), coverSoon() ? 4000 : REFRESH);
   }
   /** everyone on the page, asked about again (force) or only if not lately; nothing on the page, nothing asked */
   function refresh(force) {
@@ -93,7 +109,7 @@
   function sourceTag(x) {
     if (x.source === 'manual') return `<span class="pres-tag">${icon('edit_note')}Status</span>`;
     const name = x.source === 'spotify' ? 'Spotify' : x.source === 'steam' ? 'Steam' : x.app || 'PC';
-    return `<span class="pres-tag" translate="no">${esc(name)}</span>`;
+    return `<span class="pres-tag" translate="no"><span data-slide>${esc(name)}</span></span>`;
   }
   const songText = (m) => clean(m.title) + (m.artist ? ' — ' + clean(m.artist) : '');
   /** an hour count, plainly: "40 min", "12 h" */
@@ -207,8 +223,8 @@
       (src ? `<img class="pres-cover" src="${esc(src)}" alt="" crossorigin="anonymous">` : `<span class="pres-cover pres-cover-empty" aria-hidden="true">${icon('music_note')}</span>`) +
       '</div>' +
       `<div class="pres-info"><span class="pres-label">${EQ}<span class="pres-word">Listening</span>${sourceTag(m)}</span>` +
-      `<b class="pres-title" translate="no">${esc(clean(m.title))}</b>` +
-      (m.artist || m.album ? `<span class="pres-sub" translate="no">${esc(clean(m.artist || ''))}${m.artist && m.album ? ' · ' : ''}${m.album ? `<span class="pres-album">${esc(clean(m.album))}</span>` : ''}</span>` : '') +
+      `<b class="pres-title" translate="no" data-slide data-slide-wrap>${esc(clean(m.title))}</b>` +
+      (m.artist || m.album ? `<span class="pres-sub" translate="no" data-slide data-slide-wrap>${esc(clean(m.artist || ''))}${m.artist && m.album ? ' · ' : ''}${m.album ? `<span class="pres-album">${esc(clean(m.album))}</span>` : ''}</span>` : '') +
       `<span class="pres-meta"><span data-since="${m.since}">${esc(forHowLong(m.since))}</span>${genres.length ? `<span class="pres-genres" translate="no">${genres.map(esc).join(' · ')}</span>` : ''}</span>` +
       // how far into the song they are, running on by itself to its end
       progressLine(m) +
@@ -225,7 +241,7 @@
       `<div class="pres-card pres-game" data-slot="game"${own ? ' data-pres-act="mine" data-m3-ripple role="button" tabindex="0" aria-label="Change or clear what you’re playing"' : ''}>` +
       `<div class="pres-pad" aria-hidden="true"><m3-shape shape="pixelCircle"></m3-shape>${icon('sports_esports')}<i></i><i></i><i></i></div>` +
       `<div class="pres-info"><span class="pres-label"><span class="pres-live" aria-hidden="true"></span><span class="pres-word">Playing</span>${sourceTag(g)}</span>` +
-      `<b class="pres-title" translate="no">${esc(clean(g.name))}</b>` +
+      `<b class="pres-title" translate="no" data-slide data-slide-wrap>${esc(clean(g.name))}</b>` +
       `<span class="pres-meta"><span data-since="${g.since}">${esc(forHowLong(g.since))}</span></span></div>` +
       (own ? `<span class="pres-edit" aria-hidden="true">${icon('edit')}</span>` : '') +
       '</div>'
@@ -241,8 +257,8 @@
   function lineHTML(act) {
     if (!act) return '';
     const parts = [];
-    if (act.music) parts.push(`<span class="pres-bit music">${MINI_EQ}<span translate="no">${esc(songText(act.music))}</span></span>`);
-    if (act.game) parts.push(`<span class="pres-bit game">${icon('sports_esports')}<span translate="no">${esc(clean(act.game.name))}</span></span>`);
+    if (act.music) parts.push(`<span class="pres-bit music">${MINI_EQ}<span translate="no" data-slide>${esc(songText(act.music))}</span></span>`);
+    if (act.game) parts.push(`<span class="pres-bit game">${icon('sports_esports')}<span translate="no" data-slide>${esc(clean(act.game.name))}</span></span>`);
     return parts.length > 1 ? `<span class="pres-roll" data-show="0">${parts.join('')}</span><span class="pres-also" aria-hidden="true">${icon('sports_esports')}</span>` : parts.join('');
   }
   const lineSig = (act) => (!act ? '' : JSON.stringify([act.music && songText(act.music), act.game && act.game.name]));
@@ -400,6 +416,7 @@
       }
     }
     tick();
+    slideAll(root);
   }
 
   /** "for 3 min" moves on */
@@ -414,6 +431,7 @@
   // a game turns from one to the other
   let beats = 0;
   setInterval(() => {
+    if (slideHeld !== null && slideHeld !== still()) slideAll();
     if (document.hidden || still()) return;
     beats++;
     for (const shape of document.querySelectorAll('.pres-pad m3-shape')) {
@@ -421,6 +439,71 @@
     }
     if (beats % 2) for (const roll of document.querySelectorAll('.pres-roll')) roll.dataset.show = roll.dataset.show === '1' ? '0' : '1';
   }, 2400);
+
+  // ---- words too long for their line slide along, like a music app's (1.7.2) ------------------------------
+  // A pause at the start, then the rest of the words go by and the start comes round again. Held still (less
+  // motion, or calm mode), the line keeps its "…", and a card's title and artist get a second line instead
+  const SLIDE = { gap: 36, speed: 32, pause: 2200, fade: 16 }; // px between the end and the start again, px a second, ms
+  const sliding = new Map(); // a line -> { key, anims }
+  const watched = new Set(); // lines whose size is watched, so they're measured again when it changes
+  let slideHeld = null;
+  const slideSeen = typeof ResizeObserver === 'function' ? new ResizeObserver((entries) => entries.forEach((e) => fitSlide(e.target))) : null;
+  function unslide(el) {
+    const had = sliding.get(el);
+    if (had) had.anims.forEach((a) => a.cancel());
+    sliding.delete(el);
+    el.classList.remove('sliding');
+    const run = el.firstElementChild;
+    if (run && run.classList.contains('slide-run') && run.children.length > 1) run.lastElementChild.remove();
+  }
+  function fitSlide(el) {
+    if (!el.isConnected) return letGo(el);
+    let run = el.firstElementChild;
+    if (!run || !run.classList.contains('slide-run')) {
+      el.innerHTML = `<span class="slide-run"><span class="slide-words">${el.innerHTML}</span></span>`;
+      run = el.firstElementChild;
+    }
+    if (slideSeen && !watched.has(el)) {
+      slideSeen.observe(el);
+      watched.add(el);
+    }
+    const held = still();
+    el.classList.toggle('slide-held', held);
+    const width = run.firstElementChild.getBoundingClientRect().width;
+    const room = el.clientWidth;
+    if (held || !room || width - room <= 1 || typeof run.animate !== 'function') return unslide(el);
+    const dist = Math.round(width + SLIDE.gap);
+    const key = `${dist}|${room}`;
+    const had = sliding.get(el);
+    if (had && had.key === key) return;
+    if (had) had.anims.forEach((a) => a.cancel());
+    if (run.children.length < 2) run.insertAdjacentHTML('beforeend', `<span class="slide-words" aria-hidden="true">${run.firstElementChild.innerHTML}</span>`);
+    el.classList.add('sliding');
+    const total = SLIDE.pause + (dist / SLIDE.speed) * 1000;
+    const hold = SLIDE.pause / total;
+    const anims = [run.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(0)', offset: hold }, { transform: `translateX(${-dist}px)` }], { duration: total, iterations: Infinity })];
+    // the start fades out at the edge only while the words are moving
+    const inAt = Math.min(0.999, hold + 260 / total);
+    const outAt = Math.max(inAt, 1 - 200 / total);
+    try {
+      anims.push(el.animate([{ '--slide-fade': '0px' }, { '--slide-fade': '0px', offset: hold }, { '--slide-fade': SLIDE.fade + 'px', offset: inAt }, { '--slide-fade': SLIDE.fade + 'px', offset: outAt }, { '--slide-fade': '0px' }], { duration: total, iterations: Infinity }));
+    } catch (_) {
+      /* a browser that can't move the fade: the words still slide */
+    }
+    sliding.set(el, { key, anims });
+  }
+  function letGo(el) {
+    unslide(el);
+    if (slideSeen) slideSeen.unobserve(el);
+    watched.delete(el);
+  }
+  /** every line in root that might not fit, measured again; lines that left the page let go */
+  function slideAll(root = document) {
+    slideHeld = still();
+    for (const el of root.querySelectorAll('[data-slide]')) fitSlide(el);
+    for (const el of [...watched]) if (!el.isConnected) letGo(el);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => slideAll(), () => {});
 
   // ---- "Lately": what someone has been into this last month ------------------------------------------
 
@@ -697,7 +780,7 @@
       if (!x) return '';
       const words = slot === 'music' ? songText(x) : clean(x.name);
       const from = { manual: 'typed by you', desktop: 'from your device', spotify: 'from Spotify', steam: 'from Steam' }[x.source] || '';
-      return `<div class="pres-now"><span class="pres-now-icon">${slot === 'music' ? MINI_EQ : icon('sports_esports')}</span><span class="row-text"><b translate="no">${esc(words)}</b><small>${esc(slot === 'music' ? 'Listening' : 'Playing')} · ${esc(from)}</small></span><button type="button" class="m3-btn text small" data-pres-act="clear" data-slot="${slot}">${icon('close')}Clear</button></div>`;
+      return `<div class="pres-now"><span class="pres-now-icon">${slot === 'music' ? MINI_EQ : icon('sports_esports')}</span><span class="row-text"><b translate="no" data-slide>${esc(words)}</b><small>${esc(slot === 'music' ? 'Listening' : 'Playing')} · ${esc(from)}</small></span><button type="button" class="m3-btn text small" data-pres-act="clear" data-slot="${slot}">${icon('close')}Clear</button></div>`;
     };
     const source = (shape, symbol, title, about, body) =>
       `<div class="pres-source"><div class="pres-source-head"><m3-shape-icon shape="${shape}" symbol="${symbol}" size="40" icon-size="20"></m3-shape-icon><b>${title}</b></div><small>${about}</small>${body}</div>`;
@@ -762,6 +845,7 @@
       '<p class="muted pres-privacy">Budgie keeps what you’re listening to and playing right now, and counts the songs, artists, genres and games you play for your achievements and your profile’s Lately. Album art is fetched by Budgie’s own server, so no other company sees who’s looking.</p>';
 
     // who can see it
+    slideAll(box);
     const vis = box.querySelector('#pres-vis');
     vis.addEventListener('change', (e) => {
       const value = e.detail.value;
